@@ -10,18 +10,25 @@ const server = serve({
       filePath = "/index.html";
     }
 
-    // Try root directory first, then src
     try {
-      // Try root directory
-      let file = Bun.file(`.${filePath}`);
-      if (await file.exists()) {
-        return new Response(file);
+      // For .js files, try dist directory first
+      if (filePath.endsWith(".js")) {
+        const distFile = Bun.file(`dist${filePath}`);
+        if (await distFile.exists()) {
+          return new Response(distFile);
+        }
       }
 
       // Try src directory
-      file = Bun.file(`src${filePath}`);
-      if (await file.exists()) {
-        return new Response(file);
+      const srcFile = Bun.file(`src${filePath}`);
+      if (await srcFile.exists()) {
+        return new Response(srcFile);
+      }
+
+      // Try root directory
+      const rootFile = Bun.file(`.${filePath}`);
+      if (await rootFile.exists()) {
+        return new Response(rootFile);
       }
 
       return new Response("Not Found", { status: 404 });
