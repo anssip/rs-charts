@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Candlestick Chart Demo</title>
+    <script type="module" src="index.js"></script>
+</head>
+<body>
+    <h1>Candlestick Chart</h1>
+    <candlestick-chart width="800" height="400"></candlestick-chart>
+
+    <script>
+        customElements.whenDefined('candlestick-chart').then(() => {
+            const chart = document.querySelector('candlestick-chart');
+            const sampleData = [
+                { timestamp: 1625097600000, open: 100, high: 110, low: 95, close: 105 },
+                { timestamp: 1625184000000, open: 105, high: 115, low: 100, close: 110 },
+                { timestamp: 1625270400000, open: 110, high: 120, low: 105, close: 115 },
+                { timestamp: 1625356800000, open: 115, high: 125, low: 110, close: 120 },
+            ];
+            
+            if (chart) {
+                console.log('Setting data to chart');
+                chart.setData(sampleData);
+            } else {
+                console.error('Chart element not found');
+            }
+        });
+    </script>
+</body>
+</html>
