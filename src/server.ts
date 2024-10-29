@@ -1,4 +1,15 @@
 import { serve } from "bun";
+import { PriceDataService } from "./server/price-service";
+import dotenv from "dotenv";
+
+const API_KEY = process.env.CMC_API_KEY;
+if (!API_KEY) {
+  throw new Error("CMC_API_KEY environment variable is required");
+}
+
+dotenv.config();
+
+const priceService = new PriceDataService(API_KEY);
 
 const server = serve({
   port: 3000,
@@ -6,6 +17,33 @@ const server = serve({
     const url = new URL(req.url);
     let filePath = url.pathname;
 
+    // Handle API requests
+    if (filePath.startsWith("/api")) {
+      if (filePath === "/api/candles") {
+        try {
+          const params = new URLSearchParams(url.search);
+          const candles = await priceService.fetchCandles({
+            symbol: params.get("symbol") || "BTC",
+            interval: (params.get("interval") || "1h") as "1h",
+            limit: parseInt(params.get("limit") || "168"),
+          });
+          return new Response(JSON.stringify(candles), {
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (error) {
+          return new Response(
+            JSON.stringify({ error: "Failed to fetch candles" }),
+            {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+      return new Response("Not Found", { status: 404 });
+    }
+
+    // Handle static files
     if (filePath === "/") {
       filePath = "/index.html";
     }
@@ -23,12 +61,6 @@ const server = serve({
       const srcFile = Bun.file(`src${filePath}`);
       if (await srcFile.exists()) {
         return new Response(srcFile);
-      }
-
-      // Try root directory
-      const rootFile = Bun.file(`.${filePath}`);
-      if (await rootFile.exists()) {
-        return new Response(rootFile);
       }
 
       return new Response("Not Found", { status: 404 });

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun build ./src/index.ts --outdir ./dist --watch & bun run --watch src/server.ts",
+    "dev": "bun run --watch src/server.ts",
     "build": "bun build ./src/index.ts --outdir ./dist",
     "postbuild": "cp src/index.html dist/"
   },
@@ -11,5 +11,8 @@
     "@types/bun": "^1.1.12",
     "bun-types": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
   }
 }

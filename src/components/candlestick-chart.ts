@@ -6,11 +6,24 @@ interface CandleData {
   close: number;
 }
 
+interface ChartOptions {
+  candleWidth: number;
+  candleGap: number;
+  minCandleWidth: number;
+  maxCandleWidth: number;
+}
+
 class CandlestickChart extends HTMLElement {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
   private data: CandleData[] = [];
   private padding = { top: 20, right: 20, bottom: 30, left: 60 };
+  private options: ChartOptions = {
+    candleWidth: 10,
+    candleGap: 2,
+    minCandleWidth: 4,
+    maxCandleWidth: 20,
+  };
 
   constructor() {
     super();
@@ -38,10 +51,22 @@ class CandlestickChart extends HTMLElement {
   }
 
   public setData(data: CandleData[]) {
-    console.log("setData called with data:", data);
+    console.log("setData called with:", data);
     this.data = data;
-    console.log("this.data is now:", this.data);
+    this.adjustCandleWidth();
     this.initializeChart();
+  }
+
+  private adjustCandleWidth() {
+    const availableWidth =
+      this.canvas.width - this.padding.left - this.padding.right;
+    const idealCandleWidth =
+      availableWidth / this.data.length - this.options.candleGap;
+
+    this.options.candleWidth = Math.max(
+      this.options.minCandleWidth,
+      Math.min(this.options.maxCandleWidth, idealCandleWidth)
+    );
   }
 
   private initializeChart() {
@@ -53,9 +78,8 @@ class CandlestickChart extends HTMLElement {
     if (this.data.length === 0) return;
 
     // Calculate scales
-    const xScale =
-      (this.canvas.width - this.padding.left - this.padding.right) /
-      (this.data.length - 1);
+    const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
+    const xScale = totalCandleWidth;
     const priceRange = {
       min: Math.min(...this.data.map((d) => d.low)),
       max: Math.max(...this.data.map((d) => d.high)),
@@ -80,11 +104,42 @@ class CandlestickChart extends HTMLElement {
       const bodyHeight = Math.abs(candle.close - candle.open) * yScale;
       ctx.fillStyle = candle.close > candle.open ? "green" : "red";
       ctx.fillRect(
-        x - 5,
+        x - this.options.candleWidth / 2,
         y - (Math.max(candle.open, candle.close) - priceRange.min) * yScale,
-        10,
+        this.options.candleWidth,
         bodyHeight
       );
+    });
+
+    // Add time axis labels
+    this.drawTimeAxis();
+  }
+
+  private drawTimeAxis() {
+    if (!this.ctx) return;
+
+    const ctx = this.ctx;
+    const y = this.canvas.height - this.padding.bottom;
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#666";
+    ctx.font = "12px Arial";
+
+    // Draw time labels every N candles
+    const labelInterval = Math.ceil(this.data.length / 8); // Show ~8 labels
+
+    this.data.forEach((candle, i) => {
+      if (i % labelInterval === 0) {
+        const x =
+          this.padding.left +
+          i * (this.options.candleWidth + this.options.candleGap);
+        const date = new Date(candle.timestamp);
+        const label = date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        ctx.fillText(label, x, y + 20);
+      }
     });
   }
 }
