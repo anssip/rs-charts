@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:client": "bun build ./src/index.ts --outdir ./dist/client --target browser --watch",
-    "dev:server": "bun build ./src/server.ts --outdir ./dist/server --target bun --watch",
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run dist/server/server.js\"",
-    "build:client": "bun build ./src/index.ts --outdir ./dist/client --target browser",
-    "build:server": "bun build ./src/server.ts --outdir ./dist/server --target bun",
-    "build": "npm run build:client && npm run build:server",
-    "postbuild": "cp src/index.html dist/client/"
+    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --watch",
+    "dev:server": "bun build ./server/index.ts --outdir ./dist/server --target bun --watch",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run ./dist/server/index.js\"",
+    "predev": "bun run build",
+    "build:client": "bun build ./client/index.ts --outdir ./dist/client --target browser",
+    "build:server": "bun build ./server/server.ts --outdir ./dist/server --target bun",
+    "build": "npm run build:client && npm run build:server & cp client/*.html client/*.css ./dist/client"
   },
   "devDependencies": {
     "@types/bun": "^1.1.12",
