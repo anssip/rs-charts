@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"bun build ./src/**/*.ts --outdir ./dist --watch\" \"bun --watch run src/server.ts\"",
-    "build": "bun build ./src/**/*.ts --outdir ./dist",
-    "postbuild": "cp src/index.html dist/"
+    "dev:client": "bun build ./src/index.ts --outdir ./dist/client --target browser --watch",
+    "dev:server": "bun build ./src/server.ts --outdir ./dist/server --target bun --watch",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run dist/server/server.js\"",
+    "build:client": "bun build ./src/index.ts --outdir ./dist/client --target browser",
+    "build:server": "bun build ./src/server.ts --outdir ./dist/server --target bun",
+    "build": "npm run build:client && npm run build:server",
+    "postbuild": "cp src/index.html dist/client/"
   },
   "devDependencies": {
     "@types/bun": "^1.1.12",
@@ -14,6 +18,9 @@
     "typescript": "latest"
   },
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "@types/jsonwebtoken": "^9.0.7",
+    "coinbase-api": "^1.0.2",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2"
   }
 }

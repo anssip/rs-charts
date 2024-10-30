@@ -52,7 +52,7 @@ class CandlestickChart extends HTMLElement {
 
   public setData(data: CandleData[]) {
     console.log("setData called with:", data);
-    this.data = data;
+    this.data = data.sort((a, b) => a.timestamp - b.timestamp);
     this.adjustCandleWidth();
     this.initializeChart();
   }
@@ -133,7 +133,11 @@ class CandlestickChart extends HTMLElement {
         const x =
           this.padding.left +
           i * (this.options.candleWidth + this.options.candleGap);
-        const date = new Date(candle.timestamp);
+        const unixTime = candle.timestamp;
+        console.log(unixTime);
+        const date = new Date(unixTime);
+
+        console.log(date);
         const label = date.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",

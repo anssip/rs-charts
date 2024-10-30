@@ -1,15 +1,17 @@
 import { serve } from "bun";
-import { PriceDataService } from "./services/price-data";
+import { CoinbasePriceDataService } from "./services/price-data-cb";
 import dotenv from "dotenv";
-
-const API_KEY = process.env.COINGECKO_API_KEY;
-if (!API_KEY) {
-  throw new Error("COINGECKO_API_KEY environment variable is required");
-}
 
 dotenv.config();
 
-const priceService = new PriceDataService(API_KEY);
+const CB_API_KEY = process.env.COINBASE_API_KEY;
+const CB_PRIVATE_KEY = process.env.COINBASE_PRIVATE_KEY;
+
+if (!CB_API_KEY || !CB_PRIVATE_KEY) {
+  throw new Error("Coinbase API credentials are required");
+}
+
+const priceService = new CoinbasePriceDataService(CB_API_KEY, CB_PRIVATE_KEY);
 
 const server = serve({
   port: 3000,
@@ -22,9 +24,9 @@ const server = serve({
         try {
           const params = new URLSearchParams(url.search);
           const candles = await priceService.fetchCandles({
-            symbol: params.get("symbol") || "bitcoin",
+            symbol: params.get("symbol") || "BTC-USD",
             interval: (params.get("interval") || "1h") as "1h",
-            limit: parseInt(params.get("limit") || "168"),
+            limit: parseInt(params.get("limit") || "10"),
           });
           return new Response(JSON.stringify(candles), {
             headers: { "Content-Type": "application/json" },
@@ -48,18 +50,10 @@ const server = serve({
     }
 
     try {
-      // For .js files, try dist directory first
-      if (filePath.endsWith(".js")) {
-        const distFile = Bun.file(`dist${filePath}`);
-        if (await distFile.exists()) {
-          return new Response(distFile);
-        }
-      }
-
-      // Try src directory
-      const srcFile = Bun.file(`src${filePath}`);
-      if (await srcFile.exists()) {
-        return new Response(srcFile);
+      // Serve all static files from dist/client
+      const clientFile = Bun.file(`dist/client${filePath}`);
+      if (await clientFile.exists()) {
+        return new Response(clientFile);
       }
 
       return new Response("Not Found", { status: 404 });
