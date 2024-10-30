@@ -21,52 +21,70 @@ class CandlestickChart extends HTMLElement {
   private options: ChartOptions = {
     candleWidth: 10,
     candleGap: 2,
-    minCandleWidth: 4,
-    maxCandleWidth: 20,
+    minCandleWidth: 10,
+    maxCandleWidth: 10,
   };
+  private resizeObserver: ResizeObserver;
+  private boundHandleResize: (event: Event) => void;
 
   constructor() {
     super();
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
-  }
 
-  static get observedAttributes() {
-    return ["width", "height"];
-  }
+    this.canvas.style.width = "100%";
+    this.canvas.style.height = "100%";
+    this.canvas.style.display = "block";
 
-  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    if (oldValue !== newValue) {
-      if (name === "width") this.canvas.width = parseInt(newValue) || 600;
-      if (name === "height") this.canvas.height = parseInt(newValue) || 400;
-      this.initializeChart();
-    }
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        const { width, height } = entry.contentRect;
+        this.handleResize(width, height);
+      }
+    });
+
+    this.boundHandleResize = () => {
+      const rect = this.getBoundingClientRect();
+      this.handleResize(rect.width, rect.height);
+    };
   }
 
   connectedCallback() {
     this.appendChild(this.canvas);
-    this.canvas.width = parseInt(this.getAttribute("width") || "600");
-    this.canvas.height = parseInt(this.getAttribute("height") || "400");
-    this.initializeChart();
+    this.resizeObserver.observe(this.canvas);
+
+    const rect = this.getBoundingClientRect();
+    this.handleResize(rect.width, rect.height);
+
+    window.addEventListener("resize", this.boundHandleResize);
+  }
+
+  disconnectedCallback() {
+    this.resizeObserver.disconnect();
+    window.removeEventListener("resize", this.boundHandleResize);
+  }
+
+  private handleResize(width: number, height: number) {
+    console.log("Resize called with dimensions:", width, height);
+
+    if (width === 0 || height === 0) {
+      console.warn("Invalid dimensions received:", width, height);
+      return;
+    }
+
+    this.canvas.width = width;
+    this.canvas.height = height;
+
+    if (this.data.length > 0) {
+      this.initializeChart();
+    }
   }
 
   public setData(data: CandleData[]) {
-    console.log("setData called with:", data);
+    console.log(`setData called with ${data.length} candles`);
     this.data = data.sort((a, b) => a.timestamp - b.timestamp);
-    this.adjustCandleWidth();
     this.initializeChart();
-  }
-
-  private adjustCandleWidth() {
-    const availableWidth =
-      this.canvas.width - this.padding.left - this.padding.right;
-    const idealCandleWidth =
-      availableWidth / this.data.length - this.options.candleGap;
-
-    this.options.candleWidth = Math.max(
-      this.options.minCandleWidth,
-      Math.min(this.options.maxCandleWidth, idealCandleWidth)
-    );
   }
 
   private initializeChart() {
@@ -77,20 +95,22 @@ class CandlestickChart extends HTMLElement {
 
     if (this.data.length === 0) return;
 
-    // Calculate scales
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
-    const xScale = totalCandleWidth;
+    const visibleCandles = this.calculateVisibleCandles();
+
+    const visibleData = this.data.slice(-visibleCandles);
+
     const priceRange = {
-      min: Math.min(...this.data.map((d) => d.low)),
-      max: Math.max(...this.data.map((d) => d.high)),
+      min: Math.min(...visibleData.map((d) => d.low)),
+      max: Math.max(...visibleData.map((d) => d.high)),
     };
     const yScale =
       (this.canvas.height - this.padding.top - this.padding.bottom) /
       (priceRange.max - priceRange.min);
 
     // Draw candlesticks
-    this.data.forEach((candle, i) => {
-      const x = this.padding.left + i * xScale;
+    visibleData.forEach((candle, i) => {
+      const x = this.padding.left + i * totalCandleWidth;
       const y = this.canvas.height - this.padding.bottom;
 
       // Draw wick
@@ -111,11 +131,10 @@ class CandlestickChart extends HTMLElement {
       );
     });
 
-    // Add time axis labels
-    this.drawTimeAxis();
+    this.drawTimeAxis(visibleData);
   }
 
-  private drawTimeAxis() {
+  private drawTimeAxis(visibleData: CandleData[]) {
     if (!this.ctx) return;
 
     const ctx = this.ctx;
@@ -125,19 +144,14 @@ class CandlestickChart extends HTMLElement {
     ctx.fillStyle = "#666";
     ctx.font = "12px Arial";
 
-    // Draw time labels every N candles
-    const labelInterval = Math.ceil(this.data.length / 8); // Show ~8 labels
+    const labelInterval = Math.ceil(visibleData.length / 8); // Show ~8 labels
 
-    this.data.forEach((candle, i) => {
+    visibleData.forEach((candle, i) => {
       if (i % labelInterval === 0) {
         const x =
           this.padding.left +
           i * (this.options.candleWidth + this.options.candleGap);
-        const unixTime = candle.timestamp;
-        console.log(unixTime);
-        const date = new Date(unixTime);
-
-        console.log(date);
+        const date = new Date(candle.timestamp);
         const label = date.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -145,6 +159,13 @@ class CandlestickChart extends HTMLElement {
         ctx.fillText(label, x, y + 20);
       }
     });
+  }
+
+  public calculateVisibleCandles(): number {
+    const availableWidth =
+      this.canvas.width - this.padding.left - this.padding.right;
+    const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
+    return Math.floor(availableWidth / totalCandleWidth);
   }
 }
 
