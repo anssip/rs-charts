@@ -8,7 +8,7 @@ export class App {
   async initialize() {
     try {
       const response = await fetch(
-        "/api/candles?symbol=BTC&interval=1h&limit=168"
+        "/api/candles?symbol=bitcoin&interval=hourly&limit=168"
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

@@ -1,10 +1,10 @@
 import { serve } from "bun";
-import { PriceDataService } from "./server/price-service";
+import { PriceDataService } from "./services/price-data";
 import dotenv from "dotenv";
 
-const API_KEY = process.env.CMC_API_KEY;
+const API_KEY = process.env.COINGECKO_API_KEY;
 if (!API_KEY) {
-  throw new Error("CMC_API_KEY environment variable is required");
+  throw new Error("COINGECKO_API_KEY environment variable is required");
 }
 
 dotenv.config();
@@ -17,13 +17,12 @@ const server = serve({
     const url = new URL(req.url);
     let filePath = url.pathname;
 
-    // Handle API requests
     if (filePath.startsWith("/api")) {
       if (filePath === "/api/candles") {
         try {
           const params = new URLSearchParams(url.search);
           const candles = await priceService.fetchCandles({
-            symbol: params.get("symbol") || "BTC",
+            symbol: params.get("symbol") || "bitcoin",
             interval: (params.get("interval") || "1h") as "1h",
             limit: parseInt(params.get("limit") || "168"),
           });

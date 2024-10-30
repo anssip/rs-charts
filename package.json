@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/server.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist",
+    "dev": "concurrently \"bun build ./src/**/*.ts --outdir ./dist --watch\" \"bun --watch run src/server.ts\"",
+    "build": "bun build ./src/**/*.ts --outdir ./dist",
     "postbuild": "cp src/index.html dist/"
   },
   "devDependencies": {
     "@types/bun": "^1.1.12",
     "bun-types": "latest",
+    "concurrently": "^9.0.1",
     "typescript": "latest"
   },
   "dependencies": {
