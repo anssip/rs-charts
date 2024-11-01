@@ -6,4 +6,5 @@ very much a work in progress.
 
 ## TODO
 
-- Refactor the endpoints in the server 
+- Convert index.html to a component, encapsulate the styles
+- Use Lit

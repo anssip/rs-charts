@@ -1,3 +1,6 @@
+import { LitElement, html, css } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+
 interface CandleData {
   timestamp: number;
   open: number;
@@ -13,28 +16,72 @@ interface ChartOptions {
   maxCandleWidth: number;
 }
 
-class CandlestickChart extends HTMLElement {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D | null;
-  private data: CandleData[] = [];
-  private padding = { top: 20, right: 20, bottom: 30, left: 60 };
-  private options: ChartOptions = {
+@customElement("candlestick-chart")
+export class CandlestickChart extends LitElement {
+  private canvas!: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D | null = null;
+
+  @property({ type: Array })
+  set data(newData: CandleData[]) {
+    const sortedData = newData.sort((a, b) => a.timestamp - b.timestamp);
+    this._data = sortedData;
+    // Only trigger initialization if canvas is ready
+    if (this.canvas && this.ctx) {
+      this.initializeChart();
+    }
+  }
+  get data(): CandleData[] {
+    return this._data;
+  }
+  private _data: CandleData[] = [];
+
+  @property({ type: Object })
+  options: ChartOptions = {
     candleWidth: 10,
     candleGap: 2,
     minCandleWidth: 10,
     maxCandleWidth: 10,
   };
-  private resizeObserver: ResizeObserver;
+
+  private padding = { top: 20, right: 20, bottom: 30, left: 60 };
+  private resizeObserver!: ResizeObserver;
   private boundHandleResize: (event: Event) => void;
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  `;
 
   constructor() {
     super();
-    this.canvas = document.createElement("canvas");
+    this.boundHandleResize = () => {
+      const rect = this.getBoundingClientRect();
+      this.handleResize(rect.width, rect.height);
+    };
+  }
+
+  async firstUpdated() {
+    this.canvas = this.renderRoot.querySelector("canvas")!;
     this.ctx = this.canvas.getContext("2d");
 
-    this.canvas.style.width = "100%";
-    this.canvas.style.height = "100%";
-    this.canvas.style.display = "block";
+    const rect = this.getBoundingClientRect();
+    this.handleResize(rect.width, rect.height);
+
+    // Dispatch ready event with visible candles count
+    const visibleCandles = this.calculateVisibleCandles();
+    this.dispatchEvent(
+      new CustomEvent("chart-ready", {
+        detail: { visibleCandles },
+      })
+    );
 
     this.resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -44,35 +91,31 @@ class CandlestickChart extends HTMLElement {
       }
     });
 
-    this.boundHandleResize = () => {
-      const rect = this.getBoundingClientRect();
-      this.handleResize(rect.width, rect.height);
-    };
-  }
-
-  connectedCallback() {
-    this.appendChild(this.canvas);
     this.resizeObserver.observe(this.canvas);
-
-    const rect = this.getBoundingClientRect();
-    this.handleResize(rect.width, rect.height);
-
     window.addEventListener("resize", this.boundHandleResize);
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     this.resizeObserver.disconnect();
     window.removeEventListener("resize", this.boundHandleResize);
   }
 
-  private handleResize(width: number, height: number) {
-    console.log("Resize called with dimensions:", width, height);
+  render() {
+    return html`<canvas @updated=${this.updateCanvas}></canvas>`;
+  }
 
+  private updateCanvas = () => {
+    if (this.data.length > 0) {
+      this.initializeChart();
+    }
+  };
+
+  private handleResize(width: number, height: number) {
     if (width === 0 || height === 0) {
       console.warn("Invalid dimensions received:", width, height);
       return;
     }
-
     this.canvas.width = width;
     this.canvas.height = height;
 
@@ -81,13 +124,7 @@ class CandlestickChart extends HTMLElement {
     }
   }
 
-  public setData(data: CandleData[]) {
-    console.log(`setData called with ${data.length} candles`);
-    this.data = data.sort((a, b) => a.timestamp - b.timestamp);
-    this.initializeChart();
-  }
-
-  private initializeChart() {
+  public initializeChart() {
     if (!this.ctx) return;
 
     const ctx = this.ctx;
@@ -97,13 +134,13 @@ class CandlestickChart extends HTMLElement {
 
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     const visibleCandles = this.calculateVisibleCandles();
-
     const visibleData = this.data.slice(-visibleCandles);
 
     const priceRange = {
       min: Math.min(...visibleData.map((d) => d.low)),
       max: Math.max(...visibleData.map((d) => d.high)),
     };
+
     const yScale =
       (this.canvas.height - this.padding.top - this.padding.bottom) /
       (priceRange.max - priceRange.min);
@@ -144,7 +181,7 @@ class CandlestickChart extends HTMLElement {
     ctx.fillStyle = "#666";
     ctx.font = "12px Arial";
 
-    const labelInterval = Math.ceil(visibleData.length / 8); // Show ~8 labels
+    const labelInterval = Math.ceil(visibleData.length / 8);
 
     visibleData.forEach((candle, i) => {
       if (i % labelInterval === 0) {
@@ -161,12 +198,12 @@ class CandlestickChart extends HTMLElement {
     });
   }
 
-  public calculateVisibleCandles(): number {
+  private calculateVisibleCandles(): number {
+    if (!this.canvas) return 0;
+
     const availableWidth =
       this.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     return Math.floor(availableWidth / totalCandleWidth);
   }
 }
-
-customElements.define("candlestick-chart", CandlestickChart);

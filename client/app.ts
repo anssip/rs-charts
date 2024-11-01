@@ -1,3 +1,5 @@
+import { CandlestickChart } from "./components/candlestick-chart";
+
 interface CandleData {
   timestamp: number;
   open: number;
@@ -7,7 +9,7 @@ interface CandleData {
 }
 
 export class App {
-  private chart: HTMLElement | null;
+  private chart: CandlestickChart | null;
   private readonly API_BASE_URL = "http://localhost:3000";
 
   constructor() {
@@ -20,7 +22,17 @@ export class App {
         throw new Error("Chart element not found");
       }
 
-      const visibleCandles = (this.chart as any).calculateVisibleCandles();
+      // Wait for chart to be ready
+      const readyEvent = await new Promise<CustomEvent>((resolve) => {
+        this.chart!.addEventListener(
+          "chart-ready",
+          ((e: CustomEvent) => resolve(e)) as EventListener,
+          { once: true }
+        );
+      });
+
+      const visibleCandles = readyEvent.detail.visibleCandles;
+      console.log(`Initializing with ${visibleCandles} visible candles`);
       await this.fetchAndUpdateChart(visibleCandles);
     } catch (error) {
       console.error("Failed to initialize app:", error);
@@ -44,7 +56,7 @@ export class App {
 
       const candles: CandleData[] = await response.json();
       if (this.chart) {
-        (this.chart as any).setData(candles);
+        this.chart.data = candles;
       }
     } catch (error) {
       console.error("Error fetching candles:", error);

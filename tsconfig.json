@@ -12,7 +12,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": true
   },
   "include": ["src/**/*", "server", "client"],
   "exclude": ["node_modules"]
