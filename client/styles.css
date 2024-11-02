@@ -26,6 +26,7 @@ h1 {
     min-height: 400px;
     position: relative;
     display: flex;
+    margin: 1rem;
 }
 
 candlestick-chart {

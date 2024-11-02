@@ -10,9 +10,10 @@ interface CandleData {
 }
 
 export class App {
-  private chart: CandlestickChart | null;
+  private chart: CandlestickChart | null = null;
   private readonly API_BASE_URL = "http://localhost:3000";
   private candleRepository: CandleRepository;
+  private pendingFetches: Set<string> = new Set();
 
   constructor() {
     this.chart = document.querySelector("candlestick-chart");
@@ -30,18 +31,14 @@ export class App {
   private handleChartReady = async (
     event: CustomEvent<{ visibleCandles: number }>
   ) => {
-    const { visibleCandles } = event.detail;
-    const bufferedCandles = visibleCandles * 2;
     const now = Date.now();
 
     const timeRange = {
       end: now,
-      start: now - bufferedCandles * this.candleRepository.CANDLE_INTERVAL,
+      start: now - 10 * 24 * 60 * 60 * 1000, // 10 days back
     };
 
     console.log("Initial fetch params:", {
-      visibleCandles,
-      bufferedCandles,
       timeRange: {
         start: new Date(timeRange.start),
         end: new Date(timeRange.end),
@@ -52,7 +49,9 @@ export class App {
       timeRange
     );
     if (candles.length > 0) {
+      console.log("Initial data fetched, number of candles:", candles.length);
       this.chart!.data = candles;
+      this.chart!.drawChart();
     }
   };
 
@@ -81,8 +80,10 @@ export class App {
     const candles = await this.candleRepository.fetchCandlesForTimeRange(
       timeRange
     );
+    console.log("Fetched candles:", candles);
     if (candles.length > 0) {
       this.chart!.data = candles;
+      this.chart!.drawChart();
     }
   }
 
@@ -100,23 +101,38 @@ export class App {
     console.log("handlePan event:", event);
     if (!this.chart) return;
 
-    const { timeRange, needMoreData } = event.detail;
+    const { timeRange, visibleCandles, needMoreData, isNearEdge, direction } =
+      event.detail;
 
     // Only handle data fetching
     if (needMoreData && timeRange) {
-      console.log("fetching time range:", timeRange);
+      const rangeKey = `${timeRange.start}-${timeRange.end}`;
 
-      const candles = await this.candleRepository.fetchCandlesForTimeRange(
-        timeRange
-      );
+      // Check if we're already fetching this range
+      if (this.pendingFetches.has(rangeKey)) {
+        console.log("Already fetching range:", timeRange);
+        return;
+      }
 
-      if (candles.length > 0) {
-        const allCandles = [...this.chart.data, ...candles];
-        const uniqueCandles = Array.from(
-          new Map(allCandles.map((c) => [c.timestamp, c])).values()
-        ).sort((a, b) => a.timestamp - b.timestamp);
+      try {
+        this.pendingFetches.add(rangeKey);
+        console.log("fetching time range:", timeRange);
 
-        this.chart.data = uniqueCandles;
+        const candles = await this.candleRepository.fetchCandlesForTimeRange(
+          timeRange,
+          { direction }
+        );
+
+        if (candles.length > 0) {
+          const allCandles = [...this.chart.data, ...candles];
+          const uniqueCandles = Array.from(
+            new Map(allCandles.map((c) => [c.timestamp, c])).values()
+          ).sort((a, b) => a.timestamp - b.timestamp);
+
+          this.chart.data = uniqueCandles;
+        }
+      } finally {
+        this.pendingFetches.delete(rangeKey);
       }
     }
   };

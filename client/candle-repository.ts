@@ -9,107 +9,116 @@ export class CandleRepository {
   private candles: Map<number, CandleData> = new Map();
   private readonly API_BASE_URL: string = "http://localhost:3000";
   public readonly CANDLE_INTERVAL = 3600000; // 1 hour in milliseconds
-  private readonly BUFFER_MULTIPLIER = 2;
   private bufferedRange: TimeRange | null = null;
+  private pendingFetches: Set<string> = new Set(); // Track pending fetch ranges
 
   constructor(apiBaseUrl: string) {
     this.API_BASE_URL = apiBaseUrl;
   }
 
-  async fetchCandlesForTimeRange(range: TimeRange): Promise<CandleData[]> {
-    console.log("Fetching with buffer state:", {
-      range,
-      currentBuffer: this.bufferedRange,
-      candles: this.candles.size,
+  async fetchCandlesForTimeRange(
+    range: TimeRange,
+    options: { direction?: "forward" | "backward" } = {}
+  ) {
+    const rangeKey = `${range.start}-${range.end}`;
+
+    console.log("Repository: Fetch request:", {
+      range: {
+        start: new Date(range.start),
+        end: new Date(range.end),
+      },
+      direction: options.direction,
+      bufferedRange: this.bufferedRange
+        ? {
+            start: new Date(this.bufferedRange.start),
+            end: new Date(this.bufferedRange.end),
+          }
+        : null,
+      pendingFetches: Array.from(this.pendingFetches),
+      candleCount: this.candles.size,
     });
 
-    console.log("Current buffer state:", {
-      hasBuffer: this.bufferedRange !== null,
-      bufferedRange: this.bufferedRange,
-      requestedRange: range,
-    });
+    // Check if we already have this data
+    if (this.bufferedRange) {
+      const isWithinBuffer =
+        range.start >= this.bufferedRange.start &&
+        range.end <= this.bufferedRange.end;
 
-    // If we have no buffer yet, do initial fetch
-    if (!this.bufferedRange) {
-      try {
-        const fetchedCandles = await this.fetchRange(range);
-        if (fetchedCandles.length > 0) {
-          const timestamps = fetchedCandles
-            .map((c) => c.timestamp)
-            .sort((a, b) => a - b);
-          this.bufferedRange = {
-            start: timestamps[0],
-            end: timestamps[timestamps.length - 1],
-          };
-          this.addCandles(fetchedCandles);
-          console.log("Initial buffer set to:", this.bufferedRange);
-        }
+      if (isWithinBuffer) {
+        console.log(
+          "Repository: Range already buffered, returning existing data"
+        );
         return this.getCandlesInRange(range);
-      } catch (error) {
-        console.error("Error during initial fetch:", error);
-        return [];
+      }
+
+      // Log what part of the range is missing
+      if (range.start < this.bufferedRange.start) {
+        console.log("Repository: Missing data before buffer:", {
+          requested: new Date(range.start),
+          buffered: new Date(this.bufferedRange.start),
+        });
+      }
+      if (range.end > this.bufferedRange.end) {
+        console.log("Repository: Missing data after buffer:", {
+          requested: new Date(range.end),
+          buffered: new Date(this.bufferedRange.end),
+        });
       }
     }
 
-    // Check if requested range is within our buffer
-    if (
-      range.start >= this.bufferedRange.start &&
-      range.end <= this.bufferedRange.end
-    ) {
-      console.log("Request within buffered range - no fetch needed");
+    if (this.pendingFetches.has(rangeKey)) {
+      console.log("Repository: Fetch already pending for range");
       return this.getCandlesInRange(range);
     }
 
-    // Calculate missing ranges
-    const missingRanges: TimeRange[] = [];
+    try {
+      this.pendingFetches.add(rangeKey);
 
-    if (range.start < this.bufferedRange.start) {
-      missingRanges.push({
-        start: range.start,
-        end: this.bufferedRange.start,
-      });
-    }
+      // Preemptively update buffer range based on direction
+      if (this.bufferedRange) {
+        const newBufferRange =
+          options.direction === "backward"
+            ? {
+                start: range.start,
+                end: this.bufferedRange.end,
+              }
+            : {
+                start: this.bufferedRange.start,
+                end: range.end,
+              };
 
-    if (range.end > this.bufferedRange.end) {
-      missingRanges.push({
-        start: this.bufferedRange.end,
-        end: range.end,
-      });
-    }
-    console.log("Missing ranges:", missingRanges);
+        console.log("Repository: Updating buffer range:", {
+          old: {
+            start: new Date(this.bufferedRange.start),
+            end: new Date(this.bufferedRange.end),
+          },
+          new: {
+            start: new Date(newBufferRange.start),
+            end: new Date(newBufferRange.end),
+          },
+        });
 
-    // Validate ranges before fetching
-    const validRanges = missingRanges.filter((r) => r.end > r.start);
-
-    if (validRanges.length > 0) {
-      try {
-        // Fetch all missing ranges
-        const fetchPromises = validRanges.map((range) =>
-          this.fetchRange(range)
-        );
-        const fetchedCandlesArrays = await Promise.all(fetchPromises);
-
-        // Flatten and add all fetched candles
-        const allFetchedCandles = fetchedCandlesArrays.flat();
-        if (allFetchedCandles.length > 0) {
-          console.log("Adding fetched candles:", allFetchedCandles.length);
-          this.addCandles(allFetchedCandles);
-
-          // Update buffer range
-          const timestamps = [...this.candles.values()]
-            .map((c) => c.timestamp)
-            .sort((a, b) => a - b);
-          this.bufferedRange = {
-            start: timestamps[0],
-            end: timestamps[timestamps.length - 1],
-          };
-        }
-      } catch (error) {
-        console.error("Error fetching missing ranges:", error);
+        this.bufferedRange = newBufferRange;
+      } else {
+        this.bufferedRange = range;
       }
-    }
 
-    return this.getCandlesInRange(range);
+      const candles = await this.fetchRange(range);
+
+      console.log("Repository: Fetched candles:", {
+        requested: {
+          start: new Date(range.start),
+          end: new Date(range.end),
+        },
+        received: candles.length,
+      });
+
+      // TODO: clean this up
+      this.addCandles(candles);
+      return this.getCandlesInRange(range);
+    } finally {
+      this.pendingFetches.delete(rangeKey);
+    }
   }
 
   private async fetchRange(range: TimeRange): Promise<CandleData[]> {
@@ -122,6 +131,12 @@ export class CandleRepository {
         });
         return [];
       }
+
+      console.log("Repository: Fetching range:", {
+        start: new Date(range.start),
+        end: new Date(range.end),
+        pendingFetches: Array.from(this.pendingFetches),
+      });
 
       const response = await fetch(
         `${this.API_BASE_URL}/api/candles?` +
@@ -138,7 +153,7 @@ export class CandleRepository {
       }
 
       const newCandles: CandleData[] = await response.json();
-      console.log("Fetched candles:", {
+      console.log("Repository: Fetched candles:", {
         received: newCandles.length,
         timeRange: {
           start: new Date(range.start),
@@ -160,53 +175,21 @@ export class CandleRepository {
   }
 
   private getCandlesInRange(range: TimeRange): CandleData[] {
-    return Array.from(this.candles.values())
+    const candles = Array.from(this.candles.values())
       .filter(
         (candle) =>
           candle.timestamp >= range.start && candle.timestamp <= range.end
       )
       .sort((a, b) => a.timestamp - b.timestamp);
-  }
 
-  // Helper method to calculate time range based on visible candles
-  getTimeRangeForVisibleCandles(
-    centerTimestamp: number,
-    visibleCandles: number
-  ): TimeRange | null {
-    const totalDuration = visibleCandles * this.CANDLE_INTERVAL;
-    const halfDuration = Math.floor(totalDuration / 2);
-
-    const requestedRange = {
-      start: centerTimestamp - halfDuration,
-      end: centerTimestamp + halfDuration,
-    };
-
-    // Add buffer zone calculation
-    const bufferSize = totalDuration * 2; // Double the buffer size
-    const bufferedRequestRange = {
-      start: requestedRange.start - bufferSize,
-      end: requestedRange.end + bufferSize,
-    };
-
-    console.log("Range check:", {
-      requestedRange,
-      bufferedRequestRange,
-      currentBuffer: this.bufferedRange,
-      wouldFetch:
-        !this.bufferedRange ||
-        bufferedRequestRange.start < this.bufferedRange.start ||
-        bufferedRequestRange.end > this.bufferedRange.end,
+    console.log("Repository: Returning candles:", {
+      range: {
+        start: new Date(range.start),
+        end: new Date(range.end),
+      },
+      found: candles.length,
     });
 
-    // Only fetch if we're outside our buffered range or getting close to the edge
-    if (
-      !this.bufferedRange ||
-      bufferedRequestRange.start < this.bufferedRange.start ||
-      bufferedRequestRange.end > this.bufferedRange.end
-    ) {
-      return requestedRange;
-    }
-
-    return null;
+    return candles;
   }
 }
