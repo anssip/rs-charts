@@ -57,29 +57,6 @@ export class CoinbasePriceDataService {
     }
   }
 
-  private getGranularityInSeconds(granularity: string): number {
-    switch (granularity) {
-      case "ONE_MINUTE":
-        return 60;
-      case "FIVE_MINUTE":
-        return 300;
-      case "FIFTEEN_MINUTE":
-        return 900;
-      case "THIRTY_MINUTE":
-        return 1800;
-      case "ONE_HOUR":
-        return 3600;
-      case "TWO_HOUR":
-        return 7200;
-      case "SIX_HOUR":
-        return 21600;
-      case "ONE_DAY":
-        return 86400;
-      default:
-        return 3600;
-    }
-  }
-
   private getGranularity(
     interval: string
   ): GetAdvTradePublicProductCandlesRequest["granularity"] {

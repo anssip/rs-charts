@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { TimeRange } from "../candle-repository";
 
 export interface CandleData {
   timestamp: number;
@@ -21,21 +22,6 @@ export class CandlestickChart extends LitElement {
   private canvas!: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
 
-  @property({ type: Array })
-  set data(newData: CandleData[]) {
-    const sortedData = newData.sort((a, b) => a.timestamp - b.timestamp);
-    this._data = sortedData;
-    if (this.centerTimestamp === 0 && sortedData.length > 0) {
-      this.centerTimestamp =
-        sortedData[Math.floor(sortedData.length / 2)].timestamp;
-    }
-    if (this.canvas && this.ctx) {
-      this.drawChart();
-    }
-  }
-  get data(): CandleData[] {
-    return this._data;
-  }
   private _data: CandleData[] = [];
 
   @property({ type: Object })
@@ -53,26 +39,40 @@ export class CandlestickChart extends LitElement {
   private isDragging = false;
   private lastX = 0;
   private readonly PAN_THRESHOLD = 5; // minimum pixels to trigger pan
+  private readonly CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
+  private accumulatedDelta: number = 0;
 
   @state()
   private centerTimestamp: number = 0;
 
-  private readonly BUFFER_MULTIPLIER = 2; // Keep 2x the visible candles loaded
+  private readonly BUFFER_MULTIPLIER = 2; // Keep 5x the visible candles loaded
   private debounceTimeout: number | null = null;
 
   @state()
-  private viewportStartIndex = 0;
+  public viewportStartIndex = 0;
+
+  @state()
+  private isLoading = false;
 
   static styles = css`
     :host {
       display: block;
       width: 100%;
       height: 100%;
+      position: relative;
     }
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+    }
+    .loading {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: #666;
+      font-size: 12px;
+      font-family: Arial, sans-serif;
     }
   `;
 
@@ -82,6 +82,32 @@ export class CandlestickChart extends LitElement {
       const rect = this.getBoundingClientRect();
       this.handleResize(rect.width, rect.height);
     };
+  }
+
+  @property({ type: Array })
+  set data(newData: CandleData[]) {
+    this.isLoading = false;
+    const sortedData = newData.sort((a, b) => a.timestamp - b.timestamp);
+    // Calculate the initial viewport position to show latest candles
+    if (this._data.length == 0) {
+      const visibleCandles = this.calculateVisibleCandles();
+      this.viewportStartIndex = Math.max(0, newData.length - visibleCandles);
+
+      // Update centerTimestamp if not set
+      if (this.centerTimestamp === 0) {
+        this.centerTimestamp =
+          sortedData[Math.floor(sortedData.length / 2)].timestamp;
+      }
+    }
+    this._data = sortedData;
+
+    if (this.canvas && this.ctx) {
+      this.drawChart();
+    }
+  }
+
+  get data(): CandleData[] {
+    return this._data;
   }
 
   async firstUpdated() {
@@ -118,13 +144,17 @@ export class CandlestickChart extends LitElement {
   }
 
   render() {
-    return html`<canvas
-      @mousedown=${this.handleDragStart}
-      @mousemove=${this.handleDragMove}
-      @mouseup=${this.handleDragEnd}
-      @mouseleave=${this.handleDragEnd}
-      @updated=${this.updateCanvas}
-    ></canvas>`;
+    return html`
+      <canvas
+        @mousedown=${this.handleDragStart}
+        @mousemove=${this.handleDragMove}
+        @mouseup=${this.handleDragEnd}
+        @mouseleave=${this.handleDragEnd}
+        @wheel=${this.handleWheel}
+        @updated=${this.updateCanvas}
+      ></canvas>
+      ${this.isLoading ? html`<div class="loading">Loading...</div>` : ""}
+    `;
   }
 
   private updateCanvas = () => {
@@ -147,13 +177,23 @@ export class CandlestickChart extends LitElement {
   }
 
   public drawChart() {
-    if (!this.ctx || !this.data.length) return;
+    if (!this.ctx || !this.canvas || this.data.length === 0) return;
+
+    console.log("Drawing chart:", {
+      totalCandles: this.data.length,
+      visibleCandles: this.calculateVisibleCandles(),
+      viewportStartIndex: this.viewportStartIndex,
+      startIndex: this.viewportStartIndex,
+      endIndex: Math.min(
+        this.viewportStartIndex + this.calculateVisibleCandles(),
+        this.data.length
+      ),
+    });
 
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     const visibleCandles = this.calculateVisibleCandles();
-    // Use viewportStartIndex to determine which candles to display
     const startIndex = this.viewportStartIndex;
     const endIndex = Math.min(startIndex + visibleCandles, this.data.length);
     const visibleData = this.data.slice(startIndex, endIndex);
@@ -269,19 +309,38 @@ export class CandlestickChart extends LitElement {
     this.lastX = e.clientX;
   };
 
-  private handleDragMove = (e: MouseEvent) => {
-    if (!this.isDragging) return;
-
-    const deltaX = e.clientX - this.lastX;
+  private handlePanAction(deltaX: number, isTrackpad: boolean = false) {
     const candleWidth = this.options.candleWidth + this.options.candleGap;
-    const candlesShifted = Math.round(deltaX / candleWidth) * -1;
-    const visibleCandles = this.calculateVisibleCandles();
 
-    if (
-      Math.abs(deltaX) >= this.PAN_THRESHOLD &&
-      candlesShifted !== 0 &&
-      this.data.length > 0
-    ) {
+    // Accumulate small movements
+    this.accumulatedDelta = (this.accumulatedDelta || 0) + deltaX;
+
+    // Adjust sensitivity based on input type
+    const sensitivity = isTrackpad ? 1 : 1; // Removed the 0.3 multiplier
+    const effectiveDelta = this.accumulatedDelta * sensitivity;
+
+    // Only shift when we've accumulated enough movement
+    const candlesShifted =
+      Math.floor(Math.abs(effectiveDelta) / candleWidth) *
+      Math.sign(effectiveDelta) *
+      -1;
+
+    console.log("Pan action:", {
+      deltaX,
+      effectiveDelta,
+      accumulatedDelta: this.accumulatedDelta,
+      candlesShifted,
+      candleWidth,
+      currentIndex: this.viewportStartIndex,
+      dataLength: this.data.length,
+      visibleCandles: this.calculateVisibleCandles(),
+    });
+
+    if (candlesShifted !== 0 && this.data.length > 0) {
+      // Reset accumulated delta after applying shift
+      this.accumulatedDelta = this.accumulatedDelta % candleWidth;
+
+      const visibleCandles = this.calculateVisibleCandles();
       const newIndex = Math.max(
         0,
         Math.min(
@@ -290,55 +349,84 @@ export class CandlestickChart extends LitElement {
         )
       );
 
+      console.log("Index calculation:", {
+        oldIndex: this.viewportStartIndex,
+        newIndex,
+        candlesShifted,
+        changed: newIndex !== this.viewportStartIndex,
+      });
+
       if (newIndex !== this.viewportStartIndex) {
         this.viewportStartIndex = newIndex;
         this.drawChart();
 
-        // Check if we need more data (when we're using more than half of our buffer)
-        const bufferThreshold = (visibleCandles * this.BUFFER_MULTIPLIER) / 2;
-        const needsMoreData =
-          newIndex < bufferThreshold || // Need older data
-          this.data.length - (newIndex + visibleCandles) < bufferThreshold; // Need newer data
+        const FETCH_BATCH_SIZE = 200; // Number of candles to fetch at once
+        const LOW_DATA_THRESHOLD = 10; // Number of candles before edge to trigger fetch
+        const isNearStart = newIndex < LOW_DATA_THRESHOLD;
+        const isNearEnd =
+          newIndex + visibleCandles > this.data.length - LOW_DATA_THRESHOLD;
 
-        if (needsMoreData) {
-          // Debounce the data request
-          if (this.debounceTimeout) {
-            clearTimeout(this.debounceTimeout);
+        if (isNearStart || isNearEnd) {
+          let timeRange: TimeRange;
+
+          if (isNearStart) {
+            // Fetch 200 candles backwards from the earliest candle
+            timeRange = {
+              start:
+                this.data[0].timestamp -
+                FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+              end: this.data[0].timestamp,
+            };
+          } else {
+            // Fetch 200 candles forward from the latest candle
+            timeRange = {
+              start: this.data[this.data.length - 1].timestamp,
+              end:
+                this.data[this.data.length - 1].timestamp +
+                FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+            };
           }
 
-          this.debounceTimeout = setTimeout(() => {
-            const direction = newIndex < bufferThreshold ? "older" : "newer";
-            const edgeTimestamp =
-              direction === "older"
-                ? this.data[0].timestamp
-                : this.data[this.data.length - 1].timestamp;
+          console.log("dispatching chart-pan event:", {
+            timeRange,
+            visibleCandles,
+            needMoreData: true,
+            isNearStart,
+            isNearEnd,
+            direction: isNearStart ? "backward" : "forward",
+          });
 
-            console.log("Requesting more data:", {
-              direction,
-              edgeTimestamp: new Date(edgeTimestamp),
-              visibleCandles,
-              totalBuffered: this.data.length,
-            });
-
-            this.dispatchEvent(
-              new CustomEvent("chart-pan", {
-                detail: {
-                  centerTimestamp: edgeTimestamp,
-                  visibleCandles: visibleCandles * this.BUFFER_MULTIPLIER,
-                  needMoreData: true,
-                  direction,
-                },
-              })
-            );
-          }, 250) as unknown as number; // 250ms debounce
+          this.dispatchEvent(
+            new CustomEvent("chart-pan", {
+              detail: {
+                timeRange,
+                visibleCandles,
+                needMoreData: true,
+                isNearEdge: true,
+                direction: isNearStart ? "backward" : "forward",
+              },
+            })
+          );
         }
       }
     }
+  }
 
+  private handleDragMove = (e: MouseEvent) => {
+    if (!this.isDragging) return;
+    const deltaX = e.clientX - this.lastX;
+    this.handlePanAction(deltaX);
     this.lastX = e.clientX;
   };
 
   private handleDragEnd = () => {
     this.isDragging = false;
+    this.accumulatedDelta = 0;
+  };
+
+  private handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    const isTrackpad = Math.abs(e.deltaX) < 50;
+    this.handlePanAction(-e.deltaX, isTrackpad);
   };
 }

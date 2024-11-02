@@ -67,9 +67,16 @@ export class App {
     const bufferedCandles = visibleCandles * 2;
     const now = Date.now();
     const timeRange = {
-      end: now,
       start: now - bufferedCandles * this.candleRepository.CANDLE_INTERVAL,
+      end: now,
     };
+
+    console.log("Fetching time range:", {
+      start: new Date(timeRange.start),
+      end: new Date(timeRange.end),
+      bufferedCandles,
+      visibleCandles,
+    });
 
     const candles = await this.candleRepository.fetchCandlesForTimeRange(
       timeRange
@@ -90,30 +97,24 @@ export class App {
   }
 
   private handlePan = async (event: CustomEvent) => {
+    console.log("handlePan event:", event);
     if (!this.chart) return;
 
-    const { centerTimestamp, visibleCandles, needMoreData, direction } =
-      event.detail;
+    const { timeRange, needMoreData } = event.detail;
 
-    if (needMoreData) {
-      const timeRange = this.candleRepository.getTimeRangeForVisibleCandles(
-        centerTimestamp,
-        visibleCandles
-      );
+    // Only handle data fetching
+    if (needMoreData && timeRange) {
+      console.log("fetching time range:", timeRange);
 
       const candles = await this.candleRepository.fetchCandlesForTimeRange(
         timeRange
       );
-      if (candles.length > 0) {
-        const mergedCandles =
-          direction === "older"
-            ? [...this.chart.data, ...candles]
-            : [...candles, ...this.chart.data];
 
-        // Remove duplicates by timestamp
+      if (candles.length > 0) {
+        const allCandles = [...this.chart.data, ...candles];
         const uniqueCandles = Array.from(
-          new Map(mergedCandles.map((c) => [c.timestamp, c])).values()
-        );
+          new Map(allCandles.map((c) => [c.timestamp, c])).values()
+        ).sort((a, b) => a.timestamp - b.timestamp);
 
         this.chart.data = uniqueCandles;
       }
