@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 
-interface CandleData {
+export interface CandleData {
   timestamp: number;
   open: number;
   high: number;
@@ -25,9 +25,12 @@ export class CandlestickChart extends LitElement {
   set data(newData: CandleData[]) {
     const sortedData = newData.sort((a, b) => a.timestamp - b.timestamp);
     this._data = sortedData;
-    // Only trigger initialization if canvas is ready
+    if (this.centerTimestamp === 0 && sortedData.length > 0) {
+      this.centerTimestamp =
+        sortedData[Math.floor(sortedData.length / 2)].timestamp;
+    }
     if (this.canvas && this.ctx) {
-      this.initializeChart();
+      this.drawChart();
     }
   }
   get data(): CandleData[] {
@@ -46,6 +49,19 @@ export class CandlestickChart extends LitElement {
   private padding = { top: 20, right: 20, bottom: 30, left: 60 };
   private resizeObserver!: ResizeObserver;
   private boundHandleResize: (event: Event) => void;
+
+  private isDragging = false;
+  private lastX = 0;
+  private readonly PAN_THRESHOLD = 5; // minimum pixels to trigger pan
+
+  @state()
+  private centerTimestamp: number = 0;
+
+  private readonly BUFFER_MULTIPLIER = 2; // Keep 2x the visible candles loaded
+  private debounceTimeout: number | null = null;
+
+  @state()
+  private viewportStartIndex = 0;
 
   static styles = css`
     :host {
@@ -102,12 +118,18 @@ export class CandlestickChart extends LitElement {
   }
 
   render() {
-    return html`<canvas @updated=${this.updateCanvas}></canvas>`;
+    return html`<canvas
+      @mousedown=${this.handleDragStart}
+      @mousemove=${this.handleDragMove}
+      @mouseup=${this.handleDragEnd}
+      @mouseleave=${this.handleDragEnd}
+      @updated=${this.updateCanvas}
+    ></canvas>`;
   }
 
   private updateCanvas = () => {
     if (this.data.length > 0) {
-      this.initializeChart();
+      this.drawChart();
     }
   };
 
@@ -120,49 +142,76 @@ export class CandlestickChart extends LitElement {
     this.canvas.height = height;
 
     if (this.data.length > 0) {
-      this.initializeChart();
+      this.drawChart();
     }
   }
 
-  public initializeChart() {
-    if (!this.ctx) return;
+  public drawChart() {
+    if (!this.ctx || !this.data.length) return;
 
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (this.data.length === 0) return;
-
-    const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     const visibleCandles = this.calculateVisibleCandles();
-    const visibleData = this.data.slice(-visibleCandles);
+    // Use viewportStartIndex to determine which candles to display
+    const startIndex = this.viewportStartIndex;
+    const endIndex = Math.min(startIndex + visibleCandles, this.data.length);
+    const visibleData = this.data.slice(startIndex, endIndex);
 
-    const priceRange = {
-      min: Math.min(...visibleData.map((d) => d.low)),
-      max: Math.max(...visibleData.map((d) => d.high)),
-    };
+    console.log("Drawing chart:", {
+      totalCandles: this.data.length,
+      visibleCandles,
+      viewportStartIndex: this.viewportStartIndex,
+      startIndex,
+      endIndex,
+      actualVisible: visibleData.length,
+      firstCandle: new Date(visibleData[0]?.timestamp),
+      lastCandle: new Date(visibleData[visibleData.length - 1]?.timestamp),
+    });
 
-    const yScale =
-      (this.canvas.height - this.padding.top - this.padding.bottom) /
-      (priceRange.max - priceRange.min);
-
-    // Draw candlesticks
+    // Draw the candles
     visibleData.forEach((candle, i) => {
-      const x = this.padding.left + i * totalCandleWidth;
+      const x =
+        this.padding.left +
+        i * (this.options.candleWidth + this.options.candleGap);
       const y = this.canvas.height - this.padding.bottom;
 
       // Draw wick
       ctx.beginPath();
       ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
-      ctx.moveTo(x, y - (candle.high - priceRange.min) * yScale);
-      ctx.lineTo(x, y - (candle.low - priceRange.min) * yScale);
+      ctx.moveTo(
+        x,
+        y -
+          (candle.high - Math.min(...visibleData.map((d) => d.low))) *
+            ((this.canvas.height - this.padding.top - this.padding.bottom) /
+              (Math.max(...visibleData.map((d) => d.high)) -
+                Math.min(...visibleData.map((d) => d.low))))
+      );
+      ctx.lineTo(
+        x,
+        y -
+          (candle.low - Math.min(...visibleData.map((d) => d.low))) *
+            ((this.canvas.height - this.padding.top - this.padding.bottom) /
+              (Math.max(...visibleData.map((d) => d.high)) -
+                Math.min(...visibleData.map((d) => d.low))))
+      );
       ctx.stroke();
 
       // Draw body
-      const bodyHeight = Math.abs(candle.close - candle.open) * yScale;
+      const bodyHeight =
+        Math.abs(candle.close - candle.open) *
+        ((this.canvas.height - this.padding.top - this.padding.bottom) /
+          (Math.max(...visibleData.map((d) => d.high)) -
+            Math.min(...visibleData.map((d) => d.low))));
       ctx.fillStyle = candle.close > candle.open ? "green" : "red";
       ctx.fillRect(
         x - this.options.candleWidth / 2,
-        y - (Math.max(candle.open, candle.close) - priceRange.min) * yScale,
+        y -
+          (Math.max(candle.open, candle.close) -
+            Math.min(...visibleData.map((d) => d.low))) *
+            ((this.canvas.height - this.padding.top - this.padding.bottom) /
+              (Math.max(...visibleData.map((d) => d.high)) -
+                Math.min(...visibleData.map((d) => d.low)))),
         this.options.candleWidth,
         bodyHeight
       );
@@ -198,12 +247,98 @@ export class CandlestickChart extends LitElement {
     });
   }
 
-  private calculateVisibleCandles(): number {
+  public calculateVisibleCandles(): number {
     if (!this.canvas) return 0;
 
     const availableWidth =
       this.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
-    return Math.floor(availableWidth / totalCandleWidth);
+    const visibleCandles = Math.floor(availableWidth / totalCandleWidth);
+    console.log("Calculating visible candles:", {
+      availableWidth,
+      totalCandleWidth,
+      visibleCandles,
+      canvasWidth: this.canvas.width,
+      padding: this.padding,
+    });
+    return visibleCandles;
   }
+
+  private handleDragStart = (e: MouseEvent) => {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+  };
+
+  private handleDragMove = (e: MouseEvent) => {
+    if (!this.isDragging) return;
+
+    const deltaX = e.clientX - this.lastX;
+    const candleWidth = this.options.candleWidth + this.options.candleGap;
+    const candlesShifted = Math.round(deltaX / candleWidth) * -1;
+    const visibleCandles = this.calculateVisibleCandles();
+
+    if (
+      Math.abs(deltaX) >= this.PAN_THRESHOLD &&
+      candlesShifted !== 0 &&
+      this.data.length > 0
+    ) {
+      const newIndex = Math.max(
+        0,
+        Math.min(
+          this.viewportStartIndex + candlesShifted,
+          this.data.length - visibleCandles
+        )
+      );
+
+      if (newIndex !== this.viewportStartIndex) {
+        this.viewportStartIndex = newIndex;
+        this.drawChart();
+
+        // Check if we need more data (when we're using more than half of our buffer)
+        const bufferThreshold = (visibleCandles * this.BUFFER_MULTIPLIER) / 2;
+        const needsMoreData =
+          newIndex < bufferThreshold || // Need older data
+          this.data.length - (newIndex + visibleCandles) < bufferThreshold; // Need newer data
+
+        if (needsMoreData) {
+          // Debounce the data request
+          if (this.debounceTimeout) {
+            clearTimeout(this.debounceTimeout);
+          }
+
+          this.debounceTimeout = setTimeout(() => {
+            const direction = newIndex < bufferThreshold ? "older" : "newer";
+            const edgeTimestamp =
+              direction === "older"
+                ? this.data[0].timestamp
+                : this.data[this.data.length - 1].timestamp;
+
+            console.log("Requesting more data:", {
+              direction,
+              edgeTimestamp: new Date(edgeTimestamp),
+              visibleCandles,
+              totalBuffered: this.data.length,
+            });
+
+            this.dispatchEvent(
+              new CustomEvent("chart-pan", {
+                detail: {
+                  centerTimestamp: edgeTimestamp,
+                  visibleCandles: visibleCandles * this.BUFFER_MULTIPLIER,
+                  needMoreData: true,
+                  direction,
+                },
+              })
+            );
+          }, 250) as unknown as number; // 250ms debounce
+        }
+      }
+    }
+
+    this.lastX = e.clientX;
+  };
+
+  private handleDragEnd = () => {
+    this.isDragging = false;
+  };
 }

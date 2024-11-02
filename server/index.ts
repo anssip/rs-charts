@@ -21,12 +21,22 @@ const server = serve({
 
     if (filePath.startsWith("/api")) {
       if (filePath === "/api/candles") {
+        if (!url.searchParams.has("start") || !url.searchParams.has("end")) {
+          return new Response(
+            JSON.stringify({ error: "Start and end params are required" }),
+            {
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
         try {
           const params = new URLSearchParams(url.search);
+          console.log("params", params);
           const candles = await priceService.fetchCandles({
             symbol: params.get("symbol") || "BTC-USD",
             interval: (params.get("interval") || "1h") as "1h",
-            limit: parseInt(params.get("limit") || "10"),
+            start: new Date(parseInt(params.get("start")!)),
+            end: new Date(parseInt(params.get("end")!)),
           });
           return new Response(JSON.stringify(candles), {
             headers: { "Content-Type": "application/json" },

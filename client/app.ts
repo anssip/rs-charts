@@ -1,4 +1,5 @@
 import { CandlestickChart } from "./components/candlestick-chart";
+import { CandleRepository } from "./candle-repository";
 
 interface CandleData {
   timestamp: number;
@@ -11,61 +12,75 @@ interface CandleData {
 export class App {
   private chart: CandlestickChart | null;
   private readonly API_BASE_URL = "http://localhost:3000";
+  private candleRepository: CandleRepository;
 
   constructor() {
     this.chart = document.querySelector("candlestick-chart");
+    this.candleRepository = new CandleRepository(this.API_BASE_URL);
+    this.chart?.addEventListener(
+      "chart-ready",
+      this.handleChartReady as unknown as EventListener
+    );
+    this.chart?.addEventListener(
+      "chart-pan",
+      this.handlePan as unknown as EventListener
+    );
   }
 
+  private handleChartReady = async (
+    event: CustomEvent<{ visibleCandles: number }>
+  ) => {
+    const { visibleCandles } = event.detail;
+    const bufferedCandles = visibleCandles * 2;
+    const now = Date.now();
+
+    const timeRange = {
+      end: now,
+      start: now - bufferedCandles * this.candleRepository.CANDLE_INTERVAL,
+    };
+
+    console.log("Initial fetch params:", {
+      visibleCandles,
+      bufferedCandles,
+      timeRange: {
+        start: new Date(timeRange.start),
+        end: new Date(timeRange.end),
+      },
+    });
+
+    const candles = await this.candleRepository.fetchCandlesForTimeRange(
+      timeRange
+    );
+    if (candles.length > 0) {
+      this.chart!.data = candles;
+    }
+  };
+
   async initialize() {
-    try {
-      if (!this.chart) {
-        throw new Error("Chart element not found");
-      }
-
-      // Wait for chart to be ready
-      const readyEvent = await new Promise<CustomEvent>((resolve) => {
-        this.chart!.addEventListener(
-          "chart-ready",
-          ((e: CustomEvent) => resolve(e)) as EventListener,
-          { once: true }
-        );
-      });
-
-      const visibleCandles = readyEvent.detail.visibleCandles;
-      console.log(`Initializing with ${visibleCandles} visible candles`);
-      await this.fetchAndUpdateChart(visibleCandles);
-    } catch (error) {
-      console.error("Failed to initialize app:", error);
+    if (!this.chart) {
+      console.error("Chart component not found");
+      return;
     }
   }
 
-  private async fetchAndUpdateChart(limit: number) {
-    try {
-      const response = await fetch(
-        `${this.API_BASE_URL}/api/candles?` +
-          new URLSearchParams({
-            symbol: "BTC-USD",
-            interval: "1h",
-            limit: limit.toString(),
-          })
-      );
+  private async fetchAndUpdateChart(visibleCandles: number) {
+    const bufferedCandles = visibleCandles * 2;
+    const now = Date.now();
+    const timeRange = {
+      end: now,
+      start: now - bufferedCandles * this.candleRepository.CANDLE_INTERVAL,
+    };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const candles: CandleData[] = await response.json();
-      if (this.chart) {
-        this.chart.data = candles;
-      }
-    } catch (error) {
-      console.error("Error fetching candles:", error);
+    const candles = await this.candleRepository.fetchCandlesForTimeRange(
+      timeRange
+    );
+    if (candles.length > 0) {
+      this.chart!.data = candles;
     }
   }
 
   private handleResize = async () => {
     if (!this.chart) return;
-
     const visibleCandles = (this.chart as any).calculateVisibleCandles();
     await this.fetchAndUpdateChart(visibleCandles);
   };
@@ -73,6 +88,37 @@ export class App {
   public initializeResizeHandler() {
     window.addEventListener("resize", debounce(this.handleResize, 250));
   }
+
+  private handlePan = async (event: CustomEvent) => {
+    if (!this.chart) return;
+
+    const { centerTimestamp, visibleCandles, needMoreData, direction } =
+      event.detail;
+
+    if (needMoreData) {
+      const timeRange = this.candleRepository.getTimeRangeForVisibleCandles(
+        centerTimestamp,
+        visibleCandles
+      );
+
+      const candles = await this.candleRepository.fetchCandlesForTimeRange(
+        timeRange
+      );
+      if (candles.length > 0) {
+        const mergedCandles =
+          direction === "older"
+            ? [...this.chart.data, ...candles]
+            : [...candles, ...this.chart.data];
+
+        // Remove duplicates by timestamp
+        const uniqueCandles = Array.from(
+          new Map(mergedCandles.map((c) => [c.timestamp, c])).values()
+        );
+
+        this.chart.data = uniqueCandles;
+      }
+    }
+  };
 }
 
 function debounce(func: Function, wait: number) {

@@ -14,7 +14,8 @@ interface CandleData {
 export interface PriceDataOptions {
   symbol: string;
   interval: "1m" | "5m" | "15m" | "30m" | "1h" | "2h" | "6h" | "1d";
-  limit?: number;
+  start: Date;
+  end: Date;
 }
 
 export class CoinbasePriceDataService {
@@ -30,23 +31,16 @@ export class CoinbasePriceDataService {
   async fetchCandles({
     symbol = "BTC-USD",
     interval = "1h",
-    limit = 168,
+    start,
+    end,
   }: PriceDataOptions): Promise<CandleData[]> {
     try {
       const granularity = this.getGranularity(interval);
 
-      // Calculate time range
-      const end = new Date();
-      const start = new Date();
-      start.setTime(
-        end.getTime() - limit * this.getGranularityInSeconds(granularity) * 1000
-      );
-
       console.log("Fetching candles with time range:", {
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: start,
+        end: end,
         granularity,
-        limit,
       });
 
       const response = await this.client.getProductCandles({
