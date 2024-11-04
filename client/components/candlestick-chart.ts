@@ -2,6 +2,11 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { TimeRange } from "../candle-repository";
 import { CandleDataByTimestamp } from "../../server/services/price-data-cb";
+import {
+  ChartDrawingStrategy,
+  CandlestickStrategy,
+  DrawingContext,
+} from "./chart/drawing-strategy";
 
 export interface CandleData {
   timestamp: number;
@@ -54,6 +59,8 @@ export class CandlestickChart extends LitElement {
   private minPrice: number = 0;
   private priceRange: number = 0;
 
+  private drawingStrategy: ChartDrawingStrategy = new CandlestickStrategy();
+
   static styles = css`
     :host {
       display: block;
@@ -93,33 +100,37 @@ export class CandlestickChart extends LitElement {
 
     this.isLoading = false;
     this._data = newData;
-    // this.sortedTimestamps = Array.from(this._data.keys());
     this.sortedTimestamps = Array.from(this._data.keys()).sort((a, b) => a - b);
 
+    // Set initial viewport to show latest candles
     if (this.viewportStartTimestamp === 0 && this.sortedTimestamps.length > 0) {
-      this.viewportStartTimestamp = this.sortedTimestamps[0];
+      const visibleCandles = this.calculateVisibleCandles();
+      const startIndex = Math.max(
+        0,
+        this.sortedTimestamps.length - visibleCandles
+      );
+      this.viewportStartTimestamp = this.sortedTimestamps[startIndex];
 
       // Calculate price range from visible candles only
-      const visibleCandles = this.calculateVisibleCandles();
       const visibleData = this.sortedTimestamps
-        .slice(0, visibleCandles)
+        .slice(startIndex)
         .map((ts) => this._data.get(ts)!);
 
       this.maxPrice = Math.max(...visibleData.map((d) => d.high));
       this.minPrice = Math.min(...visibleData.map((d) => d.low));
       this.priceRange = this.maxPrice - this.minPrice;
 
-      // Add some padding to the price range (e.g., 5%)
+      // Add some padding to the price range
       const padding = this.priceRange * 0.05;
       this.maxPrice += padding;
       this.minPrice -= padding;
       this.priceRange = this.maxPrice - this.minPrice;
 
-      console.log("Initial price range (from visible candles):", {
-        visibleCandleCount: visibleCandles,
-        min: this.minPrice,
-        max: this.maxPrice,
-        range: this.priceRange,
+      console.log("Initial setup:", {
+        visibleCandles,
+        startIndex,
+        viewportStart: new Date(this.viewportStartTimestamp),
+        priceRange: { min: this.minPrice, max: this.maxPrice },
       });
     }
 
@@ -219,86 +230,17 @@ export class CandlestickChart extends LitElement {
       return;
     }
 
-    const visibleCandles = this.calculateVisibleCandles();
-    const startIndex = this.binarySearch(
-      this.sortedTimestamps,
-      this.viewportStartTimestamp
-    );
+    const context: DrawingContext = {
+      ctx: this.ctx,
+      canvas: this.canvas,
+      data: this._data,
+      sortedTimestamps: this.sortedTimestamps,
+      options: this.options,
+      padding: this.padding,
+      priceToY: this.priceToY.bind(this),
+    };
 
-    // clear canvas
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    const endIndex = Math.min(startIndex + visibleCandles, this.data.size);
-    const visibleTimestamps = this.sortedTimestamps.slice(startIndex, endIndex);
-
-    // Draw the candles
-    visibleTimestamps.forEach((timestamp, i) => {
-      const candle = this.data.get(timestamp);
-      if (!candle) return;
-
-      const x =
-        this.padding.left +
-        i * (this.options.candleWidth + this.options.candleGap);
-
-      // Draw wick
-      this.ctx!.beginPath();
-      this.ctx!.strokeStyle = candle.close > candle.open ? "green" : "red";
-      this.ctx!.moveTo(x, this.priceToY(candle.high));
-      this.ctx!.lineTo(x, this.priceToY(candle.low));
-      this.ctx!.stroke();
-
-      // Draw body
-      const openY = this.priceToY(candle.open);
-      const closeY = this.priceToY(candle.close);
-      const bodyHeight = Math.abs(closeY - openY);
-
-      this.ctx!.fillStyle = candle.close > candle.open ? "green" : "red";
-      this.ctx!.fillRect(
-        x - this.options.candleWidth / 2,
-        Math.min(openY, closeY),
-        this.options.candleWidth,
-        bodyHeight
-      );
-    });
-
-    this.drawTimeAxis(visibleTimestamps);
-  }
-
-  private drawTimeAxis(timestamps: number[]) {
-    if (!this.ctx) return;
-
-    const ctx = this.ctx;
-    const y = this.canvas.height - this.padding.bottom;
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#666";
-    ctx.font = "12px Arial";
-
-    let lastDate: string | null = null;
-    const labelInterval = Math.ceil(timestamps.length / 8);
-
-    timestamps.forEach((ts, i) => {
-      if (i % labelInterval === 0) {
-        const x =
-          this.padding.left +
-          i * (this.options.candleWidth + this.options.candleGap);
-        const date = new Date(ts);
-
-        const timeLabel = date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const dateStr = date.toLocaleDateString([], {
-          month: "short",
-          day: "numeric",
-        });
-        if (dateStr !== lastDate) {
-          ctx.fillText(dateStr, x, y + 25);
-          lastDate = dateStr;
-        }
-        ctx.fillText(timeLabel, x, y + 10);
-      }
-    });
+    this.drawingStrategy.drawChart(context, this.viewportStartTimestamp);
   }
 
   public calculateVisibleCandles(): number {
