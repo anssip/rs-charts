@@ -3,13 +3,14 @@ import {
   GetAdvTradePublicProductCandlesRequest,
 } from "coinbase-api";
 
-interface CandleData {
+export interface CandleData {
   timestamp: number;
   open: number;
   high: number;
   low: number;
   close: number;
 }
+export type CandleDataByTimestamp = Map<number, CandleData>;
 
 export interface PriceDataOptions {
   symbol: string;
@@ -33,7 +34,7 @@ export class CoinbasePriceDataService {
     interval = "1h",
     start,
     end,
-  }: PriceDataOptions): Promise<CandleData[]> {
+  }: PriceDataOptions): Promise<CandleDataByTimestamp> {
     try {
       const granularity = this.getGranularity(interval);
 
@@ -82,13 +83,16 @@ export class CoinbasePriceDataService {
     }
   }
 
-  private transformData(candles: any[]): CandleData[] {
-    return candles.map((candle) => ({
-      timestamp: candle.start * 1000,
-      open: parseFloat(candle.open),
-      high: parseFloat(candle.high),
-      low: parseFloat(candle.low),
-      close: parseFloat(candle.close),
-    }));
+  private transformData(candles: any[]): CandleDataByTimestamp {
+    return candles.reduce((data, candle) => {
+      data.set(candle.start * 1000, {
+        timestamp: candle.start * 1000,
+        open: parseFloat(candle.open),
+        high: parseFloat(candle.high),
+        low: parseFloat(candle.low),
+        close: parseFloat(candle.close),
+      });
+      return data;
+    }, new Map<number, CandleData>());
   }
 }

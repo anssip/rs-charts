@@ -38,7 +38,8 @@ const server = serve({
             start: new Date(parseInt(params.get("start")!)),
             end: new Date(parseInt(params.get("end")!)),
           });
-          return new Response(JSON.stringify(candles), {
+          console.log("Server: Fetched candles:", candles.size);
+          return new Response(JSON.stringify(Object.fromEntries(candles)), {
             headers: { "Content-Type": "application/json" },
           });
         } catch (error) {

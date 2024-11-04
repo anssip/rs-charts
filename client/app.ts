@@ -48,8 +48,8 @@ export class App {
     const candles = await this.candleRepository.fetchCandlesForTimeRange(
       timeRange
     );
-    if (candles.length > 0) {
-      console.log("Initial data fetched, number of candles:", candles.length);
+    if (candles.size > 0) {
+      console.log("Initial data fetched, number of candles:", candles.size);
       this.chart!.data = candles;
       this.chart!.drawChart();
     }
@@ -80,8 +80,8 @@ export class App {
     const candles = await this.candleRepository.fetchCandlesForTimeRange(
       timeRange
     );
-    console.log("Fetched candles:", candles);
-    if (candles.length > 0) {
+    console.log("Fetched candles:", candles.size);
+    if (candles.size > 0) {
       this.chart!.data = candles;
       this.chart!.drawChart();
     }
@@ -118,19 +118,10 @@ export class App {
         this.pendingFetches.add(rangeKey);
         console.log("fetching time range:", timeRange);
 
-        const candles = await this.candleRepository.fetchCandlesForTimeRange(
-          timeRange,
-          { direction }
+        this.chart.data = await this.candleRepository.fetchCandlesForTimeRange(
+          timeRange
         );
-
-        if (candles.length > 0) {
-          const allCandles = [...this.chart.data, ...candles];
-          const uniqueCandles = Array.from(
-            new Map(allCandles.map((c) => [c.timestamp, c])).values()
-          ).sort((a, b) => a.timestamp - b.timestamp);
-
-          this.chart.data = uniqueCandles;
-        }
+        this.chart.drawChart();
       } finally {
         this.pendingFetches.delete(rangeKey);
       }
