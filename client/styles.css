@@ -21,12 +21,9 @@ h1 {
 }
 
 .chart-container {
-    flex: 1;
     width: 100%;
-    min-height: 400px;
-    position: relative;
-    display: flex;
-    margin: 1rem;
+    height: 600px;
+    border: 1px solid #ccc;
 }
 
 candlestick-chart {

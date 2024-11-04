@@ -1,0 +1,545 @@
+import { LitElement, html, css } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
+import { TimeRange } from "../../candle-repository";
+import { CandleDataByTimestamp } from "../../../server/services/price-data-cb";
+import {
+  ChartDrawingStrategy,
+  CandlestickStrategy,
+  DrawingContext,
+} from "./drawing-strategy";
+import { Timeline } from "./timeline";
+
+export interface CandleData {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+interface ChartOptions {
+  candleWidth: number;
+  candleGap: number;
+  minCandleWidth: number;
+  maxCandleWidth: number;
+}
+
+@customElement("candlestick-chart")
+export class CandlestickChart extends LitElement {
+  private canvas!: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D | null = null;
+
+  private _data: CandleDataByTimestamp = new Map();
+  private sortedTimestamps: number[] = [];
+
+  @property({ type: Object })
+  options: ChartOptions = {
+    candleWidth: 10,
+    candleGap: 2,
+    minCandleWidth: 10,
+    maxCandleWidth: 10,
+  };
+
+  private padding = {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+  private resizeObserver!: ResizeObserver;
+  private boundHandleResize: (event: Event) => void;
+
+  private isDragging = false;
+  private lastX = 0;
+  private readonly CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
+  private readonly BUFFER_MULTIPLIER = 3; // Keep 5x the visible candles loaded
+
+  @state()
+  private viewportStartTimestamp: number = 0;
+
+  @state()
+  private isLoading = false;
+
+  // Add new private properties for price range
+  private maxPrice: number = 0;
+  private minPrice: number = 0;
+  private priceRange: number = 0;
+
+  private drawingStrategy: ChartDrawingStrategy = new CandlestickStrategy();
+
+  @state()
+  private viewportEndTimestamp: number = 0;
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: white;
+    }
+  `;
+  constructor() {
+    super();
+    this.boundHandleResize = () => {
+      const rect = this.getBoundingClientRect();
+      this.handleResize(rect.width, rect.height);
+    };
+  }
+
+  @property({ type: Object })
+  set data(newData: CandleDataByTimestamp) {
+    console.log("CandlestickChart: Setting new data", {
+      size: newData.size,
+      timestamps: Array.from(newData.keys()),
+    });
+
+    this._data = newData;
+
+    // First update the sorted timestamps
+    this.sortedTimestamps = Array.from(this._data.keys()).sort((a, b) => a - b);
+
+    // Then set the viewport start if needed
+    if (this.viewportStartTimestamp === 0 && this.sortedTimestamps.length > 0) {
+      const visibleCandles = this.calculateVisibleCandles();
+      const startIndex = Math.max(
+        0,
+        this.sortedTimestamps.length - visibleCandles
+      );
+      this.viewportStartTimestamp = this.sortedTimestamps[startIndex];
+
+      // Also set the viewport end timestamp
+      const endIndex = Math.min(
+        startIndex + visibleCandles,
+        this.sortedTimestamps.length
+      );
+      this.viewportEndTimestamp = this.sortedTimestamps[endIndex - 1];
+
+      console.log("CandlestickChart: Setting initial viewport", {
+        start: new Date(this.viewportStartTimestamp),
+        end: new Date(this.viewportEndTimestamp),
+        visibleCandles,
+      });
+    }
+
+    this.requestUpdate("data", newData);
+    this.drawChart();
+  }
+
+  get data(): CandleDataByTimestamp {
+    return this._data;
+  }
+
+  async firstUpdated() {
+    this.canvas = this.renderRoot.querySelector("canvas")!;
+    this.ctx = this.canvas.getContext("2d");
+
+    const rect = this.getBoundingClientRect();
+    this.handleResize(rect.width, rect.height);
+
+    // Wait for next microtask to ensure canvas is ready
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Setup observers
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        const { width, height } = entry.contentRect;
+        this.handleResize(width, height);
+      }
+    });
+
+    this.resizeObserver.observe(this.canvas);
+    window.addEventListener("resize", this.boundHandleResize);
+
+    // Dispatch ready event after everything is set up
+    const visibleCandles = this.calculateVisibleCandles();
+    console.log(
+      "CandlestickChart: Dispatching chart-ready event with visible candles:",
+      visibleCandles
+    );
+    this.dispatchEvent(
+      new CustomEvent("chart-ready", {
+        detail: { visibleCandles },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.resizeObserver.disconnect();
+    window.removeEventListener("resize", this.boundHandleResize);
+  }
+
+  render() {
+    return html`
+      <canvas
+        @mousedown=${this.handleDragStart}
+        @mousemove=${this.handleDragMove}
+        @mouseup=${this.handleDragEnd}
+        @mouseleave=${this.handleDragEnd}
+        @wheel=${this.handleWheel}
+        @updated=${this.updateCanvas}
+      ></canvas>
+      ${this.isLoading ? html`<div class="loading">Loading...</div>` : ""}
+    `;
+  }
+
+  private updateCanvas = () => {
+    this.drawChart();
+  };
+
+  private handleResize(width: number, height: number) {
+    if (width === 0 || height === 0) {
+      console.warn("Invalid dimensions received:", width, height);
+      return;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const scaledWidth = width * dpr;
+    const scaledHeight = height * dpr;
+
+    console.log("CandlestickChart: Resizing canvas", {
+      width,
+      height,
+      scaledWidth,
+      scaledHeight,
+      dpr,
+    });
+
+    this.canvas.width = scaledWidth;
+    this.canvas.height = scaledHeight;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+
+    if (this.ctx) {
+      this.ctx.scale(dpr, dpr);
+    }
+
+    if (this.data.size > 0) {
+      this.drawChart();
+    }
+  }
+
+  private binarySearch(arr: number[], target: number): number {
+    let left = 0;
+    let right = arr.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      if (arr[mid] === target) return mid;
+      if (arr[mid] < target) left = mid + 1;
+      else right = mid - 1;
+    }
+    return -1; // not found
+  }
+
+  public drawChart() {
+    console.log("CandlestickChart: Drawing chart", {
+      hasContext: !!this.ctx,
+      hasCanvas: !!this.canvas,
+      dataSize: this.data.size,
+      viewportStart: new Date(this.viewportStartTimestamp),
+      viewportEnd: new Date(this.viewportEndTimestamp),
+    });
+
+    if (!this.ctx || !this.canvas || this.data.size === 0) {
+      console.warn("Cannot draw chart:", {
+        hasContext: !!this.ctx,
+        hasCanvas: !!this.canvas,
+        dataSize: this.data.size,
+      });
+      return;
+    }
+
+    // Calculate price range before drawing
+    this.calculatePriceRange();
+
+    console.log("Price range before drawing:", {
+      min: this.minPrice,
+      max: this.maxPrice,
+      range: this.priceRange,
+    });
+
+    // Clear the canvas before drawing
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    const context: DrawingContext = {
+      ctx: this.ctx,
+      canvas: this.canvas,
+      data: this._data,
+      sortedTimestamps: this.sortedTimestamps,
+      options: {
+        ...this.options,
+        candleWidth: this.options.candleWidth,
+        candleGap: this.options.candleGap,
+      },
+      padding: this.padding,
+      priceToY: this.priceToY.bind(this),
+    };
+
+    this.drawingStrategy.drawChart(context, this.viewportStartTimestamp);
+  }
+
+  public calculateVisibleCandles(): number {
+    if (!this.canvas) return 0;
+
+    const dpr = window.devicePixelRatio || 1;
+    const availableWidth =
+      this.canvas.width / dpr - (this.padding.left + this.padding.right);
+    const candleSpacing = this.options.candleWidth + this.options.candleGap;
+
+    const visibleCandles = Math.floor(availableWidth / candleSpacing);
+
+    console.log("Calculating visible candles:", {
+      availableWidth,
+      candleSpacing,
+      visibleCandles,
+      canvasWidth: this.canvas.width,
+      dpr,
+      padding: this.padding,
+    });
+
+    return visibleCandles;
+  }
+
+  private handleDragStart = (e: MouseEvent) => {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+  };
+
+  private handlePan(deltaX: number, isTrackpad = false) {
+    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
+    const candlesPerPixel = 1 / this.options.candleWidth;
+    const candlesShifted = Math.round(adjustedDelta * candlesPerPixel);
+
+    if (candlesShifted !== 0) {
+      // Find current timestamp index
+      const currentIndex = this.binarySearch(
+        this.sortedTimestamps,
+        this.viewportStartTimestamp
+      );
+      if (currentIndex === -1) return;
+
+      // Calculate new target index
+      const targetIndex = Math.min(
+        this.data.size - this.calculateVisibleCandles(),
+        Math.max(0, currentIndex - candlesShifted)
+      );
+
+      // Update viewport timestamp
+      this.viewportStartTimestamp = this.sortedTimestamps[targetIndex];
+
+      // Calculate and update viewport end timestamp
+      const visibleCandles = this.calculateVisibleCandles();
+      const endIndex = Math.min(
+        targetIndex + visibleCandles,
+        this.sortedTimestamps.length
+      );
+      const viewportEndTimestamp = this.sortedTimestamps[endIndex - 1];
+
+      // Update timeline component
+      const timeline: Timeline | null =
+        this.renderRoot.querySelector("chart-timeline");
+      if (timeline) {
+        timeline.viewportStartTimestamp = this.viewportStartTimestamp;
+        timeline.viewportEndTimestamp = viewportEndTimestamp;
+      }
+
+      this.drawChart();
+
+      const bufferSize =
+        this.calculateVisibleCandles() * this.BUFFER_MULTIPLIER;
+
+      const needMoreData =
+        targetIndex < bufferSize // Need more past data
+          ? true
+          : this.data.size - (targetIndex + this.calculateVisibleCandles()) <
+            bufferSize; // Need more future data
+
+      console.log("Need more data:", needMoreData);
+      if (needMoreData) {
+        this.dispatchRefetch(
+          targetIndex < currentIndex ? "backward" : "forward"
+        );
+      }
+    }
+    this.dispatchViewportChange();
+  }
+
+  private dispatchRefetch(direction: "backward" | "forward") {
+    const FETCH_BATCH_SIZE = 200; // Number of candles to fetch at once
+
+    const timeRange: TimeRange =
+      direction === "backward"
+        ? {
+            start:
+              this.sortedTimestamps[0] -
+              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+            end: this.sortedTimestamps[0],
+          }
+        : {
+            start: this.sortedTimestamps[this.sortedTimestamps.length - 1],
+            end:
+              this.sortedTimestamps[this.sortedTimestamps.length - 1] +
+              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          };
+    this.dispatchEvent(
+      new CustomEvent("chart-pan", {
+        detail: {
+          direction,
+          timeRange,
+          visibleCandles: this.calculateVisibleCandles(),
+          needMoreData: true,
+          bubbles: true,
+          composed: true,
+        },
+      })
+    );
+  }
+
+  private handleDragMove = (e: MouseEvent) => {
+    if (!this.isDragging) return;
+    const deltaX = e.clientX - this.lastX;
+    this.handlePan(deltaX, false);
+    this.lastX = e.clientX;
+  };
+
+  private handleDragEnd = () => {
+    this.isDragging = false;
+  };
+
+  private handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    this.handlePan(e.deltaX, true);
+  };
+
+  // Helper method to convert price to Y coordinate
+  private priceToY(price: number): number {
+    if (this.priceRange === 0) {
+      console.warn("Price range is 0, cannot calculate Y coordinate");
+      return 0;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const availableHeight =
+      this.canvas.height / dpr - this.padding.top - this.padding.bottom;
+
+    console.log("CandlestickChart: Canvas dimensions", {
+      canvasHeight: this.canvas.height,
+      dpr,
+      availableHeight,
+      padding: this.padding,
+    });
+
+    // Invert the Y coordinate (0 is at the top in canvas)
+    const normalizedPrice = (price - this.minPrice) / this.priceRange;
+    const y = this.padding.top + (1 - normalizedPrice) * availableHeight;
+
+    console.log("CandlestickChart: Price to Y", {
+      price,
+      minPrice: this.minPrice,
+      maxPrice: this.maxPrice,
+      priceRange: this.priceRange,
+      normalizedPrice,
+      availableHeight,
+      y,
+      dpr,
+    });
+
+    return y;
+  }
+
+  private dispatchViewportChange() {
+    const visibleTimestamps = this.getVisibleTimestamps();
+
+    console.log("CandlestickChart: Dispatching viewport change", {
+      visibleTimestamps: visibleTimestamps.length,
+      start: new Date(this.viewportStartTimestamp),
+      end: new Date(this.viewportEndTimestamp),
+      startTimestamp: this.viewportStartTimestamp,
+      endTimestamp: this.viewportEndTimestamp,
+    });
+
+    this.dispatchEvent(
+      new CustomEvent("viewport-change", {
+        detail: {
+          visibleTimestamps,
+          viewportStartTimestamp: this.viewportStartTimestamp,
+          viewportEndTimestamp: this.viewportEndTimestamp,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private getVisibleTimestamps(): number[] {
+    const startIdx = this.binarySearch(
+      this.sortedTimestamps,
+      this.viewportStartTimestamp
+    );
+
+    if (startIdx === -1) {
+      console.warn("Invalid start index in getVisibleTimestamps");
+      return [];
+    }
+
+    const visibleCandles = this.calculateVisibleCandles();
+    // Ensure we don't exceed array bounds
+    const endIdx = Math.min(
+      startIdx + visibleCandles,
+      this.sortedTimestamps.length
+    );
+
+    console.log("Getting visible timestamps:", {
+      startIdx,
+      endIdx,
+      visibleCandles,
+      actualVisible: endIdx - startIdx,
+    });
+
+    return this.sortedTimestamps.slice(startIdx, endIdx);
+  }
+
+  private calculatePriceRange() {
+    if (this.sortedTimestamps.length === 0) return;
+
+    // Find the visible range of timestamps
+    const startIdx = this.binarySearch(
+      this.sortedTimestamps,
+      this.viewportStartTimestamp
+    );
+    if (startIdx === -1) return;
+
+    const visibleCandles = this.calculateVisibleCandles();
+    const endIdx = Math.min(
+      startIdx + visibleCandles,
+      this.sortedTimestamps.length
+    );
+
+    // Initialize with first visible candle's values
+    const firstCandle = this._data.get(this.sortedTimestamps[startIdx])!;
+    this.maxPrice = firstCandle.high;
+    this.minPrice = firstCandle.low;
+
+    // Calculate range from visible candles
+    for (let i = startIdx; i < endIdx; i++) {
+      const candle = this._data.get(this.sortedTimestamps[i])!;
+      this.maxPrice = Math.max(this.maxPrice, candle.high);
+      this.minPrice = Math.min(this.minPrice, candle.low);
+    }
+
+    // Add padding to the range (10%)
+    const padding = (this.maxPrice - this.minPrice) * 0.1;
+    this.maxPrice += padding;
+    this.minPrice -= padding;
+    this.priceRange = this.maxPrice - this.minPrice;
+  }
+}

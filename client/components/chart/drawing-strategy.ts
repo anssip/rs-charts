@@ -19,11 +19,11 @@ export interface DrawingContext {
 
 export interface ChartDrawingStrategy {
   drawChart(context: DrawingContext, viewportStartTimestamp: number): void;
-  drawTimeAxis?(context: DrawingContext, timestamps: number[]): void;
 }
 
 export class CandlestickStrategy implements ChartDrawingStrategy {
   drawChart(context: DrawingContext, viewportStartTimestamp: number): void {
+    console.log("CandlestickStrategy: Drawing chart");
     const { ctx, canvas, data, sortedTimestamps, options, padding, priceToY } =
       context;
 
@@ -36,6 +36,14 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
     let startIndex = this.binarySearch(
       sortedTimestamps,
       viewportStartTimestamp
+    );
+    console.log(
+      "CandlestickStrategy: Start index:",
+      startIndex,
+      "viewportStartTimestamp:",
+      viewportStartTimestamp,
+      "sortedTimestamps:",
+      sortedTimestamps.length
     );
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -68,41 +76,6 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
         options.candleWidth,
         bodyHeight
       );
-    });
-
-    this.drawTimeAxis(context, visibleTimestamps);
-  }
-
-  drawTimeAxis(context: DrawingContext, timestamps: number[]): void {
-    const { ctx, canvas, padding, options } = context;
-    const y = canvas.height - padding.bottom;
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#666";
-    ctx.font = "12px Arial";
-
-    let lastDate: string | null = null;
-    const labelInterval = Math.ceil(timestamps.length / 8);
-
-    timestamps.forEach((ts, i) => {
-      if (i % labelInterval === 0) {
-        const x = padding.left + i * (options.candleWidth + options.candleGap);
-        const date = new Date(ts);
-
-        const timeLabel = date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const dateStr = date.toLocaleDateString([], {
-          month: "short",
-          day: "numeric",
-        });
-        if (dateStr !== lastDate) {
-          ctx.fillText(dateStr, x, y + 25);
-          lastDate = dateStr;
-        }
-        ctx.fillText(timeLabel, x, y + 10);
-      }
     });
   }
 
