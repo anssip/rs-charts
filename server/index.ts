@@ -1,5 +1,5 @@
 import { serve } from "bun";
-import { CoinbasePriceDataService } from "./services/price-data-cb";
+import { CoinbasePriceDataService } from "./services/price-data/coinbase";
 import dotenv from "dotenv";
 
 dotenv.config();

@@ -1,7 +1,7 @@
 import {
   CandleData,
   CandleDataByTimestamp,
-} from "../server/services/price-data-cb";
+} from "../server/services/price-data/coinbase";
 
 export interface TimeRange {
   start: number;

@@ -1,4 +1,4 @@
-import { CandleDataByTimestamp } from "../../../server/services/price-data-cb";
+import { CandleDataByTimestamp } from "../../../server/services/price-data/coinbase";
 
 export interface ChartOptions {
   candleWidth: number;
