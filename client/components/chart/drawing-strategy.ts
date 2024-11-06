@@ -1,17 +1,10 @@
-import { CandleDataByTimestamp } from "../../../server/services/price-data/coinbase";
-
-export interface ChartOptions {
-  candleWidth: number;
-  candleGap: number;
-  minCandleWidth: number;
-  maxCandleWidth: number;
-}
+import { ChartOptions } from "./chart";
+import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
   canvas: HTMLCanvasElement;
-  data: CandleDataByTimestamp;
-  sortedTimestamps: number[];
+  data: PriceHistory;
   options: ChartOptions;
   padding: { top: number; right: number; bottom: number; left: number };
   priceToY: (price: number) => number;
@@ -24,8 +17,7 @@ export interface ChartDrawingStrategy {
 export class CandlestickStrategy implements ChartDrawingStrategy {
   drawChart(context: DrawingContext, viewportStartTimestamp: number): void {
     console.log("CandlestickStrategy: Drawing chart");
-    const { ctx, canvas, data, sortedTimestamps, options, padding, priceToY } =
-      context;
+    const { ctx, canvas, data, options, padding, priceToY } = context;
 
     const visibleCandles = this.calculateVisibleCandles(
       canvas,
@@ -33,10 +25,13 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
       options
     );
 
+    // Get sorted timestamps for the viewport
+    const sortedTimestamps = data.getTimestampsSorted();
     let startIndex = this.binarySearch(
       sortedTimestamps,
       viewportStartTimestamp
     );
+
     console.log(
       "CandlestickStrategy: Start index:",
       startIndex,
@@ -45,14 +40,15 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
       "sortedTimestamps:",
       sortedTimestamps.length
     );
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const endIndex = Math.min(startIndex + visibleCandles, data.size);
+    const endIndex = Math.min(startIndex + visibleCandles, data.length);
     const visibleTimestamps = sortedTimestamps.slice(startIndex, endIndex);
 
     // Draw the candles
     visibleTimestamps.forEach((timestamp, i) => {
-      const candle = data.get(timestamp);
+      const candle = data.getCandle(timestamp);
       if (!candle) return;
 
       const x = padding.left + i * (options.candleWidth + options.candleGap);
@@ -99,6 +95,12 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
       if (arr[mid] < target) left = mid + 1;
       else right = mid - 1;
     }
-    return -1;
+
+    // If exact match not found, return the closest index
+    if (right < 0) return 0;
+    if (left >= arr.length) return arr.length - 1;
+    return Math.abs(arr[left] - target) < Math.abs(arr[right] - target)
+      ? left
+      : right;
   }
 }

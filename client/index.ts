@@ -1,5 +1,5 @@
 import "./components/chart/chart-container";
-import "./components/chart/candlestick-chart";
+import "./components/chart/chart";
 import "./components/chart/timeline";
 import { App } from "./app";
 

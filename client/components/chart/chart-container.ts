@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { CandleDataByTimestamp } from "../../../server/services/price-data/coinbase";
-import "./candlestick-chart";
+import { CandleDataByTimestamp } from "../../../server/services/price-data/price-history-model";
+import "./chart";
 import "./timeline";
 import { Timeline } from "./timeline";
 

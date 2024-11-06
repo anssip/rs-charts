@@ -1,13 +1,17 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { TimeRange } from "../../candle-repository";
-import { CandleDataByTimestamp } from "../../../server/services/price-data/coinbase";
 import {
   ChartDrawingStrategy,
   CandlestickStrategy,
   DrawingContext,
 } from "./drawing-strategy";
 import { Timeline } from "./timeline";
+import {
+  CandleDataByTimestamp,
+  PriceHistory,
+  SimplePriceHistory,
+} from "../../../server/services/price-data/price-history-model";
 
 export interface CandleData {
   timestamp: number;
@@ -17,7 +21,7 @@ export interface CandleData {
   close: number;
 }
 
-interface ChartOptions {
+export interface ChartOptions {
   candleWidth: number;
   candleGap: number;
   minCandleWidth: number;
@@ -26,11 +30,11 @@ interface ChartOptions {
 
 @customElement("candlestick-chart")
 export class CandlestickChart extends LitElement {
+  private drawingStrategy: ChartDrawingStrategy = new CandlestickStrategy();
   private canvas!: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
 
-  private _data: CandleDataByTimestamp = new Map();
-  private sortedTimestamps: number[] = [];
+  private _data: PriceHistory = new SimplePriceHistory("ONE_HOUR", new Map());
 
   @property({ type: Object })
   options: ChartOptions = {
@@ -58,17 +62,14 @@ export class CandlestickChart extends LitElement {
   private viewportStartTimestamp: number = 0;
 
   @state()
+  private viewportEndTimestamp: number = 0;
+
+  @state()
   private isLoading = false;
 
-  // Add new private properties for price range
   private maxPrice: number = 0;
   private minPrice: number = 0;
   private priceRange: number = 0;
-
-  private drawingStrategy: ChartDrawingStrategy = new CandlestickStrategy();
-
-  @state()
-  private viewportEndTimestamp: number = 0;
 
   static styles = css`
     :host {
@@ -98,26 +99,28 @@ export class CandlestickChart extends LitElement {
       timestamps: Array.from(newData.keys()),
     });
 
-    this._data = newData;
-
-    // First update the sorted timestamps
-    this.sortedTimestamps = Array.from(this._data.keys()).sort((a, b) => a - b);
+    this._data = new SimplePriceHistory("ONE_HOUR", new Map(newData.entries()));
 
     // Then set the viewport start if needed
-    if (this.viewportStartTimestamp === 0 && this.sortedTimestamps.length > 0) {
+    if (
+      this.viewportStartTimestamp === 0 &&
+      this._data.getTimestampsSorted().length > 0
+    ) {
       const visibleCandles = this.calculateVisibleCandles();
       const startIndex = Math.max(
         0,
-        this.sortedTimestamps.length - visibleCandles
+        this._data.getTimestampsSorted().length - visibleCandles
       );
-      this.viewportStartTimestamp = this.sortedTimestamps[startIndex];
+      this.viewportStartTimestamp =
+        this._data.getTimestampsSorted()[startIndex];
 
       // Also set the viewport end timestamp
       const endIndex = Math.min(
         startIndex + visibleCandles,
-        this.sortedTimestamps.length
+        this._data.getTimestampsSorted().length
       );
-      this.viewportEndTimestamp = this.sortedTimestamps[endIndex - 1];
+      this.viewportEndTimestamp =
+        this._data.getTimestampsSorted()[endIndex - 1];
 
       console.log("CandlestickChart: Setting initial viewport", {
         start: new Date(this.viewportStartTimestamp),
@@ -131,7 +134,7 @@ export class CandlestickChart extends LitElement {
   }
 
   get data(): CandleDataByTimestamp {
-    return this._data;
+    return this._data.getCandles();
   }
 
   async firstUpdated() {
@@ -274,7 +277,6 @@ export class CandlestickChart extends LitElement {
       ctx: this.ctx,
       canvas: this.canvas,
       data: this._data,
-      sortedTimestamps: this.sortedTimestamps,
       options: {
         ...this.options,
         candleWidth: this.options.candleWidth,
@@ -322,7 +324,7 @@ export class CandlestickChart extends LitElement {
     if (candlesShifted !== 0) {
       // Find current timestamp index
       const currentIndex = this.binarySearch(
-        this.sortedTimestamps,
+        this._data.getTimestampsSorted(),
         this.viewportStartTimestamp
       );
       if (currentIndex === -1) return;
@@ -334,15 +336,17 @@ export class CandlestickChart extends LitElement {
       );
 
       // Update viewport timestamp
-      this.viewportStartTimestamp = this.sortedTimestamps[targetIndex];
+      this.viewportStartTimestamp =
+        this._data.getTimestampsSorted()[targetIndex];
 
       // Calculate and update viewport end timestamp
       const visibleCandles = this.calculateVisibleCandles();
       const endIndex = Math.min(
         targetIndex + visibleCandles,
-        this.sortedTimestamps.length
+        this._data.numCandles
       );
-      const viewportEndTimestamp = this.sortedTimestamps[endIndex - 1];
+      const viewportEndTimestamp =
+        this._data.getTimestampsSorted()[endIndex - 1];
 
       // Update timeline component
       const timeline: Timeline | null =
@@ -380,15 +384,14 @@ export class CandlestickChart extends LitElement {
       direction === "backward"
         ? {
             start:
-              this.sortedTimestamps[0] -
+              this._data.startTimestamp -
               FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-            end: this.sortedTimestamps[0],
+            end: this._data.startTimestamp,
           }
         : {
-            start: this.sortedTimestamps[this.sortedTimestamps.length - 1],
+            start: this._data.endTimestamp,
             end:
-              this.sortedTimestamps[this.sortedTimestamps.length - 1] +
-              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
           };
     this.dispatchEvent(
       new CustomEvent("chart-pan", {
@@ -482,7 +485,7 @@ export class CandlestickChart extends LitElement {
 
   private getVisibleTimestamps(): number[] {
     const startIdx = this.binarySearch(
-      this.sortedTimestamps,
+      this._data.getTimestampsSorted(),
       this.viewportStartTimestamp
     );
 
@@ -493,10 +496,7 @@ export class CandlestickChart extends LitElement {
 
     const visibleCandles = this.calculateVisibleCandles();
     // Ensure we don't exceed array bounds
-    const endIdx = Math.min(
-      startIdx + visibleCandles,
-      this.sortedTimestamps.length
-    );
+    const endIdx = Math.min(startIdx + visibleCandles, this._data.numCandles);
 
     console.log("Getting visible timestamps:", {
       startIdx,
@@ -505,33 +505,32 @@ export class CandlestickChart extends LitElement {
       actualVisible: endIdx - startIdx,
     });
 
-    return this.sortedTimestamps.slice(startIdx, endIdx);
+    return this._data.getTimestampsSorted().slice(startIdx, endIdx);
   }
 
   private calculatePriceRange() {
-    if (this.sortedTimestamps.length === 0) return;
+    if (this._data.length === 0) return;
 
     // Find the visible range of timestamps
     const startIdx = this.binarySearch(
-      this.sortedTimestamps,
+      this._data.getTimestampsSorted(),
       this.viewportStartTimestamp
     );
     if (startIdx === -1) return;
 
     const visibleCandles = this.calculateVisibleCandles();
-    const endIdx = Math.min(
-      startIdx + visibleCandles,
-      this.sortedTimestamps.length
-    );
+    const endIdx = Math.min(startIdx + visibleCandles, this._data.length);
 
     // Initialize with first visible candle's values
-    const firstCandle = this._data.get(this.sortedTimestamps[startIdx])!;
+    const firstCandle = this._data.getCandle(
+      this._data.getTimestampsSorted()[startIdx]
+    )!;
     this.maxPrice = firstCandle.high;
     this.minPrice = firstCandle.low;
 
     // Calculate range from visible candles
     for (let i = startIdx; i < endIdx; i++) {
-      const candle = this._data.get(this.sortedTimestamps[i])!;
+      const candle = this._data.getCandle(this._data.getTimestampsSorted()[i])!;
       this.maxPrice = Math.max(this.maxPrice, candle.high);
       this.minPrice = Math.min(this.minPrice, candle.low);
     }

@@ -29,6 +29,13 @@ export interface PriceHistory {
   getGranularity(): Granularity;
   getCandle(timestamp: number): CandleData | undefined;
   isCandleAvailable(timestamp: number): boolean;
+  getCandlesSorted(): [number, CandleData][];
+  getCandles(): CandleDataByTimestamp;
+  getTimestampsSorted(): number[];
+  numCandles: number;
+  startTimestamp: number;
+  endTimestamp: number;
+  length: number;
 }
 
 export class SimplePriceHistory implements PriceHistory {
@@ -56,6 +63,11 @@ export class SimplePriceHistory implements PriceHistory {
     );
   }
 
+  /**
+   * Get the closest candle to the given timestamp.
+   * @param timestamp - The timestamp to search for.
+   * @returns The closest candle or undefined if no candle is found within the interval.
+   */
   getCandle(timestamp: number): CandleData | undefined {
     const intervalMs =
       SimplePriceHistory.GRANULARITY_TO_MS.get(this.granularity) ??
@@ -90,11 +102,78 @@ export class SimplePriceHistory implements PriceHistory {
       : undefined;
   }
 
+  /**
+   * Get the granularity of the price history.
+   * @returns The granularity.
+   */
   getGranularity(): Granularity {
     return this.granularity;
   }
 
+  /**
+   * Check if a candle is available for the given timestamp.
+   * @param timestamp - The timestamp to check.
+   * @returns True if a candle is available, false otherwise.
+   */
   isCandleAvailable(timestamp: number): boolean {
     return this.getCandle(timestamp) !== undefined;
+  }
+
+  /**
+   * Get the candles sorted by timestamp.
+   * @returns The candles sorted by timestamp.
+   */
+  getCandlesSorted(): [number, CandleData][] {
+    return this.candlesSortedByTimestamp;
+  }
+
+  /**
+   * Get the timestamps sorted.
+   * @returns The timestamps sorted.
+   */
+  getTimestampsSorted(): number[] {
+    return this.candlesSortedByTimestamp.map(([timestamp]) => timestamp);
+  }
+
+  /**
+   * Get the number of candles.
+   * @returns The number of candles.
+   */
+  get numCandles(): number {
+    return this.candlesSortedByTimestamp.length;
+  }
+
+  /**
+   * Get the start timestamp.
+   * @returns The start timestamp.
+   */
+  get startTimestamp(): number {
+    return this.candlesSortedByTimestamp[0][0];
+  }
+
+  /**
+   * Get the end timestamp.
+   * @returns The end timestamp.
+   */
+  get endTimestamp(): number {
+    return this.candlesSortedByTimestamp[
+      this.candlesSortedByTimestamp.length - 1
+    ][0];
+  }
+
+  /**
+   * Get the length of the price history.
+   * @returns The length of the price history.
+   */
+  get length(): number {
+    return this.candlesSortedByTimestamp.length;
+  }
+
+  /**
+   * Get the candles.
+   * @returns The candles.
+   */
+  getCandles(): CandleDataByTimestamp {
+    return this.candles;
   }
 }

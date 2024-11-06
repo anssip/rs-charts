@@ -122,4 +122,68 @@ describe("SimplePriceHistory", () => {
     const result2 = priceHistory.getCandle(baseTime + 6 * 60 * 1000); // +6 minutes
     expect(result2).toBeUndefined();
   });
+
+  test("getCandlesSorted returns candles in correct order", () => {
+    const candles = new Map<number, CandleData>();
+
+    // Add candles in random order
+    const timestamps = [1700003600000, 1700000000000, 1700007200000];
+
+    timestamps.forEach((timestamp) => {
+      candles.set(timestamp, {
+        granularity: "ONE_HOUR",
+        timestamp,
+        open: 100,
+        high: 110,
+        low: 90,
+        close: 105,
+      });
+    });
+
+    const priceHistory = new SimplePriceHistory("ONE_HOUR", candles);
+    const sortedCandles = priceHistory.getCandlesSorted();
+
+    expect(sortedCandles.length).toBe(timestamps.length);
+
+    for (let i = 1; i < sortedCandles.length; i++) {
+      const [prevTimestamp] = sortedCandles[i - 1];
+      const [currentTimestamp] = sortedCandles[i];
+      expect(prevTimestamp).toBeLessThan(currentTimestamp);
+    }
+
+    // Check that the first and last timestamps match our expected order
+    expect(sortedCandles[0][0]).toBe(1700000000000);
+    expect(sortedCandles[sortedCandles.length - 1][0]).toBe(1700007200000);
+  });
+
+  test("getTimestampsSorted returns timestamps in correct order", () => {
+    const candles = new Map<number, CandleData>();
+
+    // Add candles in random order
+    const timestamps = [1700003600000, 1700000000000, 1700007200000];
+
+    timestamps.forEach((timestamp) => {
+      candles.set(timestamp, {
+        granularity: "ONE_HOUR",
+        timestamp,
+        open: 100,
+        high: 110,
+        low: 90,
+        close: 105,
+      });
+    });
+
+    const priceHistory = new SimplePriceHistory("ONE_HOUR", candles);
+    const sortedTimestamps = priceHistory.getTimestampsSorted();
+
+    expect(sortedTimestamps.length).toBe(timestamps.length);
+
+    for (let i = 1; i < sortedTimestamps.length; i++) {
+      expect(sortedTimestamps[i - 1]).toBeLessThan(sortedTimestamps[i]);
+    }
+
+    expect(sortedTimestamps).toEqual([
+      1700000000000, 1700003600000, 1700007200000,
+    ]);
+  });
 });

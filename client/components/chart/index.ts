@@ -1,3 +1,3 @@
 export * from "./chart-container";
-export * from "./candlestick-chart";
+export * from "./chart";
 export * from "./timeline";
