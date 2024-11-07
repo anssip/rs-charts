@@ -8,99 +8,99 @@ export interface DrawingContext {
   options: ChartOptions;
   padding: { top: number; right: number; bottom: number; left: number };
   priceToY: (price: number) => number;
+  viewportStartTimestamp: number;
+  viewportEndTimestamp: number;
 }
 
 export interface ChartDrawingStrategy {
-  drawChart(context: DrawingContext, viewportStartTimestamp: number): void;
+  drawChart(context: DrawingContext): void;
+  calculateTimeForX(x: number, context: DrawingContext): number;
+  calculateXForTime(timestamp: number, context: DrawingContext): number;
 }
 
 export class CandlestickStrategy implements ChartDrawingStrategy {
-  drawChart(context: DrawingContext, viewportStartTimestamp: number): void {
-    console.log("CandlestickStrategy: Drawing chart");
-    const { ctx, canvas, data, options, padding, priceToY } = context;
-
-    const visibleCandles = this.calculateVisibleCandles(
+  drawChart(context: DrawingContext): void {
+    const {
+      ctx,
       canvas,
+      data,
+      options,
       padding,
-      options
-    );
-
-    // Get sorted timestamps for the viewport
-    const sortedTimestamps = data.getTimestampsSorted();
-    let startIndex = this.binarySearch(
-      sortedTimestamps,
-      viewportStartTimestamp
-    );
-
-    console.log(
-      "CandlestickStrategy: Start index:",
-      startIndex,
-      "viewportStartTimestamp:",
+      priceToY,
       viewportStartTimestamp,
-      "sortedTimestamps:",
-      sortedTimestamps.length
-    );
+      viewportEndTimestamp,
+    } = context;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const endIndex = Math.min(startIndex + visibleCandles, data.length);
-    const visibleTimestamps = sortedTimestamps.slice(startIndex, endIndex);
+    // Calculate dimensions with device pixel ratio
+    const dpr = window.devicePixelRatio;
+    const candleWidth = options.candleWidth * dpr;
+    const candleGap = options.candleGap * dpr;
+    const totalCandleWidth = candleWidth + candleGap;
+    const candleInterval =
+      data.getGranularity() === "ONE_HOUR" ? 60 * 60 * 1000 : 5 * 60 * 1000;
 
-    // Draw the candles
-    visibleTimestamps.forEach((timestamp, i) => {
-      const candle = data.getCandle(timestamp);
-      if (!candle) return;
+    // Draw candles
+    let currentTime = viewportStartTimestamp;
+    while (currentTime <= viewportEndTimestamp) {
+      const candle = data.getCandle(currentTime);
+      if (candle) {
+        // Calculate base X position
+        const baseX = this.calculateXForTime(candle.timestamp, context);
 
-      const x = padding.left + i * (options.candleWidth + options.candleGap);
+        // Add half the gap to position the candle with proper spacing
+        const x = baseX + candleGap / 2;
 
-      // Draw wick
-      ctx.beginPath();
-      ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
-      ctx.moveTo(x, priceToY(candle.high));
-      ctx.lineTo(x, priceToY(candle.low));
-      ctx.stroke();
+        // Draw wick (centered on the candle)
+        ctx.beginPath();
+        ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
+        ctx.moveTo(x + candleWidth / 2, priceToY(candle.high));
+        ctx.lineTo(x + candleWidth / 2, priceToY(candle.low));
+        ctx.stroke();
 
-      // Draw body
-      const openY = priceToY(candle.open);
-      const closeY = priceToY(candle.close);
-      const bodyHeight = Math.abs(closeY - openY);
+        // Draw body
+        const openY = priceToY(candle.open);
+        const closeY = priceToY(candle.close);
+        const bodyHeight = Math.abs(closeY - openY);
 
-      ctx.fillStyle = candle.close > candle.open ? "green" : "red";
-      ctx.fillRect(
-        x - options.candleWidth / 2,
-        Math.min(openY, closeY),
-        options.candleWidth,
-        bodyHeight
-      );
-    });
+        ctx.fillStyle = candle.close > candle.open ? "green" : "red";
+        ctx.fillRect(x, Math.min(openY, closeY), candleWidth, bodyHeight);
+      }
+
+      currentTime += candleInterval;
+    }
   }
 
-  private calculateVisibleCandles(
+  calculateTimeForX(x: number, context: DrawingContext): number {
+    const { canvas, padding, viewportStartTimestamp, viewportEndTimestamp } =
+      context;
+    const availableWidth = canvas.width - padding.left - padding.right;
+    const timeRange = viewportEndTimestamp - viewportStartTimestamp;
+    const relativeX = x - padding.left;
+
+    return viewportStartTimestamp + (relativeX / availableWidth) * timeRange;
+  }
+
+  calculateXForTime(timestamp: number, context: DrawingContext): number {
+    const { canvas, padding, viewportStartTimestamp, viewportEndTimestamp } =
+      context;
+    const availableWidth = canvas.width - padding.left - padding.right;
+    const timeRange = viewportEndTimestamp - viewportStartTimestamp;
+    const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
+
+    return padding.left + timePosition * availableWidth;
+  }
+
+  calculateVisibleTimeRange(
     canvas: HTMLCanvasElement,
     padding: { left: number; right: number },
-    options: ChartOptions
+    options: ChartOptions,
+    candleInterval: number
   ): number {
     const availableWidth = canvas.width - padding.left - padding.right;
     const totalCandleWidth = options.candleWidth + options.candleGap;
-    return Math.floor(availableWidth / totalCandleWidth);
-  }
-
-  private binarySearch(arr: number[], target: number): number {
-    let left = 0;
-    let right = arr.length - 1;
-
-    while (left <= right) {
-      const mid = Math.floor((left + right) / 2);
-      if (arr[mid] === target) return mid;
-      if (arr[mid] < target) left = mid + 1;
-      else right = mid - 1;
-    }
-
-    // If exact match not found, return the closest index
-    if (right < 0) return 0;
-    if (left >= arr.length) return arr.length - 1;
-    return Math.abs(arr[left] - target) < Math.abs(arr[right] - target)
-      ? left
-      : right;
+    const visibleCandles = Math.floor(availableWidth / totalCandleWidth);
+    return visibleCandles * candleInterval;
   }
 }

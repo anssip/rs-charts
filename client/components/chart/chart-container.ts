@@ -156,7 +156,6 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 400px;
     }
     .container {
       display: grid;
@@ -167,7 +166,7 @@ export class ChartContainer extends LitElement {
         "left-tb chart right-tb"
         "left-tb timeline right-tb";
       grid-template-columns: 50px 1fr 50px;
-      grid-template-rows: 40px minmax(0, 1fr) 80px;
+      grid-template-rows: 40px 1fr 80px;
       gap: 1px;
       background-color: #f5f5f5;
     }

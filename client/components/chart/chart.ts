@@ -102,25 +102,10 @@ export class CandlestickChart extends LitElement {
     this._data = new SimplePriceHistory("ONE_HOUR", new Map(newData.entries()));
 
     // Then set the viewport start if needed
-    if (
-      this.viewportStartTimestamp === 0 &&
-      this._data.getTimestampsSorted().length > 0
-    ) {
+    if (this.viewportStartTimestamp === 0 && this._data.numCandles > 0) {
       const visibleCandles = this.calculateVisibleCandles();
-      const startIndex = Math.max(
-        0,
-        this._data.getTimestampsSorted().length - visibleCandles
-      );
-      this.viewportStartTimestamp =
-        this._data.getTimestampsSorted()[startIndex];
-
-      // Also set the viewport end timestamp
-      const endIndex = Math.min(
-        startIndex + visibleCandles,
-        this._data.getTimestampsSorted().length
-      );
-      this.viewportEndTimestamp =
-        this._data.getTimestampsSorted()[endIndex - 1];
+      this.viewportStartTimestamp = this._data.startTimestamp;
+      this.viewportEndTimestamp = this._data.endTimestamp;
 
       console.log("CandlestickChart: Setting initial viewport", {
         start: new Date(this.viewportStartTimestamp),
@@ -284,15 +269,17 @@ export class CandlestickChart extends LitElement {
       },
       padding: this.padding,
       priceToY: this.priceToY.bind(this),
+      viewportStartTimestamp: this.viewportStartTimestamp,
+      viewportEndTimestamp: this.viewportEndTimestamp,
     };
 
-    this.drawingStrategy.drawChart(context, this.viewportStartTimestamp);
+    this.drawingStrategy.drawChart(context);
   }
 
   public calculateVisibleCandles(): number {
     if (!this.canvas) return 0;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio ?? 1;
     const availableWidth =
       this.canvas.width / dpr - (this.padding.left + this.padding.right);
     const candleSpacing = this.options.candleWidth + this.options.candleGap;
