@@ -20,56 +20,77 @@ export interface ChartDrawingStrategy {
 
 export class CandlestickStrategy implements ChartDrawingStrategy {
   drawChart(context: DrawingContext): void {
-    const {
-      ctx,
-      canvas,
-      data,
-      options,
-      padding,
-      priceToY,
-      viewportStartTimestamp,
-      viewportEndTimestamp,
-    } = context;
+    const { ctx, canvas, data, options, padding, priceToY } = context;
+    const dpr = window.devicePixelRatio ?? 1;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Clear in logical pixels (context is already scaled)
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-    // Calculate dimensions with device pixel ratio
-    const dpr = window.devicePixelRatio;
-    const candleWidth = options.candleWidth * dpr;
-    const candleGap = options.candleGap * dpr;
-    const totalCandleWidth = candleWidth + candleGap;
-    const candleInterval =
-      data.getGranularity() === "ONE_HOUR" ? 60 * 60 * 1000 : 5 * 60 * 1000;
+    // Draw debug rectangle
+    ctx.strokeStyle = "blue";
+    ctx.strokeRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-    // Draw candles
-    let currentTime = viewportStartTimestamp;
-    while (currentTime <= viewportEndTimestamp) {
-      const candle = data.getCandle(currentTime);
-      if (candle) {
-        // Calculate base X position
-        const baseX = this.calculateXForTime(candle.timestamp, context);
+    // Use logical pixels for candle dimensions
+    const candleWidth = options.candleWidth;
+    const candleGap = options.candleGap;
 
-        // Add half the gap to position the candle with proper spacing
-        const x = baseX + candleGap / 2;
+    // Get visible candles
+    const visibleCandles = data.getCandlesInRange(
+      context.viewportStartTimestamp,
+      context.viewportEndTimestamp
+    );
 
-        // Draw wick (centered on the candle)
-        ctx.beginPath();
-        ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
-        ctx.moveTo(x + candleWidth / 2, priceToY(candle.high));
-        ctx.lineTo(x + candleWidth / 2, priceToY(candle.low));
-        ctx.stroke();
+    console.log("Drawing candles:", {
+      numCandles: visibleCandles.length,
+      canvasWidth: canvas.width / dpr,
+      availableWidth: canvas.width / dpr - padding.left - padding.right,
+      candleWidth,
+      candleGap,
+      dpr,
+      viewportStart: new Date(context.viewportStartTimestamp),
+      viewportEnd: new Date(context.viewportEndTimestamp),
+    });
 
-        // Draw body
-        const openY = priceToY(candle.open);
-        const closeY = priceToY(candle.close);
-        const bodyHeight = Math.abs(closeY - openY);
+    visibleCandles.forEach(([timestamp, candle]) => {
+      const x = this.calculateXForTime(timestamp, context) / dpr; // Convert to logical pixels
 
-        ctx.fillStyle = candle.close > candle.open ? "green" : "red";
-        ctx.fillRect(x, Math.min(openY, closeY), candleWidth, bodyHeight);
-      }
+      // Draw wick
+      ctx.beginPath();
+      ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
+      ctx.lineWidth = 1; // Now in logical pixels
 
-      currentTime += candleInterval;
-    }
+      const highY = priceToY(candle.high) / dpr;
+      const lowY = priceToY(candle.low) / dpr;
+      const wickX = x + candleWidth / 2;
+
+      ctx.moveTo(wickX, highY);
+      ctx.lineTo(wickX, lowY);
+      ctx.stroke();
+
+      // Draw body
+      const openY = priceToY(candle.open) / dpr;
+      const closeY = priceToY(candle.close) / dpr;
+      const bodyHeight = Math.abs(closeY - openY);
+      const bodyTop = Math.min(closeY, openY);
+
+      ctx.fillStyle = candle.close > candle.open ? "green" : "red";
+      ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+
+      // Debug logging
+      console.log("Drawing candle:", {
+        x,
+        wickX,
+        highY,
+        lowY,
+        bodyTop,
+        bodyHeight,
+        candleWidth,
+        logical: {
+          canvasWidth: canvas.width / dpr,
+          canvasHeight: canvas.height / dpr,
+        },
+      });
+    });
   }
 
   calculateTimeForX(x: number, context: DrawingContext): number {
@@ -85,11 +106,32 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
   calculateXForTime(timestamp: number, context: DrawingContext): number {
     const { canvas, padding, viewportStartTimestamp, viewportEndTimestamp } =
       context;
-    const availableWidth = canvas.width - padding.left - padding.right;
-    const timeRange = viewportEndTimestamp - viewportStartTimestamp;
+    const dpr = window.devicePixelRatio ?? 1;
+
+    // Calculate available width in device pixels
+    const availableWidth = canvas.width - (padding.left + padding.right) * dpr;
+
+    // Calculate time position as a ratio (0 = oldest, 1 = newest)
+    const timeRange = Math.max(
+      viewportEndTimestamp - viewportStartTimestamp,
+      1
+    );
     const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
 
-    return padding.left + timePosition * availableWidth;
+    // Convert to canvas coordinates, starting from left padding
+    const x = padding.left * dpr + timePosition * availableWidth;
+
+    console.log("calculateXForTime:", {
+      timestamp: new Date(timestamp).toISOString(),
+      timePosition,
+      x,
+      availableWidth,
+      canvasWidth: canvas.width,
+      viewportStart: new Date(viewportStartTimestamp),
+      viewportEnd: new Date(viewportEndTimestamp),
+    });
+
+    return x;
   }
 
   calculateVisibleTimeRange(

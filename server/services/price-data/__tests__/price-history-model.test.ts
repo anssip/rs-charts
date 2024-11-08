@@ -186,4 +186,53 @@ describe("SimplePriceHistory", () => {
       1700000000000, 1700003600000, 1700007200000,
     ]);
   });
+
+  test("getCandlesInRange returns candles in correct range and order", () => {
+    const candles = new Map<number, CandleData>();
+
+    // Add test candles with 1-hour intervals
+    const timestamps = [
+      1700000000000, // base
+      1700003600000, // +1h
+      1700007200000, // +2h
+      1700010800000, // +3h
+      1700014400000, // +4h
+    ];
+
+    timestamps.forEach((timestamp) => {
+      candles.set(timestamp, {
+        granularity: "ONE_HOUR",
+        timestamp,
+        open: 100,
+        high: 110,
+        low: 90,
+        close: 105,
+      });
+    });
+
+    const priceHistory = new SimplePriceHistory("ONE_HOUR", candles);
+
+    // Test getting candles from 1h to 3h (should include 1h, 2h, and 3h)
+    const rangeCandles = priceHistory.getCandlesInRange(
+      1700003600000, // +1h
+      1700010800000 // +3h
+    );
+
+    // Check length
+    expect(rangeCandles.length).toBe(3);
+
+    // Check if timestamps are in ascending order
+    for (let i = 1; i < rangeCandles.length; i++) {
+      const [prevTimestamp] = rangeCandles[i - 1];
+      const [currentTimestamp] = rangeCandles[i];
+      expect(prevTimestamp).toBeLessThan(currentTimestamp);
+    }
+
+    // Verify exact timestamps included
+    expect(rangeCandles.map(([timestamp]) => timestamp)).toEqual([
+      1700003600000, // +1h
+      1700007200000, // +2h
+      1700010800000, // +3h
+    ]);
+  });
 });

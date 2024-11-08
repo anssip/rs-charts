@@ -104,8 +104,11 @@ export class CandlestickChart extends LitElement {
     // Then set the viewport start if needed
     if (this.viewportStartTimestamp === 0 && this._data.numCandles > 0) {
       const visibleCandles = this.calculateVisibleCandles();
-      this.viewportStartTimestamp = this._data.startTimestamp;
       this.viewportEndTimestamp = this._data.endTimestamp;
+      this.viewportStartTimestamp =
+        this._data.endTimestamp - visibleCandles * this.CANDLE_INTERVAL;
+
+      this.calculatePriceRange();
 
       console.log("CandlestickChart: Setting initial viewport", {
         start: new Date(this.viewportStartTimestamp),
@@ -189,26 +192,21 @@ export class CandlestickChart extends LitElement {
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
-    const scaledWidth = width * dpr;
-    const scaledHeight = height * dpr;
+    const dpr = window.devicePixelRatio ?? 1;
 
-    console.log("CandlestickChart: Resizing canvas", {
-      width,
-      height,
-      scaledWidth,
-      scaledHeight,
-      dpr,
-    });
+    // Set the actual size of the canvas in memory
+    this.canvas.width = width * dpr;
+    this.canvas.height = height * dpr;
 
-    this.canvas.width = scaledWidth;
-    this.canvas.height = scaledHeight;
+    // Set the display size of the canvas
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
 
-    if (this.ctx) {
-      this.ctx.scale(dpr, dpr);
-    }
+    // Scale all drawing operations by the dpr
+    this.ctx?.scale(dpr, dpr);
+
+    // Add debug styling
+    this.canvas.style.border = "1px solid red";
 
     if (this.data.size > 0) {
       this.drawChart();
@@ -246,9 +244,6 @@ export class CandlestickChart extends LitElement {
       return;
     }
 
-    // Calculate price range before drawing
-    this.calculatePriceRange();
-
     console.log("Price range before drawing:", {
       min: this.minPrice,
       max: this.maxPrice,
@@ -277,18 +272,18 @@ export class CandlestickChart extends LitElement {
   }
 
   public calculateVisibleCandles(): number {
-    if (!this.canvas) return 0;
-
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = window.devicePixelRatio;
     const availableWidth =
-      this.canvas.width / dpr - (this.padding.left + this.padding.right);
-    const candleSpacing = this.options.candleWidth + this.options.candleGap;
+      this.canvas.width - this.padding.left - this.padding.right;
+    const candleWidth = this.options.candleWidth * dpr;
+    const candleGap = this.options.candleGap * dpr;
+    const totalCandleWidth = candleWidth + candleGap;
 
-    const visibleCandles = Math.floor(availableWidth / candleSpacing);
+    const visibleCandles = Math.floor(availableWidth / totalCandleWidth);
 
     console.log("Calculating visible candles:", {
       availableWidth,
-      candleSpacing,
+      candleSpacing: totalCandleWidth,
       visibleCandles,
       canvasWidth: this.canvas.width,
       dpr,
@@ -305,62 +300,40 @@ export class CandlestickChart extends LitElement {
 
   private handlePan(deltaX: number, isTrackpad = false) {
     const adjustedDelta = isTrackpad ? -deltaX : deltaX;
-    const candlesPerPixel = 1 / this.options.candleWidth;
-    const candlesShifted = Math.round(adjustedDelta * candlesPerPixel);
 
-    if (candlesShifted !== 0) {
-      // Find current timestamp index
-      const currentIndex = this.binarySearch(
-        this._data.getTimestampsSorted(),
-        this.viewportStartTimestamp
-      );
-      if (currentIndex === -1) return;
+    // Calculate time per pixel based on current viewport
+    const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
+    const viewportWidth = this.canvas.width / (window.devicePixelRatio ?? 1);
+    const timePerPixel = timeRange / viewportWidth;
 
-      // Calculate new target index
-      const targetIndex = Math.min(
-        this.data.size - this.calculateVisibleCandles(),
-        Math.max(0, currentIndex - candlesShifted)
-      );
+    // Calculate time shift
+    const timeShift = Math.round(adjustedDelta * timePerPixel);
 
-      // Update viewport timestamp
-      this.viewportStartTimestamp =
-        this._data.getTimestampsSorted()[targetIndex];
+    if (timeShift !== 0) {
+      this.viewportStartTimestamp -= timeShift;
+      this.viewportEndTimestamp = this.viewportStartTimestamp + timeRange;
 
-      // Calculate and update viewport end timestamp
-      const visibleCandles = this.calculateVisibleCandles();
-      const endIndex = Math.min(
-        targetIndex + visibleCandles,
-        this._data.numCandles
-      );
-      const viewportEndTimestamp =
-        this._data.getTimestampsSorted()[endIndex - 1];
-
-      // Update timeline component
       const timeline: Timeline | null =
         this.renderRoot.querySelector("chart-timeline");
       if (timeline) {
         timeline.viewportStartTimestamp = this.viewportStartTimestamp;
-        timeline.viewportEndTimestamp = viewportEndTimestamp;
+        timeline.viewportEndTimestamp = this.viewportEndTimestamp;
       }
 
       this.drawChart();
 
-      const bufferSize =
-        this.calculateVisibleCandles() * this.BUFFER_MULTIPLIER;
-
+      // Check if we need more data
+      const bufferTimeRange = timeRange * this.BUFFER_MULTIPLIER;
       const needMoreData =
-        targetIndex < bufferSize // Need more past data
-          ? true
-          : this.data.size - (targetIndex + this.calculateVisibleCandles()) <
-            bufferSize; // Need more future data
+        this.viewportStartTimestamp <
+          this._data.startTimestamp + bufferTimeRange ||
+        this.viewportEndTimestamp > this._data.endTimestamp - bufferTimeRange;
 
-      console.log("Need more data:", needMoreData);
       if (needMoreData) {
-        this.dispatchRefetch(
-          targetIndex < currentIndex ? "backward" : "forward"
-        );
+        this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
       }
     }
+
     this.dispatchViewportChange();
   }
 
@@ -380,6 +353,12 @@ export class CandlestickChart extends LitElement {
             end:
               this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
           };
+    console.log("Dispatching chart-pan event", {
+      direction,
+      timeRange,
+      visibleCandles: this.calculateVisibleCandles(),
+      needMoreData: true,
+    });
     this.dispatchEvent(
       new CustomEvent("chart-pan", {
         detail: {
@@ -412,35 +391,31 @@ export class CandlestickChart extends LitElement {
 
   // Helper method to convert price to Y coordinate
   private priceToY(price: number): number {
-    if (this.priceRange === 0) {
-      console.warn("Price range is 0, cannot calculate Y coordinate");
-      return 0;
-    }
+    if (this.priceRange === 0) return 0;
 
-    const dpr = window.devicePixelRatio || 1;
-    const availableHeight =
-      this.canvas.height / dpr - this.padding.top - this.padding.bottom;
+    const dpr = window.devicePixelRatio ?? 1;
+    const logicalHeight = this.canvas.height / dpr;
 
-    console.log("CandlestickChart: Canvas dimensions", {
-      canvasHeight: this.canvas.height,
-      dpr,
-      availableHeight,
-      padding: this.padding,
-    });
+    // Calculate percentage and invert it (1 - percentage)
+    const percentage =
+      (price - this.minPrice) / (this.maxPrice - this.minPrice);
+    const logicalY = (1 - percentage) * logicalHeight;
+    const y = logicalY * dpr;
 
-    // Invert the Y coordinate (0 is at the top in canvas)
-    const normalizedPrice = (price - this.minPrice) / this.priceRange;
-    const y = this.padding.top + (1 - normalizedPrice) * availableHeight;
-
-    console.log("CandlestickChart: Price to Y", {
+    console.log("priceToY:", {
       price,
+      logicalHeight,
+      percentage,
+      logicalY,
+      finalY: y,
+      dpr,
       minPrice: this.minPrice,
       maxPrice: this.maxPrice,
-      priceRange: this.priceRange,
-      normalizedPrice,
-      availableHeight,
-      y,
-      dpr,
+      priceRange: this.maxPrice - this.minPrice,
+      canvas: {
+        height: this.canvas.height,
+        logicalHeight: logicalHeight,
+      },
     });
 
     return y;
@@ -496,36 +471,29 @@ export class CandlestickChart extends LitElement {
   }
 
   private calculatePriceRange() {
-    if (this._data.length === 0) return;
-
-    // Find the visible range of timestamps
-    const startIdx = this.binarySearch(
-      this._data.getTimestampsSorted(),
-      this.viewportStartTimestamp
+    // Find min/max prices from visible candles
+    const visibleCandles = this._data.getCandlesInRange(
+      this.viewportStartTimestamp,
+      this.viewportEndTimestamp
     );
-    if (startIdx === -1) return;
 
-    const visibleCandles = this.calculateVisibleCandles();
-    const endIdx = Math.min(startIdx + visibleCandles, this._data.length);
-
-    // Initialize with first visible candle's values
-    const firstCandle = this._data.getCandle(
-      this._data.getTimestampsSorted()[startIdx]
-    )!;
-    this.maxPrice = firstCandle.high;
-    this.minPrice = firstCandle.low;
-
-    // Calculate range from visible candles
-    for (let i = startIdx; i < endIdx; i++) {
-      const candle = this._data.getCandle(this._data.getTimestampsSorted()[i])!;
-      this.maxPrice = Math.max(this.maxPrice, candle.high);
-      this.minPrice = Math.min(this.minPrice, candle.low);
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    for (const [_, candle] of visibleCandles) {
+      minPrice = Math.min(minPrice, candle.low);
+      maxPrice = Math.max(maxPrice, candle.high);
     }
 
-    // Add padding to the range (10%)
-    const padding = (this.maxPrice - this.minPrice) * 0.1;
-    this.maxPrice += padding;
-    this.minPrice -= padding;
+    // Add padding to price range (typically 10% on top and bottom)
+    const pricePadding = 0;
+    this.minPrice = minPrice - pricePadding;
+    this.maxPrice = maxPrice + pricePadding;
     this.priceRange = this.maxPrice - this.minPrice;
+
+    console.log("Price range before drawing:", {
+      min: this.minPrice,
+      max: this.maxPrice,
+      range: this.priceRange,
+    });
   }
 }

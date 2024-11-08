@@ -187,7 +187,8 @@ export class ChartContainer extends LitElement {
       background: white;
       overflow: hidden;
       position: relative;
-      min-height: 0;
+      height: 100%;
+      min-height: 600px;
     }
     .timeline {
       grid-area: timeline;

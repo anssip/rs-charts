@@ -36,6 +36,11 @@ export interface PriceHistory {
   startTimestamp: number;
   endTimestamp: number;
   length: number;
+  getCandlesInRange(
+    startTimestamp: number,
+    endTimestamp: number
+  ): [number, CandleData][];
+  findNearestCandleIndex(timestamp: number): number;
 }
 
 export class SimplePriceHistory implements PriceHistory {
@@ -59,7 +64,7 @@ export class SimplePriceHistory implements PriceHistory {
     this.candles = candles;
     // Convert map entries to sorted array for binary search
     this.candlesSortedByTimestamp = Array.from(this.candles.entries()).sort(
-      ([a], [b]) => a - b
+      ([timestampA], [timestampB]) => timestampA - timestampB
     );
   }
 
@@ -175,5 +180,64 @@ export class SimplePriceHistory implements PriceHistory {
    */
   getCandles(): CandleDataByTimestamp {
     return this.candles;
+  }
+
+  /**
+   * Get all candles within a specified time range, inclusive
+   * @param startTimestamp - Start of the range
+   * @param endTimestamp - End of the range
+   * @returns Array of timestamp-candle pairs within the range
+   */
+  getCandlesInRange(
+    startTimestamp: number,
+    endTimestamp: number
+  ): [number, CandleData][] {
+    const startIdx = this.findNearestCandleIndex(startTimestamp);
+    const endIdx = this.findNearestCandleIndex(endTimestamp);
+
+    return this.candlesSortedByTimestamp.slice(
+      Math.max(0, startIdx),
+      Math.min(endIdx + 1, this.candlesSortedByTimestamp.length)
+    );
+  }
+
+  /**
+   * Find the index of the nearest candle to the given timestamp using binary search
+   * @param timestamp - The target timestamp
+   * @returns The index of the nearest candle
+   */
+  findNearestCandleIndex(timestamp: number): number {
+    let left = 0;
+    let right = this.candlesSortedByTimestamp.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const [candleTime] = this.candlesSortedByTimestamp[mid];
+
+      if (candleTime === timestamp) {
+        return mid;
+      }
+
+      if (candleTime < timestamp) {
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
+    }
+
+    // If we didn't find an exact match, find the nearest candle
+    if (left >= this.candlesSortedByTimestamp.length) {
+      return this.candlesSortedByTimestamp.length - 1;
+    }
+    if (right < 0) {
+      return 0;
+    }
+
+    const [leftTime] = this.candlesSortedByTimestamp[left];
+    const [rightTime] = this.candlesSortedByTimestamp[right];
+
+    return Math.abs(timestamp - leftTime) < Math.abs(timestamp - rightTime)
+      ? left
+      : right;
   }
 }
