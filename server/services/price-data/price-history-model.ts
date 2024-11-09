@@ -25,8 +25,15 @@ export interface PriceDataOptions {
   end: Date;
 }
 
+export interface PriceRange {
+  min: number;
+  max: number;
+  range: number;
+}
+
 export interface PriceHistory {
   getGranularity(): Granularity;
+  get granularityMs(): number;
   getCandle(timestamp: number): CandleData | undefined;
   isCandleAvailable(timestamp: number): boolean;
   getCandlesSorted(): [number, CandleData][];
@@ -41,22 +48,24 @@ export interface PriceHistory {
     endTimestamp: number
   ): [number, CandleData][];
   findNearestCandleIndex(timestamp: number): number;
+  getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange;
 }
+
+export const GRANULARITY_TO_MS = new Map([
+  ["ONE_MINUTE", 60 * 1000],
+  ["FIVE_MINUTE", 5 * 60 * 1000],
+  ["FIFTEEN_MINUTE", 15 * 60 * 1000],
+  ["THIRTY_MINUTE", 30 * 60 * 1000],
+  ["ONE_HOUR", 60 * 60 * 1000],
+  ["TWO_HOUR", 2 * 60 * 60 * 1000],
+  ["SIX_HOUR", 6 * 60 * 60 * 1000],
+  ["ONE_DAY", 24 * 60 * 60 * 1000],
+]) as ReadonlyMap<Granularity, number>;
 
 export class SimplePriceHistory implements PriceHistory {
   private granularity: Granularity;
   private candles: CandleDataByTimestamp;
 
-  private static readonly GRANULARITY_TO_MS = new Map([
-    ["ONE_MINUTE", 60 * 1000],
-    ["FIVE_MINUTE", 5 * 60 * 1000],
-    ["FIFTEEN_MINUTE", 15 * 60 * 1000],
-    ["THIRTY_MINUTE", 30 * 60 * 1000],
-    ["ONE_HOUR", 60 * 60 * 1000],
-    ["TWO_HOUR", 2 * 60 * 60 * 1000],
-    ["SIX_HOUR", 6 * 60 * 60 * 1000],
-    ["ONE_DAY", 24 * 60 * 60 * 1000],
-  ]);
   private candlesSortedByTimestamp: [number, CandleData][];
 
   constructor(granularity: Granularity, candles: CandleDataByTimestamp) {
@@ -75,7 +84,7 @@ export class SimplePriceHistory implements PriceHistory {
    */
   getCandle(timestamp: number): CandleData | undefined {
     const intervalMs =
-      SimplePriceHistory.GRANULARITY_TO_MS.get(this.granularity) ??
+      GRANULARITY_TO_MS.get(this.granularity) ??
       60 * 60 * 1000;
 
     let left = 0;
@@ -239,5 +248,25 @@ export class SimplePriceHistory implements PriceHistory {
     return Math.abs(timestamp - leftTime) < Math.abs(timestamp - rightTime)
       ? left
       : right;
+  }
+
+  getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange {
+    const candlesInRange = this.getCandlesInRange(startTimestamp, endTimestamp);
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    for (const [_, candle] of candlesInRange) {
+      minPrice = Math.min(minPrice, candle.low);
+      maxPrice = Math.max(maxPrice, candle.high);
+    }
+
+    return {
+      min: minPrice,
+      max: maxPrice,
+      range: maxPrice - minPrice,
+    };
+  }
+
+  get granularityMs(): number {
+    return GRANULARITY_TO_MS.get(this.granularity) ?? 60 * 60 * 1000;
   }
 }

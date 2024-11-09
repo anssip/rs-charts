@@ -10,6 +10,7 @@ import { Timeline } from "./timeline";
 import {
   CandleDataByTimestamp,
   PriceHistory,
+  PriceRange,
   SimplePriceHistory,
 } from "../../../server/services/price-data/price-history-model";
 
@@ -57,6 +58,7 @@ export class CandlestickChart extends LitElement {
   private lastX = 0;
   private readonly CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
   private readonly BUFFER_MULTIPLIER = 3; // Keep 5x the visible candles loaded
+  private initialPriceRange: PriceRange | null = null;
 
   @state()
   private viewportStartTimestamp: number = 0;
@@ -66,10 +68,6 @@ export class CandlestickChart extends LitElement {
 
   @state()
   private isLoading = false;
-
-  private maxPrice: number = 0;
-  private minPrice: number = 0;
-  private priceRange: number = 0;
 
   static styles = css`
     :host {
@@ -101,6 +99,7 @@ export class CandlestickChart extends LitElement {
 
     this._data = new SimplePriceHistory("ONE_HOUR", new Map(newData.entries()));
 
+
     // Then set the viewport start if needed
     if (this.viewportStartTimestamp === 0 && this._data.numCandles > 0) {
       const visibleCandles = this.calculateVisibleCandles();
@@ -108,8 +107,11 @@ export class CandlestickChart extends LitElement {
       this.viewportStartTimestamp =
         this._data.endTimestamp - visibleCandles * this.CANDLE_INTERVAL;
 
-      this.calculatePriceRange();
-
+      // the price range will be eventually stored in local storage, when zooming in and out
+      this.initialPriceRange = this._data.getPriceRange(
+        this.viewportStartTimestamp,
+        this.viewportEndTimestamp
+      );
       console.log("CandlestickChart: Setting initial viewport", {
         start: new Date(this.viewportStartTimestamp),
         end: new Date(this.viewportEndTimestamp),
@@ -135,7 +137,6 @@ export class CandlestickChart extends LitElement {
     // Wait for next microtask to ensure canvas is ready
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // Setup observers
     this.resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (entry) {
@@ -194,19 +195,11 @@ export class CandlestickChart extends LitElement {
 
     const dpr = window.devicePixelRatio ?? 1;
 
-    // Set the actual size of the canvas in memory
     this.canvas.width = width * dpr;
     this.canvas.height = height * dpr;
-
-    // Set the display size of the canvas
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
-
-    // Scale all drawing operations by the dpr
     this.ctx?.scale(dpr, dpr);
-
-    // Add debug styling
-    this.canvas.style.border = "1px solid red";
 
     if (this.data.size > 0) {
       this.drawChart();
@@ -227,30 +220,15 @@ export class CandlestickChart extends LitElement {
   }
 
   public drawChart() {
-    console.log("CandlestickChart: Drawing chart", {
-      hasContext: !!this.ctx,
-      hasCanvas: !!this.canvas,
-      dataSize: this.data.size,
-      viewportStart: new Date(this.viewportStartTimestamp),
-      viewportEnd: new Date(this.viewportEndTimestamp),
-    });
-
-    if (!this.ctx || !this.canvas || this.data.size === 0) {
+    if (!this.ctx || !this.canvas || this.data.size === 0 || !this.initialPriceRange) {
       console.warn("Cannot draw chart:", {
         hasContext: !!this.ctx,
         hasCanvas: !!this.canvas,
         dataSize: this.data.size,
+        hasInitialPriceRange: !!this.initialPriceRange,
       });
       return;
     }
-
-    console.log("Price range before drawing:", {
-      min: this.minPrice,
-      max: this.maxPrice,
-      range: this.priceRange,
-    });
-
-    // Clear the canvas before drawing
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     const context: DrawingContext = {
@@ -262,12 +240,10 @@ export class CandlestickChart extends LitElement {
         candleWidth: this.options.candleWidth,
         candleGap: this.options.candleGap,
       },
-      padding: this.padding,
-      priceToY: this.priceToY.bind(this),
       viewportStartTimestamp: this.viewportStartTimestamp,
       viewportEndTimestamp: this.viewportEndTimestamp,
+      priceRange: this.initialPriceRange,
     };
-
     this.drawingStrategy.drawChart(context);
   }
 
@@ -278,19 +254,7 @@ export class CandlestickChart extends LitElement {
     const candleWidth = this.options.candleWidth * dpr;
     const candleGap = this.options.candleGap * dpr;
     const totalCandleWidth = candleWidth + candleGap;
-
-    const visibleCandles = Math.floor(availableWidth / totalCandleWidth);
-
-    console.log("Calculating visible candles:", {
-      availableWidth,
-      candleSpacing: totalCandleWidth,
-      visibleCandles,
-      canvasWidth: this.canvas.width,
-      dpr,
-      padding: this.padding,
-    });
-
-    return visibleCandles;
+    return Math.floor(availableWidth / totalCandleWidth);
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -299,14 +263,13 @@ export class CandlestickChart extends LitElement {
   };
 
   private handlePan(deltaX: number, isTrackpad = false) {
-    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
 
-    // Calculate time per pixel based on current viewport
     const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
     const viewportWidth = this.canvas.width / (window.devicePixelRatio ?? 1);
     const timePerPixel = timeRange / viewportWidth;
 
-    // Calculate time shift
+    // Calculate time shift caused by panning
+    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
     const timeShift = Math.round(adjustedDelta * timePerPixel);
 
     if (timeShift !== 0) {
@@ -319,21 +282,19 @@ export class CandlestickChart extends LitElement {
         timeline.viewportStartTimestamp = this.viewportStartTimestamp;
         timeline.viewportEndTimestamp = this.viewportEndTimestamp;
       }
-
       this.drawChart();
 
       // Check if we need more data
       const bufferTimeRange = timeRange * this.BUFFER_MULTIPLIER;
       const needMoreData =
         this.viewportStartTimestamp <
-          this._data.startTimestamp + bufferTimeRange ||
+        this._data.startTimestamp + bufferTimeRange ||
         this.viewportEndTimestamp > this._data.endTimestamp - bufferTimeRange;
 
       if (needMoreData) {
         this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
       }
     }
-
     this.dispatchViewportChange();
   }
 
@@ -343,16 +304,16 @@ export class CandlestickChart extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-            start:
-              this._data.startTimestamp -
-              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-            end: this._data.startTimestamp,
-          }
+          start:
+            this._data.startTimestamp -
+            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          end: this._data.startTimestamp,
+        }
         : {
-            start: this._data.endTimestamp,
-            end:
-              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-          };
+          start: this._data.endTimestamp,
+          end:
+            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+        };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -389,37 +350,6 @@ export class CandlestickChart extends LitElement {
     this.handlePan(e.deltaX, true);
   };
 
-  // Helper method to convert price to Y coordinate
-  private priceToY(price: number): number {
-    if (this.priceRange === 0) return 0;
-
-    const dpr = window.devicePixelRatio ?? 1;
-    const logicalHeight = this.canvas.height / dpr;
-
-    // Calculate percentage and invert it (1 - percentage)
-    const percentage =
-      (price - this.minPrice) / (this.maxPrice - this.minPrice);
-    const logicalY = (1 - percentage) * logicalHeight;
-    const y = logicalY * dpr;
-
-    console.log("priceToY:", {
-      price,
-      logicalHeight,
-      percentage,
-      logicalY,
-      finalY: y,
-      dpr,
-      minPrice: this.minPrice,
-      maxPrice: this.maxPrice,
-      priceRange: this.maxPrice - this.minPrice,
-      canvas: {
-        height: this.canvas.height,
-        logicalHeight: logicalHeight,
-      },
-    });
-
-    return y;
-  }
 
   private dispatchViewportChange() {
     const visibleTimestamps = this.getVisibleTimestamps();
@@ -470,30 +400,4 @@ export class CandlestickChart extends LitElement {
     return this._data.getTimestampsSorted().slice(startIdx, endIdx);
   }
 
-  private calculatePriceRange() {
-    // Find min/max prices from visible candles
-    const visibleCandles = this._data.getCandlesInRange(
-      this.viewportStartTimestamp,
-      this.viewportEndTimestamp
-    );
-
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
-    for (const [_, candle] of visibleCandles) {
-      minPrice = Math.min(minPrice, candle.low);
-      maxPrice = Math.max(maxPrice, candle.high);
-    }
-
-    // Add padding to price range (typically 10% on top and bottom)
-    const pricePadding = 0;
-    this.minPrice = minPrice - pricePadding;
-    this.maxPrice = maxPrice + pricePadding;
-    this.priceRange = this.maxPrice - this.minPrice;
-
-    console.log("Price range before drawing:", {
-      min: this.minPrice,
-      max: this.maxPrice,
-      range: this.priceRange,
-    });
-  }
 }

@@ -1,66 +1,89 @@
 import { ChartOptions } from "./chart";
-import { PriceHistory } from "../../../server/services/price-data/price-history-model";
+import { PriceHistory, PriceRange } from "../../../server/services/price-data/price-history-model";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
   canvas: HTMLCanvasElement;
   data: PriceHistory;
   options: ChartOptions;
-  padding: { top: number; right: number; bottom: number; left: number };
-  priceToY: (price: number) => number;
   viewportStartTimestamp: number;
   viewportEndTimestamp: number;
+  priceRange: PriceRange;
 }
 
 export interface ChartDrawingStrategy {
   drawChart(context: DrawingContext): void;
-  calculateTimeForX(x: number, context: DrawingContext): number;
-  calculateXForTime(timestamp: number, context: DrawingContext): number;
 }
 
 export class CandlestickStrategy implements ChartDrawingStrategy {
-  drawChart(context: DrawingContext): void {
-    const { ctx, canvas, data, options, padding, priceToY } = context;
+
+
+  // TODO: make this pan and zoomable
+  // perhaps this should be in a separate class
+  private drawGrid(ctx: CanvasRenderingContext2D, context: DrawingContext): void {
+    const { canvas, data, priceRange } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
-    // Clear in logical pixels (context is already scaled)
+    // Set grid style
+    ctx.strokeStyle = "#ddd";
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 1;
+
+    // Draw vertical lines based on granularity
+    const startTime = Math.floor(context.viewportStartTimestamp / data.granularityMs) * data.granularityMs;
+    const endTime = context.viewportEndTimestamp;
+
+    let gridInterval = data.granularityMs * 10; // Default every 10th candle
+    if (data.granularityMs === 60 * 60 * 1000) { // Hourly
+      gridInterval = data.granularityMs * 12;
+    } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) { // Monthly
+      gridInterval = data.granularityMs * 6;
+    }
+
+    for (let timestamp = startTime; timestamp <= endTime; timestamp += gridInterval) {
+      const x = this.calculateXForTime(timestamp, context) / dpr;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height / dpr);
+      ctx.stroke();
+    }
+
+    // Draw horizontal lines for every 10% price change
+    const priceStep = priceRange.range / 10; // 10% intervals
+    for (let price = priceRange.min; price <= priceRange.max; price += priceStep) {
+      const y = this.priceToY(price, context) / dpr;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width / dpr, y);
+      ctx.stroke();
+    }
+  }
+
+  drawChart(context: DrawingContext): void {
+    const { ctx, canvas, data, options } = context;
+    const dpr = window.devicePixelRatio ?? 1;
+
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-    // Draw debug rectangle
-    ctx.strokeStyle = "blue";
-    ctx.strokeRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    this.drawGrid(ctx, context);
 
-    // Use logical pixels for candle dimensions
     const candleWidth = options.candleWidth;
-    const candleGap = options.candleGap;
 
-    // Get visible candles
     const visibleCandles = data.getCandlesInRange(
       context.viewportStartTimestamp,
       context.viewportEndTimestamp
     );
 
-    console.log("Drawing candles:", {
-      numCandles: visibleCandles.length,
-      canvasWidth: canvas.width / dpr,
-      availableWidth: canvas.width / dpr - padding.left - padding.right,
-      candleWidth,
-      candleGap,
-      dpr,
-      viewportStart: new Date(context.viewportStartTimestamp),
-      viewportEnd: new Date(context.viewportEndTimestamp),
-    });
-
     visibleCandles.forEach(([timestamp, candle]) => {
-      const x = this.calculateXForTime(timestamp, context) / dpr; // Convert to logical pixels
+      const x = this.calculateXForTime(timestamp, context) / dpr;
 
       // Draw wick
       ctx.beginPath();
       ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
       ctx.lineWidth = 1; // Now in logical pixels
 
-      const highY = priceToY(candle.high) / dpr;
-      const lowY = priceToY(candle.low) / dpr;
+      const highY = this.priceToY(candle.high, context) / dpr;
+      const lowY = this.priceToY(candle.low, context) / dpr;
       const wickX = x + candleWidth / 2;
 
       ctx.moveTo(wickX, highY);
@@ -68,70 +91,40 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
       ctx.stroke();
 
       // Draw body
-      const openY = priceToY(candle.open) / dpr;
-      const closeY = priceToY(candle.close) / dpr;
+      const openY = this.priceToY(candle.open, context) / dpr;
+      const closeY = this.priceToY(candle.close, context) / dpr;
       const bodyHeight = Math.abs(closeY - openY);
       const bodyTop = Math.min(closeY, openY);
 
       ctx.fillStyle = candle.close > candle.open ? "green" : "red";
       ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
-
-      // Debug logging
-      console.log("Drawing candle:", {
-        x,
-        wickX,
-        highY,
-        lowY,
-        bodyTop,
-        bodyHeight,
-        candleWidth,
-        logical: {
-          canvasWidth: canvas.width / dpr,
-          canvasHeight: canvas.height / dpr,
-        },
-      });
     });
   }
 
-  calculateTimeForX(x: number, context: DrawingContext): number {
-    const { canvas, padding, viewportStartTimestamp, viewportEndTimestamp } =
-      context;
-    const availableWidth = canvas.width - padding.left - padding.right;
-    const timeRange = viewportEndTimestamp - viewportStartTimestamp;
-    const relativeX = x - padding.left;
-
-    return viewportStartTimestamp + (relativeX / availableWidth) * timeRange;
-  }
 
   calculateXForTime(timestamp: number, context: DrawingContext): number {
-    const { canvas, padding, viewportStartTimestamp, viewportEndTimestamp } =
+    const { canvas, viewportStartTimestamp, viewportEndTimestamp } =
       context;
-    const dpr = window.devicePixelRatio ?? 1;
-
-    // Calculate available width in device pixels
-    const availableWidth = canvas.width - (padding.left + padding.right) * dpr;
-
-    // Calculate time position as a ratio (0 = oldest, 1 = newest)
+    const availableWidth = canvas.width;
     const timeRange = Math.max(
       viewportEndTimestamp - viewportStartTimestamp,
       1
     );
     const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
-
-    // Convert to canvas coordinates, starting from left padding
-    const x = padding.left * dpr + timePosition * availableWidth;
-
-    console.log("calculateXForTime:", {
-      timestamp: new Date(timestamp).toISOString(),
-      timePosition,
-      x,
-      availableWidth,
-      canvasWidth: canvas.width,
-      viewportStart: new Date(viewportStartTimestamp),
-      viewportEnd: new Date(viewportEndTimestamp),
-    });
-
+    const x = timePosition * availableWidth;
     return x;
+  }
+
+  priceToY(price: number, context: DrawingContext): number {
+    const priceRange = context.priceRange;
+
+    const dpr = window.devicePixelRatio ?? 1;
+    const logicalHeight = context.canvas.height / dpr;
+    const percentage =
+      (price - priceRange.min) / priceRange.range;
+    const logicalY = (1 - percentage) * logicalHeight;
+    const y = logicalY * dpr;
+    return y;
   }
 
   calculateVisibleTimeRange(
