@@ -82,9 +82,7 @@ export class CandlestickChart extends LitElement implements Drawable {
   }
 
   render() {
-    return html`
-      <canvas></canvas>
-    `;
+    return html` <canvas></canvas> `;
   }
 
   public draw(context: DrawingContext) {
@@ -116,7 +114,10 @@ export class CandlestickChart extends LitElement implements Drawable {
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
 
-    // Scale the context to account for the device pixel ratio
-    this.ctx?.scale(dpr, dpr);
+    // Reset any previous transforms and apply DPR scaling once
+    if (this.ctx) {
+      this.ctx.resetTransform();
+      this.ctx.scale(dpr, dpr);
+    }
   }
 }

@@ -103,6 +103,7 @@ export class ChartContainer extends LitElement {
   }
 
   updated() {
+    console.log("ChartContainer: Updated");
     this.draw();
   }
 
@@ -117,6 +118,7 @@ export class ChartContainer extends LitElement {
       viewportEndTimestamp: this.viewportEndTimestamp,
       priceRange: this.initialPriceRange,
     };
+    console.log("ChartContainer: Drawing chart", context);
     this.chart.draw(context);
     this.timeline?.draw(context);
   }
@@ -182,9 +184,31 @@ export class ChartContainer extends LitElement {
   }
 
   private handleResize(width: number, height: number) {
-    this.chart?.resize(width, height);
+    if (!this.chart) return;
+    if (!this.data || this.data.getCandles().size === 0) {
+      // Just resize the canvas if we don't have data yet
+      this.chart.resize(width, height);
+      this.timeline?.resize(width, height * 0.2);
+      return;
+    }
+    // Don't proceed if we haven't set the time rang of th chart
+    if (this.viewportEndTimestamp === 0) {
+      return;
+    }
+    this.chart.resize(width, height);
     this.timeline?.resize(width, height * 0.2);
-    this.draw();
+
+    const visibleCandles = this.calculateVisibleCandles();
+    const newStartTimestamp =
+      this.viewportEndTimestamp - visibleCandles * this.CANDLE_INTERVAL;
+
+    if (
+      newStartTimestamp > 0 &&
+      newStartTimestamp < this.viewportEndTimestamp
+    ) {
+      this.viewportStartTimestamp = newStartTimestamp;
+      this.draw();
+    }
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -322,7 +346,6 @@ export class ChartContainer extends LitElement {
       overflow: hidden;
       position: relative;
       height: 100%;
-      min-height: 600px;
     }
     .timeline {
       grid-area: timeline;
