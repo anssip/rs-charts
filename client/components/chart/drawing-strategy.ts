@@ -4,7 +4,7 @@ import { HairlineGrid } from "./grid";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
-  canvas: HTMLCanvasElement;
+  chartCanvas: HTMLCanvasElement;
   data: PriceHistory;
   options: ChartOptions;
   viewportStartTimestamp: number;
@@ -12,8 +12,8 @@ export interface DrawingContext {
   priceRange: PriceRange;
 }
 
-export interface ChartDrawingStrategy {
-  drawChart(context: DrawingContext): void;
+export interface Drawable {
+  draw(context: DrawingContext): void;
 }
 
 export interface GridDrawingContext {
@@ -21,11 +21,11 @@ export interface GridDrawingContext {
   priceToY(price: number, context: DrawingContext): number;
 }
 
-export class CandlestickStrategy implements ChartDrawingStrategy {
+export class CandlestickStrategy implements Drawable {
   private grid: HairlineGrid = new HairlineGrid();
 
-  drawChart(context: DrawingContext): void {
-    const { ctx, canvas, data, options } = context;
+  draw(context: DrawingContext): void {
+    const { ctx, chartCanvas: canvas, data, options } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
@@ -71,7 +71,7 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
 
 
   calculateXForTime(timestamp: number, context: DrawingContext): number {
-    const { canvas, viewportStartTimestamp, viewportEndTimestamp } =
+    const { chartCanvas: canvas, viewportStartTimestamp, viewportEndTimestamp } =
       context;
     const availableWidth = canvas.width;
     const timeRange = Math.max(
@@ -87,7 +87,7 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
     const priceRange = context.priceRange;
 
     const dpr = window.devicePixelRatio ?? 1;
-    const logicalHeight = context.canvas.height / dpr;
+    const logicalHeight = context.chartCanvas.height / dpr;
     const percentage =
       (price - priceRange.min) / priceRange.range;
     const logicalY = (1 - percentage) * logicalHeight;

@@ -4,6 +4,7 @@ import { CandleDataByTimestamp } from "../../../server/services/price-data/price
 import "./chart";
 import "./timeline";
 import { Timeline } from "./timeline";
+import { CandlestickChart } from "./chart";
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -70,21 +71,17 @@ export class ChartContainer extends LitElement {
     });
 
     // Forward data to the candlestick chart and timeline
-    const chart = this.renderRoot.querySelector("candlestick-chart");
-    const timeline = this.renderRoot.querySelector("chart-timeline");
+    const chart: CandlestickChart | null = this.renderRoot.querySelector("candlestick-chart");
+    const timeline: Timeline | null = this.renderRoot.querySelector("chart-timeline");
 
     if (chart) {
       (chart as any).data = newData;
-
       if (timeline) {
-        (timeline as Timeline).options = {
-          candleWidth: (chart as any).options.candleWidth,
-          candleGap: (chart as any).options.candleGap,
-        };
-        (timeline as Timeline).timestamps = Array.from(newData.keys());
+        chart.timeline = timeline;
+      } else {
+        console.error("Timeline component not found");
       }
     }
-
     this.requestUpdate("data", newData);
   }
 
@@ -134,21 +131,16 @@ export class ChartContainer extends LitElement {
       endTimestamp: viewportEndTimestamp,
     });
 
-    // Update timeline with validated data
-    timeline.timestamps = visibleTimestamps;
-    timeline.viewportStartTimestamp = viewportStartTimestamp;
-    timeline.viewportEndTimestamp = viewportEndTimestamp;
-
     const chart = this.renderRoot.querySelector("candlestick-chart");
     timeline.options = chart
       ? {
-          candleWidth: (chart as any).options.candleWidth,
-          candleGap: (chart as any).options.candleGap,
-        }
+        candleWidth: (chart as any).options.candleWidth,
+        candleGap: (chart as any).options.candleGap,
+      }
       : {
-          candleWidth: 5,
-          candleGap: 1,
-        };
+        candleWidth: 5,
+        candleGap: 1,
+      };
   }
 
   static styles = css`

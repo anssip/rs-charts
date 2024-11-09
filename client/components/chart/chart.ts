@@ -2,7 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { TimeRange } from "../../candle-repository";
 import {
-  ChartDrawingStrategy,
+  Drawable,
   CandlestickStrategy,
   DrawingContext,
 } from "./drawing-strategy";
@@ -31,7 +31,7 @@ export interface ChartOptions {
 
 @customElement("candlestick-chart")
 export class CandlestickChart extends LitElement {
-  private drawingStrategy: ChartDrawingStrategy = new CandlestickStrategy();
+  private drawingStrategy: Drawable = new CandlestickStrategy();
   private canvas!: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
 
@@ -44,6 +44,9 @@ export class CandlestickChart extends LitElement {
     minCandleWidth: 10,
     maxCandleWidth: 10,
   };
+
+  @property({ type: Object })
+  timeline: Timeline | null = null;
 
   private padding = {
     top: 0,
@@ -233,7 +236,7 @@ export class CandlestickChart extends LitElement {
 
     const context: DrawingContext = {
       ctx: this.ctx,
-      canvas: this.canvas,
+      chartCanvas: this.canvas,
       data: this._data,
       options: {
         ...this.options,
@@ -244,7 +247,15 @@ export class CandlestickChart extends LitElement {
       viewportEndTimestamp: this.viewportEndTimestamp,
       priceRange: this.initialPriceRange,
     };
-    this.drawingStrategy.drawChart(context);
+    this.dispatchEvent(new CustomEvent("draw-chart", {
+      detail: context,
+      bubbles: true,
+      composed: true,
+    }));
+    this.drawingStrategy.draw(context);
+    if (this.timeline) {
+      this.timeline.draw(context);
+    }
   }
 
   public calculateVisibleCandles(): number {
@@ -276,12 +287,6 @@ export class CandlestickChart extends LitElement {
       this.viewportStartTimestamp -= timeShift;
       this.viewportEndTimestamp = this.viewportStartTimestamp + timeRange;
 
-      const timeline: Timeline | null =
-        this.renderRoot.querySelector("chart-timeline");
-      if (timeline) {
-        timeline.viewportStartTimestamp = this.viewportStartTimestamp;
-        timeline.viewportEndTimestamp = this.viewportEndTimestamp;
-      }
       this.drawChart();
 
       // Check if we need more data

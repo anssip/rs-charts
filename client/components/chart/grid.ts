@@ -4,7 +4,7 @@ export class HairlineGrid {
 
     // TODO: make this zoomable
     public draw(ctx: CanvasRenderingContext2D, context: DrawingContext, gridDrawingContext: GridDrawingContext): void {
-        const { canvas, data, priceRange } = context;
+        const { chartCanvas: canvas, data, priceRange } = context;
         const dpr = window.devicePixelRatio ?? 1;
 
         // Set grid style
