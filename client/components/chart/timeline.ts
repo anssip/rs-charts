@@ -38,13 +38,13 @@ export class Timeline extends LitElement implements Drawable {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener('draw-chart', this.handleDrawChart as EventListener);
-    window.addEventListener("resize", this.handleResize.bind(this));
+    // window.addEventListener("resize", this.handleResize.bind(this));
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('draw-chart', this.handleDrawChart as EventListener);
-    window.removeEventListener("resize", this.handleResize.bind(this));
+    // window.removeEventListener("resize", this.handleResize.bind(this));
   }
 
   private handleDrawChart = (event: CustomEvent<DrawingContext>) => {
@@ -140,7 +140,7 @@ export class Timeline extends LitElement implements Drawable {
       this.canvas = this.renderRoot.querySelector("canvas");
       this.ctx = this.canvas?.getContext("2d") || null;
       this.setupCanvas();
-      window.addEventListener("resize", this.handleResize.bind(this));
+      // window.addEventListener("resize", this.handleResize.bind(this));
     });
   }
 
@@ -165,7 +165,8 @@ export class Timeline extends LitElement implements Drawable {
     }
   }
 
-  private handleResize() {
+
+  public resize(width: number, height: number) {
     this.setupCanvas();
     // TODO: handle zooming in the timeline
   }

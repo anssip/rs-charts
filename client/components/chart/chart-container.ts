@@ -1,14 +1,56 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { CandleDataByTimestamp } from "../../../server/services/price-data/price-history-model";
+import { customElement, property, state } from "lit/decorators.js";
+import { CandleDataByTimestamp, PriceHistory, PriceRange, SimplePriceHistory } from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
 import { Timeline } from "./timeline";
-import { CandlestickChart } from "./chart";
+import { CandlestickChart, ChartOptions } from "./chart";
+import { TimeRange } from "../../candle-repository";
+import { DrawingContext } from "./drawing-strategy";
+
+// We store data 5 times the visible range to allow for zooming and panning without fetching more data
+const BUFFER_MULTIPLIER = 5;
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
-  private _data: CandleDataByTimestamp = new Map();
+  @state()
+  private _data: PriceHistory = new SimplePriceHistory("ONE_HOUR", new Map());
+
+  private isDragging = false;
+  private lastX = 0;
+  private resizeObserver!: ResizeObserver;
+
+  @state()
+  private viewportStartTimestamp: number = 0;
+
+  @state()
+  private viewportEndTimestamp: number = 0;
+
+  private readonly CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
+  private chart: CandlestickChart | null = null;
+  private timeline: Timeline | null = null;
+
+  private padding = {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+
+  @property({ type: Object })
+  options: ChartOptions = {
+    candleWidth: 10,
+    candleGap: 2,
+    minCandleWidth: 10,
+    maxCandleWidth: 10,
+  };
+
+  private initialPriceRange: PriceRange = {
+    min: 0,
+    max: 0,
+    range: 0,
+  };
+
 
   constructor() {
     super();
@@ -23,10 +65,24 @@ export class ChartContainer extends LitElement {
   firstUpdated() {
     console.log("ChartContainer: First update completed");
 
+    const chartContainer = this.renderRoot.querySelector(".chart");
+    if (chartContainer) {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (entry) {
+          const { width, height } = entry.contentRect;
+          this.handleResize(width, height);
+        }
+      });
+      this.resizeObserver.observe(chartContainer);
+    }
+
+    this.chart = this.renderRoot.querySelector("candlestick-chart");
+    this.timeline = this.renderRoot.querySelector("chart-timeline");
+
     // Forward chart-ready and chart-pan events from the candlestick chart
-    const chart = this.renderRoot.querySelector("candlestick-chart");
-    if (chart) {
-      chart.addEventListener("chart-ready", (e: Event) => {
+    if (this.chart) {
+      this.chart.addEventListener("chart-ready", (e: Event) => {
         console.log(
           "ChartContainer: Chart ready event received",
           (e as CustomEvent).detail
@@ -39,49 +95,60 @@ export class ChartContainer extends LitElement {
           })
         );
       });
-
-      chart.addEventListener("chart-pan", (e: Event) => {
-        console.log(
-          "ChartContainer: Chart pan event received",
-          (e as CustomEvent).detail
-        );
-        this.dispatchEvent(
-          new CustomEvent("chart-pan", {
-            detail: (e as CustomEvent).detail,
-            bubbles: true,
-            composed: true,
-          })
-        );
-      });
     }
   }
 
+  updated() {
+    this.draw();
+  }
+
+  draw() {
+    if (!this.chart) return;
+    const context: DrawingContext = {
+      ctx: this.chart.ctx!,
+      chartCanvas: this.chart.canvas,
+      data: this.data,
+      options: this.options,
+      viewportStartTimestamp: this.viewportStartTimestamp,
+      viewportEndTimestamp: this.viewportEndTimestamp,
+      priceRange: this.initialPriceRange,
+    };
+    this.chart.draw(context);
+    this.timeline?.draw(context);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.resizeObserver?.disconnect();
+  }
+
   @property({ type: Object })
-  get data(): CandleDataByTimestamp {
+  get data(): PriceHistory {
     return this._data;
   }
 
   set data(newData: CandleDataByTimestamp) {
-    this._data = newData;
+    this._data = new SimplePriceHistory("ONE_HOUR", new Map(newData.entries()));
 
-    console.log("ChartContainer: Setting new data:", {
-      size: newData.size,
-      firstKey: Array.from(newData.keys())[0],
-      lastKey: Array.from(newData.keys())[newData.size - 1],
-    });
+    // Initialize viewport when setting initial data
+    this.chart = this.renderRoot.querySelector("candlestick-chart");
+    if (this.viewportStartTimestamp === 0 && newData.size > 0 && this.chart) {
+      const visibleCandles = this.calculateVisibleCandles();
+      const timestamps = Array.from(newData.keys()).sort((a, b) => a - b);
+      this.viewportEndTimestamp = timestamps[timestamps.length - 1];
+      this.viewportStartTimestamp =
+        this.viewportEndTimestamp - visibleCandles * this.CANDLE_INTERVAL;
 
-    // Forward data to the candlestick chart and timeline
-    const chart: CandlestickChart | null = this.renderRoot.querySelector("candlestick-chart");
-    const timeline: Timeline | null = this.renderRoot.querySelector("chart-timeline");
+      // This will be eventually stored in local storage and updated when zooming vertically
+      this.initialPriceRange = this.data.getPriceRange(this.viewportStartTimestamp, this.viewportEndTimestamp);
 
-    if (chart) {
-      (chart as any).data = newData;
-      if (timeline) {
-        chart.timeline = timeline;
-      } else {
-        console.error("Timeline component not found");
-      }
+      console.log("ChartContainer: Setting initial viewport", {
+        start: new Date(this.viewportStartTimestamp),
+        end: new Date(this.viewportEndTimestamp),
+        visibleCandles,
+      });
     }
+    this.chart!.data = newData;
     this.requestUpdate("data", newData);
   }
 
@@ -91,10 +158,14 @@ export class ChartContainer extends LitElement {
         <div class="toolbar-top"></div>
         <div class="toolbar-left"></div>
         <div class="toolbar-right"></div>
-        <div class="chart">
-          <candlestick-chart
-            @viewport-change=${this.handleViewportChange}
-          ></candlestick-chart>
+        <div class="chart"
+          @mousedown=${this.handleDragStart}
+          @mousemove=${this.handleDragMove}
+          @mouseup=${this.handleDragEnd}
+          @mouseleave=${this.handleDragEnd}
+          @wheel=${this.handleWheel}
+        >
+          <candlestick-chart></candlestick-chart>
         </div>
         <div class="timeline">
           <chart-timeline></chart-timeline>
@@ -103,44 +174,113 @@ export class ChartContainer extends LitElement {
     `;
   }
 
-  private handleViewportChange(e: CustomEvent) {
-    const timeline: Timeline | null =
-      this.renderRoot.querySelector("chart-timeline");
-    if (!timeline) {
-      console.warn("Timeline component not found");
-      return;
-    }
+  private handleResize(width: number, height: number) {
+    const chart: CandlestickChart | null = this.renderRoot.querySelector("candlestick-chart");
+    const timeline: Timeline | null = this.renderRoot.querySelector("chart-timeline");
 
-    const { viewportStartTimestamp, viewportEndTimestamp, visibleTimestamps } =
-      e.detail;
+    chart?.resize(width, height);
+    timeline?.resize(width, height * 0.2);
+    this.draw();
+  }
 
-    // Validate timestamps
-    if (!viewportStartTimestamp || !viewportEndTimestamp) {
-      console.warn("Invalid viewport timestamps received:", {
-        start: viewportStartTimestamp,
-        end: viewportEndTimestamp,
-      });
-      return;
-    }
+  private handleDragStart = (e: MouseEvent) => {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+  };
 
-    console.log("ChartContainer: Viewport change", {
-      timestampsCount: visibleTimestamps.length,
-      start: new Date(viewportStartTimestamp),
-      end: new Date(viewportEndTimestamp),
-      startTimestamp: viewportStartTimestamp,
-      endTimestamp: viewportEndTimestamp,
-    });
+  private handleDragMove = (e: MouseEvent) => {
+    if (!this.isDragging) return;
+    const deltaX = e.clientX - this.lastX;
+    this.handlePan(deltaX, false);
+    this.lastX = e.clientX;
+  };
 
-    const chart = this.renderRoot.querySelector("candlestick-chart");
-    timeline.options = chart
-      ? {
-        candleWidth: (chart as any).options.candleWidth,
-        candleGap: (chart as any).options.candleGap,
+  private handleDragEnd = () => {
+    this.isDragging = false;
+  };
+
+  private handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    this.handlePan(e.deltaX, true);
+  };
+
+  private handlePan(deltaX: number, isTrackpad = false) {
+    const chart: CandlestickChart | null = this.renderRoot.querySelector("candlestick-chart");
+    if (!chart) return;
+
+    const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
+    const viewportWidth = chart.canvas.width / (window.devicePixelRatio ?? 1);
+    const timePerPixel = timeRange / viewportWidth;
+
+    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
+    const timeShift = Math.round(adjustedDelta * timePerPixel);
+
+    if (timeShift !== 0) {
+      const newStartTimestamp = this.viewportStartTimestamp - timeShift;
+      const newEndTimestamp = newStartTimestamp + timeRange;
+
+      this.viewportStartTimestamp = newStartTimestamp;
+      this.viewportEndTimestamp = newEndTimestamp;
+
+      this.draw();
+
+      // Check if we need more data
+      const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
+      const needMoreData =
+        this.viewportStartTimestamp < this.data.startTimestamp + bufferTimeRange ||
+        this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
+
+      if (needMoreData) {
+        this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
       }
-      : {
-        candleWidth: 5,
-        candleGap: 1,
-      };
+    }
+  }
+
+  private dispatchRefetch(direction: "backward" | "forward") {
+    const FETCH_BATCH_SIZE = 200; // Number of candles to fetch at once
+
+    const timeRange: TimeRange =
+      direction === "backward"
+        ? {
+          start:
+            this._data.startTimestamp -
+            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          end: this._data.startTimestamp,
+        }
+        : {
+          start: this._data.endTimestamp,
+          end:
+            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+        };
+    console.log("Dispatching chart-pan event", {
+      direction,
+      timeRange,
+      visibleCandles: this.calculateVisibleCandles(),
+      needMoreData: true,
+    });
+    this.dispatchEvent(
+      new CustomEvent("chart-pan", {
+        detail: {
+          direction,
+          timeRange,
+          visibleCandles: this.calculateVisibleCandles(),
+          needMoreData: true,
+          bubbles: true,
+          composed: true,
+        },
+      })
+    );
+  }
+
+  public calculateVisibleCandles(): number {
+    if (!this.chart) return 0;
+    const dpr = window.devicePixelRatio;
+    const availableWidth =
+      this.chart.canvas.width - this.padding.left - this.padding.right;
+    const candleWidth = this.options.candleWidth * dpr;
+    const candleGap = this.options.candleGap * dpr;
+    const totalCandleWidth = candleWidth + candleGap;
+    return Math.floor(availableWidth / totalCandleWidth);
   }
 
   static styles = css`
