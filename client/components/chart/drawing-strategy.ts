@@ -1,5 +1,6 @@
 import { ChartOptions } from "./chart";
 import { PriceHistory, PriceRange } from "../../../server/services/price-data/price-history-model";
+import { HairlineGrid } from "./grid";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -15,49 +16,13 @@ export interface ChartDrawingStrategy {
   drawChart(context: DrawingContext): void;
 }
 
+export interface GridDrawingContext {
+  calculateXForTime(timestamp: number, context: DrawingContext): number;
+  priceToY(price: number, context: DrawingContext): number;
+}
+
 export class CandlestickStrategy implements ChartDrawingStrategy {
-
-
-  // TODO: make this pan and zoomable
-  // perhaps this should be in a separate class
-  private drawGrid(ctx: CanvasRenderingContext2D, context: DrawingContext): void {
-    const { canvas, data, priceRange } = context;
-    const dpr = window.devicePixelRatio ?? 1;
-
-    // Set grid style
-    ctx.strokeStyle = "#ddd";
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 1;
-
-    // Draw vertical lines based on granularity
-    const startTime = Math.floor(context.viewportStartTimestamp / data.granularityMs) * data.granularityMs;
-    const endTime = context.viewportEndTimestamp;
-
-    let gridInterval = data.granularityMs * 10; // Default every 10th candle
-    if (data.granularityMs === 60 * 60 * 1000) { // Hourly
-      gridInterval = data.granularityMs * 12;
-    } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) { // Monthly
-      gridInterval = data.granularityMs * 6;
-    }
-
-    for (let timestamp = startTime; timestamp <= endTime; timestamp += gridInterval) {
-      const x = this.calculateXForTime(timestamp, context) / dpr;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height / dpr);
-      ctx.stroke();
-    }
-
-    // Draw horizontal lines for every 10% price change
-    const priceStep = priceRange.range / 10; // 10% intervals
-    for (let price = priceRange.min; price <= priceRange.max; price += priceStep) {
-      const y = this.priceToY(price, context) / dpr;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width / dpr, y);
-      ctx.stroke();
-    }
-  }
+  private grid: HairlineGrid = new HairlineGrid();
 
   drawChart(context: DrawingContext): void {
     const { ctx, canvas, data, options } = context;
@@ -65,7 +30,10 @@ export class CandlestickStrategy implements ChartDrawingStrategy {
 
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-    this.drawGrid(ctx, context);
+    this.grid.draw(ctx, context, {
+      calculateXForTime: this.calculateXForTime,
+      priceToY: this.priceToY,
+    });
 
     const candleWidth = options.candleWidth;
 
