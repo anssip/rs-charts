@@ -4,6 +4,20 @@ Candlestick charting built with Web Components.
 
 very much a work in progress.
 
+## Install
+
+```bash
+bun install
+```
+
+## Run
+
+You need a .env file with the Coinbase API keys.
+
+```bash
+bun run dev
+```
+
 ## TODO
 
 - Convert index.html to a component, encapsulate the styles
