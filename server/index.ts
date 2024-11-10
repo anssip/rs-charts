@@ -1,5 +1,5 @@
 import { serve } from "bun";
-import { CoinbasePriceDataService } from "./services/price-data-cb";
+import { CoinbasePriceDataService } from "./services/price-data/coinbase";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -16,6 +16,23 @@ const priceService = new CoinbasePriceDataService(CB_API_KEY, CB_PRIVATE_KEY);
 const server = serve({
   port: 3000,
   async fetch(req) {
+    const origin = req.headers.get("Origin");
+    const allowedOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": allowedOrigins.includes(origin ?? "")
+        ? origin
+        : allowedOrigins[0],
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        headers: corsHeaders,
+      });
+    }
+
     const url = new URL(req.url);
     let filePath = url.pathname;
 
@@ -25,7 +42,7 @@ const server = serve({
           return new Response(
             JSON.stringify({ error: "Start and end params are required" }),
             {
-              headers: { "Content-Type": "application/json" },
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
             }
           );
         }
@@ -40,28 +57,26 @@ const server = serve({
           });
           console.log("Server: Fetched candles:", candles.size);
           return new Response(JSON.stringify(Object.fromEntries(candles)), {
-            headers: { "Content-Type": "application/json" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         } catch (error) {
           return new Response(
             JSON.stringify({ error: "Failed to fetch candles" }),
             {
               status: 500,
-              headers: { "Content-Type": "application/json" },
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
             }
           );
         }
       }
-      return new Response("Not Found", { status: 404 });
+      return new Response("Not Found", { status: 404, headers: corsHeaders });
     }
 
-    // Handle static files
     if (filePath === "/") {
       filePath = "/index.html";
     }
 
     try {
-      // Serve all static files from dist/client
       const clientFile = Bun.file(`dist/client${filePath}`);
       if (await clientFile.exists()) {
         return new Response(clientFile);

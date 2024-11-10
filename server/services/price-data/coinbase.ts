@@ -2,22 +2,11 @@ import {
   CBAdvancedTradeClient,
   GetAdvTradePublicProductCandlesRequest,
 } from "coinbase-api";
-
-export interface CandleData {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
-export type CandleDataByTimestamp = Map<number, CandleData>;
-
-export interface PriceDataOptions {
-  symbol: string;
-  interval: "1m" | "5m" | "15m" | "30m" | "1h" | "2h" | "6h" | "1d";
-  start: Date;
-  end: Date;
-}
+import {
+  CandleData,
+  CandleDataByTimestamp,
+  PriceDataOptions,
+} from "./price-history-model";
 
 export class CoinbasePriceDataService {
   private readonly client: CBAdvancedTradeClient;
