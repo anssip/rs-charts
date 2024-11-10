@@ -56,7 +56,7 @@ export class Timeline extends LitElement implements Drawable {
   draw(context: DrawingContext) {
     if (!this.canvas || !this.ctx) return;
 
-    const { viewportStartTimestamp, viewportEndTimestamp, data } = context;
+    const { viewportStartTimestamp, viewportEndTimestamp, data, axisMappings: { timeToX } } = context;
 
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
@@ -100,7 +100,7 @@ export class Timeline extends LitElement implements Drawable {
       timestamp <= viewportEndTimestamp + labelInterval;
       timestamp += labelInterval
     ) {
-      const x = this.calculateXForTime(timestamp, context) / dpr;
+      const x = timeToX(timestamp, context) / dpr;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
@@ -117,20 +117,6 @@ export class Timeline extends LitElement implements Drawable {
         ctx.fillText(label, x, 20 * dpr);
       }
     }
-  }
-
-  // this could be in the drawing context, so that it could be used also in the grid and chart strategies
-  private calculateXForTime(timestamp: number, context: DrawingContext): number {
-    const { viewportStartTimestamp, viewportEndTimestamp } = context;
-    const { chartCanvas: canvas } = context;
-    const availableWidth = canvas.width;
-    const timeRange = Math.max(
-      viewportEndTimestamp - viewportStartTimestamp,
-      1
-    );
-    const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
-    const x = timePosition * availableWidth;
-    return x;
   }
 
   render() {

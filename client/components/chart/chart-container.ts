@@ -12,6 +12,7 @@ import { Timeline } from "./timeline";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
+import "./price-axis";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -124,6 +125,10 @@ export class ChartContainer extends LitElement {
       viewportStartTimestamp: this.viewportStartTimestamp,
       viewportEndTimestamp: this.viewportEndTimestamp,
       priceRange: this.initialPriceRange,
+      axisMappings: {
+        timeToX: this.timeToX.bind(this),
+        priceToY: this.priceToY.bind(this),
+      },
     };
     console.log("ChartContainer: Drawing chart", context);
     this.chart.draw(context);
@@ -175,7 +180,9 @@ export class ChartContainer extends LitElement {
       <div class="container">
         <div class="toolbar-top"></div>
         <div class="toolbar-left"></div>
-        <div class="toolbar-right"></div>
+        <div class="toolbar-right">
+          <price-axis></price-axis>
+        </div>
         <div
           class="chart"
           @mousedown=${this.handleDragStart}
@@ -391,6 +398,29 @@ export class ChartContainer extends LitElement {
       candleWidth,
       candleGap,
     };
+  }
+
+  private timeToX(timestamp: number): number {
+    if (!this.chart) return 0;
+    const availableWidth = this.chart.canvas.width;
+    const timeRange = Math.max(
+      this.viewportEndTimestamp - this.viewportStartTimestamp,
+      1
+    );
+    const timePosition = (timestamp - this.viewportStartTimestamp) / timeRange;
+    const x = timePosition * availableWidth;
+    return x;
+  }
+
+  private priceToY(price: number): number {
+    if (!this.chart) return 0;
+    const dpr = window.devicePixelRatio ?? 1;
+    const availableHeight = this.chart.canvas.height / dpr;
+    const percentage =
+      (price - this.initialPriceRange.min) / this.initialPriceRange.range;
+    const logicalY = (1 - percentage) * availableHeight;
+    const y = logicalY * dpr;
+    return y;
   }
 
   static styles = css`
