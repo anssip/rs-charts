@@ -46,8 +46,8 @@ export class ChartContainer extends LitElement {
   options: ChartOptions = {
     candleWidth: 10,
     candleGap: 2,
-    minCandleWidth: 10,
-    maxCandleWidth: 10,
+    minCandleWidth: 2,
+    maxCandleWidth: 40,
   };
 
   private initialPriceRange: PriceRange = {
@@ -55,6 +55,9 @@ export class ChartContainer extends LitElement {
     max: 0,
     range: 0,
   };
+
+  // Add zoom factor to control how much the timeline affects the viewport
+  private readonly ZOOM_FACTOR = 0.005;
 
   constructor() {
     super();
@@ -100,6 +103,10 @@ export class ChartContainer extends LitElement {
         );
       });
     }
+
+    if (this.timeline) {
+      this.timeline.addEventListener("timeline-zoom", this.handleTimelineZoom as EventListener);
+    }
   }
 
   updated() {
@@ -113,7 +120,7 @@ export class ChartContainer extends LitElement {
       ctx: this.chart.ctx!,
       chartCanvas: this.chart.canvas,
       data: this.data,
-      options: this.options,
+      options: this.calculateCandleOptions(),
       viewportStartTimestamp: this.viewportStartTimestamp,
       viewportEndTimestamp: this.viewportEndTimestamp,
       priceRange: this.initialPriceRange,
@@ -126,6 +133,9 @@ export class ChartContainer extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
+    if (this.timeline) {
+      this.timeline.removeEventListener("timeline-zoom", this.handleTimelineZoom as EventListener);
+    }
   }
 
   @property({ type: Object })
@@ -177,7 +187,10 @@ export class ChartContainer extends LitElement {
           <candlestick-chart></candlestick-chart>
         </div>
         <div class="timeline">
-          <chart-timeline></chart-timeline>
+          <chart-timeline
+            .options=${this.options}
+            .padding=${this.padding}
+          ></chart-timeline>
         </div>
       </div>
     `;
@@ -254,7 +267,7 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-        this.data.startTimestamp + bufferTimeRange ||
+      this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -268,16 +281,16 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-            start:
-              this._data.startTimestamp -
-              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-            end: this._data.startTimestamp,
-          }
+          start:
+            this._data.startTimestamp -
+            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          end: this._data.startTimestamp,
+        }
         : {
-            start: this._data.endTimestamp,
-            end:
-              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-          };
+          start: this._data.endTimestamp,
+          end:
+            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+        };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -307,6 +320,77 @@ export class ChartContainer extends LitElement {
     const candleGap = this.options.candleGap * dpr;
     const totalCandleWidth = candleWidth + candleGap;
     return Math.floor(availableWidth / totalCandleWidth);
+  }
+
+  private handleTimelineZoom = (event: CustomEvent) => {
+    const { deltaX, clientX, rect, isTrackpad } = event.detail;
+
+    // Adjust sensitivity based on input type
+    const zoomMultiplier = isTrackpad ? 1 : 0.1; // Reduce sensitivity for mouse wheel
+
+    // Calculate the time range
+    const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
+
+    // Calculate zoom center point (0 to 1)
+    const zoomCenter = (clientX - rect.left) / rect.width;
+
+    // Calculate time adjustment based on drag distance
+    const timeAdjustment = timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
+
+    // Adjust the viewport timestamps
+    const newTimeRange = Math.max(timeRange - timeAdjustment, this.CANDLE_INTERVAL * 10); // Prevent zooming in too far
+    const rangeDifference = timeRange - newTimeRange;
+
+    // Apply the zoom centered around the mouse position
+    this.viewportStartTimestamp += rangeDifference * zoomCenter;
+    this.viewportEndTimestamp -= rangeDifference * (1 - zoomCenter);
+
+    // Ensure minimum range is maintained
+    if (this.viewportEndTimestamp - this.viewportStartTimestamp < this.CANDLE_INTERVAL * 10) {
+      const center = (this.viewportStartTimestamp + this.viewportEndTimestamp) / 2;
+      const minHalfRange = this.CANDLE_INTERVAL * 5;
+      this.viewportStartTimestamp = center - minHalfRange;
+      this.viewportEndTimestamp = center + minHalfRange;
+    }
+
+    // Redraw the chart
+    this.draw();
+
+    // Check if we need more data
+    const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
+    const needMoreData =
+      this.viewportStartTimestamp < this.data.startTimestamp + bufferTimeRange ||
+      this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
+
+    if (needMoreData) {
+      this.dispatchRefetch(deltaX > 0 ? "backward" : "forward");
+    }
+  };
+
+  private calculateCandleOptions(): ChartOptions {
+    if (!this.chart) return this.options;
+
+    const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
+    const numCandles = timeRange / this.CANDLE_INTERVAL;
+
+    const availableWidth = this.chart.canvas.width / (window.devicePixelRatio ?? 1)
+      - this.padding.left - this.padding.right;
+
+    const idealCandleWidth = (availableWidth / numCandles) * 0.9; // 90% for candle, 10% for gap
+    const idealGapWidth = (availableWidth / numCandles) * 0.1;
+
+    // Clamp the values between min and max
+    const candleWidth = Math.max(
+      this.options.minCandleWidth,
+      Math.min(this.options.maxCandleWidth, idealCandleWidth)
+    );
+    const candleGap = Math.max(1, idealGapWidth);
+
+    return {
+      ...this.options,
+      candleWidth,
+      candleGap,
+    };
   }
 
   static styles = css`

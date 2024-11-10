@@ -11,6 +11,8 @@ interface TimelineOptions {
 export class Timeline extends LitElement implements Drawable {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  private isDragging = false;
+  private lastX = 0;
 
   @property({ type: Object })
   options: TimelineOptions = {
@@ -132,7 +134,14 @@ export class Timeline extends LitElement implements Drawable {
   }
 
   render() {
-    return html`<canvas></canvas>`;
+    return html`
+      <canvas
+        @mousedown=${this.handleDragStart}
+        @mousemove=${this.handleDragMove}
+        @mouseup=${this.handleDragEnd}
+        @mouseleave=${this.handleDragEnd}
+        @wheel=${this.handleWheel}
+      ></canvas>`;
   }
 
   firstUpdated() {
@@ -168,6 +177,42 @@ export class Timeline extends LitElement implements Drawable {
 
   public resize(width: number, height: number) {
     this.setupCanvas();
-    // TODO: handle zooming in the timeline
   }
+
+  private handleDragStart = (e: MouseEvent) => {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+  };
+
+  private handleDragMove = (e: MouseEvent) => {
+    if (!this.isDragging) return;
+    const deltaX = e.clientX - this.lastX;
+    this.dispatchZoom(deltaX, e.clientX, false);
+    this.lastX = e.clientX;
+  };
+
+  private handleWheel = (e: WheelEvent) => {
+    e.preventDefault(); // Prevent page scrolling
+    const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
+    const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+    this.dispatchZoom(delta, e.clientX, isTrackpad);
+  };
+
+  private dispatchZoom(deltaX: number, clientX: number, isTrackpad: boolean) {
+    this.dispatchEvent(new CustomEvent('timeline-zoom', {
+      detail: {
+        deltaX,
+        clientX,
+        rect: this.getBoundingClientRect(),
+        isTrackpad,
+      },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+
+  private handleDragEnd = () => {
+    this.isDragging = false;
+  };
+
 }
