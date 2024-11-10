@@ -39,13 +39,19 @@ export class Timeline extends LitElement implements Drawable {
 
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener('draw-chart', this.handleDrawChart as EventListener);
+    window.addEventListener(
+      "draw-chart",
+      this.handleDrawChart as EventListener
+    );
     // window.addEventListener("resize", this.handleResize.bind(this));
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener('draw-chart', this.handleDrawChart as EventListener);
+    window.removeEventListener(
+      "draw-chart",
+      this.handleDrawChart as EventListener
+    );
     // window.removeEventListener("resize", this.handleResize.bind(this));
   }
 
@@ -56,7 +62,12 @@ export class Timeline extends LitElement implements Drawable {
   draw(context: DrawingContext) {
     if (!this.canvas || !this.ctx) return;
 
-    const { viewportStartTimestamp, viewportEndTimestamp, data, axisMappings: { timeToX } } = context;
+    const {
+      viewportStartTimestamp,
+      viewportEndTimestamp,
+      data,
+      axisMappings: { timeToX },
+    } = context;
 
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
@@ -66,8 +77,8 @@ export class Timeline extends LitElement implements Drawable {
 
     // Set text style
     ctx.font = `${6 * dpr}px Arial`;
-    ctx.fillStyle = '#666';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = "#666";
+    ctx.textAlign = "center";
 
     // Calculate label interval based on granularity
     let labelInterval: number;
@@ -76,23 +87,28 @@ export class Timeline extends LitElement implements Drawable {
     if (data.getGranularity() === "ONE_MINUTE") {
       // For 1-minute data, show labels every 10 minutes
       labelInterval = 10 * 60 * 1000;
-      formatFn = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      formatFn = (date: Date) =>
+        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } else if (data.getGranularity() === "ONE_HOUR") {
       // For 1-hour data, show labels every 6 hours
       labelInterval = 6 * 60 * 60 * 1000;
-      formatFn = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      formatFn = (date: Date) =>
+        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } else if (data.getGranularity() >= "ONE_DAY") {
       // For daily data, show date
       labelInterval = 24 * 60 * 60 * 1000;
-      formatFn = (date: Date) => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      formatFn = (date: Date) =>
+        date.toLocaleDateString([], { month: "short", day: "numeric" });
     } else {
       // For other intervals, show time
       labelInterval = 12 * 60 * 60 * 1000;
-      formatFn = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      formatFn = (date: Date) =>
+        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     }
 
     // Find the first label timestamp before viewport start
-    const firstLabelTimestamp = Math.floor(viewportStartTimestamp / labelInterval) * labelInterval;
+    const firstLabelTimestamp =
+      Math.floor(viewportStartTimestamp / labelInterval) * labelInterval;
 
     // Draw labels
     for (
@@ -100,15 +116,15 @@ export class Timeline extends LitElement implements Drawable {
       timestamp <= viewportEndTimestamp + labelInterval;
       timestamp += labelInterval
     ) {
-      const x = timeToX(timestamp, context) / dpr;
+      const x = timeToX(timestamp) / dpr;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
         // Draw tick mark
         ctx.beginPath();
-        ctx.strokeStyle = '#ccc';
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 5 * dpr);
+        ctx.strokeStyle = "#ccc";
+        ctx.moveTo(x, 2 * dpr);
+        ctx.lineTo(x, 7 * dpr);
         ctx.stroke();
 
         // Draw label
@@ -120,14 +136,13 @@ export class Timeline extends LitElement implements Drawable {
   }
 
   render() {
-    return html`
-      <canvas
-        @mousedown=${this.handleDragStart}
-        @mousemove=${this.handleDragMove}
-        @mouseup=${this.handleDragEnd}
-        @mouseleave=${this.handleDragEnd}
-        @wheel=${this.handleWheel}
-      ></canvas>`;
+    return html` <canvas
+      @mousedown=${this.handleDragStart}
+      @mousemove=${this.handleDragMove}
+      @mouseup=${this.handleDragEnd}
+      @mouseleave=${this.handleDragEnd}
+      @wheel=${this.handleWheel}
+    ></canvas>`;
   }
 
   firstUpdated() {
@@ -160,7 +175,6 @@ export class Timeline extends LitElement implements Drawable {
     }
   }
 
-
   public resize(width: number, height: number) {
     this.setupCanvas();
   }
@@ -185,20 +199,21 @@ export class Timeline extends LitElement implements Drawable {
   };
 
   private dispatchZoom(deltaX: number, clientX: number, isTrackpad: boolean) {
-    this.dispatchEvent(new CustomEvent('timeline-zoom', {
-      detail: {
-        deltaX,
-        clientX,
-        rect: this.getBoundingClientRect(),
-        isTrackpad,
-      },
-      bubbles: true,
-      composed: true,
-    }));
+    this.dispatchEvent(
+      new CustomEvent("timeline-zoom", {
+        detail: {
+          deltaX,
+          clientX,
+          rect: this.getBoundingClientRect(),
+          isTrackpad,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   private handleDragEnd = () => {
     this.isDragging = false;
   };
-
 }

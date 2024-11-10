@@ -1,5 +1,8 @@
 import { ChartOptions } from "./chart";
-import { PriceHistory, PriceRange } from "../../../server/services/price-data/price-history-model";
+import {
+  PriceHistory,
+  PriceRange,
+} from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
 
 export interface DrawingContext {
@@ -26,7 +29,13 @@ export class CandlestickStrategy implements Drawable {
   private grid: HairlineGrid = new HairlineGrid();
 
   draw(context: DrawingContext): void {
-    const { ctx, chartCanvas: canvas, data, options, axisMappings: { priceToY } } = context;
+    const {
+      ctx,
+      chartCanvas: canvas,
+      data,
+      options,
+      axisMappings: { priceToY },
+    } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
     ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
@@ -48,8 +57,8 @@ export class CandlestickStrategy implements Drawable {
       ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
       ctx.lineWidth = 1; // Now in logical pixels
 
-      const highY = priceToY(candle.high, context) / dpr;
-      const lowY = priceToY(candle.low, context) / dpr;
+      const highY = priceToY(candle.high) / dpr;
+      const lowY = priceToY(candle.low) / dpr;
       const wickX = x + candleWidth / 2;
 
       ctx.moveTo(wickX, highY);
@@ -57,8 +66,8 @@ export class CandlestickStrategy implements Drawable {
       ctx.stroke();
 
       // Draw body
-      const openY = this.priceToY(candle.open, context) / dpr;
-      const closeY = this.priceToY(candle.close, context) / dpr;
+      const openY = priceToY(candle.open) / dpr;
+      const closeY = priceToY(candle.close) / dpr;
       const bodyHeight = Math.abs(closeY - openY);
       const bodyTop = Math.min(closeY, openY);
 
@@ -67,10 +76,12 @@ export class CandlestickStrategy implements Drawable {
     });
   }
 
-
   calculateXForTime(timestamp: number, context: DrawingContext): number {
-    const { chartCanvas: canvas, viewportStartTimestamp, viewportEndTimestamp } =
-      context;
+    const {
+      chartCanvas: canvas,
+      viewportStartTimestamp,
+      viewportEndTimestamp,
+    } = context;
     const availableWidth = canvas.width;
     const timeRange = Math.max(
       viewportEndTimestamp - viewportStartTimestamp,

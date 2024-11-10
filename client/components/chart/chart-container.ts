@@ -13,6 +13,7 @@ import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import "./price-axis";
+import { PriceAxis } from "./price-axis";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -33,8 +34,10 @@ export class ChartContainer extends LitElement {
   private viewportEndTimestamp: number = 0;
 
   private readonly CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
+
   private chart: CandlestickChart | null = null;
   private timeline: Timeline | null = null;
+  private priceAxis: PriceAxis | null = null;
 
   private padding = {
     top: 0,
@@ -87,6 +90,7 @@ export class ChartContainer extends LitElement {
 
     this.chart = this.renderRoot.querySelector("candlestick-chart");
     this.timeline = this.renderRoot.querySelector("chart-timeline");
+    this.priceAxis = this.renderRoot.querySelector("price-axis");
 
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
@@ -106,7 +110,10 @@ export class ChartContainer extends LitElement {
     }
 
     if (this.timeline) {
-      this.timeline.addEventListener("timeline-zoom", this.handleTimelineZoom as EventListener);
+      this.timeline.addEventListener(
+        "timeline-zoom",
+        this.handleTimelineZoom as EventListener
+      );
     }
   }
 
@@ -133,13 +140,17 @@ export class ChartContainer extends LitElement {
     console.log("ChartContainer: Drawing chart", context);
     this.chart.draw(context);
     this.timeline?.draw(context);
+    this.priceAxis?.draw(context);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
     if (this.timeline) {
-      this.timeline.removeEventListener("timeline-zoom", this.handleTimelineZoom as EventListener);
+      this.timeline.removeEventListener(
+        "timeline-zoom",
+        this.handleTimelineZoom as EventListener
+      );
     }
   }
 
@@ -274,7 +285,7 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-      this.data.startTimestamp + bufferTimeRange ||
+        this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -288,16 +299,16 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-          start:
-            this._data.startTimestamp -
-            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-          end: this._data.startTimestamp,
-        }
+            start:
+              this._data.startTimestamp -
+              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+            end: this._data.startTimestamp,
+          }
         : {
-          start: this._data.endTimestamp,
-          end:
-            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-        };
+            start: this._data.endTimestamp,
+            end:
+              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -342,10 +353,14 @@ export class ChartContainer extends LitElement {
     const zoomCenter = (clientX - rect.left) / rect.width;
 
     // Calculate time adjustment based on drag distance
-    const timeAdjustment = timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
+    const timeAdjustment =
+      timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
 
     // Adjust the viewport timestamps
-    const newTimeRange = Math.max(timeRange - timeAdjustment, this.CANDLE_INTERVAL * 10); // Prevent zooming in too far
+    const newTimeRange = Math.max(
+      timeRange - timeAdjustment,
+      this.CANDLE_INTERVAL * 10
+    ); // Prevent zooming in too far
     const rangeDifference = timeRange - newTimeRange;
 
     // Apply the zoom centered around the mouse position
@@ -353,8 +368,12 @@ export class ChartContainer extends LitElement {
     this.viewportEndTimestamp -= rangeDifference * (1 - zoomCenter);
 
     // Ensure minimum range is maintained
-    if (this.viewportEndTimestamp - this.viewportStartTimestamp < this.CANDLE_INTERVAL * 10) {
-      const center = (this.viewportStartTimestamp + this.viewportEndTimestamp) / 2;
+    if (
+      this.viewportEndTimestamp - this.viewportStartTimestamp <
+      this.CANDLE_INTERVAL * 10
+    ) {
+      const center =
+        (this.viewportStartTimestamp + this.viewportEndTimestamp) / 2;
       const minHalfRange = this.CANDLE_INTERVAL * 5;
       this.viewportStartTimestamp = center - minHalfRange;
       this.viewportEndTimestamp = center + minHalfRange;
@@ -366,7 +385,8 @@ export class ChartContainer extends LitElement {
     // Check if we need more data
     const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
     const needMoreData =
-      this.viewportStartTimestamp < this.data.startTimestamp + bufferTimeRange ||
+      this.viewportStartTimestamp <
+        this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -380,8 +400,10 @@ export class ChartContainer extends LitElement {
     const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
     const numCandles = timeRange / this.CANDLE_INTERVAL;
 
-    const availableWidth = this.chart.canvas.width / (window.devicePixelRatio ?? 1)
-      - this.padding.left - this.padding.right;
+    const availableWidth =
+      this.chart.canvas.width / (window.devicePixelRatio ?? 1) -
+      this.padding.left -
+      this.padding.right;
 
     const idealCandleWidth = (availableWidth / numCandles) * 0.9; // 90% for candle, 10% for gap
     const idealGapWidth = (availableWidth / numCandles) * 0.1;
@@ -476,6 +498,11 @@ export class ChartContainer extends LitElement {
       left: 0;
     }
     chart-timeline {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    price-axis {
       display: block;
       width: 100%;
       height: 100%;

@@ -1,3 +1,4 @@
+import { getPriceStep } from "../../util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
 export class HairlineGrid implements Drawable {
@@ -29,7 +30,7 @@ export class HairlineGrid implements Drawable {
             timestamp <= context.viewportEndTimestamp + gridInterval; // Add one extra interval to handle partial visibility
             timestamp += gridInterval
         ) {
-            const x = timeToX(timestamp, context) / dpr;
+            const x = timeToX(timestamp) / dpr;
 
             // Only draw if the line is within the visible area
             if (x >= 0 && x <= canvas.width / dpr) {
@@ -41,7 +42,7 @@ export class HairlineGrid implements Drawable {
         }
 
         // Draw horizontal lines for every 10% price change
-        const priceStep = priceRange.range / 10;
+        const priceStep = getPriceStep(priceRange.range);
         const firstPriceGridLine = Math.floor(priceRange.min / priceStep) * priceStep;
 
         for (
@@ -49,7 +50,7 @@ export class HairlineGrid implements Drawable {
             price <= priceRange.max + priceStep; // Add one extra step to handle partial visibility
             price += priceStep
         ) {
-            const y = priceToY(price, context) / dpr;
+            const y = priceToY(price) / dpr;
 
             // Only draw if the line is within the visible area
             if (y >= 0 && y <= canvas.height / dpr) {
