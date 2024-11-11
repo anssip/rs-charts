@@ -55,6 +55,8 @@ export class CandlestickStrategy implements Drawable {
       // Draw wick
       ctx.beginPath();
       ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
+      // set line dash to no dash
+      ctx.setLineDash([]);
       ctx.lineWidth = 1; // Now in logical pixels
 
       const highY = priceToY(candle.high) / dpr;

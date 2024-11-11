@@ -1,11 +1,13 @@
 import { LitElement, html, css } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Drawable, DrawingContext } from "./drawing-strategy";
-import { formatPrice, getPriceStep } from "../../util";
+import { formatPrice, getPriceStep } from "../../util/price-util";
 @customElement("price-axis")
 export class PriceAxis extends LitElement implements Drawable {
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
+    private isDragging = false;
+    private lastY = 0;
 
     static styles = css`
     :host {
@@ -72,26 +74,60 @@ export class PriceAxis extends LitElement implements Drawable {
             price <= priceRange.max + priceStep;
             price += priceStep
         ) {
-            // Match the grid's Y coordinate calculation exactly
             const y = priceToY(price) / dpr;
 
-            // Only draw if within visible area
             if (y >= 0 && y <= this.canvas.height / dpr) {
-                // Draw tick mark
-                // ctx.beginPath();
-                // ctx.moveTo(2 * dpr, y * dpr);
-                // ctx.lineTo(7 * dpr, y * dpr);
-                // ctx.stroke();
-
-                // Draw price label
-                ctx.fillText(formatPrice(price), this.canvas.width - 30 * dpr, y * dpr);
+                ctx.fillText(formatPrice(price), this.canvas.width - 30 * dpr, y);
             }
         }
     }
 
     render() {
-        return html`<canvas></canvas>`;
+        return html`<canvas
+            @mousedown=${this.handleDragStart}
+            @mousemove=${this.handleDragMove}
+            @mouseup=${this.handleDragEnd}
+            @mouseleave=${this.handleDragEnd}
+            @wheel=${this.handleWheel}
+        ></canvas>`;
     }
+
+    private handleDragStart = (e: MouseEvent) => {
+        this.isDragging = true;
+        this.lastY = e.clientY;
+    };
+
+    private handleDragMove = (e: MouseEvent) => {
+        if (!this.isDragging) return;
+        const deltaY = e.clientY - this.lastY;
+        this.dispatchZoom(deltaY, e.clientY, false);
+        this.lastY = e.clientY;
+    };
+
+    private handleWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
+        this.dispatchZoom(e.deltaY, e.clientY, isTrackpad);
+    };
+
+    private dispatchZoom(deltaY: number, clientY: number, isTrackpad: boolean) {
+        this.dispatchEvent(
+            new CustomEvent("price-axis-zoom", {
+                detail: {
+                    deltaY,
+                    clientY,
+                    rect: this.getBoundingClientRect(),
+                    isTrackpad,
+                },
+                bubbles: true,
+                composed: true,
+            })
+        );
+    }
+
+    private handleDragEnd = () => {
+        this.isDragging = false;
+    };
 
     firstUpdated() {
         console.log("First updated called");

@@ -14,6 +14,7 @@ import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import "./price-axis";
 import { PriceAxis } from "./price-axis";
+import { PriceRangeImpl } from "../../util/price-range";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -54,14 +55,10 @@ export class ChartContainer extends LitElement {
     maxCandleWidth: 40,
   };
 
-  private initialPriceRange: PriceRange = {
-    min: 0,
-    max: 0,
-    range: 0,
-  };
-
   // Add zoom factor to control how much the timeline affects the viewport
   private readonly ZOOM_FACTOR = 0.005;
+
+  private priceRange: PriceRange = new PriceRangeImpl(0, 0);
 
   constructor() {
     super();
@@ -115,6 +112,11 @@ export class ChartContainer extends LitElement {
         this.handleTimelineZoom as EventListener
       );
     }
+
+    this.priceAxis?.addEventListener(
+      "price-axis-zoom",
+      this.handlePriceAxisZoom as EventListener
+    );
   }
 
   updated() {
@@ -123,7 +125,7 @@ export class ChartContainer extends LitElement {
   }
 
   draw() {
-    if (!this.chart) return;
+    if (!this.chart || !this.priceRange) return;
     const context: DrawingContext = {
       ctx: this.chart.ctx!,
       chartCanvas: this.chart.canvas,
@@ -131,7 +133,7 @@ export class ChartContainer extends LitElement {
       options: this.calculateCandleOptions(),
       viewportStartTimestamp: this.viewportStartTimestamp,
       viewportEndTimestamp: this.viewportEndTimestamp,
-      priceRange: this.initialPriceRange,
+      priceRange: this.priceRange,
       axisMappings: {
         timeToX: this.timeToX.bind(this),
         priceToY: this.priceToY.bind(this),
@@ -172,11 +174,12 @@ export class ChartContainer extends LitElement {
       this.viewportStartTimestamp =
         this.viewportEndTimestamp - visibleCandles * this.CANDLE_INTERVAL;
 
-      // This will be eventually stored in local storage and updated when zooming vertically
-      this.initialPriceRange = this.data.getPriceRange(
+      // Initialize price range
+      const initialRange = this.data.getPriceRange(
         this.viewportStartTimestamp,
         this.viewportEndTimestamp
       );
+      this.priceRange = new PriceRangeImpl(initialRange.min, initialRange.max);
 
       console.log("ChartContainer: Setting initial viewport", {
         start: new Date(this.viewportStartTimestamp),
@@ -184,6 +187,7 @@ export class ChartContainer extends LitElement {
         visibleCandles,
       });
     }
+
   }
 
   render() {
@@ -285,7 +289,7 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-        this.data.startTimestamp + bufferTimeRange ||
+      this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -299,16 +303,16 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-            start:
-              this._data.startTimestamp -
-              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-            end: this._data.startTimestamp,
-          }
+          start:
+            this._data.startTimestamp -
+            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          end: this._data.startTimestamp,
+        }
         : {
-            start: this._data.endTimestamp,
-            end:
-              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-          };
+          start: this._data.endTimestamp,
+          end:
+            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+        };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -386,7 +390,7 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-        this.data.startTimestamp + bufferTimeRange ||
+      this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -439,11 +443,28 @@ export class ChartContainer extends LitElement {
     const dpr = window.devicePixelRatio ?? 1;
     const availableHeight = this.chart.canvas.height / dpr;
     const percentage =
-      (price - this.initialPriceRange.min) / this.initialPriceRange.range;
-    const logicalY = (1 - percentage) * availableHeight;
-    const y = logicalY * dpr;
-    return y;
+      (price - this.priceRange.min) / this.priceRange.range;
+    const y = (1 - percentage) * availableHeight;
+    return y * dpr;
   }
+
+  private handlePriceAxisZoom = (event: CustomEvent) => {
+    if (!this.priceRange) return;
+
+    const { deltaY, clientY, rect, isTrackpad } = event.detail;
+
+    // Calculate zoom center point (0 to 1)
+    const zoomCenter = 1 - ((clientY - rect.top) / rect.height);
+
+    // Adjust sensitivity based on input type
+    const zoomMultiplier = isTrackpad ? 1 : 0.1;
+
+    // Adjust the price range
+    (this.priceRange as PriceRangeImpl).adjust(deltaY * zoomMultiplier, zoomCenter);
+
+    // Redraw all affected components
+    this.draw();
+  };
 
   static styles = css`
     :host {

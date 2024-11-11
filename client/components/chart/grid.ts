@@ -1,4 +1,4 @@
-import { getPriceStep } from "../../util";
+import { getPriceStep } from "../../util/price-util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
 export class HairlineGrid implements Drawable {
@@ -47,12 +47,11 @@ export class HairlineGrid implements Drawable {
 
         for (
             let price = firstPriceGridLine;
-            price <= priceRange.max + priceStep; // Add one extra step to handle partial visibility
+            price <= priceRange.max + priceStep;
             price += priceStep
         ) {
             const y = priceToY(price) / dpr;
 
-            // Only draw if the line is within the visible area
             if (y >= 0 && y <= canvas.height / dpr) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
