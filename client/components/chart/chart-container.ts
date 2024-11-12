@@ -26,6 +26,7 @@ export class ChartContainer extends LitElement {
 
   private isDragging = false;
   private lastX = 0;
+  private lastY = 0;
   private resizeObserver!: ResizeObserver;
 
   @state()
@@ -249,13 +250,22 @@ export class ChartContainer extends LitElement {
   private handleDragStart = (e: MouseEvent) => {
     this.isDragging = true;
     this.lastX = e.clientX;
+    this.lastY = e.clientY;
   };
 
   private handleDragMove = (e: MouseEvent) => {
     if (!this.isDragging) return;
+
     const deltaX = e.clientX - this.lastX;
-    this.handlePan(deltaX, false);
+    const deltaY = e.clientY - this.lastY;
+
+    // Handle horizontal pan
+    this.handlePan(deltaX);
+    // Handle vertical pan
+    this.handleVerticalPan(deltaY);
+
     this.lastX = e.clientX;
+    this.lastY = e.clientY;
   };
 
   private handleDragEnd = () => {
@@ -264,7 +274,10 @@ export class ChartContainer extends LitElement {
 
   private handleWheel = (e: WheelEvent) => {
     e.preventDefault();
-    this.handlePan(e.deltaX, true);
+    const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
+
+    this.handlePan(e.deltaX, isTrackpad);
+    this.handleVerticalPan(e.deltaY, isTrackpad);
   };
 
   private handlePan(deltaX: number, isTrackpad = false) {
@@ -295,6 +308,24 @@ export class ChartContainer extends LitElement {
     if (needMoreData) {
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
     }
+  }
+
+  private handleVerticalPan(deltaY: number, isTrackpad = false) {
+    if (!this.chart || !this.priceRange) return;
+
+    const availableHeight = this.chart.canvas.height / (window.devicePixelRatio ?? 1);
+    const pricePerPixel = this.priceRange.range / availableHeight;
+
+    // Adjust delta based on input type and direction (negative deltaY moves price range up)
+    const adjustedDelta = isTrackpad ? -deltaY : deltaY;
+    const priceShift = adjustedDelta * pricePerPixel;
+
+    if (priceShift === 0) return;
+
+    // Move both min and max by the same amount to maintain the range
+    this.priceRange.shift(priceShift);
+
+    this.draw();
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {

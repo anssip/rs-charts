@@ -24,4 +24,9 @@ export class PriceRangeImpl {
         this._max -= rangeDifference * (1 - zoomCenter);
         this._range = newRange;
     }
+
+    public shift(amount: number): void {
+        this._min += amount;
+        this._max += amount;
+    }
 } 
