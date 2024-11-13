@@ -1,26 +1,22 @@
 import { ChartContainer } from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
-
-interface CandleData {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
+import { LiveCandleSubscription, LiveCandle } from './live-candle-subscription';
+import { Firestore } from 'firebase/firestore';
 
 export class App {
   private chartContainer: ChartContainer | null = null;
   private readonly API_BASE_URL = "http://localhost:3000";
   private candleRepository: CandleRepository;
   private pendingFetches: Set<string> = new Set();
+  private liveCandleSubscription: LiveCandleSubscription;
 
-  constructor() {
+  constructor(private firestore: Firestore) {
     console.log("App: Constructor called");
     this.chartContainer = document.querySelector("chart-container");
     console.log("App: Found chart container:", !!this.chartContainer);
 
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
+    this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
 
     this.initialize();
   }
@@ -41,6 +37,8 @@ export class App {
     );
 
     console.log("App: Initialized with event listeners");
+
+    this.startLiveCandleSubscription('BTC-USD');
   }
 
   private handleChartReady = async (
@@ -48,9 +46,12 @@ export class App {
   ) => {
     console.log("handleChartReady event:", event);
     const now = Date.now();
+    // move a bit forward from now to reach the current candle
+    // TODO: this might need to be based on the granularity
+    const end = new Date(now + 1000 * 60 * 60);
 
     const timeRange = {
-      end: now,
+      end: end.getTime(),
       start: now - 10 * 24 * 60 * 60 * 1000, // 10 days back
     };
 
@@ -100,4 +101,16 @@ export class App {
       }
     }
   };
+
+  private startLiveCandleSubscription(productId: string): void {
+    this.liveCandleSubscription.subscribe(productId, (liveCandle: LiveCandle) => {
+      console.log("App: Received live candle:", liveCandle);
+      this.chartContainer?.updateLiveCandle(liveCandle);
+    });
+  }
+
+  public cleanup(): void {
+    // @ts-ignore
+    this.liveCandleSubscription!.unsubscribe();
+  }
 }
