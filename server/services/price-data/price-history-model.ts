@@ -1,3 +1,5 @@
+import { PriceRangeImpl } from "../../../client/util/price-range";
+
 export type Granularity =
   | "ONE_MINUTE"
   | "FIVE_MINUTE"
@@ -15,6 +17,7 @@ export interface CandleData {
   high: number;
   low: number;
   close: number;
+  live: boolean;
 }
 export type CandleDataByTimestamp = Map<number, CandleData>;
 
@@ -29,6 +32,9 @@ export interface PriceRange {
   min: number;
   max: number;
   range: number;
+  shift(amount: number): void;
+  setMin(min: number): void;
+  setMax(max: number): void;
 }
 
 export interface PriceHistory {
@@ -49,6 +55,7 @@ export interface PriceHistory {
   ): [number, CandleData][];
   findNearestCandleIndex(timestamp: number): number;
   getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange;
+  setLiveCandle(candle: CandleData): void;
 }
 
 export const GRANULARITY_TO_MS = new Map([
@@ -258,15 +265,57 @@ export class SimplePriceHistory implements PriceHistory {
       minPrice = Math.min(minPrice, candle.low);
       maxPrice = Math.max(maxPrice, candle.high);
     }
-
-    return {
-      min: minPrice,
-      max: maxPrice,
-      range: maxPrice - minPrice,
-    };
+    return new PriceRangeImpl(minPrice, maxPrice);
   }
 
   get granularityMs(): number {
     return GRANULARITY_TO_MS.get(this.granularity) ?? 60 * 60 * 1000;
+  }
+
+  setLiveCandle(candle: CandleData): void {
+    // TODO: ignore if the candle is not the latest one
+    if (candle.timestamp !== this.endTimestamp) {
+      return;
+    }
+
+    const existingCandle = this.getCandle(candle.timestamp);
+    console.log("Existing candle:", existingCandle);
+    console.log("New live candle:", candle);
+
+    if (existingCandle) {
+      if (existingCandle.timestamp !== candle.timestamp) {
+        console.log("timestamps", existingCandle.timestamp, candle.timestamp);
+        console.error("Existing candle timestamp does not match new live candle timestamp");
+        return;
+      }
+      // For an existing candle:
+      // - Keep the original open price
+      // - Update high/low if the new price exceeds current bounds
+      // - Update close price with the latest price
+      const newCandle: CandleData = {
+        timestamp: candle.timestamp,
+        open: existingCandle.open, // Keep original open price
+        high: Math.max(existingCandle.high, candle.high, candle.close),
+        low: Math.min(existingCandle.low, candle.low, candle.close),
+        close: candle.close, // Always update to latest price
+        live: true,
+        granularity: this.granularity
+      };
+
+      this.candles.set(newCandle.timestamp, newCandle);
+      const index = this.findNearestCandleIndex(existingCandle.timestamp);
+      this.candlesSortedByTimestamp[index] = [newCandle.timestamp, newCandle];
+    } else {
+      const newCandle: CandleData = {
+        ...candle,
+        granularity: this.granularity
+      };
+      this.candles.set(newCandle.timestamp, newCandle);
+      this.candlesSortedByTimestamp.push([newCandle.timestamp, newCandle]);
+      // Keep the array sorted
+      this.candlesSortedByTimestamp.sort(([a], [b]) => a - b);
+    }
+
+    console.log("Updated candle:", this.getCandle(candle.timestamp));
   }
 }

@@ -1,10 +1,11 @@
-import { DrawingContext, GridDrawingContext } from "./drawing-strategy";
+import { getPriceStep } from "../../util/price-util";
+import { DrawingContext, Drawable } from "./drawing-strategy";
 
-export class HairlineGrid {
+export class HairlineGrid implements Drawable {
 
     // TODO: make this zoomable
-    public draw(ctx: CanvasRenderingContext2D, context: DrawingContext, gridDrawingContext: GridDrawingContext): void {
-        const { chartCanvas: canvas, data, priceRange } = context;
+    public draw(context: DrawingContext): void {
+        const { ctx, chartCanvas: canvas, data, priceRange, axisMappings: { timeToX, priceToY } } = context;
         const dpr = window.devicePixelRatio ?? 1;
 
         // Set grid style
@@ -29,7 +30,7 @@ export class HairlineGrid {
             timestamp <= context.viewportEndTimestamp + gridInterval; // Add one extra interval to handle partial visibility
             timestamp += gridInterval
         ) {
-            const x = gridDrawingContext.calculateXForTime(timestamp, context) / dpr;
+            const x = timeToX(timestamp) / dpr;
 
             // Only draw if the line is within the visible area
             if (x >= 0 && x <= canvas.width / dpr) {
@@ -41,17 +42,16 @@ export class HairlineGrid {
         }
 
         // Draw horizontal lines for every 10% price change
-        const priceStep = priceRange.range / 10;
+        const priceStep = getPriceStep(priceRange.range);
         const firstPriceGridLine = Math.floor(priceRange.min / priceStep) * priceStep;
 
         for (
             let price = firstPriceGridLine;
-            price <= priceRange.max + priceStep; // Add one extra step to handle partial visibility
+            price <= priceRange.max + priceStep;
             price += priceStep
         ) {
-            const y = gridDrawingContext.priceToY(price, context) / dpr;
+            const y = priceToY(price) / dpr;
 
-            // Only draw if the line is within the visible area
             if (y >= 0 && y <= canvas.height / dpr) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
