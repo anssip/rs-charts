@@ -38,7 +38,7 @@ export class CandlestickStrategy implements Drawable {
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
-    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     this.grid.draw(context);
 
@@ -51,6 +51,10 @@ export class CandlestickStrategy implements Drawable {
 
     visibleCandles.forEach(([timestamp, candle]) => {
       const x = this.calculateXForTime(timestamp, context) / dpr;
+
+      if (candle.live) {
+        console.log("CandlestickStrategy: Drawing live candle:", candle);
+      }
 
       // Draw wick
       ctx.beginPath();

@@ -15,6 +15,7 @@ import { DrawingContext } from "./drawing-strategy";
 import "./price-axis";
 import { PriceAxis } from "./price-axis";
 import { PriceRangeImpl } from "../../util/price-range";
+import { LiveCandle } from "../../live-candle-subscription";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -431,6 +432,10 @@ export class ChartContainer extends LitElement {
 
   private calculateCandleOptions(): ChartOptions {
     if (!this.chart) return this.options;
+    if (!this.chart.canvas) {
+      console.warn("ChartContainer: No canvas found, returning default options");
+      return this.options;
+    }
 
     const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
     const numCandles = timeRange / this.CANDLE_INTERVAL;
@@ -496,6 +501,21 @@ export class ChartContainer extends LitElement {
     // Redraw all affected components
     this.draw();
   };
+
+  public updateLiveCandle(liveCandle: LiveCandle): void {
+    if (!this._data) return;
+
+    this._data.setLiveCandle({
+      timestamp: liveCandle.timestamp * 1000,
+      open: liveCandle.open,
+      high: liveCandle.high,
+      low: liveCandle.low,
+      close: liveCandle.close,
+      granularity: "ONE_HOUR", // TODO: Fixme once we have granularity selection
+      live: true
+    });
+    this.draw();
+  }
 
   static styles = css`
     :host {

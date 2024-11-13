@@ -1,4 +1,6 @@
-export class PriceRangeImpl {
+import { PriceRange } from "../../server/services/price-data/price-history-model";
+
+export class PriceRangeImpl implements PriceRange {
     private _min: number;
     private _max: number;
     private _range: number;
@@ -28,5 +30,15 @@ export class PriceRangeImpl {
     public shift(amount: number): void {
         this._min += amount;
         this._max += amount;
+    }
+
+    public setMin(min: number): void {
+        this._min = min;
+        this._range = this._max - this._min;
+    }
+
+    public setMax(max: number): void {
+        this._max = max;
+        this._range = this._max - this._min;
     }
 } 
