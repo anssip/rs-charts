@@ -189,7 +189,6 @@ export class ChartContainer extends LitElement {
         visibleCandles,
       });
     }
-
   }
 
   render() {
@@ -303,7 +302,7 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-      this.data.startTimestamp + bufferTimeRange ||
+        this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -314,7 +313,8 @@ export class ChartContainer extends LitElement {
   private handleVerticalPan(deltaY: number, isTrackpad = false) {
     if (!this.chart || !this.priceRange) return;
 
-    const availableHeight = this.chart.canvas.height / (window.devicePixelRatio ?? 1);
+    const availableHeight =
+      this.chart.canvas.height / (window.devicePixelRatio ?? 1);
     const pricePerPixel = this.priceRange.range / availableHeight;
 
     // Adjust delta based on input type and direction (negative deltaY moves price range up)
@@ -323,9 +323,7 @@ export class ChartContainer extends LitElement {
 
     if (priceShift === 0) return;
 
-    // Move both min and max by the same amount to maintain the range
     this.priceRange.shift(priceShift);
-
     this.draw();
   }
 
@@ -335,16 +333,16 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-          start:
-            this._data.startTimestamp -
-            FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-          end: this._data.startTimestamp,
-        }
+            start:
+              this._data.startTimestamp -
+              FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+            end: this._data.startTimestamp,
+          }
         : {
-          start: this._data.endTimestamp,
-          end:
-            this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
-        };
+            start: this._data.endTimestamp,
+            end:
+              this._data.endTimestamp + FETCH_BATCH_SIZE * this.CANDLE_INTERVAL,
+          };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -379,31 +377,20 @@ export class ChartContainer extends LitElement {
   private handleTimelineZoom = (event: CustomEvent) => {
     const { deltaX, clientX, rect, isTrackpad } = event.detail;
 
-    // Adjust sensitivity based on input type
     const zoomMultiplier = isTrackpad ? 1 : 0.1; // Reduce sensitivity for mouse wheel
-
-    // Calculate the time range
     const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
-
-    // Calculate zoom center point (0 to 1)
     const zoomCenter = (clientX - rect.left) / rect.width;
-
-    // Calculate time adjustment based on drag distance
     const timeAdjustment =
       timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
-
-    // Adjust the viewport timestamps
     const newTimeRange = Math.max(
       timeRange - timeAdjustment,
       this.CANDLE_INTERVAL * 10
     ); // Prevent zooming in too far
     const rangeDifference = timeRange - newTimeRange;
 
-    // Apply the zoom centered around the mouse position
     this.viewportStartTimestamp += rangeDifference * zoomCenter;
     this.viewportEndTimestamp -= rangeDifference * (1 - zoomCenter);
 
-    // Ensure minimum range is maintained
     if (
       this.viewportEndTimestamp - this.viewportStartTimestamp <
       this.CANDLE_INTERVAL * 10
@@ -414,15 +401,13 @@ export class ChartContainer extends LitElement {
       this.viewportStartTimestamp = center - minHalfRange;
       this.viewportEndTimestamp = center + minHalfRange;
     }
-
-    // Redraw the chart
     this.draw();
 
     // Check if we need more data
     const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-      this.data.startTimestamp + bufferTimeRange ||
+        this.data.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp > this.data.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
@@ -433,7 +418,9 @@ export class ChartContainer extends LitElement {
   private calculateCandleOptions(): ChartOptions {
     if (!this.chart) return this.options;
     if (!this.chart.canvas) {
-      console.warn("ChartContainer: No canvas found, returning default options");
+      console.warn(
+        "ChartContainer: No canvas found, returning default options"
+      );
       return this.options;
     }
 
@@ -478,8 +465,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return 0;
     const dpr = window.devicePixelRatio ?? 1;
     const availableHeight = this.chart.canvas.height / dpr;
-    const percentage =
-      (price - this.priceRange.min) / this.priceRange.range;
+    const percentage = (price - this.priceRange.min) / this.priceRange.range;
     const y = (1 - percentage) * availableHeight;
     return y * dpr;
   }
@@ -488,17 +474,12 @@ export class ChartContainer extends LitElement {
     if (!this.priceRange) return;
 
     const { deltaY, clientY, rect, isTrackpad } = event.detail;
-
-    // Calculate zoom center point (0 to 1)
-    const zoomCenter = 1 - ((clientY - rect.top) / rect.height);
-
-    // Adjust sensitivity based on input type
+    const zoomCenter = 1 - (clientY - rect.top) / rect.height;
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
-
-    // Adjust the price range
-    (this.priceRange as PriceRangeImpl).adjust(deltaY * zoomMultiplier, zoomCenter);
-
-    // Redraw all affected components
+    (this.priceRange as PriceRangeImpl).adjust(
+      deltaY * zoomMultiplier,
+      zoomCenter
+    );
     this.draw();
   };
 
@@ -512,7 +493,7 @@ export class ChartContainer extends LitElement {
       low: liveCandle.low,
       close: liveCandle.close,
       granularity: "ONE_HOUR", // TODO: Fixme once we have granularity selection
-      live: true
+      live: true,
     });
     this.draw();
   }
