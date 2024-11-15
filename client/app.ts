@@ -1,7 +1,9 @@
 import { ChartContainer } from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
-import { LiveCandleSubscription, LiveCandle } from './live-candle-subscription';
-import { Firestore } from 'firebase/firestore';
+import { LiveCandleSubscription, LiveCandle } from "./live-candle-subscription";
+import { Firestore } from "firebase/firestore";
+import { CandleData } from "./components/chart/chart";
+import { CandleDataByTimestamp } from "../server/services/price-data/price-history-model";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -38,7 +40,7 @@ export class App {
 
     console.log("App: Initialized with event listeners");
 
-    this.startLiveCandleSubscription('BTC-USD');
+    this.startLiveCandleSubscription("BTC-USD");
   }
 
   private handleChartReady = async (
@@ -88,25 +90,58 @@ export class App {
         return;
       }
 
-      try {
-        this.pendingFetches.add(rangeKey);
-        console.log("fetching time range:", timeRange);
-
-        const newCandles = await this.candleRepository.fetchCandlesForTimeRange(
-          timeRange
-        );
+      const newCandles = await this.fetchData(timeRange);
+      if (newCandles) {
         this.chartContainer.data = newCandles;
-      } finally {
-        this.pendingFetches.delete(rangeKey);
       }
     }
   };
 
+  private fetchData(timeRange: {
+    start: number;
+    end: number;
+  }): Promise<CandleDataByTimestamp | null> {
+    const rangeKey = `${timeRange.start}-${timeRange.end}`;
+
+    if (this.pendingFetches.has(rangeKey)) {
+      console.log("Already fetching range:", timeRange);
+      return Promise.resolve(null);
+    }
+    try {
+      this.pendingFetches.add(rangeKey);
+      console.log("fetching time range:", timeRange);
+
+      return this.candleRepository.fetchCandlesForTimeRange(timeRange);
+    } finally {
+      this.pendingFetches.delete(rangeKey);
+    }
+  }
+
   private startLiveCandleSubscription(productId: string): void {
-    this.liveCandleSubscription.subscribe(productId, (liveCandle: LiveCandle) => {
-      console.log("App: Received live candle:", liveCandle);
-      this.chartContainer?.updateLiveCandle(liveCandle);
-    });
+    this.liveCandleSubscription.subscribe(
+      productId,
+      async (liveCandle: LiveCandle) => {
+        console.log("App: Received live candle:", liveCandle);
+        this.chartContainer?.updateLiveCandle(liveCandle);
+        if (
+          liveCandle.timestamp > (this.chartContainer?.data.endTimestamp ?? 0)
+        ) {
+          console.log("Fetching more data up to the live candle:", liveCandle);
+          if (!this.chartContainer?.data.endTimestamp) {
+            console.error("No end timestamp found");
+            return;
+          }
+          const timeRange = {
+            start: this.chartContainer.data.endTimestamp,
+            end: liveCandle.timestamp,
+          };
+          const newCandles = await this.fetchData(timeRange);
+          if (newCandles) {
+            this.chartContainer.data = newCandles;
+          }
+        }
+      }
+    );
   }
 
   public cleanup(): void {

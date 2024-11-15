@@ -91,8 +91,7 @@ export class SimplePriceHistory implements PriceHistory {
    */
   getCandle(timestamp: number): CandleData | undefined {
     const intervalMs =
-      GRANULARITY_TO_MS.get(this.granularity) ??
-      60 * 60 * 1000;
+      GRANULARITY_TO_MS.get(this.granularity) ?? 60 * 60 * 1000;
 
     let left = 0;
     let right = this.candlesSortedByTimestamp.length - 1;
@@ -273,8 +272,8 @@ export class SimplePriceHistory implements PriceHistory {
   }
 
   setLiveCandle(candle: CandleData): void {
-    // TODO: ignore if the candle is not the latest one
-    if (candle.timestamp !== this.endTimestamp) {
+    if (candle.timestamp < this.endTimestamp) {
+      // TODO: ignore if old
       return;
     }
 
@@ -285,7 +284,9 @@ export class SimplePriceHistory implements PriceHistory {
     if (existingCandle) {
       if (existingCandle.timestamp !== candle.timestamp) {
         console.log("timestamps", existingCandle.timestamp, candle.timestamp);
-        console.error("Existing candle timestamp does not match new live candle timestamp");
+        console.error(
+          "Existing candle timestamp does not match new live candle timestamp"
+        );
         return;
       }
       // For an existing candle:
@@ -299,7 +300,7 @@ export class SimplePriceHistory implements PriceHistory {
         low: Math.min(existingCandle.low, candle.low, candle.close),
         close: candle.close, // Always update to latest price
         live: true,
-        granularity: this.granularity
+        granularity: this.granularity,
       };
 
       this.candles.set(newCandle.timestamp, newCandle);
@@ -308,7 +309,7 @@ export class SimplePriceHistory implements PriceHistory {
     } else {
       const newCandle: CandleData = {
         ...candle,
-        granularity: this.granularity
+        granularity: this.granularity,
       };
       this.candles.set(newCandle.timestamp, newCandle);
       this.candlesSortedByTimestamp.push([newCandle.timestamp, newCandle]);
