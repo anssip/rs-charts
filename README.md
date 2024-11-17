@@ -20,6 +20,10 @@ bun run dev
 
 ## TODO
 
+- add Zustand
+- introduce CanvasComponent base class with `initializeCanvas`, `resize`
+- introduce PriceHistoryComponent base class extending CanvasComponent, subscribing to price history state
+
 - Fix timeline 
 - Add zooming
 - Live update for price (last candle)

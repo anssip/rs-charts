@@ -1,41 +1,16 @@
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { html } from "lit";
+import { customElement } from "lit/decorators.js";
 import { Drawable, DrawingContext } from "./drawing-strategy";
-
-interface TimelineOptions {
-  candleWidth: number;
-  candleGap: number;
-}
+import { CanvasBase } from "./canvas-base";
 
 @customElement("chart-timeline")
-export class Timeline extends LitElement implements Drawable {
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
+export class Timeline extends CanvasBase implements Drawable {
   private isDragging = false;
   private lastX = 0;
 
-  @property({ type: Object })
-  options: TimelineOptions = {
-    candleWidth: 5,
-    candleGap: 1,
-  };
-
-  @property({ type: Object })
-  padding = { top: 5, right: 50, bottom: 30, left: 50 };
-
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      height: 50px;
-      position: relative;
-    }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  `;
+  override getId(): string {
+    return "chart-timeline";
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -43,7 +18,6 @@ export class Timeline extends LitElement implements Drawable {
       "draw-chart",
       this.handleDrawChart as EventListener
     );
-    // window.addEventListener("resize", this.handleResize.bind(this));
   }
 
   disconnectedCallback() {
@@ -52,7 +26,6 @@ export class Timeline extends LitElement implements Drawable {
       "draw-chart",
       this.handleDrawChart as EventListener
     );
-    // window.removeEventListener("resize", this.handleResize.bind(this));
   }
 
   private handleDrawChart = (event: CustomEvent<DrawingContext>) => {
@@ -143,40 +116,6 @@ export class Timeline extends LitElement implements Drawable {
       @mouseleave=${this.handleDragEnd}
       @wheel=${this.handleWheel}
     ></canvas>`;
-  }
-
-  firstUpdated() {
-    requestAnimationFrame(() => {
-      this.canvas = this.renderRoot.querySelector("canvas");
-      this.ctx = this.canvas?.getContext("2d") || null;
-      this.setupCanvas();
-      // window.addEventListener("resize", this.handleResize.bind(this));
-    });
-  }
-
-  private setupCanvas() {
-    if (!this.canvas) return;
-
-    const rect = this.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      console.warn("Timeline: Invalid dimensions", rect);
-      requestAnimationFrame(() => this.setupCanvas());
-      return;
-    }
-
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.canvas.style.width = `${rect.width}px`;
-    this.canvas.style.height = `${rect.height}px`;
-
-    if (this.ctx) {
-      this.ctx.scale(dpr, dpr);
-    }
-  }
-
-  public resize(width: number, height: number) {
-    this.setupCanvas();
   }
 
   private handleDragStart = (e: MouseEvent) => {

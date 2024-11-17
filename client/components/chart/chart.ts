@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
   Drawable,
@@ -10,6 +10,7 @@ import {
   PriceHistory,
   SimplePriceHistory,
 } from "../../../server/services/price-data/price-history-model";
+import { CanvasBase } from "./canvas-base";
 
 export interface CandleData {
   timestamp: number;
@@ -27,30 +28,13 @@ export interface ChartOptions {
 }
 
 @customElement("candlestick-chart")
-export class CandlestickChart extends LitElement implements Drawable {
+export class CandlestickChart extends CanvasBase implements Drawable {
   private drawingStrategy: Drawable = new CandlestickStrategy();
-  public canvas!: HTMLCanvasElement;
-  public ctx: CanvasRenderingContext2D | null = null;
-
   private _data: PriceHistory = new SimplePriceHistory("ONE_HOUR", new Map());
 
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: white;
-    }
-  `;
+  override getId(): string {
+    return "candlestick-chart";
+  }
 
   @property({ type: Object })
   set data(newData: CandleDataByTimestamp) {
@@ -66,23 +50,16 @@ export class CandlestickChart extends LitElement implements Drawable {
   }
 
   async firstUpdated() {
-    this.canvas = this.renderRoot.querySelector("canvas")!;
-    this.ctx = this.canvas.getContext("2d");
+    super.firstUpdated();
 
-    // Wait for next microtask to ensure canvas is ready
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // Dispatch ready event after everything is set up
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
         bubbles: true,
         composed: true,
       })
     );
-  }
-
-  render() {
-    return html` <canvas></canvas> `;
   }
 
   public draw(context: DrawingContext) {
@@ -97,27 +74,5 @@ export class CandlestickChart extends LitElement implements Drawable {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.drawingStrategy.draw(context);
-  }
-
-  public resize(width: number, height: number) {
-    if (width === 0 || height === 0) {
-      console.warn("Invalid dimensions received:", width, height);
-      return;
-    }
-    const dpr = window.devicePixelRatio ?? 1;
-
-    // Set the canvas buffer size (actual pixels)
-    this.canvas.width = width * dpr;
-    this.canvas.height = height * dpr;
-
-    // Set the canvas display size (CSS pixels)
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
-
-    // Reset any previous transforms and apply DPR scaling once
-    if (this.ctx) {
-      this.ctx.resetTransform();
-      this.ctx.scale(dpr, dpr);
-    }
   }
 }

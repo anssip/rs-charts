@@ -2,8 +2,8 @@ import { ChartContainer } from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
 import { LiveCandleSubscription, LiveCandle } from "./live-candle-subscription";
 import { Firestore } from "firebase/firestore";
-import { CandleData } from "./components/chart/chart";
 import { CandleDataByTimestamp } from "../server/services/price-data/price-history-model";
+import { LiveDecorators } from "./components/chart/live-decorators";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -11,16 +11,22 @@ export class App {
   private candleRepository: CandleRepository;
   private pendingFetches: Set<string> = new Set();
   private liveCandleSubscription: LiveCandleSubscription;
+  private liveDecorators: LiveDecorators | null = null;
 
   constructor(private firestore: Firestore) {
     console.log("App: Constructor called");
+
     this.chartContainer = document.querySelector("chart-container");
-    console.log("App: Found chart container:", !!this.chartContainer);
 
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
 
     this.initialize();
+  }
+
+  firstUpdated() {
+    this.liveDecorators = document.querySelector("live-decorators");
+    console.log("Live decorators initialized:", this.liveDecorators);
   }
 
   async initialize() {
@@ -47,6 +53,13 @@ export class App {
     event: CustomEvent<{ visibleCandles: number }>
   ) => {
     console.log("handleChartReady event:", event);
+    const chartContainer = document.querySelector("chart-container");
+    const shadowRoot = chartContainer?.shadowRoot;
+    this.liveDecorators = shadowRoot?.querySelector(
+      "live-decorators"
+    ) as LiveDecorators;
+    console.log("Live decorators:", this.liveDecorators);
+
     const now = Date.now();
     // move a bit forward from now to reach the current candle
     // TODO: this might need to be based on the granularity
@@ -123,6 +136,7 @@ export class App {
       async (liveCandle: LiveCandle) => {
         console.log("App: Received live candle:", liveCandle);
         this.chartContainer?.updateLiveCandle(liveCandle);
+        this.liveDecorators?.setLiveCandle(liveCandle);
         if (
           liveCandle.timestamp > (this.chartContainer?.data.endTimestamp ?? 0)
         ) {

@@ -16,6 +16,8 @@ import "./price-axis";
 import { PriceAxis } from "./price-axis";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../live-candle-subscription";
+import "./live-decorators";
+import { LiveDecorators } from "./live-decorators";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -41,6 +43,7 @@ export class ChartContainer extends LitElement {
   private chart: CandlestickChart | null = null;
   private timeline: Timeline | null = null;
   private priceAxis: PriceAxis | null = null;
+  private liveDecorators: LiveDecorators | null = null;
 
   private padding = {
     top: 0,
@@ -90,6 +93,7 @@ export class ChartContainer extends LitElement {
     this.chart = this.renderRoot.querySelector("candlestick-chart");
     this.timeline = this.renderRoot.querySelector("chart-timeline");
     this.priceAxis = this.renderRoot.querySelector("price-axis");
+    this.liveDecorators = this.renderRoot.querySelector("live-decorators");
 
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
@@ -130,7 +134,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart || !this.priceRange) return;
     const context: DrawingContext = {
       ctx: this.chart.ctx!,
-      chartCanvas: this.chart.canvas,
+      chartCanvas: this.chart.canvas!,
       data: this.data,
       options: this.calculateCandleOptions(),
       viewportStartTimestamp: this.viewportStartTimestamp,
@@ -145,6 +149,7 @@ export class ChartContainer extends LitElement {
     this.chart.draw(context);
     this.timeline?.draw(context);
     this.priceAxis?.draw(context);
+    this.liveDecorators?.draw(context);
   }
 
   disconnectedCallback() {
@@ -208,6 +213,7 @@ export class ChartContainer extends LitElement {
           @wheel=${this.handleWheel}
         >
           <candlestick-chart></candlestick-chart>
+          <live-decorators></live-decorators>
         </div>
         <div class="timeline">
           <chart-timeline
@@ -285,7 +291,7 @@ export class ChartContainer extends LitElement {
 
     const timeRange = this.viewportEndTimestamp - this.viewportStartTimestamp;
     const viewportWidth =
-      this.chart.canvas.width / (window.devicePixelRatio ?? 1);
+      this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
     const timePerPixel = timeRange / viewportWidth;
 
     const adjustedDelta = isTrackpad ? -deltaX : deltaX;
@@ -314,7 +320,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart || !this.priceRange) return;
 
     const availableHeight =
-      this.chart.canvas.height / (window.devicePixelRatio ?? 1);
+      this.chart.canvas!.height / (window.devicePixelRatio ?? 1);
     const pricePerPixel = this.priceRange.range / availableHeight;
 
     // Adjust delta based on input type and direction (negative deltaY moves price range up)
@@ -367,7 +373,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return 0;
     const dpr = window.devicePixelRatio;
     const availableWidth =
-      this.chart.canvas.width - this.padding.left - this.padding.right;
+      this.chart.canvas!.width - this.padding.left - this.padding.right;
     const candleWidth = this.options.candleWidth * dpr;
     const candleGap = this.options.candleGap * dpr;
     const totalCandleWidth = candleWidth + candleGap;
@@ -451,7 +457,7 @@ export class ChartContainer extends LitElement {
 
   private timeToX(timestamp: number): number {
     if (!this.chart) return 0;
-    const availableWidth = this.chart.canvas.width;
+    const availableWidth = this.chart.canvas!.width;
     const timeRange = Math.max(
       this.viewportEndTimestamp - this.viewportStartTimestamp,
       1
@@ -464,7 +470,7 @@ export class ChartContainer extends LitElement {
   private priceToY(price: number): number {
     if (!this.chart) return 0;
     const dpr = window.devicePixelRatio ?? 1;
-    const availableHeight = this.chart.canvas.height / dpr;
+    const availableHeight = this.chart.canvas!.height / dpr;
     const percentage = (price - this.priceRange.min) / this.priceRange.range;
     const y = (1 - percentage) * availableHeight;
     return y * dpr;
@@ -504,6 +510,15 @@ export class ChartContainer extends LitElement {
       width: 100%;
       height: 100%;
     }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: white;
+    }
     .container {
       display: grid;
       width: 100%;
@@ -536,6 +551,11 @@ export class ChartContainer extends LitElement {
       position: relative;
       height: 100%;
     }
+    live-decorators {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
     .timeline {
       grid-area: timeline;
       background: white;
@@ -543,9 +563,6 @@ export class ChartContainer extends LitElement {
       position: relative;
     }
     candlestick-chart {
-      display: block;
-      width: 100%;
-      height: 100%;
       position: absolute;
       top: 0;
       left: 0;
