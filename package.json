@@ -27,6 +27,8 @@
     "jsonwebtoken": "^9.0.2",
     "lit": "^3.2.1",
     "lit-element": "^4.1.1",
-    "lit-html": "^3.2.1"
+    "lit-html": "^3.2.1",
+    "xinjs": "^0.7.2",
+    "zustand": "^5.0.1"
   }
 }

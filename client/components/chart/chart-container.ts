@@ -17,7 +17,7 @@ import { PriceAxis } from "./price-axis";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../live-candle-subscription";
 import "./live-decorators";
-import { LiveDecorators } from "./live-decorators";
+import { ChartState } from "../..";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -26,6 +26,14 @@ const BUFFER_MULTIPLIER = 5;
 export class ChartContainer extends LitElement {
   @state()
   private _data: PriceHistory = new SimplePriceHistory("ONE_HOUR", new Map());
+
+  @state()
+  private _state: ChartState = {
+    priceRange: new PriceRangeImpl(0, 0),
+    priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
+    timeRange: { start: 0, end: 0 },
+    liveCandle: null,
+  };
 
   private isDragging = false;
   private lastX = 0;
@@ -43,7 +51,6 @@ export class ChartContainer extends LitElement {
   private chart: CandlestickChart | null = null;
   private timeline: Timeline | null = null;
   private priceAxis: PriceAxis | null = null;
-  private liveDecorators: LiveDecorators | null = null;
 
   private padding = {
     top: 0,
@@ -93,8 +100,6 @@ export class ChartContainer extends LitElement {
     this.chart = this.renderRoot.querySelector("candlestick-chart");
     this.timeline = this.renderRoot.querySelector("chart-timeline");
     this.priceAxis = this.renderRoot.querySelector("price-axis");
-    this.liveDecorators = this.renderRoot.querySelector("live-decorators");
-
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
       this.chart.addEventListener("chart-ready", (e: Event) => {
@@ -149,7 +154,6 @@ export class ChartContainer extends LitElement {
     this.chart.draw(context);
     this.timeline?.draw(context);
     this.priceAxis?.draw(context);
-    this.liveDecorators?.draw(context);
   }
 
   disconnectedCallback() {
@@ -196,7 +200,13 @@ export class ChartContainer extends LitElement {
     }
   }
 
+  @property({ type: Object })
+  set state(state: ChartState) {
+    this._state = state;
+  }
+
   render() {
+    console.log("ChartContainer: Rendering", this._state.liveCandle?.close);
     return html`
       <div class="container">
         <div class="toolbar-top"></div>
@@ -330,6 +340,9 @@ export class ChartContainer extends LitElement {
     if (priceShift === 0) return;
 
     this.priceRange.shift(priceShift);
+
+    // TODO: clean up to use only the priceRange in state
+    this._state.priceRange = this.priceRange;
     this.draw();
   }
 
@@ -467,6 +480,7 @@ export class ChartContainer extends LitElement {
     return x;
   }
 
+  // TODO: move this to some utility function
   private priceToY(price: number): number {
     if (!this.chart) return 0;
     const dpr = window.devicePixelRatio ?? 1;
@@ -486,6 +500,8 @@ export class ChartContainer extends LitElement {
       deltaY * zoomMultiplier,
       zoomCenter
     );
+    // TODO: use only the priceRange in state
+    this._state.priceRange = this.priceRange;
     this.draw();
   };
 
@@ -576,6 +592,14 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
+    }
+    live-decorators {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   `;
 }

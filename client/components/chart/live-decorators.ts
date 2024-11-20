@@ -1,66 +1,83 @@
-import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { CanvasBase } from "./canvas-base";
+import { css, PropertyValueMap } from "lit";
+import { observe, xin } from "xinjs";
 import { LiveCandle } from "../../live-candle-subscription";
-import { Drawable, DrawingContext } from "./drawing-strategy";
+import { PriceRange } from "../../../server/services/price-data/price-history-model";
+import { PriceRangeImpl } from "../../util/price-range";
 
 @customElement("live-decorators")
-export class LiveDecorators extends LitElement implements Drawable {
-  @property({ type: Number })
+export class LiveDecorators extends CanvasBase {
   currentPrice: number = 0;
+  priceRange: PriceRange = new PriceRangeImpl(0, 0);
 
-  setLiveCandle(liveCandle: LiveCandle): void {
-    console.log("LiveDecorators: setLiveCandle", liveCandle);
-    this.currentPrice = liveCandle.close;
+  firstUpdated() {
+    super.firstUpdated();
+
+    this.priceRange = xin["state.priceRange"] as PriceRange;
+    console.log("LiveDecorators: priceRange", this.priceRange);
+    // observe liveCandle.close from app state
+    observe("state.liveCandle", (path) => {
+      console.log(
+        "LiveDecorators: liveCandle.close changed",
+        (xin[path] as LiveCandle).close
+      );
+      this.currentPrice = (xin[path] as LiveCandle).close;
+      this.requestUpdate();
+    });
+    observe("state.priceRange", (path) => {
+      console.log("LiveDecorators: priceRange changed", xin[path]);
+      this.priceRange = xin[path] as PriceRange;
+      this.requestUpdate();
+    });
   }
 
-  render() {
-    return html`<canvas id="live-decorator-canvas"></canvas>`;
+  override render() {
+    this.draw();
+    return super.render();
   }
 
-  draw(context: DrawingContext) {
-    const {
-      axisMappings: { priceToY },
-    } = context;
+  override getId(): string {
+    return "live-decorators";
+  }
+
+  draw() {
     console.log("LiveDecorators: draw");
-    const canvas = this.shadowRoot?.getElementById(
-      "live-decorator-canvas"
-    ) as HTMLCanvasElement;
-    if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!this.canvas || !this.ctx) return;
+    const width = this.canvas.width;
+    const height = this.canvas.height;
 
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
+    this.ctx.clearRect(0, 0, width, height);
 
     // Draw the horizontal line
-    ctx.strokeStyle = "darkgreen";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, priceToY(this.currentPrice));
-    ctx.lineTo(width, priceToY(this.currentPrice));
-    ctx.stroke();
+    this.ctx.strokeStyle = "darkgreen";
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, this.priceToY(this.currentPrice));
+    this.ctx.lineTo(width, this.priceToY(this.currentPrice));
+    this.ctx.stroke();
 
     console.log("LiveDecorators: draw", {
       width,
       height,
       currentPrice: this.currentPrice,
-      y: priceToY(this.currentPrice),
+      closeY: this.priceToY(this.currentPrice),
     });
+  }
+
+  private priceToY(price: number): number {
+    const dpr = window.devicePixelRatio ?? 1;
+    const availableHeight = this.canvas!.height / dpr;
+    const percentage = (price - this.priceRange.min) / this.priceRange.range;
+    const y = (1 - percentage) * availableHeight;
+    return y * dpr;
   }
 
   static styles = css`
     :host {
-      display: block;
       width: 100%;
       height: 100%;
-    }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
     }
   `;
 }

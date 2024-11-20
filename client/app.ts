@@ -2,8 +2,11 @@ import { ChartContainer } from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
 import { LiveCandleSubscription, LiveCandle } from "./live-candle-subscription";
 import { Firestore } from "firebase/firestore";
-import { CandleDataByTimestamp } from "../server/services/price-data/price-history-model";
-import { LiveDecorators } from "./components/chart/live-decorators";
+import {
+  CandleDataByTimestamp,
+  SimplePriceHistory,
+} from "../server/services/price-data/price-history-model";
+import { ChartState } from ".";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -11,10 +14,11 @@ export class App {
   private candleRepository: CandleRepository;
   private pendingFetches: Set<string> = new Set();
   private liveCandleSubscription: LiveCandleSubscription;
-  private liveDecorators: LiveDecorators | null = null;
+  private state: ChartState;
 
-  constructor(private firestore: Firestore) {
+  constructor(private firestore: Firestore, state: ChartState) {
     console.log("App: Constructor called");
+    this.state = state;
 
     this.chartContainer = document.querySelector("chart-container");
 
@@ -22,11 +26,6 @@ export class App {
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
 
     this.initialize();
-  }
-
-  firstUpdated() {
-    this.liveDecorators = document.querySelector("live-decorators");
-    console.log("Live decorators initialized:", this.liveDecorators);
   }
 
   async initialize() {
@@ -53,12 +52,6 @@ export class App {
     event: CustomEvent<{ visibleCandles: number }>
   ) => {
     console.log("handleChartReady event:", event);
-    const chartContainer = document.querySelector("chart-container");
-    const shadowRoot = chartContainer?.shadowRoot;
-    this.liveDecorators = shadowRoot?.querySelector(
-      "live-decorators"
-    ) as LiveDecorators;
-    console.log("Live decorators:", this.liveDecorators);
 
     const now = Date.now();
     // move a bit forward from now to reach the current candle
@@ -83,6 +76,11 @@ export class App {
     if (candles.size > 0) {
       console.log("Initial data fetched, number of candles:", candles.size);
       this.chartContainer!.data = candles;
+
+      this.state.priceHistory = new SimplePriceHistory(
+        "ONE_HOUR",
+        new Map(candles.entries())
+      );
     }
   };
 
@@ -135,8 +133,14 @@ export class App {
       productId,
       async (liveCandle: LiveCandle) => {
         console.log("App: Received live candle:", liveCandle);
+
+        const oldState = {
+          ...this.state,
+        };
+        this.state.liveCandle = liveCandle;
+        this.chartContainer?.requestUpdate("state", oldState);
+
         this.chartContainer?.updateLiveCandle(liveCandle);
-        this.liveDecorators?.setLiveCandle(liveCandle);
         if (
           liveCandle.timestamp > (this.chartContainer?.data.endTimestamp ?? 0)
         ) {

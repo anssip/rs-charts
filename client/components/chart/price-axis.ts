@@ -35,6 +35,7 @@ export class PriceAxis extends CanvasBase implements Drawable {
 
   draw(context: DrawingContext): void {
     if (!this.canvas || !this.ctx) return;
+    console.log("PriceAxis: draw");
 
     const {
       priceRange,
