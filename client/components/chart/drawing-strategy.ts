@@ -4,6 +4,7 @@ import {
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
+import { calculateXForTime, priceToCanvasY } from "../../util/chart-util";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -28,19 +29,24 @@ export interface AxisMappings {
 export class CandlestickStrategy implements Drawable {
   private grid: HairlineGrid = new HairlineGrid();
 
+  drawGrid(context: DrawingContext): void {
+    this.grid.draw(context);
+  }
+
   draw(context: DrawingContext): void {
     const {
       ctx,
       chartCanvas: canvas,
       data,
       options,
-      axisMappings: { priceToY },
+      axisMappings: { priceToY, timeToX },
+      priceRange,
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    this.grid.draw(context);
+    this.drawGrid(context);
 
     const candleWidth = options.candleWidth;
 
@@ -49,37 +55,53 @@ export class CandlestickStrategy implements Drawable {
       context.viewportEndTimestamp
     );
 
-    visibleCandles.forEach(([timestamp, candle]) => {
-      const x = this.calculateXForTime(timestamp, context) / dpr;
+    console.log("CandlestickStrategy: Drawing", {
+      viewportStartTimestamp: context.viewportStartTimestamp,
+      viewportEndTimestamp: context.viewportEndTimestamp,
+      priceRange: context.priceRange,
+      dataLength: data.length,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      visibleCandlesLength: visibleCandles.length,
+      dpr,
+    });
 
-      if (candle.live) {
-        console.log("CandlestickStrategy: Drawing live candle:", candle);
-      }
+    if (visibleCandles.length === 0) {
+      console.warn("CandlestickStrategy: No visible candles to draw");
+      return;
+    }
+
+    visibleCandles.forEach(([timestamp, candle]) => {
+      const x = calculateXForTime(timestamp, context) / dpr;
 
       // Draw wick
       ctx.beginPath();
       ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
-      // set line dash to no dash
       ctx.setLineDash([]);
-      ctx.lineWidth = 1; // Now in logical pixels
+      ctx.lineWidth = 1;
 
-      const highY = priceToY(candle.high) / dpr;
-      const lowY = priceToY(candle.low) / dpr;
-      const wickX = x + candleWidth / 2;
+      const highY = priceToY(candle.high);
+      const lowY = priceToY(candle.low);
+      const wickX = x + candleWidth / dpr;
 
       ctx.moveTo(wickX, highY);
       ctx.lineTo(wickX, lowY);
       ctx.stroke();
 
       // Draw body
-      const openY = priceToY(candle.open) / dpr;
-      const closeY = priceToY(candle.close) / dpr;
+      const openY = priceToY(candle.open);
+      const closeY = priceToY(candle.close);
       const bodyHeight = Math.abs(closeY - openY);
       const bodyTop = Math.min(closeY, openY);
 
       if (candle.live) {
-        console.log("CandlestickStrategy: Drawing live candle:", candle);
-        // dispatch an event with the x position
+        console.log("CandlestickStrategy: Drawing live candle:", {
+          ...candle,
+          x,
+          openY: priceToY(candle.open),
+          closeY: priceToY(candle.close),
+        });
+
         dispatchEvent(
           new CustomEvent("candlestick-live-price", {
             detail: {
@@ -94,33 +116,5 @@ export class CandlestickStrategy implements Drawable {
       ctx.fillStyle = candle.close > candle.open ? "green" : "red";
       ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
     });
-  }
-
-  calculateXForTime(timestamp: number, context: DrawingContext): number {
-    const {
-      chartCanvas: canvas,
-      viewportStartTimestamp,
-      viewportEndTimestamp,
-    } = context;
-    const availableWidth = canvas.width;
-    const timeRange = Math.max(
-      viewportEndTimestamp - viewportStartTimestamp,
-      1
-    );
-    const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
-    const x = timePosition * availableWidth;
-    return x;
-  }
-
-  calculateVisibleTimeRange(
-    canvas: HTMLCanvasElement,
-    padding: { left: number; right: number },
-    options: ChartOptions,
-    candleInterval: number
-  ): number {
-    const availableWidth = canvas.width - padding.left - padding.right;
-    const totalCandleWidth = options.candleWidth + options.candleGap;
-    const visibleCandles = Math.floor(availableWidth / totalCandleWidth);
-    return visibleCandles * candleInterval;
   }
 }

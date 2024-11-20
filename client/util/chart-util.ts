@@ -1,3 +1,6 @@
+import { PriceRange } from "../../server/services/price-data/price-history-model";
+import { DrawingContext } from "../components/chart/drawing-strategy";
+
 export type Range = {
   start: number;
   end: number;
@@ -19,3 +22,31 @@ export const priceToY =
     const y = (1 - percentage) * availableHeight;
     return y * dpr;
   };
+
+export function priceToCanvasY(
+  price: number,
+  canvas: HTMLCanvasElement,
+  priceRange: PriceRange
+): number {
+  const dpr = window.devicePixelRatio ?? 1;
+  const availableHeight = canvas.height / dpr;
+  const percentage =
+    (price - priceRange.min) / (priceRange.max - priceRange.min);
+  const y = (1 - percentage) * availableHeight;
+  return y * dpr;
+}
+
+export function calculateXForTime(
+  timestamp: number,
+  context: DrawingContext
+): number {
+  const {
+    chartCanvas: canvas,
+    viewportStartTimestamp,
+    viewportEndTimestamp,
+  } = context;
+  const availableWidth = canvas.width;
+  const timeRange = Math.max(viewportEndTimestamp - viewportStartTimestamp, 1);
+  const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
+  return timePosition * availableWidth;
+}

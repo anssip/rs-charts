@@ -1,4 +1,7 @@
-import { ChartContainer } from "./components/chart/chart-container";
+import {
+  CANDLE_INTERVAL,
+  ChartContainer,
+} from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
 import { LiveCandleSubscription, LiveCandle } from "./live-candle-subscription";
 import { Firestore } from "firebase/firestore";
@@ -75,12 +78,26 @@ export class App {
     );
     if (candles.size > 0) {
       console.log("Initial data fetched, number of candles:", candles.size);
-      this.chartContainer!.data = candles;
 
       this.state.priceHistory = new SimplePriceHistory(
         "ONE_HOUR",
         new Map(candles.entries())
       );
+      const visibleCandles = this.chartContainer!.calculateVisibleCandles();
+      const timestamps = Array.from(candles.keys()).sort((a, b) => a - b);
+      const viewportEndTimestamp = timestamps[timestamps.length - 1];
+      const viewportStartTimestamp =
+        viewportEndTimestamp - visibleCandles * CANDLE_INTERVAL;
+      this.chartContainer!.startTimestamp = viewportStartTimestamp;
+      this.chartContainer!.endTimestamp = viewportEndTimestamp;
+
+      this.state.priceRange = this.state.priceHistory.getPriceRange(
+        viewportStartTimestamp,
+        viewportEndTimestamp
+      );
+      if (this.chartContainer) {
+        this.chartContainer.state = this.state;
+      }
     }
   };
 
@@ -103,13 +120,11 @@ export class App {
 
       const newCandles = await this.fetchData(timeRange);
       if (newCandles) {
-        this.chartContainer.data = newCandles;
-        // TODO:
-        // this.state.priceHistory = new SimplePriceHistory(
-        //   "ONE_HOUR",
-        //   new Map(newCandles.entries())
-        // );
-        // this.chartContainer.requestUpdate("state", this.state);
+        this.state.priceHistory = new SimplePriceHistory(
+          "ONE_HOUR",
+          newCandles
+        );
+        this.chartContainer.state = this.state;
       }
     }
   };
@@ -148,20 +163,24 @@ export class App {
 
         this.chartContainer?.updateLiveCandle(liveCandle);
         if (
-          liveCandle.timestamp > (this.chartContainer?.data.endTimestamp ?? 0)
+          liveCandle.timestamp > (this.state.priceHistory.endTimestamp ?? 0)
         ) {
           console.log("Fetching more data up to the live candle:", liveCandle);
-          if (!this.chartContainer?.data.endTimestamp) {
+          if (!this.state.priceHistory.endTimestamp) {
             console.error("No end timestamp found");
             return;
           }
           const timeRange = {
-            start: this.chartContainer.data.endTimestamp,
+            start: this.state.priceHistory.endTimestamp,
             end: liveCandle.timestamp,
           };
           const newCandles = await this.fetchData(timeRange);
-          if (newCandles) {
-            this.chartContainer.data = newCandles;
+          this.state.priceHistory = new SimplePriceHistory(
+            "ONE_HOUR",
+            new Map(newCandles)
+          );
+          if (this.chartContainer) {
+            this.chartContainer.state = this.state;
           }
         }
       }
