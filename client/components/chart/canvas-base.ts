@@ -50,10 +50,22 @@ export abstract class CanvasBase extends LitElement {
       if (this.ctx) {
         this.ctx.scale(dpr, dpr);
       }
+
+      // this.resizeObserver = new ResizeObserver((entries) => {
+      //   for (let entry of entries) {
+      //     if (entry.target === this) {
+      //       const { width, height } = entry.contentRect;
+      //       this.resize(width, height);
+      //     }
+      //   }
+      // });
+
+      // this.resizeObserver.observe(this);
     });
   }
 
   public resize(width: number, height: number) {
+    console.log("CanvasBase: resize", { id: this.id, width, height });
     if (width === 0 || height === 0) {
       console.warn("Invalid dimensions received:", width, height);
       return;

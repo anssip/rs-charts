@@ -1,15 +1,17 @@
 import { customElement, property } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
-import { css, PropertyValueMap } from "lit";
+import { css } from "lit";
 import { observe, xin } from "xinjs";
 import { LiveCandle } from "../../live-candle-subscription";
 import { PriceRange } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
+import { priceToY } from "../../util/chart-util";
 
 @customElement("live-decorators")
 export class LiveDecorators extends CanvasBase {
   currentPrice: number = 0;
   priceRange: PriceRange = new PriceRangeImpl(0, 0);
+  private resizeObserver: ResizeObserver | null = null;
 
   firstUpdated() {
     super.firstUpdated();
@@ -30,6 +32,23 @@ export class LiveDecorators extends CanvasBase {
       this.priceRange = xin[path] as PriceRange;
       this.requestUpdate();
     });
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.target === this) {
+          this.resize(entry.contentRect.width, entry.contentRect.height);
+        }
+      }
+    });
+    this.resizeObserver.observe(this);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.resizeObserver) {
+      this.resizeObserver.unobserve(this);
+      this.resizeObserver = null;
+    }
   }
 
   override render() {
@@ -50,28 +69,25 @@ export class LiveDecorators extends CanvasBase {
 
     this.ctx.clearRect(0, 0, width, height);
 
+    const priceY = priceToY(height, {
+      start: this.priceRange.min,
+      end: this.priceRange.max,
+    });
+
     // Draw the horizontal line
     this.ctx.strokeStyle = "darkgreen";
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
-    this.ctx.moveTo(0, this.priceToY(this.currentPrice));
-    this.ctx.lineTo(width, this.priceToY(this.currentPrice));
+    this.ctx.moveTo(0, priceY(this.currentPrice));
+    this.ctx.lineTo(width, priceY(this.currentPrice));
     this.ctx.stroke();
 
     console.log("LiveDecorators: draw", {
       width,
       height,
       currentPrice: this.currentPrice,
-      closeY: this.priceToY(this.currentPrice),
+      closeY: priceY(this.currentPrice),
     });
-  }
-
-  private priceToY(price: number): number {
-    const dpr = window.devicePixelRatio ?? 1;
-    const availableHeight = this.canvas!.height / dpr;
-    const percentage = (price - this.priceRange.min) / this.priceRange.range;
-    const y = (1 - percentage) * availableHeight;
-    return y * dpr;
   }
 
   static styles = css`

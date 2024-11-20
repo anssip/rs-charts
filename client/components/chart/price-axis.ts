@@ -6,6 +6,8 @@ import { CanvasBase } from "./canvas-base";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase implements Drawable {
+  private resizeObserver: ResizeObserver | null = null;
+
   override getId(): string {
     return "price-axis";
   }
@@ -19,6 +21,13 @@ export class PriceAxis extends CanvasBase implements Drawable {
       "draw-chart",
       this.handleDrawChart as EventListener
     );
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.target === this) {
+          this.resize(entry.contentRect.width, entry.contentRect.height);
+        }
+      }
+    });
   }
 
   disconnectedCallback() {
@@ -27,6 +36,10 @@ export class PriceAxis extends CanvasBase implements Drawable {
       "draw-chart",
       this.handleDrawChart as EventListener
     );
+    if (this.resizeObserver) {
+      this.resizeObserver.unobserve(this);
+      this.resizeObserver = null;
+    }
   }
 
   private handleDrawChart = (event: CustomEvent<DrawingContext>) => {

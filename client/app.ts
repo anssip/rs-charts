@@ -104,6 +104,12 @@ export class App {
       const newCandles = await this.fetchData(timeRange);
       if (newCandles) {
         this.chartContainer.data = newCandles;
+        // TODO:
+        // this.state.priceHistory = new SimplePriceHistory(
+        //   "ONE_HOUR",
+        //   new Map(newCandles.entries())
+        // );
+        // this.chartContainer.requestUpdate("state", this.state);
       }
     }
   };

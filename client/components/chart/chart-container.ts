@@ -18,6 +18,7 @@ import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../live-candle-subscription";
 import "./live-decorators";
 import { ChartState } from "../..";
+import { priceToY, timeToX } from "../../util/chart-util";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -146,8 +147,14 @@ export class ChartContainer extends LitElement {
       viewportEndTimestamp: this.viewportEndTimestamp,
       priceRange: this.priceRange,
       axisMappings: {
-        timeToX: this.timeToX.bind(this),
-        priceToY: this.priceToY.bind(this),
+        timeToX: timeToX(this.chart.canvas!.width, {
+          start: this.viewportStartTimestamp,
+          end: this.viewportEndTimestamp,
+        }),
+        priceToY: priceToY(this.chart.canvas!.height, {
+          start: this.priceRange.min,
+          end: this.priceRange.max,
+        }),
       },
     };
     console.log("ChartContainer: Drawing chart", context);
@@ -240,7 +247,7 @@ export class ChartContainer extends LitElement {
     if (!this.data || this.data.getCandles().size === 0) {
       // Just resize the canvas if we don't have data yet
       this.chart.resize(width, height);
-      this.timeline?.resize(width, height * 0.2);
+      this.timeline?.resize(width, height);
       return;
     }
     // Don't proceed if we haven't set the time rang of th chart
@@ -248,7 +255,7 @@ export class ChartContainer extends LitElement {
       return;
     }
     this.chart.resize(width, height);
-    this.timeline?.resize(width, height * 0.2);
+    this.timeline?.resize(width, height);
 
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
@@ -466,28 +473,6 @@ export class ChartContainer extends LitElement {
       candleWidth,
       candleGap,
     };
-  }
-
-  private timeToX(timestamp: number): number {
-    if (!this.chart) return 0;
-    const availableWidth = this.chart.canvas!.width;
-    const timeRange = Math.max(
-      this.viewportEndTimestamp - this.viewportStartTimestamp,
-      1
-    );
-    const timePosition = (timestamp - this.viewportStartTimestamp) / timeRange;
-    const x = timePosition * availableWidth;
-    return x;
-  }
-
-  // TODO: move this to some utility function
-  private priceToY(price: number): number {
-    if (!this.chart) return 0;
-    const dpr = window.devicePixelRatio ?? 1;
-    const availableHeight = this.chart.canvas!.height / dpr;
-    const percentage = (price - this.priceRange.min) / this.priceRange.range;
-    const y = (1 - percentage) * availableHeight;
-    return y * dpr;
   }
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
