@@ -14,6 +14,7 @@ import { LiveCandle } from "../../live-candle-subscription";
 import "./live-decorators";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
+import { touch } from "xinjs";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -38,7 +39,6 @@ export class ChartContainer extends LitElement {
 
   private chart: CandlestickChart | null = null;
   private timeline: Timeline | null = null;
-  private priceAxis: PriceAxis | null = null;
 
   private padding = {
     top: 0,
@@ -93,7 +93,6 @@ export class ChartContainer extends LitElement {
 
     this.chart = this.renderRoot.querySelector("candlestick-chart");
     this.timeline = this.renderRoot.querySelector("chart-timeline");
-    this.priceAxis = this.renderRoot.querySelector("price-axis");
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
       this.chart.addEventListener("chart-ready", (e: Event) => {
@@ -118,7 +117,7 @@ export class ChartContainer extends LitElement {
       );
     }
 
-    this.priceAxis?.addEventListener(
+    window.addEventListener(
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
@@ -153,7 +152,7 @@ export class ChartContainer extends LitElement {
     console.log("ChartContainer: Drawing chart", context);
     this.chart.draw(context);
     this.timeline?.draw(context);
-    this.priceAxis?.draw(context);
+    // this.priceAxis?.draw(context);
   }
 
   disconnectedCallback() {
@@ -289,9 +288,9 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-        this._state.priceHistory.startTimestamp + bufferTimeRange ||
+      this._state.priceHistory.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp >
-        this._state.priceHistory.endTimestamp - bufferTimeRange;
+      this._state.priceHistory.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
@@ -305,13 +304,15 @@ export class ChartContainer extends LitElement {
       this.chart.canvas!.height / (window.devicePixelRatio ?? 1);
     const pricePerPixel = this._state.priceRange.range / availableHeight;
 
-    // Adjust delta based on input type and direction (negative deltaY moves price range up)
     const adjustedDelta = isTrackpad ? -deltaY : deltaY;
     const priceShift = adjustedDelta * pricePerPixel;
 
     if (priceShift === 0) return;
 
     this._state.priceRange.shift(priceShift);
+    touch('state.priceRange'); // trigger observers as shift() call does not cause it to happen
+
+    // TODO: make all components observe the state so we don't need to manually call draw()
     this.draw();
   }
 
@@ -321,17 +322,17 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-            start:
-              this._state.priceHistory.startTimestamp -
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-            end: this._state.priceHistory.startTimestamp,
-          }
+          start:
+            this._state.priceHistory.startTimestamp -
+            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+          end: this._state.priceHistory.startTimestamp,
+        }
         : {
-            start: this._state.priceHistory.endTimestamp,
-            end:
-              this._state.priceHistory.endTimestamp +
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-          };
+          start: this._state.priceHistory.endTimestamp,
+          end:
+            this._state.priceHistory.endTimestamp +
+            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+        };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -396,9 +397,9 @@ export class ChartContainer extends LitElement {
     const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
     const needMoreData =
       this.viewportStartTimestamp <
-        this._state.priceHistory.startTimestamp + bufferTimeRange ||
+      this._state.priceHistory.startTimestamp + bufferTimeRange ||
       this.viewportEndTimestamp >
-        this._state.priceHistory.endTimestamp - bufferTimeRange;
+      this._state.priceHistory.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
       this.dispatchRefetch(deltaX > 0 ? "backward" : "forward");
@@ -447,6 +448,7 @@ export class ChartContainer extends LitElement {
       deltaY * zoomMultiplier,
       zoomCenter
     );
+    touch('state.priceRange'); // trigger observers as adjust() call does not cause it to happen
     this.draw();
   };
 
@@ -469,73 +471,87 @@ export class ChartContainer extends LitElement {
       width: 100%;
       height: 100%;
     }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: white;
-    }
+
     .container {
       display: grid;
       width: 100%;
       height: 100%;
       grid-template-areas:
-        "top-tb top-tb top-tb"
-        "left-tb chart right-tb"
-        "left-tb timeline right-tb";
-      grid-template-columns: 50px 1fr 50px;
+        "top-tb"
+        "chart"
+        "timeline";
+      grid-template-columns: 1fr;
       grid-template-rows: 40px 1fr 80px;
       gap: 1px;
       background-color: #f5f5f5;
+      position: relative;
     }
+
     .toolbar-top {
       grid-area: top-tb;
       background: white;
     }
+
     .toolbar-left {
-      grid-area: left-tb;
+      position: absolute;
+      left: 0;
+      top: 40px; /* Height of top toolbar */
+      width: 50px;
+      height: calc(100% - 120px); /* Full height minus top toolbar and timeline */
       background: white;
+      z-index: 1;
     }
+
     .toolbar-right {
-      grid-area: right-tb;
+      position: absolute;
+      right: 0;
+      top: 40px; /* Height of top toolbar */
+      width: 50px;
+      height: calc(100% - 120px); /* Full height minus top toolbar and timeline */
       background: white;
+      z-index: 1;
     }
+
     .chart {
       grid-area: chart;
       background: white;
       overflow: hidden;
       position: relative;
       height: 100%;
+      margin: 0 50px; /* Make space for toolbars */
     }
+
     live-decorators {
       display: block;
       width: 100%;
       height: 100%;
     }
+
     .timeline {
       grid-area: timeline;
       background: white;
       overflow: hidden;
       position: relative;
     }
+
     candlestick-chart {
       position: absolute;
       top: 0;
       left: 0;
     }
+
     chart-timeline {
       display: block;
       width: 100%;
       height: 100%;
     }
+
     price-axis {
       display: block;
       width: 100%;
       height: 100%;
     }
+
     live-decorators {
       display: block;
       width: 100%;

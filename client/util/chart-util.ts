@@ -29,7 +29,7 @@ export function priceToCanvasY(
   priceRange: PriceRange
 ): number {
   const dpr = window.devicePixelRatio ?? 1;
-  const availableHeight = canvas.height / dpr;
+  const availableHeight = canvas.height;
   const percentage =
     (price - priceRange.min) / (priceRange.max - priceRange.min);
   const y = (1 - percentage) * availableHeight;

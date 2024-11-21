@@ -1,3 +1,4 @@
+import { priceToY } from "../../util/chart-util";
 import { getPriceStep } from "../../util/price-util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
@@ -9,9 +10,14 @@ export class HairlineGrid implements Drawable {
       chartCanvas: canvas,
       data,
       priceRange,
-      axisMappings: { timeToX, priceToY },
+      axisMappings: { timeToX },
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
+
+    const priceY = priceToY(canvas.height, {
+      start: priceRange.min,
+      end: priceRange.max,
+    });
 
     // Set grid style
     ctx.strokeStyle = "#ddd";
@@ -59,7 +65,7 @@ export class HairlineGrid implements Drawable {
       price <= priceRange.max + priceStep;
       price += priceStep
     ) {
-      const y = priceToY(price) / dpr;
+      const y = priceY(price);
 
       if (y >= 0 && y <= canvas.height / dpr) {
         ctx.beginPath();

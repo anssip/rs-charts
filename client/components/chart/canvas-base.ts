@@ -15,11 +15,12 @@ export abstract class CanvasBase extends LitElement {
     return html`<canvas id="${this.id}"></canvas>`;
   }
 
-  initializeCanvas() {
-    console.log("CanvasBase: initializeCanvas");
-  }
-
   firstUpdated() {
+
+    const bindListeners = (canvas: HTMLCanvasElement) => {
+      this.bindEventListeners(canvas);
+    }
+
     requestAnimationFrame(() => {
       this.canvas = this.renderRoot.querySelector("canvas");
       if (!this.canvas) {
@@ -51,6 +52,8 @@ export abstract class CanvasBase extends LitElement {
         this.ctx.scale(dpr, dpr);
       }
 
+      bindListeners(this.canvas);
+
       // this.resizeObserver = new ResizeObserver((entries) => {
       //   for (let entry of entries) {
       //     if (entry.target === this) {
@@ -63,6 +66,8 @@ export abstract class CanvasBase extends LitElement {
       // this.resizeObserver.observe(this);
     });
   }
+
+  abstract bindEventListeners(canvas: HTMLCanvasElement): void;
 
   public resize(width: number, height: number) {
     console.log("CanvasBase: resize", { id: this.id, width, height });

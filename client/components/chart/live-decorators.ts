@@ -76,6 +76,8 @@ export class LiveDecorators extends CanvasBase {
 
     // Draw the horizontal line
     this.ctx.strokeStyle = "darkgreen";
+    // use dotted line
+    this.ctx.setLineDash([2, 2]);
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(0, priceY(this.currentPrice));
@@ -88,6 +90,11 @@ export class LiveDecorators extends CanvasBase {
       currentPrice: this.currentPrice,
       closeY: priceY(this.currentPrice),
     });
+  }
+
+  override resize(width: number, height: number) {
+    super.resize(width, height);
+    this.draw();
   }
 
   static styles = css`
