@@ -2,6 +2,8 @@ import { html } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Drawable, DrawingContext } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
+import { PriceHistory } from "../../../server/services/price-data/price-history-model";
+import { calculateXForTime } from "../../util/chart-util";
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase implements Drawable {
@@ -39,7 +41,6 @@ export class Timeline extends CanvasBase implements Drawable {
       viewportStartTimestamp,
       viewportEndTimestamp,
       data,
-      axisMappings: { timeToX },
     } = context;
 
     const dpr = window.devicePixelRatio ?? 1;
@@ -53,31 +54,7 @@ export class Timeline extends CanvasBase implements Drawable {
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
 
-    // Calculate label interval based on granularity
-    let labelInterval: number;
-    let formatFn: (date: Date) => string;
-
-    if (data.getGranularity() === "ONE_MINUTE") {
-      // For 1-minute data, show labels every 10 minutes
-      labelInterval = 10 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } else if (data.getGranularity() === "ONE_HOUR") {
-      // For 1-hour data, show labels every 6 hours
-      labelInterval = 6 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } else if (data.getGranularity() >= "ONE_DAY") {
-      // For daily data, show date
-      labelInterval = 24 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleDateString([], { month: "short", day: "numeric" });
-    } else {
-      // For other intervals, show time
-      labelInterval = 12 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
+    const { labelInterval, formatFn } = createTimelineFormatter(data)
 
     // Find the first label timestamp before viewport start
     const firstLabelTimestamp =
@@ -89,7 +66,7 @@ export class Timeline extends CanvasBase implements Drawable {
       timestamp <= viewportEndTimestamp + labelInterval;
       timestamp += labelInterval
     ) {
-      const x = timeToX(timestamp) / dpr;
+      const x = calculateXForTime(timestamp, context) / dpr;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
@@ -156,3 +133,27 @@ export class Timeline extends CanvasBase implements Drawable {
     this.isDragging = false;
   };
 }
+
+function createTimelineFormatter(data: PriceHistory) {
+  let labelInterval: number;
+  let formatFn: (date: Date) => string;
+  if (data.getGranularity() === "ONE_MINUTE") {
+    // For 1-minute data, show labels every 10 minutes
+    labelInterval = 10 * 60 * 1000;
+    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } else if (data.getGranularity() === "ONE_HOUR") {
+    // For 1-hour data, show labels every 6 hours
+    labelInterval = 6 * 60 * 60 * 1000;
+    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } else if (data.getGranularity() >= "ONE_DAY") {
+    // For daily data, show date
+    labelInterval = 24 * 60 * 60 * 1000;
+    formatFn = (date: Date) => date.toLocaleDateString([], { month: "short", day: "numeric" });
+  } else {
+    // For other intervals, show time
+    labelInterval = 12 * 60 * 60 * 1000;
+    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return { labelInterval, formatFn };
+}
+

@@ -67,7 +67,9 @@ export abstract class CanvasBase extends LitElement {
     });
   }
 
-  abstract bindEventListeners(canvas: HTMLCanvasElement): void;
+  bindEventListeners(_: HTMLCanvasElement): void {
+    // no default listeners
+  };
 
   public resize(width: number, height: number) {
     console.log("CanvasBase: resize", { id: this.id, width, height });

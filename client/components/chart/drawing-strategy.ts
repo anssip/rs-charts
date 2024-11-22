@@ -39,8 +39,7 @@ export class CandlestickStrategy implements Drawable {
       chartCanvas: canvas,
       data,
       options,
-      axisMappings: { priceToY, timeToX },
-      priceRange,
+      axisMappings: { priceToY },
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 

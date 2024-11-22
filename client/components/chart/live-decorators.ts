@@ -9,8 +9,8 @@ import { priceToY } from "../../util/chart-util";
 
 @customElement("live-decorators")
 export class LiveDecorators extends CanvasBase {
-  currentPrice: number = 0;
-  priceRange: PriceRange = new PriceRangeImpl(0, 0);
+  private currentPrice: number = 0;
+  private priceRange: PriceRange = new PriceRangeImpl(0, 0);
   private resizeObserver: ResizeObserver | null = null;
 
   firstUpdated() {
@@ -25,12 +25,12 @@ export class LiveDecorators extends CanvasBase {
         (xin[path] as LiveCandle).close
       );
       this.currentPrice = (xin[path] as LiveCandle).close;
-      this.requestUpdate();
+      this.draw();
     });
     observe("state.priceRange", (path) => {
       console.log("LiveDecorators: priceRange changed", xin[path]);
       this.priceRange = xin[path] as PriceRange;
-      this.requestUpdate();
+      this.draw();
     });
 
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -49,11 +49,6 @@ export class LiveDecorators extends CanvasBase {
       this.resizeObserver.unobserve(this);
       this.resizeObserver = null;
     }
-  }
-
-  override render() {
-    this.draw();
-    return super.render();
   }
 
   override getId(): string {

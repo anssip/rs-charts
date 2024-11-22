@@ -304,7 +304,8 @@ export class ChartContainer extends LitElement {
       this.chart.canvas!.height / (window.devicePixelRatio ?? 1);
     const pricePerPixel = this._state.priceRange.range / availableHeight;
 
-    const adjustedDelta = isTrackpad ? -deltaY : deltaY;
+    const sensitivity = 1.5;
+    const adjustedDelta = (isTrackpad ? -deltaY : deltaY) * sensitivity;
     const priceShift = adjustedDelta * pricePerPixel;
 
     if (priceShift === 0) return;
