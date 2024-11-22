@@ -88,8 +88,9 @@ export class App {
       const viewportEndTimestamp = timestamps[timestamps.length - 1];
       const viewportStartTimestamp =
         viewportEndTimestamp - visibleCandles * CANDLE_INTERVAL;
-      this.chartContainer!.startTimestamp = viewportStartTimestamp;
+
       this.chartContainer!.endTimestamp = viewportEndTimestamp;
+      this.chartContainer!.startTimestamp = viewportStartTimestamp;
 
       this.state.priceRange = this.state.priceHistory.getPriceRange(
         viewportStartTimestamp,

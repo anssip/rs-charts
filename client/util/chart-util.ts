@@ -1,5 +1,4 @@
 import { PriceRange } from "../../server/services/price-data/price-history-model";
-import { DrawingContext } from "../components/chart/drawing-strategy";
 
 export type Range = {
   start: number;
@@ -12,7 +11,7 @@ export const timeToX =
   (availableWidth: number, timeRange: Range) => (timestamp: number) => {
     const timePosition =
       (timestamp - timeRange.start) / (timeRange.end - timeRange.start);
-    return timePosition * availableWidth * dpr;
+    return timePosition * availableWidth;
   };
 
 export const priceToY =
@@ -28,7 +27,6 @@ export function priceToCanvasY(
   canvas: HTMLCanvasElement,
   priceRange: PriceRange
 ): number {
-  const dpr = window.devicePixelRatio ?? 1;
   const availableHeight = canvas.height;
   const percentage =
     (price - priceRange.min) / (priceRange.max - priceRange.min);
@@ -36,17 +34,17 @@ export function priceToCanvasY(
   return y * dpr;
 }
 
-export function calculateXForTime(
-  timestamp: number,
-  context: DrawingContext
-): number {
-  const {
-    chartCanvas: canvas,
-    viewportStartTimestamp,
-    viewportEndTimestamp,
-  } = context;
-  const availableWidth = canvas.width;
-  const timeRange = Math.max(viewportEndTimestamp - viewportStartTimestamp, 1);
-  const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
-  return timePosition * availableWidth;
-}
+// export function calculateXForTime(
+//   timestamp: number,
+//   context: DrawingContext
+// ): number {
+//   const {
+//     chartCanvas: canvas,
+//     viewportStartTimestamp,
+//     viewportEndTimestamp,
+//   } = context;
+//   const availableWidth = canvas.width;
+//   const timeRange = Math.max(viewportEndTimestamp - viewportStartTimestamp, 1);
+//   const timePosition = (timestamp - viewportStartTimestamp) / timeRange;
+//   return timePosition * availableWidth;
+// }

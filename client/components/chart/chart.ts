@@ -30,9 +30,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   async firstUpdated() {
     super.firstUpdated();
-
     await new Promise((resolve) => setTimeout(resolve, 0));
-
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
         bubbles: true,
@@ -51,7 +49,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       return;
     }
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
     this.drawingStrategy.draw(context);
   }
 }

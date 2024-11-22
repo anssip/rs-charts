@@ -3,7 +3,9 @@ import { customElement } from "lit/decorators.js";
 import { Drawable, DrawingContext } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
 import { PriceHistory } from "../../../server/services/price-data/price-history-model";
-import { calculateXForTime } from "../../util/chart-util";
+import { timeToX } from "../../util/chart-util";
+
+const TIMELINE_START_POS = 50; // pixels from the left
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase implements Drawable {
@@ -12,6 +14,11 @@ export class Timeline extends CanvasBase implements Drawable {
 
   override getId(): string {
     return "chart-timeline";
+  }
+
+
+  override useResizeObserver(): boolean {
+    return true;
   }
 
   connectedCallback() {
@@ -36,11 +43,13 @@ export class Timeline extends CanvasBase implements Drawable {
 
   draw(context: DrawingContext) {
     if (!this.canvas || !this.ctx) return;
+    const { chartCanvas: canvas } = context;
 
     const {
       viewportStartTimestamp,
       viewportEndTimestamp,
       data,
+      axisMappings: { timeToX },
     } = context;
 
     const dpr = window.devicePixelRatio ?? 1;
@@ -66,21 +75,22 @@ export class Timeline extends CanvasBase implements Drawable {
       timestamp <= viewportEndTimestamp + labelInterval;
       timestamp += labelInterval
     ) {
-      const x = calculateXForTime(timestamp, context) / dpr;
+
+      const x = timeToX(timestamp) / 2 + TIMELINE_START_POS;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
         // Draw tick mark
         ctx.beginPath();
         ctx.strokeStyle = "#ccc";
-        ctx.moveTo(x, 2 * dpr);
-        ctx.lineTo(x, 7 * dpr);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 5 * dpr);
         ctx.stroke();
 
-        // Draw label
+        // Draw label near top
         const date = new Date(timestamp);
         const label = formatFn(date);
-        ctx.fillText(label, x, 20 * dpr);
+        ctx.fillText(label, x, 12 * dpr);
       }
     }
   }
@@ -137,23 +147,24 @@ export class Timeline extends CanvasBase implements Drawable {
 function createTimelineFormatter(data: PriceHistory) {
   let labelInterval: number;
   let formatFn: (date: Date) => string;
-  if (data.getGranularity() === "ONE_MINUTE") {
-    // For 1-minute data, show labels every 10 minutes
-    labelInterval = 10 * 60 * 1000;
-    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } else if (data.getGranularity() === "ONE_HOUR") {
-    // For 1-hour data, show labels every 6 hours
-    labelInterval = 6 * 60 * 60 * 1000;
-    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } else if (data.getGranularity() >= "ONE_DAY") {
-    // For daily data, show date
-    labelInterval = 24 * 60 * 60 * 1000;
-    formatFn = (date: Date) => date.toLocaleDateString([], { month: "short", day: "numeric" });
-  } else {
-    // For other intervals, show time
-    labelInterval = 12 * 60 * 60 * 1000;
-    formatFn = (date: Date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // Use same grid interval calculation as grid component
+  labelInterval = data.granularityMs * 10; // Default every 10th candle
+  if (data.granularityMs === 60 * 60 * 1000) {
+    // Hourly
+    labelInterval = data.granularityMs * 12; // Every 12 hours
+  } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) {
+    // Monthly
+    labelInterval = data.granularityMs * 6; // Every 6 months
   }
+
+  // Use consistent time format
+  formatFn = (date: Date) => date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+
   return { labelInterval, formatFn };
 }
 

@@ -8,7 +8,6 @@ import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import "./price-axis";
-import { PriceAxis } from "./price-axis";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../live-candle-subscription";
 import "./live-decorators";
@@ -49,10 +48,10 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   options: ChartOptions = {
-    candleWidth: 10,
+    candleWidth: 15,
     candleGap: 2,
     minCandleWidth: 2,
-    maxCandleWidth: 40,
+    maxCandleWidth: 100,
   };
 
   // Add zoom factor to control how much the timeline affects the viewport
@@ -356,13 +355,10 @@ export class ChartContainer extends LitElement {
 
   public calculateVisibleCandles(): number {
     if (!this.chart) return 0;
-    const dpr = window.devicePixelRatio;
     const availableWidth =
       this.chart.canvas!.width - this.padding.left - this.padding.right;
-    const candleWidth = this.options.candleWidth * dpr;
-    const candleGap = this.options.candleGap * dpr;
-    const totalCandleWidth = candleWidth + candleGap;
-    return Math.floor(availableWidth / totalCandleWidth);
+    const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
+    return Math.floor(availableWidth / (totalCandleWidth * window.devicePixelRatio));
   }
 
   private handleTimelineZoom = (event: CustomEvent) => {
@@ -431,7 +427,7 @@ export class ChartContainer extends LitElement {
     const candleWidth = Math.max(
       this.options.minCandleWidth,
       Math.min(this.options.maxCandleWidth, idealCandleWidth)
-    );
+    ) / (window.devicePixelRatio ?? 1);
     const candleGap = Math.max(1, idealGapWidth);
 
     return {

@@ -3,7 +3,7 @@ import { LitElement, html } from "lit";
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
   public ctx: CanvasRenderingContext2D | null = null;
-
+  private resizeObserver: ResizeObserver | null = null;
   constructor() {
     super();
     this.id = this.getId();
@@ -54,17 +54,22 @@ export abstract class CanvasBase extends LitElement {
 
       bindListeners(this.canvas);
 
-      // this.resizeObserver = new ResizeObserver((entries) => {
-      //   for (let entry of entries) {
-      //     if (entry.target === this) {
-      //       const { width, height } = entry.contentRect;
-      //       this.resize(width, height);
-      //     }
-      //   }
-      // });
-
-      // this.resizeObserver.observe(this);
+      if (this.useResizeObserver()) {
+        this.resizeObserver = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            if (entry.target === this) {
+              const { width, height } = entry.contentRect;
+              this.resize(width, height);
+            }
+          }
+        });
+        this.resizeObserver.observe(this);
+      }
     });
+  }
+
+  useResizeObserver(): boolean {
+    return false;
   }
 
   bindEventListeners(_: HTMLCanvasElement): void {
@@ -83,13 +88,14 @@ export abstract class CanvasBase extends LitElement {
     }
     const dpr = window.devicePixelRatio ?? 1;
 
+    // Set the canvas display size (CSS pixels)
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+
     // Set the canvas buffer size (actual pixels)
     this.canvas.width = width * dpr;
     this.canvas.height = height * dpr;
 
-    // Set the canvas display size (CSS pixels)
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
 
     // Reset any previous transforms
     this.ctx.resetTransform();

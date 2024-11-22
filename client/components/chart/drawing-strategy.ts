@@ -4,7 +4,7 @@ import {
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
-import { calculateXForTime, priceToCanvasY } from "../../util/chart-util";
+import { timeToX } from "../../util/chart-util";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -39,7 +39,7 @@ export class CandlestickStrategy implements Drawable {
       chartCanvas: canvas,
       data,
       options,
-      axisMappings: { priceToY },
+      axisMappings: { priceToY, timeToX },
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
@@ -47,7 +47,7 @@ export class CandlestickStrategy implements Drawable {
 
     this.drawGrid(context);
 
-    const candleWidth = options.candleWidth;
+    const candleWidth = options.candleWidth * dpr;
 
     const visibleCandles = data.getCandlesInRange(
       context.viewportStartTimestamp,
@@ -71,7 +71,7 @@ export class CandlestickStrategy implements Drawable {
     }
 
     visibleCandles.forEach(([timestamp, candle]) => {
-      const x = calculateXForTime(timestamp, context) / dpr;
+      const x = timeToX(timestamp) / dpr - candleWidth - options.candleGap;
 
       // Draw wick
       ctx.beginPath();

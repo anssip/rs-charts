@@ -38,6 +38,11 @@ export class HairlineGrid implements Drawable {
     const firstGridTimestamp =
       Math.floor(context.viewportStartTimestamp / gridInterval) * gridInterval;
 
+    // Set text style for labels
+    ctx.font = `${6 * dpr}px Arial`;
+    ctx.fillStyle = "#999";
+    ctx.textAlign = "center";
+
     // Draw vertical lines until we exceed viewport end
     for (
       let timestamp = firstGridTimestamp;
@@ -48,10 +53,20 @@ export class HairlineGrid implements Drawable {
 
       // Only draw if the line is within the visible area
       if (x >= 0 && x <= canvas.width / dpr) {
+        // Draw grid line
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height / dpr);
         ctx.stroke();
+
+        // Draw time label
+        const date = new Date(timestamp);
+        const label = date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        });
+        ctx.fillText(label, x, 10);
       }
     }
 
