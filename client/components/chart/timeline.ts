@@ -3,7 +3,7 @@ import { customElement } from "lit/decorators.js";
 import { Drawable, DrawingContext } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
 import { PriceHistory } from "../../../server/services/price-data/price-history-model";
-import { timeToX } from "../../util/chart-util";
+import { formatTime, getGridInterval, timeToX } from "../../util/chart-util";
 
 const TIMELINE_START_POS = 50; // pixels from the left
 
@@ -43,7 +43,6 @@ export class Timeline extends CanvasBase implements Drawable {
 
   draw(context: DrawingContext) {
     if (!this.canvas || !this.ctx) return;
-    const { chartCanvas: canvas } = context;
 
     const {
       viewportStartTimestamp,
@@ -63,7 +62,7 @@ export class Timeline extends CanvasBase implements Drawable {
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
 
-    const { labelInterval, formatFn } = createTimelineFormatter(data)
+    const labelInterval = getGridInterval(data);
 
     // Find the first label timestamp before viewport start
     const firstLabelTimestamp =
@@ -89,7 +88,7 @@ export class Timeline extends CanvasBase implements Drawable {
 
         // Draw label near top
         const date = new Date(timestamp);
-        const label = formatFn(date);
+        const label = formatTime(date);
         ctx.fillText(label, x, 12 * dpr);
       }
     }
@@ -144,27 +143,4 @@ export class Timeline extends CanvasBase implements Drawable {
   };
 }
 
-function createTimelineFormatter(data: PriceHistory) {
-  let labelInterval: number;
-  let formatFn: (date: Date) => string;
-
-  // Use same grid interval calculation as grid component
-  labelInterval = data.granularityMs * 10; // Default every 10th candle
-  if (data.granularityMs === 60 * 60 * 1000) {
-    // Hourly
-    labelInterval = data.granularityMs * 12; // Every 12 hours
-  } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) {
-    // Monthly
-    labelInterval = data.granularityMs * 6; // Every 6 months
-  }
-
-  // Use consistent time format
-  formatFn = (date: Date) => date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-
-  return { labelInterval, formatFn };
-}
 

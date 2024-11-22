@@ -1,6 +1,6 @@
-import { html, TemplateResult } from "lit";
+import { TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
-import { Drawable, DrawingContext } from "./drawing-strategy";
+import { Drawable } from "./drawing-strategy";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
 import { observe, xin } from "xinjs";
@@ -11,7 +11,6 @@ import { priceToY } from "../../util/chart-util";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase implements Drawable {
-    private resizeObserver: ResizeObserver | null = null;
     private currentPrice: number = 0;
     private priceRange: PriceRange = new PriceRangeImpl(0, 0);
 
@@ -38,21 +37,10 @@ export class PriceAxis extends CanvasBase implements Drawable {
             this.requestUpdate();
         });
 
-        this.resizeObserver = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                if (entry.target === this) {
-                    this.resize(entry.contentRect.width, entry.contentRect.height);
-                }
-            }
-        });
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        if (this.resizeObserver) {
-            this.resizeObserver.unobserve(this);
-            this.resizeObserver = null;
-        }
+    useResizeObserver(): boolean {
+        return true;
     }
 
     draw(): void {

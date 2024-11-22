@@ -1,4 +1,4 @@
-import { priceToY } from "../../util/chart-util";
+import { formatTime, getGridInterval, priceToY } from "../../util/chart-util";
 import { getPriceStep } from "../../util/price-util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
@@ -18,27 +18,14 @@ export class HairlineGrid implements Drawable {
       start: priceRange.min,
       end: priceRange.max,
     });
+    const gridInterval = getGridInterval(data);
+    const firstGridTimestamp =
+      Math.floor(context.viewportStartTimestamp / gridInterval) * gridInterval;
 
-    // Set grid style
     ctx.strokeStyle = "#ddd";
     ctx.setLineDash([5, 5]);
     ctx.lineWidth = 1;
 
-    // Calculate grid interval based on granularity
-    let gridInterval = data.granularityMs * 10; // Default every 10th candle
-    if (data.granularityMs === 60 * 60 * 1000) {
-      // Hourly
-      gridInterval = data.granularityMs * 12; // Every 12 hours
-    } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) {
-      // Monthly
-      gridInterval = data.granularityMs * 6; // Every 6 months
-    }
-
-    // Find the first grid line timestamp before viewport start
-    const firstGridTimestamp =
-      Math.floor(context.viewportStartTimestamp / gridInterval) * gridInterval;
-
-    // Set text style for labels
     ctx.font = `${6 * dpr}px Arial`;
     ctx.fillStyle = "#999";
     ctx.textAlign = "center";
@@ -59,14 +46,8 @@ export class HairlineGrid implements Drawable {
         ctx.lineTo(x, canvas.height / dpr);
         ctx.stroke();
 
-        // Draw time label
-        const date = new Date(timestamp);
-        const label = date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        });
-        ctx.fillText(label, x, 10);
+        // draw time label at the top of grid line
+        ctx.fillText(formatTime(new Date(timestamp)), x, 10);
       }
     }
 

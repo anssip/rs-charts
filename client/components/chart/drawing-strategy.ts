@@ -93,25 +93,6 @@ export class CandlestickStrategy implements Drawable {
       const bodyHeight = Math.abs(closeY - openY);
       const bodyTop = Math.min(closeY, openY);
 
-      if (candle.live) {
-        console.log("CandlestickStrategy: Drawing live candle:", {
-          ...candle,
-          x,
-          openY: priceToY(candle.open),
-          closeY: priceToY(candle.close),
-        });
-
-        dispatchEvent(
-          new CustomEvent("candlestick-live-price", {
-            detail: {
-              x,
-              closeY,
-              candle,
-            },
-          })
-        );
-      }
-
       ctx.fillStyle = candle.close > candle.open ? "green" : "red";
       ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
     });

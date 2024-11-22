@@ -11,7 +11,6 @@ import { priceToY } from "../../util/chart-util";
 export class LiveDecorators extends CanvasBase {
   private currentPrice: number = 0;
   private priceRange: PriceRange = new PriceRangeImpl(0, 0);
-  private resizeObserver: ResizeObserver | null = null;
 
   firstUpdated() {
     super.firstUpdated();
@@ -32,23 +31,10 @@ export class LiveDecorators extends CanvasBase {
       this.priceRange = xin[path] as PriceRange;
       this.draw();
     });
-
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        if (entry.target === this) {
-          this.resize(entry.contentRect.width, entry.contentRect.height);
-        }
-      }
-    });
-    this.resizeObserver.observe(this);
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this.resizeObserver) {
-      this.resizeObserver.unobserve(this);
-      this.resizeObserver = null;
-    }
+  useResizeObserver(): boolean {
+    return true;
   }
 
   override getId(): string {
