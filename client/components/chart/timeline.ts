@@ -1,21 +1,22 @@
-import { html } from "lit";
+import { TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
-import { Drawable, DrawingContext } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
-import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 import { formatTime, getGridInterval, timeToX } from "../../util/chart-util";
+import { observe, xin } from "xinjs";
+import { TimeRange } from "../../candle-repository";
+import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 
 const TIMELINE_START_POS = 50; // pixels from the left
 
 @customElement("chart-timeline")
-export class Timeline extends CanvasBase implements Drawable {
+export class Timeline extends CanvasBase {
   private isDragging = false;
   private lastX = 0;
+  private timeRange: TimeRange = { start: 0, end: 0 };
 
   override getId(): string {
     return "chart-timeline";
   }
-
 
   override useResizeObserver(): boolean {
     return true;
@@ -23,33 +24,27 @@ export class Timeline extends CanvasBase implements Drawable {
 
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener(
-      "draw-chart",
-      this.handleDrawChart as EventListener
-    );
+
+    observe("state.timeRange", (path) => {
+      this.timeRange = xin[path] as TimeRange;
+      this.draw();
+    });
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener(
-      "draw-chart",
-      this.handleDrawChart as EventListener
-    );
-  }
+  draw() {
+    if (!this.canvas || !this.ctx) {
+      console.warn("Timeline: canvas or ctx not found");
+      return;
+    }
+    console.log("Timeline: draw");
 
-  private handleDrawChart = (event: CustomEvent<DrawingContext>) => {
-    this.draw(event.detail);
-  };
+    // const stateTimeRange = xin["state.timeRange"] as TimeRange;
+    const viewportStartTimestamp = this.timeRange.start;
+    const viewportEndTimestamp = this.timeRange.end;
+    const canvasWidth = xin["state.canvasWidth"] as number;
 
-  draw(context: DrawingContext) {
-    if (!this.canvas || !this.ctx) return;
-
-    const {
-      viewportStartTimestamp,
-      viewportEndTimestamp,
-      data,
-      axisMappings: { timeToX },
-    } = context;
+    const data = xin["state.priceHistory"] as PriceHistory;
+    console.log("Timeline: draw", { viewportStartTimestamp, viewportEndTimestamp, data });
 
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
@@ -75,7 +70,7 @@ export class Timeline extends CanvasBase implements Drawable {
       timestamp += labelInterval
     ) {
 
-      const x = timeToX(timestamp) / 2 + TIMELINE_START_POS;
+      const x = timeToX(canvasWidth, { start: viewportStartTimestamp, end: viewportEndTimestamp })(timestamp) + TIMELINE_START_POS;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
@@ -86,6 +81,10 @@ export class Timeline extends CanvasBase implements Drawable {
         ctx.lineTo(x, 5 * dpr);
         ctx.stroke();
 
+
+        // console log all important values related to drawing
+        console.log("Timeline: draw", { x, timestamp, labelInterval, firstLabelTimestamp, viewportStartTimestamp, viewportEndTimestamp, canvasWidth });
+
         // Draw label near top
         const date = new Date(timestamp);
         const label = formatTime(date);
@@ -94,14 +93,17 @@ export class Timeline extends CanvasBase implements Drawable {
     }
   }
 
-  render() {
-    return html` <canvas
-      @mousedown=${this.handleDragStart}
-      @mousemove=${this.handleDragMove}
-      @mouseup=${this.handleDragEnd}
-      @mouseleave=${this.handleDragEnd}
-      @wheel=${this.handleWheel}
-    ></canvas>`;
+  bindEventListeners(canvas: HTMLCanvasElement) {
+    canvas.addEventListener("mousedown", this.handleDragStart);
+    canvas.addEventListener("mousemove", this.handleDragMove);
+    canvas.addEventListener("mouseup", this.handleDragEnd);
+    canvas.addEventListener("mouseleave", this.handleDragEnd);
+    canvas.addEventListener("wheel", this.handleWheel);
+  }
+
+  protected override render(): TemplateResult<1> {
+    this.draw();
+    return super.render();
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -141,6 +143,7 @@ export class Timeline extends CanvasBase implements Drawable {
   private handleDragEnd = () => {
     this.isDragging = false;
   };
+
 }
 
 

@@ -20,6 +20,8 @@ export type ChartState = {
   priceHistory: PriceHistory;
   timeRange: TimeRange;
   liveCandle: LiveCandle | null;
+  canvasWidth: number;
+  canvasHeight: number;
 };
 
 const chartState: ChartState = {
@@ -27,6 +29,8 @@ const chartState: ChartState = {
   priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
   timeRange: { start: 0, end: 0 },
   liveCandle: null,
+  canvasWidth: 0,
+  canvasHeight: 0,
 };
 
 // Initialize app state

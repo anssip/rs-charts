@@ -27,6 +27,8 @@ export class ChartContainer extends LitElement {
     priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
     timeRange: { start: 0, end: 0 },
     liveCandle: null,
+    canvasWidth: 0,
+    canvasHeight: 0,
   };
 
   private isDragging = false;
@@ -37,7 +39,6 @@ export class ChartContainer extends LitElement {
   private viewportEndTimestamp: number = 0;
 
   private chart: CandlestickChart | null = null;
-  private timeline: Timeline | null = null;
 
   private padding = {
     top: 0,
@@ -69,10 +70,12 @@ export class ChartContainer extends LitElement {
 
   set startTimestamp(startTimestamp: number) {
     this.viewportStartTimestamp = startTimestamp;
+    this._state.timeRange.start = startTimestamp;
   }
 
   set endTimestamp(endTimestamp: number) {
     this.viewportEndTimestamp = endTimestamp;
+    this._state.timeRange.end = endTimestamp;
   }
 
   firstUpdated() {
@@ -91,7 +94,6 @@ export class ChartContainer extends LitElement {
     }
 
     this.chart = this.renderRoot.querySelector("candlestick-chart");
-    this.timeline = this.renderRoot.querySelector("chart-timeline");
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
       this.chart.addEventListener("chart-ready", (e: Event) => {
@@ -109,12 +111,10 @@ export class ChartContainer extends LitElement {
       });
     }
 
-    if (this.timeline) {
-      this.timeline.addEventListener(
-        "timeline-zoom",
-        this.handleTimelineZoom as EventListener
-      );
-    }
+    window.addEventListener(
+      "timeline-zoom",
+      this.handleTimelineZoom as EventListener
+    );
 
     window.addEventListener(
       "price-axis-zoom",
@@ -149,20 +149,16 @@ export class ChartContainer extends LitElement {
       },
     };
     console.log("ChartContainer: Drawing chart", context);
-    this.chart.draw(context);
-    this.timeline?.draw(context);
-    // this.priceAxis?.draw(context);
+    this.chart.drawWithContext(context);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
-    if (this.timeline) {
-      this.timeline.removeEventListener(
-        "timeline-zoom",
-        this.handleTimelineZoom as EventListener
-      );
-    }
+    window.removeEventListener(
+      "timeline-zoom",
+      this.handleTimelineZoom as EventListener
+    );
   }
 
   @property({ type: Object })
@@ -209,7 +205,6 @@ export class ChartContainer extends LitElement {
     if (this._state.priceHistory.getCandles().size === 0) {
       // Just resize the canvas if we don't have data yet
       this.chart.resize(width, height);
-      this.timeline?.resize(width, height);
       return;
     }
     // Don't proceed if we haven't set the time rang of th chart
@@ -217,7 +212,6 @@ export class ChartContainer extends LitElement {
       return;
     }
     this.chart.resize(width, height);
-    this.timeline?.resize(width, height);
 
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
@@ -228,6 +222,8 @@ export class ChartContainer extends LitElement {
       newStartTimestamp < this.viewportEndTimestamp
     ) {
       this.viewportStartTimestamp = newStartTimestamp;
+      this._state.timeRange = { start: newStartTimestamp, end: this.viewportEndTimestamp };
+      // touch("state.timeRange");
       this.draw();
     }
   }
@@ -280,6 +276,9 @@ export class ChartContainer extends LitElement {
 
     this.viewportStartTimestamp = this.viewportStartTimestamp - timeShift;
     this.viewportEndTimestamp = this.viewportStartTimestamp + timeRange;
+
+    this._state.timeRange = { start: this.viewportStartTimestamp, end: this.viewportEndTimestamp };
+    // touch("state.timeRange");
 
     this.draw();
 
@@ -388,6 +387,9 @@ export class ChartContainer extends LitElement {
       this.viewportStartTimestamp = center - minHalfRange;
       this.viewportEndTimestamp = center + minHalfRange;
     }
+    // TODO: use timeRange object instead of viewportStartTimestamp and viewportEndTimestamp
+    this._state.timeRange = { start: this.viewportStartTimestamp, end: this.viewportEndTimestamp };
+    // touch("state.timeRange");
     this.draw();
 
     // Check if we need more data

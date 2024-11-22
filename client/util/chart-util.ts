@@ -35,12 +35,11 @@ export function priceToCanvasY(
 }
 
 export function getGridInterval(data: PriceHistory): number {
-  // Use same grid interval calculation as grid component
   let interval = data.granularityMs * 10; // Default every 10th candle
-  if (data.granularityMs === 60 * 60 * 1000) {
-    // Hourly
+
+  if (data.getGranularity() === "ONE_HOUR") {
     interval = data.granularityMs * 12; // Every 12 hours
-  } else if (data.granularityMs === 30 * 24 * 60 * 60 * 1000) {
+  } else if (data.getGranularity() === "ONE_DAY") {
     // Monthly
     interval = data.granularityMs * 6; // Every 6 months
   }

@@ -83,6 +83,7 @@ export class App {
         "ONE_HOUR",
         new Map(candles.entries())
       );
+
       const visibleCandles = this.chartContainer!.calculateVisibleCandles();
       const timestamps = Array.from(candles.keys()).sort((a, b) => a - b);
       const viewportEndTimestamp = timestamps[timestamps.length - 1];
@@ -91,6 +92,8 @@ export class App {
 
       this.chartContainer!.endTimestamp = viewportEndTimestamp;
       this.chartContainer!.startTimestamp = viewportStartTimestamp;
+
+      this.state.timeRange = { start: viewportStartTimestamp, end: viewportEndTimestamp };
 
       this.state.priceRange = this.state.priceHistory.getPriceRange(
         viewportStartTimestamp,

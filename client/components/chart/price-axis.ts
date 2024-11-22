@@ -145,8 +145,4 @@ export class PriceAxis extends CanvasBase implements Drawable {
         this.isDragging = false;
     };
 
-    override resize(width: number, height: number) {
-        super.resize(width, height);
-        this.draw();
-    }
 }

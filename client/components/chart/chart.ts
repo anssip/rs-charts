@@ -5,6 +5,7 @@ import {
   DrawingContext,
 } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
+import { xin } from "xinjs";
 
 export interface CandleData {
   timestamp: number;
@@ -39,7 +40,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     );
   }
 
-  public draw(context: DrawingContext) {
+  public drawWithContext(context: DrawingContext) {
     if (!this.ctx || !this.canvas) {
       console.warn("Cannot draw chart:", {
         hasContext: !!this.ctx,
@@ -50,5 +51,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     }
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawingStrategy.draw(context);
+  }
+
+  override resize(width: number, height: number) {
+    super.resize(width, height);
+    xin["state.canvasWidth"] = width;
+    xin["state.canvasHeight"] = height;
   }
 }

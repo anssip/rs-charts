@@ -100,5 +100,10 @@ export abstract class CanvasBase extends LitElement {
     // Reset any previous transforms
     this.ctx.resetTransform();
     this.ctx.scale(dpr, dpr);
+    this.draw();
   }
+
+  draw(): void {
+    // should be implemented by subclasses
+  };
 }
