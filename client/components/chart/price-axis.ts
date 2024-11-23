@@ -1,95 +1,111 @@
-import { LitElement, html, css } from "lit";
+import { TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
-import { Drawable, DrawingContext } from "./drawing-strategy";
+import { Drawable } from "./drawing-strategy";
 import { formatPrice, getPriceStep } from "../../util/price-util";
+import { CanvasBase } from "./canvas-base";
+import { observe, xin } from "xinjs";
+import { LiveCandle } from "../../live-candle-subscription";
+import { PriceRange } from "../../../server/services/price-data/price-history-model";
+import { PriceRangeImpl } from "../../util/price-range";
+import { priceToY } from "../../util/chart-util";
+
 @customElement("price-axis")
-export class PriceAxis extends LitElement implements Drawable {
-    private canvas: HTMLCanvasElement | null = null;
-    private ctx: CanvasRenderingContext2D | null = null;
+export class PriceAxis extends CanvasBase implements Drawable {
+    private currentPrice: number = 0;
+    private priceRange: PriceRange = new PriceRangeImpl(0, 0);
+
+    override getId(): string {
+        return "price-axis";
+    }
+
     private isDragging = false;
     private lastY = 0;
 
-    static styles = css`
-    :host {
-      display: block;
-      position: relative;
-      width: 80px;
-      height: 100%;
-      border-left: 1px solid #ddd;
-      background: white;
-    }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  `;
-
     connectedCallback() {
         super.connectedCallback();
-        window.addEventListener(
-            "draw-chart",
-            this.handleDrawChart as EventListener
-        );
+        observe("state.liveCandle", (path) => {
+            console.log(
+                "PriceAxis: liveCandle.close changed",
+                (xin[path] as LiveCandle).close
+            );
+            this.currentPrice = (xin[path] as LiveCandle).close;
+            this.requestUpdate();
+        });
+        observe("state.priceRange", (path) => {
+            console.log("LiveDecorators: priceRange changed", xin[path]);
+            this.priceRange = xin[path] as PriceRange;
+            this.requestUpdate();
+        });
+
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        window.removeEventListener(
-            "draw-chart",
-            this.handleDrawChart as EventListener
-        );
+    useResizeObserver(): boolean {
+        return true;
     }
 
-    private handleDrawChart = (event: CustomEvent<DrawingContext>) => {
-        this.draw(event.detail);
-    };
-
-    draw(context: DrawingContext): void {
+    draw(): void {
         if (!this.canvas || !this.ctx) return;
+        console.log("PriceAxis: draw");
 
-        const {
-            priceRange,
-            axisMappings: { priceToY },
-        } = context;
         const dpr = window.devicePixelRatio ?? 1;
         const ctx = this.ctx;
 
-        // Clear the canvas
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Set text style
+        const priceY = priceToY(this.canvas.height, {
+            start: this.priceRange.min,
+            end: this.priceRange.max,
+        });
+
         ctx.font = `${6 * dpr}px Arial`;
         ctx.fillStyle = "#666";
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.strokeStyle = "#ccc";
 
-        const priceStep = getPriceStep(priceRange.range);
+        const priceStep = getPriceStep(this.priceRange.range);
         const firstPriceGridLine =
-            Math.floor(priceRange.min / priceStep) * priceStep;
+            Math.floor(this.priceRange.min / priceStep) * priceStep;
 
         for (
             let price = firstPriceGridLine;
-            price <= priceRange.max + priceStep;
+            price <= this.priceRange.max + priceStep;
             price += priceStep
         ) {
-            const y = priceToY(price) / dpr;
+            const y = priceY(price);
 
             if (y >= 0 && y <= this.canvas.height / dpr) {
                 ctx.fillText(formatPrice(price), this.canvas.width - 30 * dpr, y);
             }
         }
+        ctx.fillStyle = "#333";
+        const price = formatPrice(this.currentPrice);
+        const textMetrics = ctx.measureText(price);
+        const padding = 4 * dpr;
+        const rectWidth = textMetrics.width + padding * 2;
+        const rectHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent + padding * 2;
+        ctx.fillRect(
+            this.canvas.width - 30 * dpr - rectWidth,
+            priceY(this.currentPrice) - rectHeight / 2,
+            rectWidth,
+            rectHeight
+        );
+        // Draw text
+        ctx.fillStyle = "#fff";
+        ctx.fillText(price, this.canvas.width - 30 * dpr, priceY(this.currentPrice));
     }
 
-    render() {
-        return html`<canvas
-            @mousedown=${this.handleDragStart}
-            @mousemove=${this.handleDragMove}
-            @mouseup=${this.handleDragEnd}
-            @mouseleave=${this.handleDragEnd}
-            @wheel=${this.handleWheel}
-        ></canvas>`;
+    override bindEventListeners(canvas: HTMLCanvasElement) {
+        canvas.addEventListener("mousedown", this.handleDragStart);
+        canvas.addEventListener("mousemove", this.handleDragMove);
+        canvas.addEventListener("mouseup", this.handleDragEnd);
+        canvas.addEventListener("mouseleave", this.handleDragEnd);
+        canvas.addEventListener("wheel", this.handleWheel);
+    }
+
+    protected override render(): TemplateResult<1> {
+        this.draw();
+        return super.render();
     }
 
     private handleDragStart = (e: MouseEvent) => {
@@ -129,71 +145,4 @@ export class PriceAxis extends LitElement implements Drawable {
         this.isDragging = false;
     };
 
-    firstUpdated() {
-        console.log("First updated called");
-        requestAnimationFrame(() => {
-            this.canvas = this.renderRoot.querySelector("canvas");
-            if (!this.canvas) {
-                console.error("No canvas found in renderRoot");
-                return;
-            }
-
-            this.ctx = this.canvas.getContext("2d");
-            if (!this.ctx) {
-                console.error("Failed to get 2d context");
-                return;
-            }
-
-            // Set up the canvas with proper DPR scaling
-            const rect = this.getBoundingClientRect();
-            const dpr = window.devicePixelRatio ?? 1;
-
-            console.log("Setting up canvas with:", {
-                rect,
-                dpr,
-                width: rect.width * dpr,
-                height: rect.height * dpr,
-            });
-
-            this.canvas.width = rect.width * dpr;
-            this.canvas.height = rect.height * dpr;
-            this.canvas.style.width = `${rect.width}px`;
-            this.canvas.style.height = `${rect.height}px`;
-
-            if (this.ctx) {
-                this.ctx.scale(dpr, dpr);
-            }
-        });
-    }
-
-    public resize(width: number, height: number) {
-        if (width === 0 || height === 0) {
-            console.warn("Invalid dimensions received:", width, height);
-            return;
-        }
-        if (!this.canvas || !this.ctx) {
-            console.warn("Canvas or context not found");
-            return;
-        }
-        const dpr = window.devicePixelRatio ?? 1;
-
-        // Set the canvas buffer size (actual pixels)
-        this.canvas.width = width * dpr;
-        this.canvas.height = height * dpr;
-
-        // Set the canvas display size (CSS pixels)
-        this.canvas.style.width = `${width}px`;
-        this.canvas.style.height = `${height}px`;
-
-        // Reset any previous transforms and apply DPR scaling once
-        this.ctx.resetTransform();
-        this.ctx.scale(dpr, dpr);
-    }
-
-}
-
-declare global {
-    interface HTMLElementTagNameMap {
-        "price-axis": PriceAxis;
-    }
 }

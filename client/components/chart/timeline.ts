@@ -1,73 +1,50 @@
-import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { Drawable, DrawingContext } from "./drawing-strategy";
+import { TemplateResult } from "lit";
+import { customElement } from "lit/decorators.js";
+import { CanvasBase } from "./canvas-base";
+import { formatTime, getGridInterval, timeToX } from "../../util/chart-util";
+import { observe, xin } from "xinjs";
+import { TimeRange } from "../../candle-repository";
+import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 
-interface TimelineOptions {
-  candleWidth: number;
-  candleGap: number;
-}
+const TIMELINE_START_POS = 50; // pixels from the left
 
 @customElement("chart-timeline")
-export class Timeline extends LitElement implements Drawable {
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
+export class Timeline extends CanvasBase {
   private isDragging = false;
   private lastX = 0;
+  private timeRange: TimeRange = { start: 0, end: 0 };
 
-  @property({ type: Object })
-  options: TimelineOptions = {
-    candleWidth: 5,
-    candleGap: 1,
-  };
+  override getId(): string {
+    return "chart-timeline";
+  }
 
-  @property({ type: Object })
-  padding = { top: 5, right: 50, bottom: 30, left: 50 };
-
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      height: 50px;
-      position: relative;
-    }
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  `;
+  override useResizeObserver(): boolean {
+    return true;
+  }
 
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener(
-      "draw-chart",
-      this.handleDrawChart as EventListener
-    );
-    // window.addEventListener("resize", this.handleResize.bind(this));
+
+    observe("state.timeRange", (path) => {
+      this.timeRange = xin[path] as TimeRange;
+      this.draw();
+    });
   }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener(
-      "draw-chart",
-      this.handleDrawChart as EventListener
-    );
-    // window.removeEventListener("resize", this.handleResize.bind(this));
-  }
+  draw() {
+    if (!this.canvas || !this.ctx) {
+      console.warn("Timeline: canvas or ctx not found");
+      return;
+    }
+    console.log("Timeline: draw");
 
-  private handleDrawChart = (event: CustomEvent<DrawingContext>) => {
-    this.draw(event.detail);
-  };
+    // const stateTimeRange = xin["state.timeRange"] as TimeRange;
+    const viewportStartTimestamp = this.timeRange.start;
+    const viewportEndTimestamp = this.timeRange.end;
+    const canvasWidth = xin["state.canvasWidth"] as number;
 
-  draw(context: DrawingContext) {
-    if (!this.canvas || !this.ctx) return;
-
-    const {
-      viewportStartTimestamp,
-      viewportEndTimestamp,
-      data,
-      axisMappings: { timeToX },
-    } = context;
+    const data = xin["state.priceHistory"] as PriceHistory;
+    console.log("Timeline: draw", { viewportStartTimestamp, viewportEndTimestamp, data });
 
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
@@ -80,31 +57,7 @@ export class Timeline extends LitElement implements Drawable {
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
 
-    // Calculate label interval based on granularity
-    let labelInterval: number;
-    let formatFn: (date: Date) => string;
-
-    if (data.getGranularity() === "ONE_MINUTE") {
-      // For 1-minute data, show labels every 10 minutes
-      labelInterval = 10 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } else if (data.getGranularity() === "ONE_HOUR") {
-      // For 1-hour data, show labels every 6 hours
-      labelInterval = 6 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } else if (data.getGranularity() >= "ONE_DAY") {
-      // For daily data, show date
-      labelInterval = 24 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleDateString([], { month: "short", day: "numeric" });
-    } else {
-      // For other intervals, show time
-      labelInterval = 12 * 60 * 60 * 1000;
-      formatFn = (date: Date) =>
-        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
+    const labelInterval = getGridInterval(data);
 
     // Find the first label timestamp before viewport start
     const firstLabelTimestamp =
@@ -116,67 +69,41 @@ export class Timeline extends LitElement implements Drawable {
       timestamp <= viewportEndTimestamp + labelInterval;
       timestamp += labelInterval
     ) {
-      const x = timeToX(timestamp) / dpr;
+
+      const x = timeToX(canvasWidth, { start: viewportStartTimestamp, end: viewportEndTimestamp })(timestamp) + TIMELINE_START_POS;
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
         // Draw tick mark
         ctx.beginPath();
         ctx.strokeStyle = "#ccc";
-        ctx.moveTo(x, 2 * dpr);
-        ctx.lineTo(x, 7 * dpr);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 5 * dpr);
         ctx.stroke();
 
-        // Draw label
+
+        // console log all important values related to drawing
+        console.log("Timeline: draw", { x, timestamp, labelInterval, firstLabelTimestamp, viewportStartTimestamp, viewportEndTimestamp, canvasWidth });
+
+        // Draw label near top
         const date = new Date(timestamp);
-        const label = formatFn(date);
-        ctx.fillText(label, x, 20 * dpr);
+        const label = formatTime(date);
+        ctx.fillText(label, x, 12 * dpr);
       }
     }
   }
 
-  render() {
-    return html` <canvas
-      @mousedown=${this.handleDragStart}
-      @mousemove=${this.handleDragMove}
-      @mouseup=${this.handleDragEnd}
-      @mouseleave=${this.handleDragEnd}
-      @wheel=${this.handleWheel}
-    ></canvas>`;
+  bindEventListeners(canvas: HTMLCanvasElement) {
+    canvas.addEventListener("mousedown", this.handleDragStart);
+    canvas.addEventListener("mousemove", this.handleDragMove);
+    canvas.addEventListener("mouseup", this.handleDragEnd);
+    canvas.addEventListener("mouseleave", this.handleDragEnd);
+    canvas.addEventListener("wheel", this.handleWheel);
   }
 
-  firstUpdated() {
-    requestAnimationFrame(() => {
-      this.canvas = this.renderRoot.querySelector("canvas");
-      this.ctx = this.canvas?.getContext("2d") || null;
-      this.setupCanvas();
-      // window.addEventListener("resize", this.handleResize.bind(this));
-    });
-  }
-
-  private setupCanvas() {
-    if (!this.canvas) return;
-
-    const rect = this.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      console.warn("Timeline: Invalid dimensions", rect);
-      requestAnimationFrame(() => this.setupCanvas());
-      return;
-    }
-
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
-    this.canvas.style.width = `${rect.width}px`;
-    this.canvas.style.height = `${rect.height}px`;
-
-    if (this.ctx) {
-      this.ctx.scale(dpr, dpr);
-    }
-  }
-
-  public resize(width: number, height: number) {
-    this.setupCanvas();
+  protected override render(): TemplateResult<1> {
+    this.draw();
+    return super.render();
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -216,4 +143,7 @@ export class Timeline extends LitElement implements Drawable {
   private handleDragEnd = () => {
     this.isDragging = false;
   };
+
 }
+
+

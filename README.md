@@ -20,6 +20,8 @@ bun run dev
 
 ## TODO
 
-- Fix timeline 
-- Add zooming
-- Live update for price (last candle)
+- [ ] Live candle to a separate canvas?
+- [ ] Price axis wheel should zoom
+- [ ] Add textual live price info
+- [ ] Add crosshairs
+- [ ] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead

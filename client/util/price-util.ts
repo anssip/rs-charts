@@ -1,5 +1,6 @@
 
 export function formatPrice(price: number): string {
+    if (!price) return "0";
     if (price > 1000) {
         return price.toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
