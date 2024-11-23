@@ -23,5 +23,5 @@ bun run dev
 - [ ] Live candle to a separate canvas?
 - [ ] Add textual live price info
 - [ ] Add crosshairs
-- [ ] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead
+- [x] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead
 - [ ] Add 15 min granularity
