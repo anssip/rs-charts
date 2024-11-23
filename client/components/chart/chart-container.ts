@@ -5,6 +5,7 @@ import "./chart";
 import "./timeline";
 import "./price-axis";
 import "./live-decorators";
+import "./crosshairs";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
@@ -181,6 +182,7 @@ export class ChartContainer extends LitElement {
         >
           <candlestick-chart></candlestick-chart>
           <live-decorators></live-decorators>
+          <chart-crosshairs></chart-crosshairs>
         </div>
         <div class="timeline">
           <chart-timeline
@@ -502,6 +504,30 @@ export class ChartContainer extends LitElement {
       background: white;
       overflow: hidden;
       position: relative;
+    }
+
+    candlestick-chart,
+    live-decorators,
+    chart-crosshairs {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Layer ordering */
+    candlestick-chart {
+      z-index: 1;
+    }
+
+    live-decorators {
+      z-index: 2;
+    }
+
+    chart-crosshairs {
+      z-index: 3;
     }
 
     candlestick-chart {
