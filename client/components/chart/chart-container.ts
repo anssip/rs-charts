@@ -440,14 +440,14 @@ export class ChartContainer extends LitElement {
   }
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
-    const { deltaY, clientY, rect, isTrackpad } = event.detail;
-    const zoomCenter = 1 - (clientY - rect.top) / rect.height;
+    const { deltaY, isTrackpad } = event.detail;
+    const zoomCenter = 1; // Always zoom from top
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
     (this._state.priceRange as PriceRangeImpl).adjust(
       deltaY * zoomMultiplier,
       zoomCenter
     );
-    touch('state.priceRange'); // trigger observers as adjust() call does not cause it to happen
+    touch('state.priceRange');
     this.draw();
   };
 
@@ -458,7 +458,7 @@ export class ChartContainer extends LitElement {
       high: liveCandle.high,
       low: liveCandle.low,
       close: liveCandle.close,
-      granularity: "ONE_HOUR", // TODO: Fixme once we have granularity selection
+      granularity: "ONE_HOUR",
       live: true,
     });
     this.draw();

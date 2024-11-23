@@ -1,6 +1,4 @@
-import { TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
-import { Drawable } from "./drawing-strategy";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
 import { observe, xin } from "xinjs";
@@ -10,31 +8,34 @@ import { PriceRangeImpl } from "../../util/price-range";
 import { priceToY } from "../../util/chart-util";
 
 @customElement("price-axis")
-export class PriceAxis extends CanvasBase implements Drawable {
+export class PriceAxis extends CanvasBase {
     private currentPrice: number = 0;
     private priceRange: PriceRange = new PriceRangeImpl(0, 0);
+    private isDragging = false;
+    private lastY = 0;
 
     override getId(): string {
         return "price-axis";
     }
 
-    private isDragging = false;
-    private lastY = 0;
+    firstUpdated() {
+        super.firstUpdated();
 
-    connectedCallback() {
-        super.connectedCallback();
+        this.priceRange = xin["state.priceRange"] as PriceRange;
+        console.log("PriceAxis: priceRange", this.priceRange);
+
         observe("state.liveCandle", (path) => {
             console.log(
                 "PriceAxis: liveCandle.close changed",
                 (xin[path] as LiveCandle).close
             );
             this.currentPrice = (xin[path] as LiveCandle).close;
-            this.requestUpdate();
+            this.draw();
         });
         observe("state.priceRange", (path) => {
-            console.log("LiveDecorators: priceRange changed", xin[path]);
+            console.log("PriceAxis: priceRange changed", xin[path]);
             this.priceRange = xin[path] as PriceRange;
-            this.requestUpdate();
+            this.draw();
         });
 
     }
@@ -43,9 +44,13 @@ export class PriceAxis extends CanvasBase implements Drawable {
         return true;
     }
 
-    draw(): void {
+    override draw(): void {
         if (!this.canvas || !this.ctx) return;
-        console.log("PriceAxis: draw");
+        console.log("PriceAxis: priceRange", {
+            width: this.canvas.width,
+            height: this.canvas.height,
+            priceRange: { min: this.priceRange.min, max: this.priceRange.max }
+        });
 
         const dpr = window.devicePixelRatio ?? 1;
         const ctx = this.ctx;
@@ -103,11 +108,6 @@ export class PriceAxis extends CanvasBase implements Drawable {
         canvas.addEventListener("wheel", this.handleWheel);
     }
 
-    protected override render(): TemplateResult<1> {
-        this.draw();
-        return super.render();
-    }
-
     private handleDragStart = (e: MouseEvent) => {
         this.isDragging = true;
         this.lastY = e.clientY;
@@ -116,23 +116,21 @@ export class PriceAxis extends CanvasBase implements Drawable {
     private handleDragMove = (e: MouseEvent) => {
         if (!this.isDragging) return;
         const deltaY = e.clientY - this.lastY;
-        this.dispatchZoom(deltaY, e.clientY, false);
+        this.dispatchZoom(-deltaY, false);
         this.lastY = e.clientY;
     };
 
     private handleWheel = (e: WheelEvent) => {
         e.preventDefault();
         const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
-        this.dispatchZoom(e.deltaY, e.clientY, isTrackpad);
+        this.dispatchZoom(e.deltaY, isTrackpad);
     };
 
-    private dispatchZoom(deltaY: number, clientY: number, isTrackpad: boolean) {
+    private dispatchZoom(deltaY: number, isTrackpad: boolean) {
         this.dispatchEvent(
             new CustomEvent("price-axis-zoom", {
                 detail: {
                     deltaY,
-                    clientY,
-                    rect: this.getBoundingClientRect(),
                     isTrackpad,
                 },
                 bubbles: true,

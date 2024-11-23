@@ -1,4 +1,4 @@
-import { LitElement, html } from "lit";
+import { LitElement, PropertyValues, html } from "lit";
 
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
@@ -53,6 +53,7 @@ export abstract class CanvasBase extends LitElement {
       }
 
       bindListeners(this.canvas);
+      this.draw();
 
       if (this.useResizeObserver()) {
         this.resizeObserver = new ResizeObserver((entries) => {

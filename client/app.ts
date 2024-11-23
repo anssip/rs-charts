@@ -10,6 +10,7 @@ import {
   SimplePriceHistory,
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
+import { touch } from "xinjs";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -99,6 +100,7 @@ export class App {
         viewportStartTimestamp,
         viewportEndTimestamp
       );
+      console.log("App: priceRange", this.state.priceRange);
       if (this.chartContainer) {
         this.chartContainer.state = this.state;
       }

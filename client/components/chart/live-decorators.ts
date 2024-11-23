@@ -1,4 +1,4 @@
-import { customElement, property } from "lit/decorators.js";
+import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { css } from "lit";
 import { observe, xin } from "xinjs";
@@ -16,7 +16,6 @@ export class LiveDecorators extends CanvasBase {
     super.firstUpdated();
 
     this.priceRange = xin["state.priceRange"] as PriceRange;
-    console.log("LiveDecorators: priceRange", this.priceRange);
     // observe liveCandle.close from app state
     observe("state.liveCandle", (path) => {
       console.log(
@@ -71,11 +70,6 @@ export class LiveDecorators extends CanvasBase {
       currentPrice: this.currentPrice,
       closeY: priceY(this.currentPrice),
     });
-  }
-
-  override resize(width: number, height: number) {
-    super.resize(width, height);
-    this.draw();
   }
 
   static styles = css`
