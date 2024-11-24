@@ -18,6 +18,7 @@ import { touch } from "xinjs";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
 export const CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
+export const TIMELINE_HEIGHT = 40;
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -90,14 +91,26 @@ export class ChartContainer extends LitElement {
     }
 
     const chartElement = this.renderRoot.querySelector("candlestick-chart");
-    console.log("chartElement", chartElement)
+    console.log("chartElement", chartElement);
     this.chart = chartElement as CandlestickChart;
 
     if (chartElement) {
-      chartElement.addEventListener("mousedown", this.handleDragStart as EventListener);
-      chartElement.addEventListener("mousemove", this.handleDragMove as EventListener);
-      chartElement.addEventListener("mouseup", this.handleDragEnd as EventListener);
-      chartElement.addEventListener("mouseleave", this.handleDragEnd as EventListener);
+      chartElement.addEventListener(
+        "mousedown",
+        this.handleDragStart as EventListener
+      );
+      chartElement.addEventListener(
+        "mousemove",
+        this.handleDragMove as EventListener
+      );
+      chartElement.addEventListener(
+        "mouseup",
+        this.handleDragEnd as EventListener
+      );
+      chartElement.addEventListener(
+        "mouseleave",
+        this.handleDragEnd as EventListener
+      );
       chartElement.addEventListener("wheel", this.handleWheel as EventListener);
     }
 
@@ -212,12 +225,16 @@ export class ChartContainer extends LitElement {
     this.chart.resize(width, height);
 
     const visibleCandles = this.calculateVisibleCandles();
-    const newStartTimestamp = this._state.timeRange.end - visibleCandles * CANDLE_INTERVAL;
+    const newStartTimestamp =
+      this._state.timeRange.end - visibleCandles * CANDLE_INTERVAL;
 
-    if (newStartTimestamp > 0 && newStartTimestamp < this._state.timeRange.end) {
+    if (
+      newStartTimestamp > 0 &&
+      newStartTimestamp < this._state.timeRange.end
+    ) {
       this._state.timeRange = {
         start: newStartTimestamp,
-        end: this._state.timeRange.end
+        end: this._state.timeRange.end,
       };
       this.draw();
     }
@@ -258,7 +275,8 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return;
 
     const timeRange = this._state.timeRange.end - this._state.timeRange.start;
-    const viewportWidth = this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
+    const viewportWidth =
+      this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
     const timePerPixel = timeRange / viewportWidth;
 
     const adjustedDelta = isTrackpad ? -deltaX : deltaX;
@@ -297,7 +315,7 @@ export class ChartContainer extends LitElement {
     if (priceShift === 0) return;
 
     this._state.priceRange.shift(priceShift);
-    touch('state.priceRange'); // trigger observers as shift() call does not cause it to happen
+    touch("state.priceRange"); // trigger observers as shift() call does not cause it to happen
 
     this.draw();
   }
@@ -308,17 +326,17 @@ export class ChartContainer extends LitElement {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-          start:
-            this._state.priceHistory.startTimestamp -
-            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-          end: this._state.priceHistory.startTimestamp,
-        }
+            start:
+              this._state.priceHistory.startTimestamp -
+              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+            end: this._state.priceHistory.startTimestamp,
+          }
         : {
-          start: this._state.priceHistory.endTimestamp,
-          end:
-            this._state.priceHistory.endTimestamp +
-            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-        };
+            start: this._state.priceHistory.endTimestamp,
+            end:
+              this._state.priceHistory.endTimestamp +
+              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+          };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -344,7 +362,9 @@ export class ChartContainer extends LitElement {
     const availableWidth =
       this.chart.canvas!.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
-    return Math.floor(availableWidth / (totalCandleWidth * window.devicePixelRatio));
+    return Math.floor(
+      availableWidth / (totalCandleWidth * window.devicePixelRatio)
+    );
   }
 
   private handleTimelineZoom = (event: CustomEvent) => {
@@ -353,19 +373,24 @@ export class ChartContainer extends LitElement {
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
     const timeRange = this._state.timeRange.end - this._state.timeRange.start;
     const zoomCenter = (clientX - rect.left) / rect.width;
-    const timeAdjustment = timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
-    const newTimeRange = Math.max(timeRange - timeAdjustment, CANDLE_INTERVAL * 10);
+    const timeAdjustment =
+      timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
+    const newTimeRange = Math.max(
+      timeRange - timeAdjustment,
+      CANDLE_INTERVAL * 10
+    );
     const rangeDifference = timeRange - newTimeRange;
 
     const newStart = this._state.timeRange.start + rangeDifference * zoomCenter;
-    const newEnd = this._state.timeRange.end - rangeDifference * (1 - zoomCenter);
+    const newEnd =
+      this._state.timeRange.end - rangeDifference * (1 - zoomCenter);
 
     if (newEnd - newStart < CANDLE_INTERVAL * 10) {
       const center = (newStart + newEnd) / 2;
       const minHalfRange = CANDLE_INTERVAL * 5;
       this._state.timeRange = {
         start: center - minHalfRange,
-        end: center + minHalfRange
+        end: center + minHalfRange,
       };
     } else {
       this._state.timeRange = { start: newStart, end: newEnd };
@@ -376,8 +401,10 @@ export class ChartContainer extends LitElement {
     // Check if we need more data
     const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
     const needMoreData =
-      this._state.timeRange.start < this._state.priceHistory.startTimestamp + bufferTimeRange ||
-      this._state.timeRange.end > this._state.priceHistory.endTimestamp - bufferTimeRange;
+      this._state.timeRange.start <
+        this._state.priceHistory.startTimestamp + bufferTimeRange ||
+      this._state.timeRange.end >
+        this._state.priceHistory.endTimestamp - bufferTimeRange;
 
     if (needMoreData) {
       this.dispatchRefetch(deltaX > 0 ? "backward" : "forward");
@@ -405,10 +432,11 @@ export class ChartContainer extends LitElement {
     const idealGapWidth = (availableWidth / numCandles) * 0.1;
 
     // Clamp the values between min and max
-    const candleWidth = Math.max(
-      this.options.minCandleWidth,
-      Math.min(this.options.maxCandleWidth, idealCandleWidth)
-    ) / (window.devicePixelRatio ?? 1);
+    const candleWidth =
+      Math.max(
+        this.options.minCandleWidth,
+        Math.min(this.options.maxCandleWidth, idealCandleWidth)
+      ) / (window.devicePixelRatio ?? 1);
     const candleGap = Math.max(1, idealGapWidth);
 
     return {
@@ -426,7 +454,7 @@ export class ChartContainer extends LitElement {
       deltaY * zoomMultiplier,
       zoomCenter
     );
-    touch('state.priceRange');
+    touch("state.priceRange");
     this.draw();
   };
 
@@ -480,7 +508,7 @@ export class ChartContainer extends LitElement {
     .chart {
       position: relative;
       width: calc(100% - 50px);
-      height: calc(100% - 80px);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
     }
 
@@ -495,7 +523,7 @@ export class ChartContainer extends LitElement {
       right: 0;
       top: 0;
       width: 50px;
-      height: calc(100% - 80px);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
     }
 
     chart-timeline {
@@ -508,7 +536,7 @@ export class ChartContainer extends LitElement {
       bottom: 0;
       left: 0px;
       width: calc(100% - 50px);
-      height: 80px;
+      height: ${TIMELINE_HEIGHT}px;
       pointer-events: auto;
     }
 
@@ -517,7 +545,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - 50px);
-      height: calc(100% - 80px);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
       cursor: crosshair;
@@ -533,7 +561,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - 50px);
-      height: calc(100% - 80px);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: none;
       z-index: 6;
     }
@@ -546,7 +574,6 @@ export class ChartContainer extends LitElement {
       height: 100%;
       z-index: 5;
       pointer-events: none;
-      
     }
 
     chart-crosshairs > * {
@@ -558,6 +585,5 @@ export class ChartContainer extends LitElement {
       width: 100%;
       height: 100%;
     }
-
   `;
 }
