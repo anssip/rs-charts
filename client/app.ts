@@ -10,7 +10,6 @@ import {
   SimplePriceHistory,
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
-import { touch } from "xinjs";
 
 export class App {
   private chartContainer: ChartContainer | null = null;

@@ -5,7 +5,7 @@ import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
 import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 
-const TIMELINE_START_POS = 50; // pixels from the left
+const TIMELINE_START_POS = 0; // pixels from the left
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {

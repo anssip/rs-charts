@@ -89,7 +89,17 @@ export class ChartContainer extends LitElement {
       this.resizeObserver.observe(chartContainer);
     }
 
+    const chartArea = this.renderRoot.querySelector(".chart-area");
     this.chart = this.renderRoot.querySelector("candlestick-chart");
+
+    if (chartArea && this.chart) {
+      chartArea.addEventListener("mousedown", this.handleDragStart as EventListener);
+      chartArea.addEventListener("mousemove", this.handleDragMove as EventListener);
+      chartArea.addEventListener("mouseup", this.handleDragEnd as EventListener);
+      chartArea.addEventListener("mouseleave", this.handleDragEnd as EventListener);
+      chartArea.addEventListener("wheel", this.handleWheel as EventListener);
+    }
+
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
       this.chart.addEventListener("chart-ready", (e: Event) => {
@@ -168,27 +178,22 @@ export class ChartContainer extends LitElement {
     return html`
       <div class="container">
         <div class="toolbar-top"></div>
-        <div class="toolbar-left"></div>
-        <div class="toolbar-right">
-          <price-axis></price-axis>
-        </div>
-        <div
-          class="chart"
-          @mousedown=${this.handleDragStart}
-          @mousemove=${this.handleDragMove}
-          @mouseup=${this.handleDragEnd}
-          @mouseleave=${this.handleDragEnd}
-          @wheel=${this.handleWheel}
-        >
-          <candlestick-chart></candlestick-chart>
+        <div class="chart-area">
+          <div class="chart">
+            <candlestick-chart></candlestick-chart>
+          </div>
+
           <live-decorators></live-decorators>
           <chart-crosshairs></chart-crosshairs>
-        </div>
-        <div class="timeline">
-          <chart-timeline
-            .options=${this.options}
-            .padding=${this.padding}
-          ></chart-timeline>
+          <div class="price-axis-container">
+            <price-axis></price-axis>
+          </div>
+          <div class="timeline-container">
+            <chart-timeline
+              .options=${this.options}
+              .padding=${this.padding}
+            ></chart-timeline>
+          </div>
         </div>
       </div>
     `;
@@ -450,10 +455,9 @@ export class ChartContainer extends LitElement {
       height: 100%;
       grid-template-areas:
         "top-tb"
-        "chart"
-        "timeline";
+        "chart";
       grid-template-columns: 1fr;
-      grid-template-rows: 40px 1fr 80px;
+      grid-template-rows: 40px 1fr;
       gap: 1px;
       background-color: #f5f5f5;
       position: relative;
@@ -464,62 +468,71 @@ export class ChartContainer extends LitElement {
       background: white;
     }
 
-    .toolbar-left {
-      position: absolute;
-      left: 0;
-      top: 40px; /* Height of top toolbar */
-      width: 50px;
-      height: calc(100% - 120px); /* Full height minus top toolbar and timeline */
+    .chart-area {
+      grid-area: chart;
+      position: relative;
       background: white;
-      z-index: 1;
-    }
-
-    .toolbar-right {
-      position: absolute;
-      right: 0;
-      top: 40px; /* Height of top toolbar */
-      width: 50px;
-      height: calc(100% - 120px); /* Full height minus top toolbar and timeline */
-      background: white;
-      z-index: 1;
+      overflow: hidden;
+      pointer-events: auto;
     }
 
     .chart {
-      grid-area: chart;
-      background: white;
-      overflow: hidden;
       position: relative;
+      width: 100%;
       height: 100%;
-      margin: 0 50px; /* Make space for toolbars */
+      pointer-events: auto;
     }
 
-    live-decorators {
+    .price-axis-container,
+    .timeline-container {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 4;
+    }
+
+    .price-axis-container {
+      right: 0;
+      top: 0;
+      width: 50px;
+      height: calc(100% - 80px);
+    }
+
+    chart-timeline {
       display: block;
       width: 100%;
       height: 100%;
+      pointer-events: auto;
+    }
+    .timeline-container {
+      bottom: 0;
+      left: 0;
+      width: calc(100% - 50px);
+      height: 80px;
+      pointer-events: auto;
     }
 
-    .timeline {
-      grid-area: timeline;
-      background: white;
-      overflow: hidden;
-      position: relative;
-    }
-
-    candlestick-chart,
-    live-decorators,
-    chart-crosshairs {
-      display: block;
+    candlestick-chart {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      pointer-events: auto;
+      z-index: 1;
+      cursor: grab;
     }
 
-    /* Layer ordering */
-    candlestick-chart {
-      z-index: 1;
+    candlestick-chart:active {
+      cursor: grabbing;
+    }
+
+    live-decorators {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
     }
 
     live-decorators {
@@ -527,19 +540,17 @@ export class ChartContainer extends LitElement {
     }
 
     chart-crosshairs {
-      z-index: 3;
-    }
-
-    candlestick-chart {
       position: absolute;
       top: 0;
       left: 0;
-    }
-
-    chart-timeline {
-      display: block;
       width: 100%;
       height: 100%;
+      z-index: 5;
+      pointer-events: all;
+    }
+
+    chart-crosshairs > * {
+      pointer-events: all;
     }
 
     price-axis {
