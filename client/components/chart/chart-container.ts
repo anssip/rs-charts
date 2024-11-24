@@ -89,15 +89,16 @@ export class ChartContainer extends LitElement {
       this.resizeObserver.observe(chartContainer);
     }
 
-    const chartArea = this.renderRoot.querySelector(".chart-area");
-    this.chart = this.renderRoot.querySelector("candlestick-chart");
+    const chartElement = this.renderRoot.querySelector("candlestick-chart");
+    console.log("chartElement", chartElement)
+    this.chart = chartElement as CandlestickChart;
 
-    if (chartArea && this.chart) {
-      chartArea.addEventListener("mousedown", this.handleDragStart as EventListener);
-      chartArea.addEventListener("mousemove", this.handleDragMove as EventListener);
-      chartArea.addEventListener("mouseup", this.handleDragEnd as EventListener);
-      chartArea.addEventListener("mouseleave", this.handleDragEnd as EventListener);
-      chartArea.addEventListener("wheel", this.handleWheel as EventListener);
+    if (chartElement) {
+      chartElement.addEventListener("mousedown", this.handleDragStart as EventListener);
+      chartElement.addEventListener("mousemove", this.handleDragMove as EventListener);
+      chartElement.addEventListener("mouseup", this.handleDragEnd as EventListener);
+      chartElement.addEventListener("mouseleave", this.handleDragEnd as EventListener);
+      chartElement.addEventListener("wheel", this.handleWheel as EventListener);
     }
 
     // Forward chart-ready and chart-pan events from the candlestick chart
@@ -478,8 +479,8 @@ export class ChartContainer extends LitElement {
 
     .chart {
       position: relative;
-      width: 100%;
-      height: 100%;
+      width: calc(100% - 50px);
+      height: calc(100% - 80px);
       pointer-events: auto;
     }
 
@@ -505,7 +506,7 @@ export class ChartContainer extends LitElement {
     }
     .timeline-container {
       bottom: 0;
-      left: 0;
+      left: 0px;
       width: calc(100% - 50px);
       height: 80px;
       pointer-events: auto;
@@ -515,11 +516,11 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: calc(100% - 50px);
+      height: calc(100% - 80px);
       pointer-events: auto;
       z-index: 1;
-      cursor: grab;
+      cursor: crosshair;
     }
 
     candlestick-chart:active {
@@ -527,16 +528,14 @@ export class ChartContainer extends LitElement {
     }
 
     live-decorators {
+      display: block;
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: calc(100% - 50px);
+      height: calc(100% - 80px);
       pointer-events: none;
-    }
-
-    live-decorators {
-      z-index: 2;
+      z-index: 6;
     }
 
     chart-crosshairs {
@@ -546,7 +545,8 @@ export class ChartContainer extends LitElement {
       width: 100%;
       height: 100%;
       z-index: 5;
-      pointer-events: all;
+      pointer-events: none;
+      
     }
 
     chart-crosshairs > * {
@@ -559,13 +559,5 @@ export class ChartContainer extends LitElement {
       height: 100%;
     }
 
-    live-decorators {
-      display: block;
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
   `;
 }

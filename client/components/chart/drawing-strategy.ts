@@ -71,7 +71,7 @@ export class CandlestickStrategy implements Drawable {
     }
 
     visibleCandles.forEach(([timestamp, candle]) => {
-      const x = timeToX(timestamp) / dpr - candleWidth - options.candleGap;
+      const x = timeToX(timestamp) / dpr - candleWidth / 2 - options.candleGap;
 
       // Draw wick
       ctx.beginPath();

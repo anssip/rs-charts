@@ -55,9 +55,7 @@ export class LiveDecorators extends CanvasBase {
     });
 
     // Draw the horizontal line
-    this.ctx.strokeStyle = "darkgreen";
-    // use dotted line
-    this.ctx.setLineDash([2, 2]);
+    this.ctx.strokeStyle = "darkgray";
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(0, priceY(this.currentPrice));

@@ -3,6 +3,10 @@ import { CanvasBase } from "./canvas-base";
 import { TimeRange } from "../../candle-repository";
 import { PriceRange } from "../../../server/services/price-data/price-history-model";
 import { customElement } from "lit/decorators.js";
+import { canvasYToPrice } from "../../util/chart-util";
+import { CandlestickChart } from "./chart";
+import { drawPriceLabel } from "../../util/chart-util";
+import { drawTimeLabel } from "../../util/chart-util";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
@@ -29,36 +33,37 @@ export class Crosshairs extends CanvasBase {
   private handleMouseMove = (event: MouseEvent) => {
     if (!this.canvas) return;
 
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+    const chartArea = this.parentElement;
+    const chart = chartArea?.querySelector(
+      "candlestick-chart"
+    ) as CandlestickChart;
+    const rect = chart?.getBoundingClientRect();
+    if (!rect) {
+      console.error("Crosshairs: chart not found");
+      return;
+    }
 
-    // Get mouse coordinates relative to canvas, but don't multiply by DPR here
+    const chartWidth = xin["state.canvasWidth"] as number;
+    const chartHeight = xin["state.canvasHeight"] as number;
+    console.log("Crosshairs: mouseMove", { chartWidth, chartHeight });
+
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
 
-    // Calculate price and time at cursor position
     const timeRange = xin["state.timeRange"] as TimeRange;
     const priceRange = xin["state.priceRange"] as PriceRange;
 
-    // Use logical (non-DPR) width/height for calculations
-    const logicalWidth = this.canvas.width / dpr;
-    const logicalHeight = this.canvas.height / dpr;
-
-    // Convert mouse position to price and time
     const timeSpan = timeRange.end - timeRange.start;
-    this.cursorTime = timeRange.start + (this.mouseX / logicalWidth) * timeSpan;
+    this.cursorTime = timeRange.start + (this.mouseX / chartWidth) * timeSpan;
 
-    const priceSpan = priceRange.max - priceRange.min;
-    this.cursorPrice = priceRange.max - (this.mouseY / logicalHeight) * priceSpan;
+    this.cursorPrice = canvasYToPrice(this.mouseY, chart.canvas!, priceRange);
 
     this.draw();
   };
 
   bindEventListeners(_: HTMLCanvasElement): void {
-    if (this.canvas) {
-      this.canvas.addEventListener('mousemove', this.handleMouseMove);
-      this.canvas.addEventListener('mouseleave', this.handleMouseLeave);
-    }
+    document.addEventListener("mousemove", this.handleMouseMove);
+    this.canvas?.addEventListener("mouseleave", this.handleMouseLeave);
   }
 
   private handleMouseLeave = () => {
@@ -69,52 +74,65 @@ export class Crosshairs extends CanvasBase {
 
   draw() {
     if (!this.canvas || !this.ctx || this.mouseX < 0 || this.mouseY < 0) {
-      this.ctx?.clearRect(0, 0, this.canvas?.width || 0, this.canvas?.height || 0);
+      this.ctx?.clearRect(
+        0,
+        0,
+        this.canvas?.width || 0,
+        this.canvas?.height || 0
+      );
       return;
     }
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
-    const width = this.canvas.width;
-    const height = this.canvas.height;
+    const chartWidth = xin["state.canvasWidth"] as number;
+    const chartHeight = xin["state.canvasHeight"] as number;
+    console.log("Crosshairs: draw", { chartWidth, chartHeight });
 
-    // Clear previous drawing
-    ctx.clearRect(0, 0, width, height);
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Set line style
+    const deviceMouseX = this.mouseX;
+    const deviceMouseY = this.mouseY;
+
     ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = 'black';
+    ctx.strokeStyle = "black";
     ctx.lineWidth = 1;
 
-    // Draw horizontal line
     ctx.beginPath();
-    ctx.moveTo(0, this.mouseY);
-    ctx.lineTo(width, this.mouseY);
+    ctx.moveTo(0, deviceMouseY);
+    ctx.lineTo(this.canvas.width, deviceMouseY);
     ctx.stroke();
 
-    // Draw vertical line
     ctx.beginPath();
-    ctx.moveTo(this.mouseX, 0);
-    ctx.lineTo(this.mouseX, height);
+    ctx.moveTo(deviceMouseX, 0);
+    ctx.lineTo(deviceMouseX, this.canvas.height);
     ctx.stroke();
 
-    // Reset line dash
     ctx.setLineDash([]);
 
-    // Draw price label
-    ctx.fillStyle = 'black';
-    ctx.font = '12px monospace';
-    const priceText = this.cursorPrice.toFixed(2);
-    ctx.fillText(priceText, width / dpr - ctx.measureText(priceText).width - 5, this.mouseY);
+    drawPriceLabel(
+      ctx,
+      this.cursorPrice,
+      this.canvas.width / dpr - 50, // x position from left edge
+      deviceMouseY, // y position
+      "gray", // background color
+      "white", // text color
+      50 // width
+    );
 
-    // Draw time label
-    const timeText = new Date(this.cursorTime).toLocaleTimeString();
-    ctx.fillText(timeText, this.mouseX - ctx.measureText(timeText).width, height / dpr - 5);
+    drawTimeLabel(
+      ctx,
+      this.cursorTime,
+      deviceMouseX,
+      this.canvas.height / dpr - 10 * dpr,
+      "#eee", // light gray background
+      "#000" // black text
+    );
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.canvas?.removeEventListener('mousemove', this.handleMouseMove);
-    this.canvas?.removeEventListener('mouseleave', this.handleMouseLeave);
+    document.removeEventListener("mousemove", this.handleMouseMove);
+    this.canvas?.removeEventListener("mouseleave", this.handleMouseLeave);
   }
 }

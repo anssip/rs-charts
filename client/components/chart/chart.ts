@@ -136,6 +136,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   override resize(width: number, height: number) {
     super.resize(width, height);
+
     xin["state.canvasWidth"] = width;
     xin["state.canvasHeight"] = height;
   }
@@ -265,5 +266,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
         },
       })
     );
+
   }
 }

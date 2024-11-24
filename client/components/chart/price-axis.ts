@@ -5,7 +5,7 @@ import { observe, xin } from "xinjs";
 import { LiveCandle } from "../../live-candle-subscription";
 import { PriceRange } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
-import { priceToY } from "../../util/chart-util";
+import { drawPriceLabel, priceToY } from "../../util/chart-util";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -83,21 +83,16 @@ export class PriceAxis extends CanvasBase {
                 ctx.fillText(formatPrice(price), this.canvas.width - 30 * dpr, y);
             }
         }
-        ctx.fillStyle = "#333";
-        const price = formatPrice(this.currentPrice);
-        const textMetrics = ctx.measureText(price);
-        const padding = 4 * dpr;
-        const rectWidth = textMetrics.width + padding * 2;
-        const rectHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent + padding * 2;
-        ctx.fillRect(
-            this.canvas.width - 30 * dpr - rectWidth,
-            priceY(this.currentPrice) - rectHeight / 2,
-            rectWidth,
-            rectHeight
+
+        drawPriceLabel(
+            ctx,
+            this.currentPrice,
+            0,
+            priceY(this.currentPrice),
+            "#333",
+            "#fff",
+            this.canvas.width / dpr - 2 * dpr
         );
-        // Draw text
-        ctx.fillStyle = "#fff";
-        ctx.fillText(price, this.canvas.width - 30 * dpr, priceY(this.currentPrice));
     }
 
     override bindEventListeners(canvas: HTMLCanvasElement) {
