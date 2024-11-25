@@ -20,8 +20,9 @@ bun run dev
 
 ## TODO
 
-- [ ] Live candle to a separate canvas?
-- [ ] Price axis wheel should zoom
 - [ ] Add textual live price info
-- [ ] Add crosshairs
-- [ ] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead
+- [ ] Add 15 min granularity
+- [ ] Add more price assets
+- [ ] Live candle to a separate canvas?
+- [x] Add crosshairs
+- [x] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead

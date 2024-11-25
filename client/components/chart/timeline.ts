@@ -1,4 +1,3 @@
-import { TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { formatTime, getGridInterval, timeToX } from "../../util/chart-util";
@@ -6,7 +5,7 @@ import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
 import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 
-const TIMELINE_START_POS = 50; // pixels from the left
+const TIMELINE_START_POS = 0; // pixels from the left
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {
@@ -36,9 +35,6 @@ export class Timeline extends CanvasBase {
       console.warn("Timeline: canvas or ctx not found");
       return;
     }
-    console.log("Timeline: draw");
-
-    // const stateTimeRange = xin["state.timeRange"] as TimeRange;
     const viewportStartTimestamp = this.timeRange.start;
     const viewportEndTimestamp = this.timeRange.end;
     const canvasWidth = xin["state.canvasWidth"] as number;
@@ -49,21 +45,17 @@ export class Timeline extends CanvasBase {
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
 
-    // Clear the canvas
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Set text style
     ctx.font = `${6 * dpr}px Arial`;
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
 
     const labelInterval = getGridInterval(data);
 
-    // Find the first label timestamp before viewport start
     const firstLabelTimestamp =
       Math.floor(viewportStartTimestamp / labelInterval) * labelInterval;
 
-    // Draw labels
     for (
       let timestamp = firstLabelTimestamp;
       timestamp <= viewportEndTimestamp + labelInterval;
@@ -81,10 +73,6 @@ export class Timeline extends CanvasBase {
         ctx.lineTo(x, 5 * dpr);
         ctx.stroke();
 
-
-        // console log all important values related to drawing
-        console.log("Timeline: draw", { x, timestamp, labelInterval, firstLabelTimestamp, viewportStartTimestamp, viewportEndTimestamp, canvasWidth });
-
         // Draw label near top
         const date = new Date(timestamp);
         const label = formatTime(date);
@@ -99,11 +87,6 @@ export class Timeline extends CanvasBase {
     canvas.addEventListener("mouseup", this.handleDragEnd);
     canvas.addEventListener("mouseleave", this.handleDragEnd);
     canvas.addEventListener("wheel", this.handleWheel);
-  }
-
-  protected override render(): TemplateResult<1> {
-    this.draw();
-    return super.render();
   }
 
   private handleDragStart = (e: MouseEvent) => {

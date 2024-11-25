@@ -1,4 +1,4 @@
-import { LitElement, html } from "lit";
+import { LitElement, PropertyValues, html } from "lit";
 
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
@@ -53,6 +53,7 @@ export abstract class CanvasBase extends LitElement {
       }
 
       bindListeners(this.canvas);
+      this.draw();
 
       if (this.useResizeObserver()) {
         this.resizeObserver = new ResizeObserver((entries) => {
@@ -88,12 +89,10 @@ export abstract class CanvasBase extends LitElement {
     }
     const dpr = window.devicePixelRatio ?? 1;
 
-    // Set the canvas display size (CSS pixels)
     this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
-
-    // Set the canvas buffer size (actual pixels)
     this.canvas.width = width * dpr;
+
+    this.canvas.style.height = `${height}px`;
     this.canvas.height = height * dpr;
 
 
