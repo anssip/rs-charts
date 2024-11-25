@@ -1,3 +1,9 @@
+:root {
+    --color-background-secondary: rgb(143, 143, 143);
+    --color-background-secondary-rgb: 143, 143, 143; /* Keep this for opacity use cases */
+    --accent-color: #56deaa;
+}
+
 html, body {
     margin: 0;
     padding: 0;

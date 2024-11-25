@@ -20,7 +20,7 @@ bun run dev
 
 ## TODO
 
-- [ ] Add textual live price info
+- [x] Add textual live price info
 - [ ] Add 15 min granularity
 - [ ] Add more price assets
 - [ ] Live candle to a separate canvas?
