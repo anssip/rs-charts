@@ -6,6 +6,7 @@ import "./timeline";
 import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
+import "./price-info";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
@@ -193,6 +194,11 @@ export class ChartContainer extends LitElement {
       <div class="container">
         <div class="toolbar-top"></div>
         <div class="chart-area">
+          <div class="price-info">
+            <price-info
+              .product=${this._state.liveCandle?.productId}
+            ></price-info>
+          </div>
           <div class="chart">
             <candlestick-chart></candlestick-chart>
           </div>
@@ -584,6 +590,18 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
+    }
+
+    .price-info {
+      position: absolute;
+      top: 12px;
+      left: 8px;
+      z-index: 6;
+      background: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      pointer-events: none;
     }
   `;
 }

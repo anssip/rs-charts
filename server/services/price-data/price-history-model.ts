@@ -10,6 +10,20 @@ export type Granularity =
   | "SIX_HOUR"
   | "ONE_DAY";
 
+export function granularityLabel(granularity: Granularity): string {
+  const labels = new Map([
+    ["ONE_MINUTE", "1m"],
+    ["FIVE_MINUTE", "5m"],
+    ["FIFTEEN_MINUTE", "15m"],
+    ["THIRTY_MINUTE", "30m"],
+    ["ONE_HOUR", "1h"],
+    ["TWO_HOUR", "2h"],
+    ["SIX_HOUR", "6h"],
+    ["ONE_DAY", "1d"],
+  ]);
+  return labels.get(granularity) ?? granularity;
+}
+
 export interface CandleData {
   granularity: Granularity;
   timestamp: number;
