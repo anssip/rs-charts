@@ -99,6 +99,7 @@ export class App {
         viewportStartTimestamp,
         viewportEndTimestamp
       );
+      console.log("App: priceRange", this.state.priceRange);
       if (this.chartContainer) {
         this.chartContainer.state = this.state;
       }
