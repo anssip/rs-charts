@@ -4,6 +4,7 @@ import {
   getAllGranularities,
   granularityLabel,
 } from "../../../../server/services/price-data/price-history-model";
+import { CoinbaseProduct } from "../../../api/firestore-client";
 
 @customElement("top-toolbar")
 export class TopToolbar extends LitElement {
@@ -12,6 +13,9 @@ export class TopToolbar extends LitElement {
 
   @property({ type: String })
   selectedProduct = "BTC-USD";
+
+  @property({ type: Array })
+  products: CoinbaseProduct[] = [];
 
   private handleTimeframeChange(e: Event) {
     const timeframe = (e.target as HTMLSelectElement).value;
@@ -39,8 +43,6 @@ export class TopToolbar extends LitElement {
   render() {
     const granularities = getAllGranularities();
 
-    // TODO: query products from our server
-
     return html`
       <div class="toolbar">
         <div class="controls">
@@ -61,8 +63,14 @@ export class TopToolbar extends LitElement {
             .value=${this.selectedProduct}
             @change=${this.handleProductChange}
           >
-            <option value="BTC-USD">BTC-USD</option>
-            <option value="ETH-USD">ETH-USD</option>
+            ${this.products.map(
+              (product) =>
+                html`<option
+                  value="${product.baseCurrency}-${product.quoteCurrency}"
+                >
+                  ${product.baseCurrency}-${product.quoteCurrency}
+                </option>`
+            )}
           </select>
         </div>
       </div>

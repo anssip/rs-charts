@@ -2,7 +2,7 @@ import { html, LitElement, css } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
 import { observe } from "xinjs";
 import { xin } from "xinjs";
-import { LiveCandle } from "../../live-candle-subscription";
+import { LiveCandle } from "../../api/live-candle-subscription";
 import { formatPrice } from "../../util/price-util";
 import {
   Granularity,

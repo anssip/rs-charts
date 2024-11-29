@@ -12,10 +12,11 @@ import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
-import { LiveCandle } from "../../live-candle-subscription";
+import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
+import { CoinbaseProduct } from "../../api/firestore-client";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -33,6 +34,9 @@ export class ChartContainer extends LitElement {
     canvasWidth: 0,
     canvasHeight: 0,
   };
+
+  @property({ type: Array })
+  products: CoinbaseProduct[] = [];
 
   private isDragging = false;
   private lastX = 0;
@@ -194,6 +198,7 @@ export class ChartContainer extends LitElement {
       <div class="container">
         <div class="toolbar-top">
           <top-toolbar
+            .products=${this.products}
             @timeframe-changed=${(e: CustomEvent) =>
               this.handleTimeframeChange(e.detail.timeframe)}
             @product-changed=${(e: CustomEvent) =>

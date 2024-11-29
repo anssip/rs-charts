@@ -3,13 +3,17 @@ import {
   ChartContainer,
 } from "./components/chart/chart-container";
 import { CandleRepository } from "./candle-repository";
-import { LiveCandleSubscription, LiveCandle } from "./live-candle-subscription";
+import {
+  LiveCandleSubscription,
+  LiveCandle,
+} from "./api/live-candle-subscription";
 import { Firestore } from "firebase/firestore";
 import {
   CandleDataByTimestamp,
   SimplePriceHistory,
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
+import { FirestoreClient } from "./api/firestore-client";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -18,7 +22,7 @@ export class App {
   private pendingFetches: Set<string> = new Set();
   private liveCandleSubscription: LiveCandleSubscription;
   private state: ChartState;
-
+  private firestoreClient: FirestoreClient;
   constructor(private firestore: Firestore, state: ChartState) {
     console.log("App: Constructor called");
     this.state = state;
@@ -28,6 +32,7 @@ export class App {
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
 
+    this.firestoreClient = new FirestoreClient(this.firestore);
     this.initialize();
   }
 
@@ -93,7 +98,10 @@ export class App {
       this.chartContainer!.endTimestamp = viewportEndTimestamp;
       this.chartContainer!.startTimestamp = viewportStartTimestamp;
 
-      this.state.timeRange = { start: viewportStartTimestamp, end: viewportEndTimestamp };
+      this.state.timeRange = {
+        start: viewportStartTimestamp,
+        end: viewportEndTimestamp,
+      };
 
       this.state.priceRange = this.state.priceHistory.getPriceRange(
         viewportStartTimestamp,
@@ -103,6 +111,13 @@ export class App {
       if (this.chartContainer) {
         this.chartContainer.state = this.state;
       }
+
+      const products = await this.firestoreClient.getProducts(
+        "coinbase",
+        "online"
+      );
+      console.log("App: products", products);
+      this.chartContainer!.products = products;
     }
   };
 
