@@ -18,6 +18,16 @@ export class TopToolbar extends LitElement {
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
+  firstUpdated() {
+    // Add keyboard listener for the whole toolbar
+    document.addEventListener("keydown", this.handleKeyPress);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleKeyPress);
+  }
+
   private handleTimeframeChange(e: Event) {
     const timeframe = (e.target as HTMLSelectElement).value;
     this.selectedTimeframe = timeframe;
@@ -40,6 +50,28 @@ export class TopToolbar extends LitElement {
       })
     );
   }
+
+  private handleKeyPress = (e: KeyboardEvent) => {
+    // Only handle if no input/textarea is focused
+    if (
+      document.activeElement instanceof HTMLInputElement ||
+      document.activeElement instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
+
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
+      return;
+    }
+
+    if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+      e.preventDefault();
+      const productSelect = this.renderRoot.querySelector("product-select");
+      if (productSelect) {
+        (productSelect as any).openWithSearch(e.key);
+      }
+    }
+  };
 
   render() {
     const granularities = getAllGranularities();

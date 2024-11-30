@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from "lit";
+import { LitElement, html, css, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CoinbaseProduct } from "../../../api/firestore-client";
 
@@ -19,17 +19,75 @@ export class ProductSelect extends LitElement {
   @state()
   private selectedTab = "Crypto";
 
+  @state()
+  private selectedIndex = -1;
+
+  updated(changedProperties: Map<string, any>) {
+    if (changedProperties.has("isOpen") && this.isOpen) {
+      // Focus the input field when modal opens
+      const input = this.renderRoot.querySelector("input");
+      if (input) {
+        input.focus();
+      }
+    }
+  }
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (!this.isOpen) return;
+
+    e.stopPropagation(); // Prevent event from bubbling up
+    const products = this.filteredProducts;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        this.selectedIndex = Math.min(
+          this.selectedIndex + 1,
+          products.length - 1
+        );
+        this.scrollToSelected();
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+        this.scrollToSelected();
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (this.selectedIndex >= 0 && this.selectedIndex < products.length) {
+          this.handleProductSelect(products[this.selectedIndex]);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        this.handleClose();
+        break;
+    }
+  };
+
+  private scrollToSelected() {
+    const selectedElement = this.renderRoot.querySelector(
+      ".result-item.selected"
+    );
+    if (selectedElement) {
+      selectedElement.scrollIntoView({ block: "nearest" });
+    }
+  }
+
   private handleOpen() {
     this.isOpen = true;
+    this.selectedIndex = 0; // Select first item when opening
   }
 
   private handleClose() {
     this.isOpen = false;
     this.searchQuery = "";
+    this.selectedIndex = -1;
   }
 
   private handleSearch(e: InputEvent) {
     this.searchQuery = (e.target as HTMLInputElement).value;
+    this.selectedIndex = 0; // Reset selection when searching
   }
 
   private handleProductSelect(product: CoinbaseProduct) {
@@ -58,6 +116,20 @@ export class ProductSelect extends LitElement {
     });
   }
 
+  private highlightMatches(text: string): string | TemplateResult {
+    if (!this.searchQuery) return text;
+
+    const searchLower = this.searchQuery.toLowerCase();
+    const textLower = text.toLowerCase();
+    const index = textLower.indexOf(searchLower);
+
+    if (index === -1) return text;
+
+    return html`${text.slice(0, index)}<span class="highlight"
+        >${text.slice(index, index + this.searchQuery.length)}</span
+      >${text.slice(index + this.searchQuery.length)}`;
+  }
+
   private get resultsContent() {
     if (this.selectedTab === "Stocks" || this.selectedTab === "Forex") {
       return html`
@@ -70,13 +142,18 @@ export class ProductSelect extends LitElement {
     return html`
       <div class="results">
         ${this.filteredProducts.map(
-          (product) => html`
+          (product, index) => html`
             <div
-              class="result-item"
+              class="result-item ${index === this.selectedIndex
+                ? "selected"
+                : ""}"
               @click=${() => this.handleProductSelect(product)}
+              @mouseover=${() => (this.selectedIndex = index)}
             >
               <div class="symbol">
-                ${product.baseCurrency}-${product.quoteCurrency}
+                ${this.highlightMatches(
+                  `${product.baseCurrency}-${product.quoteCurrency}`
+                )}
               </div>
               <div class="exchange">Coinbase</div>
             </div>
@@ -84,6 +161,12 @@ export class ProductSelect extends LitElement {
         )}
       </div>
     `;
+  }
+
+  public openWithSearch(initialChar: string) {
+    this.isOpen = true;
+    this.searchQuery = initialChar;
+    this.selectedIndex = 0;
   }
 
   render() {
@@ -96,7 +179,7 @@ export class ProductSelect extends LitElement {
         ${this.isOpen
           ? html`
               <div class="modal-backdrop">
-                <div class="modal">
+                <div class="modal" tabindex="0">
                   <div class="modal-header">
                     <h2>Symbol Search</h2>
                     <button class="close-button" @click=${this.handleClose}>
@@ -110,6 +193,7 @@ export class ProductSelect extends LitElement {
                       placeholder="Search"
                       .value=${this.searchQuery}
                       @input=${this.handleSearch}
+                      @keydown=${this.handleKeyDown}
                       autofocus
                     />
                   </div>
@@ -225,14 +309,22 @@ export class ProductSelect extends LitElement {
     .search-container {
       padding: 16px;
       border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: center;
     }
 
     .search-container input {
-      width: 100%;
-      padding: 8px;
+      width: calc(100% - 32px);
+      padding: 8px 12px;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 14px;
+    }
+
+    .search-container input:focus {
+      outline: none;
+      border-color: #2196f3;
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
     }
 
     .tabs {
@@ -294,8 +386,13 @@ export class ProductSelect extends LitElement {
       border-bottom: 1px solid #eee;
     }
 
-    .result-item:hover {
+    .result-item:hover,
+    .result-item.selected {
       background: #f5f5f5;
+    }
+
+    .result-item.selected {
+      background: #e3f2fd; /* Light blue background for selected item */
     }
 
     .symbol {
@@ -321,6 +418,11 @@ export class ProductSelect extends LitElement {
       padding: 16px;
       background: #f5f5f5;
       border-radius: 8px;
+    }
+
+    .highlight {
+      color: #4caf50;
+      font-weight: bold;
     }
   `;
 }
