@@ -1,13 +1,4 @@
-import {
-  Firestore,
-  getDocs,
-  query,
-  where,
-  collectionGroup,
-  collection,
-  getDoc,
-  doc,
-} from "firebase/firestore";
+import { Firestore, doc, getDoc } from "firebase/firestore";
 
 export type Exchange = "coinbase";
 
@@ -42,7 +33,6 @@ export class FirestoreClient {
     status: ProductStatus
   ): Promise<CoinbaseProduct[]> {
     try {
-      // Get the exchanges document which contains the products map
       const exchangesDoc = await getDoc(
         doc(this.firestore, "trading_pairs/exchanges")
       );

@@ -5,6 +5,7 @@ import {
   granularityLabel,
 } from "../../../../server/services/price-data/price-history-model";
 import { CoinbaseProduct } from "../../../api/firestore-client";
+import "./product-select";
 
 @customElement("top-toolbar")
 export class TopToolbar extends LitElement {
@@ -59,19 +60,11 @@ export class TopToolbar extends LitElement {
             )}
           </select>
 
-          <select
-            .value=${this.selectedProduct}
-            @change=${this.handleProductChange}
-          >
-            ${this.products.map(
-              (product) =>
-                html`<option
-                  value="${product.baseCurrency}-${product.quoteCurrency}"
-                >
-                  ${product.baseCurrency}-${product.quoteCurrency}
-                </option>`
-            )}
-          </select>
+          <product-select
+            .products=${this.products}
+            .selectedProduct=${this.selectedProduct}
+            @product-changed=${this.handleProductChange}
+          ></product-select>
         </div>
       </div>
     `;
