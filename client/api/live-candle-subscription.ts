@@ -23,19 +23,22 @@ export class LiveCandleSubscription {
   constructor(private firestore: Firestore) {}
 
   subscribe(productId: string, onUpdate: (candle: LiveCandle) => void): void {
-    // Unsubscribe from any existing subscription
     this.unsubscribe?.();
 
-    console.log(`Subscribing to live_candles/${productId}`); // Add this log
+    console.log(
+      `Live: Subscribing to exchanges/coinbase/products/${productId}`
+    );
 
-    // Create a reference to the live candle document
-    const docRef = doc(this.firestore, "live_candles", productId);
+    const docRef = doc(
+      this.firestore,
+      "exchanges/coinbase/products",
+      productId
+    );
 
-    // Subscribe to updates
     this._unsubscribe = onSnapshot(
       docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        console.log("Received snapshot:", snapshot.exists(), snapshot.id); // Add this log
+        console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id); // Add this log
         if (snapshot.exists()) {
           const data = snapshot.data() as LiveCandle;
           // Convert Firestore Timestamp to Date if needed
@@ -48,15 +51,17 @@ export class LiveCandleSubscription {
           };
           onUpdate(candle);
         } else {
-          console.log(`Document live_candles/${productId} does not exist`); // Add this log
+          console.log(
+            `Live: Document exchanges/coinbase/products/${productId} does not exist`
+          );
         }
       },
       (error) => {
         console.error(
-          "Error in live candle subscription:",
+          "Live: Error in live candle subscription:",
           error.code,
           error.message
-        ); // Enhanced error logging
+        );
       }
     );
   }
