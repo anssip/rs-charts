@@ -22,18 +22,12 @@ export class LiveCandleSubscription {
 
   constructor(private firestore: Firestore) {}
 
-  subscribe(productId: string, onUpdate: (candle: LiveCandle) => void): void {
+  subscribe(symbol: string, onUpdate: (candle: LiveCandle) => void): void {
     this.unsubscribe?.();
 
-    console.log(
-      `Live: Subscribing to exchanges/coinbase/products/${productId}`
-    );
+    console.log(`Live: Subscribing to exchanges/coinbase/products/${symbol}`);
 
-    const docRef = doc(
-      this.firestore,
-      "exchanges/coinbase/products",
-      productId
-    );
+    const docRef = doc(this.firestore, "exchanges/coinbase/products", symbol);
 
     this._unsubscribe = onSnapshot(
       docRef,
@@ -52,7 +46,7 @@ export class LiveCandleSubscription {
           onUpdate(candle);
         } else {
           console.log(
-            `Live: Document exchanges/coinbase/products/${productId} does not exist`
+            `Live: Document exchanges/coinbase/products/${symbol} does not exist`
           );
         }
       },

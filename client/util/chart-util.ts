@@ -23,20 +23,16 @@ export const priceToY =
     const percentage =
       (price - priceRange.start) / (priceRange.end - priceRange.start);
     const y = (1 - percentage) * availableHeight;
-    return y * dpr;
+    return y;
   };
 
-export function priceToCanvasY(
-  price: number,
-  canvas: HTMLCanvasElement,
-  priceRange: PriceRange
-): number {
-  const availableHeight = canvas.height;
-  const percentage =
-    (price - priceRange.min) / (priceRange.max - priceRange.min);
-  const y = (1 - percentage) * availableHeight;
-  return y * dpr;
-}
+export const priceToCanvasY =
+  (canvas: HTMLCanvasElement, priceRange: PriceRange) =>
+  (price: number): number =>
+    priceToY(canvas.height, {
+      start: priceRange.min,
+      end: priceRange.max,
+    })(price);
 
 export function getGridInterval(data: PriceHistory): number {
   let interval = data.granularityMs * 10; // Default every 10th candle
@@ -64,10 +60,8 @@ export function canvasYToPrice(
   priceRange: PriceRange
 ): number {
   const availableHeight = canvas.height;
-  // First remove DPR scaling
-  const logicalY = y / dpr;
   // Invert the percentage calculation
-  const percentage = 1 - logicalY / availableHeight;
+  const percentage = 1 - y / availableHeight;
   // Convert percentage to price
   return priceRange.min + percentage * (priceRange.max - priceRange.min);
 }

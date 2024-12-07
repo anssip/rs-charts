@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
   getAllGranularities,
@@ -6,6 +6,8 @@ import {
 } from "../../../../server/services/price-data/price-history-model";
 import { CoinbaseProduct } from "../../../api/firestore-client";
 import "./product-select";
+import { xin } from "xinjs";
+import { ChartState } from "../../..";
 
 @customElement("top-toolbar")
 export class TopToolbar extends LitElement {
@@ -18,9 +20,12 @@ export class TopToolbar extends LitElement {
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
+  state: ChartState = xin["state"] as ChartState;
+
   firstUpdated() {
     // Add keyboard listener for the whole toolbar
     document.addEventListener("keydown", this.handleKeyPress);
+    this.state = xin["state"] as ChartState;
   }
 
   disconnectedCallback() {
@@ -40,15 +45,9 @@ export class TopToolbar extends LitElement {
     );
   }
 
-  private handleProductChange(e: Event) {
-    const product = (e.target as HTMLSelectElement).value;
-    this.dispatchEvent(
-      new CustomEvent("product-changed", {
-        detail: { product },
-        bubbles: true,
-        composed: true,
-      })
-    );
+  private handleProductChange(e: CustomEvent) {
+    const product = e.detail.product;
+    this.state.symbol = product;
   }
 
   private handleKeyPress = (e: KeyboardEvent) => {

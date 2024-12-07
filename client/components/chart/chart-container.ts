@@ -33,6 +33,7 @@ export class ChartContainer extends LitElement {
     liveCandle: null,
     canvasWidth: 0,
     canvasHeight: 0,
+    symbol: "BTC-USD",
   };
 
   @property({ type: Array })
@@ -197,13 +198,7 @@ export class ChartContainer extends LitElement {
     return html`
       <div class="container">
         <div class="toolbar-top">
-          <top-toolbar
-            .products=${this.products}
-            @timeframe-changed=${(e: CustomEvent) =>
-              this.handleTimeframeChange(e.detail.timeframe)}
-            @product-changed=${(e: CustomEvent) =>
-              this.handleProductChange(e.detail.product)}
-          ></top-toolbar>
+          <top-toolbar .products=${this.products}></top-toolbar>
         </div>
         <div class="chart-area">
           <div class="price-info">
@@ -488,14 +483,6 @@ export class ChartContainer extends LitElement {
     });
     this.draw();
   }
-
-  private handleTimeframeChange = (timeframe: string) => {
-    console.log("ChartContainer: Timeframe changed", timeframe);
-  };
-
-  private handleProductChange = (product: string) => {
-    console.log("ChartContainer: Product changed", product);
-  };
 
   static styles = css`
     :host {

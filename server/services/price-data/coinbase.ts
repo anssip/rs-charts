@@ -20,13 +20,11 @@ export class CoinbasePriceDataService {
 
   async fetchCandles({
     symbol = "BTC-USD",
-    interval = "1h",
+    granularity = "ONE_HOUR",
     start,
     end,
   }: PriceDataOptions): Promise<CandleDataByTimestamp> {
     try {
-      const granularity = this.getGranularity(interval);
-
       console.log("Fetching candles with time range:", {
         start: start,
         end: end,
@@ -44,31 +42,6 @@ export class CoinbasePriceDataService {
     } catch (error) {
       console.error("Error fetching price data:", error);
       throw error;
-    }
-  }
-
-  private getGranularity(
-    interval: string
-  ): GetAdvTradePublicProductCandlesRequest["granularity"] {
-    switch (interval) {
-      case "1m":
-        return "ONE_MINUTE";
-      case "5m":
-        return "FIVE_MINUTE";
-      case "15m":
-        return "FIFTEEN_MINUTE";
-      case "30m":
-        return "THIRTY_MINUTE";
-      case "1h":
-        return "ONE_HOUR";
-      case "2h":
-        return "TWO_HOUR";
-      case "6h":
-        return "SIX_HOUR";
-      case "1d":
-        return "ONE_DAY";
-      default:
-        return "ONE_HOUR";
     }
   }
 

@@ -22,6 +22,7 @@ export type ChartState = {
   liveCandle: LiveCandle | null;
   canvasWidth: number;
   canvasHeight: number;
+  symbol: string;
 };
 
 const chartState: ChartState = {
@@ -31,6 +32,7 @@ const chartState: ChartState = {
   liveCandle: null,
   canvasWidth: 0,
   canvasHeight: 0,
+  symbol: "BTC-USD",
 };
 
 const { state } = xinProxy(
