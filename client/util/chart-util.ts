@@ -75,9 +75,11 @@ export function drawPriceLabel(
   textColor: string = "#fff",
   width: number = 100
 ) {
-  const dpr = window.devicePixelRatio ?? 1;
+  // const dpr = window.devicePixelRatio ?? 1;
+  ctx.font = `${10}px Arial`;
+
   const formattedPrice = formatPrice(price);
-  const padding = 6 * dpr;
+  const padding = 2 * dpr;
 
   const textMetrics = ctx.measureText(formattedPrice);
   const rectHeight =
@@ -86,13 +88,14 @@ export function drawPriceLabel(
     padding;
 
   ctx.fillStyle = backgroundColor;
-  ctx.fillRect(x, y - rectHeight / 2, width, rectHeight);
+  ctx.fillRect(x, y - (rectHeight + padding) / 2, width, rectHeight + padding);
 
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
 
   ctx.fillStyle = textColor;
-  const textX = x + width - padding / 2;
+  const textX = x + textMetrics.width + padding;
+  // const textX = x + width - padding / 2;
   ctx.fillText(formattedPrice, textX, y);
 }
 

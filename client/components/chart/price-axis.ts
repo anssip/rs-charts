@@ -79,7 +79,10 @@ export class PriceAxis extends CanvasBase {
       const y = priceY(price);
 
       if (y >= 0 && y <= this.canvas.height / dpr) {
-        ctx.fillText(formatPrice(price), this.canvas.width - 30 * dpr, y);
+        const priceText = formatPrice(price);
+        ctx.font = `${10}px Arial`;
+        const textMetrics = ctx.measureText(priceText);
+        ctx.fillText(priceText, textMetrics.width, y);
       }
     }
 
@@ -90,7 +93,7 @@ export class PriceAxis extends CanvasBase {
       priceY(this.currentPrice),
       "#333",
       "#fff",
-      this.canvas.width / dpr - 2 * dpr
+      this.canvas.width / dpr
     );
   }
 

@@ -61,13 +61,6 @@ export class LiveDecorators extends CanvasBase {
     this.ctx.moveTo(0, priceY(this.currentPrice));
     this.ctx.lineTo(width, priceY(this.currentPrice));
     this.ctx.stroke();
-
-    console.log("LiveDecorators: draw", {
-      width,
-      height,
-      currentPrice: this.currentPrice,
-      closeY: priceY(this.currentPrice),
-    });
   }
 
   static styles = css`

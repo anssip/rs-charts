@@ -5,6 +5,10 @@ import {
   DocumentSnapshot,
   DocumentData,
 } from "firebase/firestore";
+import {
+  Granularity,
+  granularityLabel,
+} from "../../server/services/price-data/price-history-model";
 
 export interface LiveCandle {
   timestamp: number;
@@ -22,12 +26,18 @@ export class LiveCandleSubscription {
 
   constructor(private firestore: Firestore) {}
 
-  subscribe(symbol: string, onUpdate: (candle: LiveCandle) => void): void {
+  subscribe(
+    symbol: string,
+    granularity: Granularity,
+    onUpdate: (candle: LiveCandle) => void
+  ): void {
     this.unsubscribe?.();
 
-    console.log(`Live: Subscribing to exchanges/coinbase/products/${symbol}`);
-
-    const docRef = doc(this.firestore, "exchanges/coinbase/products", symbol);
+    const interval = granularityLabel(granularity);
+    const docRef = doc(
+      this.firestore,
+      `exchanges/coinbase/products/${symbol}/intervals/${interval}`
+    );
 
     this._unsubscribe = onSnapshot(
       docRef,
@@ -35,7 +45,6 @@ export class LiveCandleSubscription {
         console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id); // Add this log
         if (snapshot.exists()) {
           const data = snapshot.data() as LiveCandle;
-          // Convert Firestore Timestamp to Date if needed
           const candle: LiveCandle = {
             ...data,
             lastUpdate:
@@ -46,7 +55,7 @@ export class LiveCandleSubscription {
           onUpdate(candle);
         } else {
           console.log(
-            `Live: Document exchanges/coinbase/products/${symbol} does not exist`
+            `Live: Document exchanges/coinbase/products/${symbol}/intervals/${interval} does not exist`
           );
         }
       },

@@ -204,9 +204,10 @@ export class App {
   }
 
   private startLiveCandleSubscription(symbol: string): void {
-    this.liveCandleSubscription.unsubscribe;
+    this.liveCandleSubscription.unsubscribe();
     this.liveCandleSubscription.subscribe(
       symbol,
+      "ONE_HOUR",
       async (liveCandle: LiveCandle) => {
         console.log("App: Received live candle:", liveCandle);
 
