@@ -12,7 +12,7 @@ import {
   SimplePriceHistory,
 } from "../server/services/price-data/price-history-model";
 import { TimeRange } from "./candle-repository";
-import { LiveCandle } from "./live-candle-subscription";
+import { LiveCandle } from "./api/live-candle-subscription";
 import { ChartContainer } from "./components/chart/chart-container";
 
 export type ChartState = {
@@ -22,6 +22,7 @@ export type ChartState = {
   liveCandle: LiveCandle | null;
   canvasWidth: number;
   canvasHeight: number;
+  symbol: string;
 };
 
 const chartState: ChartState = {
@@ -31,9 +32,9 @@ const chartState: ChartState = {
   liveCandle: null,
   canvasWidth: 0,
   canvasHeight: 0,
+  symbol: "BTC-USD",
 };
 
-// Initialize app state
 const { state } = xinProxy(
   {
     state: chartState,
@@ -49,14 +50,12 @@ declare global {
 
 window.app = state;
 
-// Firebase configuration
 const firebaseConfig = {
   projectId: "spotcanvas-prod",
   apiKey: "AIzaSyB6H5Fy06K_iiOjpJdU9xaR57Kia31ribM",
   authDomain: "spotcanvas-prod.firebaseapp.com",
 };
 
-// Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const firestore = getFirestore(firebaseApp);
 
@@ -72,7 +71,6 @@ const container = document.querySelector(".chart-container");
 if (container) {
   const chartContainerElement: ChartContainer = elements.chartContainer();
 
-  // Set attributes
   chartContainerElement.state = state;
 
   container.append(chartContainerElement);

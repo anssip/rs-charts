@@ -29,7 +29,7 @@ const server = serve({
 
     if (req.method === "OPTIONS") {
       return new Response(null, {
-        headers: corsHeaders,
+        headers: corsHeaders as HeadersInit,
       });
     }
 
@@ -42,7 +42,10 @@ const server = serve({
           return new Response(
             JSON.stringify({ error: "Start and end params are required" }),
             {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: {
+                ...corsHeaders,
+                "Content-Type": "application/json",
+              } as HeadersInit,
             }
           );
         }
@@ -51,25 +54,34 @@ const server = serve({
           console.log("params", params);
           const candles = await priceService.fetchCandles({
             symbol: params.get("symbol") || "BTC-USD",
-            interval: (params.get("interval") || "1h") as "1h",
+            granularity: params.get("granularity") || "ONE_HOUR",
             start: new Date(parseInt(params.get("start")!)),
             end: new Date(parseInt(params.get("end")!)),
           });
           console.log("Server: Fetched candles:", candles.size);
           return new Response(JSON.stringify(Object.fromEntries(candles)), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/json",
+            } as HeadersInit,
           });
         } catch (error) {
           return new Response(
             JSON.stringify({ error: "Failed to fetch candles" }),
             {
               status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              headers: {
+                ...corsHeaders,
+                "Content-Type": "application/json",
+              } as HeadersInit,
             }
           );
         }
       }
-      return new Response("Not Found", { status: 404, headers: corsHeaders });
+      return new Response("Not Found", {
+        status: 404,
+        headers: corsHeaders as HeadersInit,
+      });
     }
 
     if (filePath === "/") {

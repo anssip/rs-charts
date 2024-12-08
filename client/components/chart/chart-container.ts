@@ -7,14 +7,16 @@ import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
+import "./toolbar/top-toolbar";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
-import { LiveCandle } from "../../live-candle-subscription";
+import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
+import { CoinbaseProduct } from "../../api/firestore-client";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 5;
@@ -31,7 +33,11 @@ export class ChartContainer extends LitElement {
     liveCandle: null,
     canvasWidth: 0,
     canvasHeight: 0,
+    symbol: "BTC-USD",
   };
+
+  @property({ type: Array })
+  products: CoinbaseProduct[] = [];
 
   private isDragging = false;
   private lastX = 0;
@@ -189,10 +195,11 @@ export class ChartContainer extends LitElement {
   }
 
   render() {
-    console.log("ChartContainer: Rendering", this._state.liveCandle?.close);
     return html`
       <div class="container">
-        <div class="toolbar-top"></div>
+        <div class="toolbar-top">
+          <top-toolbar .products=${this.products}></top-toolbar>
+        </div>
         <div class="chart-area">
           <div class="price-info">
             <price-info

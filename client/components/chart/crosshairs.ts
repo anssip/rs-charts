@@ -44,8 +44,6 @@ export class Crosshairs extends CanvasBase {
     }
 
     const chartWidth = xin["state.canvasWidth"] as number;
-    const chartHeight = xin["state.canvasHeight"] as number;
-    console.log("Crosshairs: mouseMove", { chartWidth, chartHeight });
 
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
@@ -85,9 +83,6 @@ export class Crosshairs extends CanvasBase {
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
-    const chartWidth = xin["state.canvasWidth"] as number;
-    const chartHeight = xin["state.canvasHeight"] as number;
-    console.log("Crosshairs: draw", { chartWidth, chartHeight });
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
