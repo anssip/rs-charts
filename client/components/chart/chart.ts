@@ -215,7 +215,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     if (priceShift === 0) return;
 
     this._state.priceRange.shift(priceShift);
-    touch('state.priceRange'); // trigger observers as shift() call does not cause it to happen
+    touch("state.priceRange"); // trigger observers as shift() call does not cause it to happen
 
     this.draw();
   }
@@ -225,10 +225,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     const availableWidth =
       this.canvas!.width - this._padding.left - this._padding.right;
 
-    const totalCandleWidth = this._options.candleWidth + this._options.candleGap;
-    return Math.floor(availableWidth / (totalCandleWidth * window.devicePixelRatio));
+    const totalCandleWidth =
+      this._options.candleWidth + this._options.candleGap;
+    return Math.floor(
+      availableWidth / (totalCandleWidth * window.devicePixelRatio)
+    );
   }
-
 
   public dispatchRefetch(direction: "backward" | "forward") {
     if (!this._state) return;
@@ -237,17 +239,17 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     const timeRange: TimeRange =
       direction === "backward"
         ? {
-          start:
-            this._state.priceHistory.startTimestamp -
-            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-          end: this._state.priceHistory.startTimestamp,
-        }
+            start:
+              this._state.priceHistory.startTimestamp -
+              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+            end: this._state.priceHistory.startTimestamp,
+          }
         : {
-          start: this._state.priceHistory.endTimestamp,
-          end:
-            this._state.priceHistory.endTimestamp +
-            FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-        };
+            start: this._state.priceHistory.endTimestamp,
+            end:
+              this._state.priceHistory.endTimestamp +
+              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+          };
     console.log("Dispatching chart-pan event", {
       direction,
       timeRange,
@@ -266,6 +268,5 @@ export class CandlestickChart extends CanvasBase implements Drawable {
         },
       })
     );
-
   }
 }

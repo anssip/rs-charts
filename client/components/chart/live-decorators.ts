@@ -2,7 +2,7 @@ import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { css } from "lit";
 import { observe, xin } from "xinjs";
-import { LiveCandle } from "../../live-candle-subscription";
+import { LiveCandle } from "../../api/live-candle-subscription";
 import { PriceRange } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
 import { priceToY } from "../../util/chart-util";
@@ -61,13 +61,6 @@ export class LiveDecorators extends CanvasBase {
     this.ctx.moveTo(0, priceY(this.currentPrice));
     this.ctx.lineTo(width, priceY(this.currentPrice));
     this.ctx.stroke();
-
-    console.log("LiveDecorators: draw", {
-      width,
-      height,
-      currentPrice: this.currentPrice,
-      closeY: priceY(this.currentPrice),
-    });
   }
 
   static styles = css`

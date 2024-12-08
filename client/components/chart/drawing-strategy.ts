@@ -4,7 +4,6 @@ import {
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
-import { timeToX } from "../../util/chart-util";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -72,6 +71,9 @@ export class CandlestickStrategy implements Drawable {
 
     visibleCandles.forEach(([timestamp, candle]) => {
       const x = timeToX(timestamp) / dpr - candleWidth / 2 - options.candleGap;
+      if (candle.live) {
+        console.log("Live: Drawing live candle:", candle);
+      }
 
       // Draw wick
       ctx.beginPath();

@@ -1,6 +1,7 @@
 import {
   CandleData,
   CandleDataByTimestamp,
+  Granularity,
 } from "../server/services/price-data/price-history-model";
 
 export interface TimeRange {
@@ -8,64 +9,81 @@ export interface TimeRange {
   end: number;
 }
 
+export interface FetchCandlesOptions {
+  symbol: string;
+  direction?: "forward" | "backward";
+  granularity: Granularity;
+  timeRange: TimeRange;
+}
+
 export class CandleRepository {
   private candles: CandleDataByTimestamp = new Map();
-  private readonly API_BASE_URL: string = "http://localhost:3000";
+  private readonly API_BASE_URL: string;
   public readonly CANDLE_INTERVAL = 3600000; // 1 hour in milliseconds
-  private bufferedRange: TimeRange | null = null;
-  private pendingFetches: Set<string> = new Set(); // Track pending fetch ranges
+  private bufferedRanges: Map<string, TimeRange> = new Map();
+  private pendingFetches: Set<string> = new Set();
 
   constructor(apiBaseUrl: string) {
     this.API_BASE_URL = apiBaseUrl;
   }
 
-  async fetchCandlesForTimeRange(
-    range: TimeRange,
-    options: { direction?: "forward" | "backward" } = {}
+  async fetchCandles(
+    options: FetchCandlesOptions
   ): Promise<CandleDataByTimestamp> {
-    const rangeKey = `${range.start}-${range.end}`;
+    const { symbol, direction, granularity, timeRange } = options;
+    const rangeKey = `${symbol}-${timeRange.start}-${timeRange.end}`;
 
-    if (this.bufferedRange) {
+    const symbolBufferedRange = this.bufferedRanges.get(symbol);
+
+    if (symbolBufferedRange) {
       const isWithinBuffer =
-        range.start >= this.bufferedRange.start &&
-        range.end <= this.bufferedRange.end;
+        timeRange.start >= symbolBufferedRange.start &&
+        timeRange.end <= symbolBufferedRange.end;
 
       if (isWithinBuffer) {
         console.log(
-          "Repository: Range already buffered, returning existing data"
+          `Repository: Range already buffered for symbol ${symbol}, returning existing data`
         );
         return this.candles;
       }
     }
 
     if (this.pendingFetches.has(rangeKey)) {
-      console.log("Repository: Fetch already pending for range");
+      console.log(`Repository: Fetch already pending for range ${rangeKey}`);
       return this.candles;
     }
 
     try {
       this.pendingFetches.add(rangeKey);
 
-      // Preemptively update buffer range based on direction
-      this.bufferedRange = this.bufferedRange
-        ? options.direction === "backward"
+      const updatedBufferRange = symbolBufferedRange
+        ? direction === "backward"
           ? {
-              start: range.start,
-              end: this.bufferedRange.end,
+              start: timeRange.start,
+              end: symbolBufferedRange.end,
             }
           : {
-              start: this.bufferedRange.start,
-              end: range.end,
+              start: symbolBufferedRange.start,
+              end: timeRange.end,
             }
-        : range;
+        : timeRange;
 
-      const rangeCandles = await this.fetchRange(range);
-      console.log("Repository: Fetched range candles:", rangeCandles.size);
+      this.bufferedRanges.set(symbol, updatedBufferRange);
+
+      const rangeCandles = await this.fetchRange(
+        symbol,
+        granularity,
+        timeRange
+      );
+      console.log(
+        `Repository: Fetched range candles for ${symbol}:`,
+        rangeCandles.size
+      );
       this.candles = new Map([...this.candles, ...rangeCandles]);
-      console.log("Repository: Fetched candles:", {
+      console.log(`Repository: Fetched candles for ${symbol}:`, {
         requested: {
-          start: new Date(range.start),
-          end: new Date(range.end),
+          start: new Date(timeRange.start),
+          end: new Date(timeRange.end),
         },
         received: this.candles.size,
       });
@@ -79,7 +97,11 @@ export class CandleRepository {
     return this.candles;
   }
 
-  private async fetchRange(range: TimeRange): Promise<CandleDataByTimestamp> {
+  private async fetchRange(
+    symbol: string,
+    granularity: Granularity,
+    range: TimeRange
+  ): Promise<CandleDataByTimestamp> {
     try {
       // Validate time range
       if (range.end <= range.start) {
@@ -92,8 +114,8 @@ export class CandleRepository {
       const response = await fetch(
         `${this.API_BASE_URL}/api/candles?` +
           new URLSearchParams({
-            symbol: "BTC-USD",
-            interval: "1h",
+            symbol,
+            granularity: granularity ?? "ONE_HOUR",
             start: range.start.toString(),
             end: range.end.toString(),
           })

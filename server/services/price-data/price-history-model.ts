@@ -10,6 +10,19 @@ export type Granularity =
   | "SIX_HOUR"
   | "ONE_DAY";
 
+export function getAllGranularities(): Granularity[] {
+  return [
+    "ONE_MINUTE",
+    "FIVE_MINUTE",
+    "FIFTEEN_MINUTE",
+    "THIRTY_MINUTE",
+    "ONE_HOUR",
+    "TWO_HOUR",
+    "SIX_HOUR",
+    "ONE_DAY",
+  ];
+}
+
 export function granularityLabel(granularity: Granularity): string {
   const labels = new Map([
     ["ONE_MINUTE", "1m"],
@@ -37,7 +50,7 @@ export type CandleDataByTimestamp = Map<number, CandleData>;
 
 export interface PriceDataOptions {
   symbol: string;
-  interval: "1m" | "5m" | "15m" | "30m" | "1h" | "2h" | "6h" | "1d";
+  granularity: Granularity;
   start: Date;
   end: Date;
 }
@@ -286,23 +299,22 @@ export class SimplePriceHistory implements PriceHistory {
   }
 
   setLiveCandle(candle: CandleData): void {
+    // TODO: check if this is working properly
     if (candle.timestamp < this.endTimestamp) {
+      console.log("Live: Ignoring old candle:", candle);
       // TODO: ignore if old
       return;
     }
 
     const existingCandle = this.getCandle(candle.timestamp);
-    console.log("Existing candle:", existingCandle);
-    console.log("New live candle:", candle);
-
     if (existingCandle) {
-      if (existingCandle.timestamp !== candle.timestamp) {
-        console.log("timestamps", existingCandle.timestamp, candle.timestamp);
-        console.error(
-          "Existing candle timestamp does not match new live candle timestamp"
-        );
-        return;
-      }
+      console.log(
+        "Live: Existing candle:",
+        new Date(existingCandle?.timestamp)
+      );
+      console.log("Live: New live candle:", new Date(candle.timestamp));
+    }
+    if (existingCandle) {
       // For an existing candle:
       // - Keep the original open price
       // - Update high/low if the new price exceeds current bounds
@@ -331,6 +343,6 @@ export class SimplePriceHistory implements PriceHistory {
       this.candlesSortedByTimestamp.sort(([a], [b]) => a - b);
     }
 
-    console.log("Updated candle:", this.getCandle(candle.timestamp));
+    console.log("Live: Updated candle:", this.getCandle(candle.timestamp));
   }
 }
