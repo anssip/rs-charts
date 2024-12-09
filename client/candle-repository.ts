@@ -35,7 +35,9 @@ export class CandleRepository {
     granularity: Granularity,
     timeRange: TimeRange
   ): string {
-    return `${symbol}:${granularity}:${timeRange.start}:${timeRange.end}`;
+    return `${symbol}:${granularity}:${Math.floor(
+      Number(timeRange.start)
+    )}:${Math.ceil(Number(timeRange.end))}`;
   }
 
   async fetchCandles(
@@ -53,13 +55,19 @@ export class CandleRepository {
 
     if (symbolBufferedRange) {
       const isWithinBuffer =
-        timeRange.start >= symbolBufferedRange.start &&
-        timeRange.end <= symbolBufferedRange.end;
+        Math.floor(Number(timeRange.start)) >=
+          Math.floor(Number(symbolBufferedRange.start)) &&
+        Math.ceil(Number(timeRange.end)) <=
+          Math.ceil(Number(symbolBufferedRange.end));
 
       if (isWithinBuffer) {
-        console.log(
-          `Repository: Range already buffered for ${key}, returning existing data`
-        );
+        console.log(`Repository: Range already buffered for ${key}`, {
+          requested: { start: timeRange.start, end: timeRange.end },
+          buffered: {
+            start: symbolBufferedRange.start,
+            end: symbolBufferedRange.end,
+          },
+        });
         return this.candles.get(key)!;
       }
     }
@@ -73,15 +81,16 @@ export class CandleRepository {
       this.pendingFetches.add(rangeKey);
 
       const updatedBufferRange = symbolBufferedRange
-        ? direction === "backward"
-          ? {
-              start: timeRange.start,
-              end: symbolBufferedRange.end,
-            }
-          : {
-              start: symbolBufferedRange.start,
-              end: timeRange.end,
-            }
+        ? {
+            start: Math.min(
+              Number(timeRange.start),
+              Number(symbolBufferedRange.start)
+            ),
+            end: Math.max(
+              Number(timeRange.end),
+              Number(symbolBufferedRange.end)
+            ),
+          }
         : timeRange;
 
       this.bufferedRanges.set(key, updatedBufferRange);
@@ -122,7 +131,7 @@ export class CandleRepository {
   ): Promise<CandleDataByTimestamp> {
     try {
       // Validate time range
-      if (range.end <= range.start) {
+      if (Number(range.end) <= Number(range.start)) {
         console.error("Invalid time range:", {
           start: new Date(range.start),
           end: new Date(range.end),

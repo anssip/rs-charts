@@ -2,6 +2,7 @@ import { CBAdvancedTradeClient } from "coinbase-api";
 import {
   CandleData,
   CandleDataByTimestamp,
+  Granularity,
   PriceDataOptions,
 } from "./price-history-model";
 
@@ -35,14 +36,17 @@ export class CoinbasePriceDataService {
         granularity: granularity,
       });
 
-      return this.transformData(response.candles);
+      return this.transformData(response.candles, granularity);
     } catch (error) {
       console.error("Error fetching price data:", error);
       throw error;
     }
   }
 
-  private transformData(candles: any[]): CandleDataByTimestamp {
+  private transformData(
+    candles: any[],
+    granularity: Granularity
+  ): CandleDataByTimestamp {
     return candles.reduce((data, candle) => {
       data.set(candle.start * 1000, {
         timestamp: candle.start * 1000,
@@ -50,6 +54,7 @@ export class CoinbasePriceDataService {
         high: parseFloat(candle.high),
         low: parseFloat(candle.low),
         close: parseFloat(candle.close),
+        granularity: granularity,
       });
       return data;
     }, new Map<number, CandleData>());

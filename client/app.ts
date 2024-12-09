@@ -11,6 +11,8 @@ import { Firestore } from "firebase/firestore";
 import {
   CandleDataByTimestamp,
   Granularity,
+  granularityToMs,
+  numCandlesInRange,
   SimplePriceHistory,
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
@@ -123,17 +125,24 @@ export class App {
       this.refetchData();
     });
     observe("state.granularity", (_) => {
-      // TODO: adjust time range to fit new granularity
+      // TODO: we need to fetch the data when we have both granularity and time range
+      // TODO: combine these in the state
       this.refetchData();
     });
-    observe("state.timeRange", (_) => {
-      this.chartContainer!.draw();
-    });
+    // observe("state.timeRange", (_) => {
+    //   console.log(
+    //     "App: timeRange changed",
+    //     this.state.timeRange,
+    //     this.state.granularity
+    //   );
+    //   this.refetchData();
+    // });
   };
 
   private async refetchData() {
     const newCandles = await this.fetchData(
       this.state.symbol,
+      this.state.granularity,
       this.state.timeRange
     );
     if (newCandles) {
@@ -171,7 +180,8 @@ export class App {
       }
 
       const newCandles = await this.fetchData(
-        xin["state.symbol"] as string,
+        this.state.symbol,
+        this.state.granularity,
         timeRange
       );
       if (newCandles) {
@@ -184,14 +194,29 @@ export class App {
     }
   };
 
-  private fetchData(
+  private async fetchData(
     symbol: string,
+    granularity: Granularity,
     timeRange: {
       start: number;
       end: number;
     }
   ): Promise<CandleDataByTimestamp | null> {
-    const rangeKey = `${symbol}-${timeRange.start}-${timeRange.end}`;
+    const candleCount = numCandlesInRange(
+      granularity,
+      timeRange.start,
+      timeRange.end
+    );
+    const MAX_CANDLES = 300;
+    const adjustedTimeRange =
+      candleCount > MAX_CANDLES
+        ? {
+            start: timeRange.end - MAX_CANDLES * granularityToMs(granularity),
+            end: timeRange.end,
+          }
+        : timeRange;
+
+    const rangeKey = `${symbol}-${granularity}-${adjustedTimeRange.start}-${adjustedTimeRange.end}`;
 
     if (this.pendingFetches.has(rangeKey)) {
       console.log("App: Already fetching range:", timeRange, symbol);
@@ -200,12 +225,14 @@ export class App {
     try {
       this.pendingFetches.add(rangeKey);
       console.log("App: fetching time range:", timeRange, symbol);
-
-      return this.candleRepository.fetchCandles({
+      this.state.loading = true;
+      const candles = await this.candleRepository.fetchCandles({
         symbol,
-        granularity: this.state.granularity,
-        timeRange,
+        granularity,
+        timeRange: adjustedTimeRange,
       });
+      this.state.loading = false;
+      return candles;
     } finally {
       this.pendingFetches.delete(rangeKey);
     }
@@ -241,7 +268,11 @@ export class App {
             start: this.state.priceHistory.endTimestamp,
             end: liveCandle.timestamp,
           };
-          const newCandles = await this.fetchData(symbol, timeRange);
+          const newCandles = await this.fetchData(
+            symbol,
+            granularity,
+            timeRange
+          );
           this.state.priceHistory = new SimplePriceHistory(
             granularity,
             new Map(newCandles)

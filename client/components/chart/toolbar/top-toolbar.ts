@@ -32,45 +32,48 @@ export class TopToolbar extends LitElement {
 
   private handleTimeframeChange(e: Event) {
     const newGranularity = (e.target as HTMLSelectElement).value as Granularity;
-    console.log(
-      "TopToolbar: timeframe-changed",
-      newGranularity,
-      typeof newGranularity
-    );
+    console.log("TopToolbar: timeframe-changed", newGranularity);
 
     const currentTimeRange = this.state.timeRange;
-    const currentVisibleCandles = numCandlesInRange(
-      `${this.state.granularity}` as Granularity, // convert to string first as the the proxy value might get us in trouble
+    const candleCount = this.state.priceHistory.getCandlesInRange(
       currentTimeRange.start,
       currentTimeRange.end
-    );
+    ).length;
 
     const newGranularityMs = granularityToMs(newGranularity);
-    const newTimeRange = {
+
+    // Calculate current number of candles and ensure it doesn't exceed MAX_CANDLES
+    const MAX_CANDLES = 300;
+    const newTimeSpan = candleCount * newGranularityMs;
+    const candidateTimeRange = {
+      start: currentTimeRange.end - newTimeSpan,
       end: currentTimeRange.end,
-      start: currentTimeRange.end - currentVisibleCandles * newGranularityMs,
     };
-    const newVisibleCandles = Math.min(
-      300,
-      numCandlesInRange(newGranularity, newTimeRange.start, newTimeRange.end)
+    const newCandleCount = numCandlesInRange(
+      newGranularity,
+      candidateTimeRange.start,
+      candidateTimeRange.end
     );
-    const timeRange = {
-      end: newTimeRange.end,
-      start: newTimeRange.end - newVisibleCandles * newGranularityMs,
+    // check if newCandleCount is within MAX_CANDLES
+    const finalCandleCount = Math.min(newCandleCount, MAX_CANDLES);
+    const newTimeRange = {
+      start: currentTimeRange.end - finalCandleCount * newGranularityMs,
+      end: currentTimeRange.end,
     };
 
-    // Update state after calculations
     this.state.timeRange = newTimeRange;
     this.state.granularity = newGranularity;
 
-    console.log("TopToolbar: new state", {
-      granularity: this.state.granularity,
-      timeRange,
-      newVisibleCandles: numCandlesInRange(
-        newGranularity,
-        newTimeRange.start,
-        newTimeRange.end
-      ),
+    console.log("TopToolbar: granularity change", {
+      oldGranularity: this.state.granularity,
+      newGranularity,
+      newCandleCount,
+      finalCandleCount,
+      newTimeSpan,
+      newTimeRange: {
+        start: new Date(this.state.timeRange.start),
+        end: new Date(this.state.timeRange.end),
+      },
     });
   }
 

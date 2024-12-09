@@ -1,6 +1,9 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { SimplePriceHistory } from "../../../server/services/price-data/price-history-model";
+import {
+  granularityToMs,
+  SimplePriceHistory,
+} from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
 import "./price-axis";
@@ -19,7 +22,7 @@ import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
-const BUFFER_MULTIPLIER = 5;
+const BUFFER_MULTIPLIER = 1;
 export const CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
 export const TIMELINE_HEIGHT = 40;
 
@@ -292,6 +295,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return;
 
     const timeRange = this._state.timeRange.end - this._state.timeRange.start;
+
     const viewportWidth =
       this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
     const timePerPixel = timeRange / viewportWidth;
@@ -308,12 +312,59 @@ export class ChartContainer extends LitElement {
     this.draw();
 
     // Check if we need more data
-    const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
+    // if (this._state.loading?.valueOf() ?? false) {
+    //   console.log("ChartContainer: Loading, not fetching more data");
+    //   return;
+    // }
+    const visibleTimeRange = timeRange;
+    const bufferZone = visibleTimeRange * BUFFER_MULTIPLIER;
+
+    const distanceToStart =
+      newStart - Number(this._state.priceHistory.startTimestamp);
+    const distanceToEnd =
+      Number(this._state.priceHistory.endTimestamp) - newEnd;
+
+    console.log(
+      "ChartContainer: Buffer check",
+      JSON.stringify(
+        {
+          visibleTimeRange: visibleTimeRange / (60 * 60 * 1000) + " hours",
+          bufferZone: bufferZone / (60 * 60 * 1000) + " hours",
+          distanceToStart: distanceToStart / (60 * 60 * 1000) + " hours",
+          distanceToEnd: distanceToEnd / (60 * 60 * 1000) + " hours",
+          dataRange: {
+            start: new Date(
+              this._state.priceHistory.startTimestamp
+            ).toISOString(),
+            end: new Date(this._state.priceHistory.endTimestamp).toISOString(),
+          },
+          viewport: {
+            start: new Date(newStart).toISOString(),
+            end: new Date(newEnd).toISOString(),
+          },
+        },
+        null,
+        2
+      )
+    );
+
+    const direction = timeShift > 0 ? "backward" : "forward";
     const needMoreData =
-      newStart < this._state.priceHistory.startTimestamp + bufferTimeRange ||
-      newEnd > this._state.priceHistory.endTimestamp - bufferTimeRange;
+      (direction === "backward" &&
+        newStart <
+          Number(this._state.priceHistory.startTimestamp) + bufferZone) ||
+      (direction === "forward" &&
+        newEnd > Number(this._state.priceHistory.endTimestamp) - bufferZone);
 
     if (needMoreData) {
+      console.log("ChartContainer: Need more data", {
+        reason:
+          newStart <
+            Number(this._state.priceHistory.startTimestamp) + bufferZone &&
+          direction === "backward"
+            ? "Close to start"
+            : "Close to end",
+      });
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
     }
   }
@@ -344,15 +395,15 @@ export class ChartContainer extends LitElement {
       direction === "backward"
         ? {
             start:
-              this._state.priceHistory.startTimestamp -
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-            end: this._state.priceHistory.startTimestamp,
+              Number(this._state.priceHistory.startTimestamp) -
+              FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
+            end: Number(this._state.priceHistory.startTimestamp),
           }
         : {
-            start: this._state.priceHistory.endTimestamp,
+            start: Number(this._state.priceHistory.endTimestamp),
             end:
-              this._state.priceHistory.endTimestamp +
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+              Number(this._state.priceHistory.endTimestamp) +
+              FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
           };
     console.log("Dispatching chart-pan event", {
       direction,

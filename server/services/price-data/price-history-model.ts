@@ -96,11 +96,17 @@ const GRANULARITY_TO_MS = new Map([
   ["ONE_DAY", 24 * 60 * 60 * 1000],
 ]) as ReadonlyMap<Granularity, number>;
 
+export function asGranularity(granularity: Granularity | string): Granularity {
+  return typeof granularity === "string"
+    ? (granularity as Granularity)
+    : ((granularity + "") as Granularity);
+}
+
 export function granularityToMs(granularity: Granularity): number {
-  if (!GRANULARITY_TO_MS.has(granularity)) {
+  if (!GRANULARITY_TO_MS.has(asGranularity(granularity))) {
     throw new Error(`Unknown granularity: '${granularity}'`);
   }
-  return GRANULARITY_TO_MS.get(granularity) ?? 60 * 60 * 1000;
+  return GRANULARITY_TO_MS.get(asGranularity(granularity)) ?? 60 * 60 * 1000;
 }
 
 export function numCandlesInRange(
@@ -120,7 +126,7 @@ export class SimplePriceHistory implements PriceHistory {
   private candlesSortedByTimestamp: [number, CandleData][];
 
   constructor(granularity: Granularity, candles: CandleDataByTimestamp) {
-    this.granularity = granularity;
+    this.granularity = asGranularity(granularity);
     this.candles = candles;
     // Convert map entries to sorted array for binary search
     this.candlesSortedByTimestamp = Array.from(this.candles.entries()).sort(
@@ -220,6 +226,9 @@ export class SimplePriceHistory implements PriceHistory {
    * @returns The end timestamp.
    */
   get endTimestamp(): number {
+    if (this.candlesSortedByTimestamp.length === 0) {
+      return 0;
+    }
     return this.candlesSortedByTimestamp[
       this.candlesSortedByTimestamp.length - 1
     ][0];
@@ -312,10 +321,13 @@ export class SimplePriceHistory implements PriceHistory {
   }
 
   get granularityMs(): number {
-    return GRANULARITY_TO_MS.get(this.granularity) ?? 60 * 60 * 1000;
+    return GRANULARITY_TO_MS.get(`${this.granularity}`) ?? 60 * 60 * 1000;
   }
 
   setLiveCandle(candle: CandleData): void {
+    if (this.candles.size === 0) {
+      return;
+    }
     // TODO: check if this is working properly
     if (candle.timestamp < this.endTimestamp) {
       console.log("Live: Ignoring old candle:", candle);
