@@ -34,6 +34,7 @@ export class ChartContainer extends LitElement {
     canvasWidth: 0,
     canvasHeight: 0,
     symbol: "BTC-USD",
+    granularity: "ONE_HOUR",
   };
 
   @property({ type: Array })
@@ -198,7 +199,10 @@ export class ChartContainer extends LitElement {
     return html`
       <div class="container">
         <div class="toolbar-top">
-          <top-toolbar .products=${this.products}></top-toolbar>
+          <top-toolbar
+            .products=${this.products}
+            .state=${this._state}
+          ></top-toolbar>
         </div>
         <div class="chart-area">
           <div class="price-info">
@@ -478,7 +482,7 @@ export class ChartContainer extends LitElement {
       high: liveCandle.high,
       low: liveCandle.low,
       close: liveCandle.close,
-      granularity: "ONE_HOUR",
+      granularity: this._state.granularity,
       live: true,
     });
     this.draw();

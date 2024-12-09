@@ -85,7 +85,7 @@ export interface PriceHistory {
   setLiveCandle(candle: CandleData): void;
 }
 
-export const GRANULARITY_TO_MS = new Map([
+const GRANULARITY_TO_MS = new Map([
   ["ONE_MINUTE", 60 * 1000],
   ["FIVE_MINUTE", 5 * 60 * 1000],
   ["FIFTEEN_MINUTE", 15 * 60 * 1000],
@@ -95,6 +95,23 @@ export const GRANULARITY_TO_MS = new Map([
   ["SIX_HOUR", 6 * 60 * 60 * 1000],
   ["ONE_DAY", 24 * 60 * 60 * 1000],
 ]) as ReadonlyMap<Granularity, number>;
+
+export function granularityToMs(granularity: Granularity): number {
+  if (!GRANULARITY_TO_MS.has(granularity)) {
+    throw new Error(`Unknown granularity: '${granularity}'`);
+  }
+  return GRANULARITY_TO_MS.get(granularity) ?? 60 * 60 * 1000;
+}
+
+export function numCandlesInRange(
+  granularity: Granularity,
+  startTimestamp: number,
+  endTimestamp: number
+): number {
+  return Math.ceil(
+    (endTimestamp - startTimestamp) / granularityToMs(granularity)
+  );
+}
 
 export class SimplePriceHistory implements PriceHistory {
   private granularity: Granularity;

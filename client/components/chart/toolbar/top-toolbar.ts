@@ -1,22 +1,19 @@
-import { LitElement, html, css, PropertyValues } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
   getAllGranularities,
+  Granularity,
   granularityLabel,
+  granularityToMs,
+  numCandlesInRange,
 } from "../../../../server/services/price-data/price-history-model";
 import { CoinbaseProduct } from "../../../api/firestore-client";
 import "./product-select";
-import { xin } from "xinjs";
+import { touch, xin } from "xinjs";
 import { ChartState } from "../../..";
 
 @customElement("top-toolbar")
 export class TopToolbar extends LitElement {
-  @property({ type: String })
-  selectedTimeframe = "1H";
-
-  @property({ type: String })
-  selectedProduct = "BTC-USD";
-
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
@@ -34,15 +31,47 @@ export class TopToolbar extends LitElement {
   }
 
   private handleTimeframeChange(e: Event) {
-    const timeframe = (e.target as HTMLSelectElement).value;
-    this.selectedTimeframe = timeframe;
-    this.dispatchEvent(
-      new CustomEvent("timeframe-changed", {
-        detail: { timeframe },
-        bubbles: true,
-        composed: true,
-      })
+    const newGranularity = (e.target as HTMLSelectElement).value as Granularity;
+    console.log(
+      "TopToolbar: timeframe-changed",
+      newGranularity,
+      typeof newGranularity
     );
+
+    const currentTimeRange = this.state.timeRange;
+    const currentVisibleCandles = numCandlesInRange(
+      `${this.state.granularity}` as Granularity, // convert to string first as the the proxy value might get us in trouble
+      currentTimeRange.start,
+      currentTimeRange.end
+    );
+
+    const newGranularityMs = granularityToMs(newGranularity);
+    const newTimeRange = {
+      end: currentTimeRange.end,
+      start: currentTimeRange.end - currentVisibleCandles * newGranularityMs,
+    };
+    const newVisibleCandles = Math.min(
+      300,
+      numCandlesInRange(newGranularity, newTimeRange.start, newTimeRange.end)
+    );
+    const timeRange = {
+      end: newTimeRange.end,
+      start: newTimeRange.end - newVisibleCandles * newGranularityMs,
+    };
+
+    // Update state after calculations
+    this.state.timeRange = newTimeRange;
+    this.state.granularity = newGranularity;
+
+    console.log("TopToolbar: new state", {
+      granularity: this.state.granularity,
+      timeRange,
+      newVisibleCandles: numCandlesInRange(
+        newGranularity,
+        newTimeRange.start,
+        newTimeRange.end
+      ),
+    });
   }
 
   private handleProductChange(e: CustomEvent) {
@@ -80,7 +109,7 @@ export class TopToolbar extends LitElement {
         <div class="controls">
           <select
             class="timeframe-select"
-            .value=${this.selectedTimeframe}
+            .value=${this.state.granularity}
             @change=${this.handleTimeframeChange}
           >
             ${granularities.map(
@@ -93,7 +122,7 @@ export class TopToolbar extends LitElement {
 
           <product-select
             .products=${this.products}
-            .selectedProduct=${this.selectedProduct}
+            .selectedProduct=${this.state.symbol}
             @product-changed=${this.handleProductChange}
           ></product-select>
         </div>

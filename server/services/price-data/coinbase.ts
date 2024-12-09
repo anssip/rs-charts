@@ -1,7 +1,4 @@
-import {
-  CBAdvancedTradeClient,
-  GetAdvTradePublicProductCandlesRequest,
-} from "coinbase-api";
+import { CBAdvancedTradeClient } from "coinbase-api";
 import {
   CandleData,
   CandleDataByTimestamp,

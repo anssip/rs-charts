@@ -27,6 +27,7 @@ export interface AxisMappings {
 
 export class CandlestickStrategy implements Drawable {
   private grid: HairlineGrid = new HairlineGrid();
+  private readonly FIXED_CANDLE_WIDTH = 8; // pixels
 
   drawGrid(context: DrawingContext): void {
     this.grid.draw(context);
@@ -37,25 +38,24 @@ export class CandlestickStrategy implements Drawable {
       ctx,
       chartCanvas: canvas,
       data,
-      options,
       axisMappings: { priceToY, timeToX },
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     this.drawGrid(context);
 
-    const candleWidth = options.candleWidth * dpr;
+    // Use fixed candle width instead of calculating from available space
+    const candleWidth = this.FIXED_CANDLE_WIDTH * dpr;
 
     const visibleCandles = data.getCandlesInRange(
       context.viewportStartTimestamp,
       context.viewportEndTimestamp
     );
 
-    console.log("CandlestickStrategy: Drawing", {
-      viewportStartTimestamp: context.viewportStartTimestamp,
-      viewportEndTimestamp: context.viewportEndTimestamp,
+    console.log("CandlestickStrategy: Drawing, visibleCandles", {
+      viewportStartTimestamp: new Date(context.viewportStartTimestamp),
+      viewportEndTimestamp: new Date(context.viewportEndTimestamp),
       priceRange: context.priceRange,
       dataLength: data.length,
       canvasWidth: canvas.width,
@@ -70,7 +70,7 @@ export class CandlestickStrategy implements Drawable {
     }
 
     visibleCandles.forEach(([timestamp, candle]) => {
-      const x = timeToX(timestamp) / dpr - candleWidth / 2 - options.candleGap;
+      const x = timeToX(timestamp) / dpr - candleWidth / 2;
       if (candle.live) {
         console.log("Live: Drawing live candle:", candle);
       }

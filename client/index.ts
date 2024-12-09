@@ -1,4 +1,4 @@
-import { elements, vars, xinProxy, bindings } from "xinjs";
+import { elements, xinProxy } from "xinjs";
 import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
@@ -7,6 +7,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { PriceRangeImpl } from "./util/price-range";
 import {
+  Granularity,
   PriceHistory,
   PriceRange,
   SimplePriceHistory,
@@ -23,6 +24,7 @@ export type ChartState = {
   canvasWidth: number;
   canvasHeight: number;
   symbol: string;
+  granularity: Granularity;
 };
 
 const chartState: ChartState = {
@@ -33,6 +35,7 @@ const chartState: ChartState = {
   canvasWidth: 0,
   canvasHeight: 0,
   symbol: "BTC-USD",
+  granularity: "ONE_HOUR",
 };
 
 const { state } = xinProxy(

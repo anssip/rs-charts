@@ -20,6 +20,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        live: false,
       },
       {
         granularity: "ONE_HOUR",
@@ -28,6 +29,7 @@ describe("SimplePriceHistory", () => {
         high: 115,
         low: 95,
         close: 110,
+        live: false,
       },
       {
         granularity: "ONE_HOUR",
@@ -36,6 +38,7 @@ describe("SimplePriceHistory", () => {
         high: 120,
         low: 100,
         close: 115,
+        live: false,
       },
     ];
 
@@ -109,6 +112,7 @@ describe("SimplePriceHistory", () => {
       high: 110,
       low: 90,
       close: 105,
+      live: false,
     };
     fiveMinCandles.set(baseTime, candle);
 
@@ -137,6 +141,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        live: false,
       });
     });
 
@@ -170,6 +175,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        live: false,
       });
     });
 
@@ -207,6 +213,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        live: false,
       });
     });
 

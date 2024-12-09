@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import { CoinbasePriceDataService } from "./services/price-data/coinbase";
 import dotenv from "dotenv";
+import { Granularity } from "./services/price-data/price-history-model";
 
 dotenv.config();
 
@@ -53,8 +54,9 @@ const server = serve({
           const params = new URLSearchParams(url.search);
           console.log("params", params);
           const candles = await priceService.fetchCandles({
-            symbol: params.get("symbol") || "BTC-USD",
-            granularity: params.get("granularity") || "ONE_HOUR",
+            symbol: params.get("symbol") ?? "BTC-USD",
+            granularity: (params.get("granularity") ??
+              "ONE_HOUR") as Granularity,
             start: new Date(parseInt(params.get("start")!)),
             end: new Date(parseInt(params.get("end")!)),
           });
