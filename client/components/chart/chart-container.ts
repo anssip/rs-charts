@@ -319,35 +319,6 @@ export class ChartContainer extends LitElement {
     const visibleTimeRange = timeRange;
     const bufferZone = visibleTimeRange * BUFFER_MULTIPLIER;
 
-    const distanceToStart =
-      newStart - Number(this._state.priceHistory.startTimestamp);
-    const distanceToEnd =
-      Number(this._state.priceHistory.endTimestamp) - newEnd;
-
-    console.log(
-      "ChartContainer: Buffer check",
-      JSON.stringify(
-        {
-          visibleTimeRange: visibleTimeRange / (60 * 60 * 1000) + " hours",
-          bufferZone: bufferZone / (60 * 60 * 1000) + " hours",
-          distanceToStart: distanceToStart / (60 * 60 * 1000) + " hours",
-          distanceToEnd: distanceToEnd / (60 * 60 * 1000) + " hours",
-          dataRange: {
-            start: new Date(
-              this._state.priceHistory.startTimestamp
-            ).toISOString(),
-            end: new Date(this._state.priceHistory.endTimestamp).toISOString(),
-          },
-          viewport: {
-            start: new Date(newStart).toISOString(),
-            end: new Date(newEnd).toISOString(),
-          },
-        },
-        null,
-        2
-      )
-    );
-
     const direction = timeShift > 0 ? "backward" : "forward";
     const needMoreData =
       (direction === "backward" &&
@@ -516,8 +487,8 @@ export class ChartContainer extends LitElement {
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
     const { deltaY, isTrackpad } = event.detail;
-    const zoomCenter = 1; // Always zoom from top
-    const zoomMultiplier = isTrackpad ? 1 : 0.1;
+    const zoomCenter = 0.5; // Always zoom from the center
+    const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
     (this._state.priceRange as PriceRangeImpl).adjust(
       deltaY * zoomMultiplier,
       zoomCenter

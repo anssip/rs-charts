@@ -20,6 +20,10 @@ bun run dev
 
 ## TODO
 
+- [ ] Refactor to use the ChartManager
+- [ ] Add the ChartManager state wrapper
+- [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
+- [ ] Deploy to GCP or AWS with some CDN.
 - [x] Add textual live price info
 - [x] Add product selector
 - [ ] Add granularity selector
