@@ -56,9 +56,10 @@ export class TopToolbar extends LitElement {
     );
     // check if newCandleCount is within MAX_CANDLES
     const finalCandleCount = Math.min(newCandleCount, MAX_CANDLES);
+    const newEnd = Math.min(currentTimeRange.end, new Date().getTime());
     const newTimeRange = {
-      start: currentTimeRange.end - finalCandleCount * newGranularityMs,
-      end: currentTimeRange.end,
+      start: newEnd - finalCandleCount * newGranularityMs,
+      end: newEnd,
     };
 
     this.state.timeRange = newTimeRange;

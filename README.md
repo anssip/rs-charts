@@ -20,6 +20,7 @@ bun run dev
 
 ## TODO
 
+- [ ] Fix timeline to not drow labels too close to each other
 - [ ] Use fonts and colors from the brand guide
 - [ ] Refactor to use the ChartManager
 - [ ] Add the ChartManager state wrapper
