@@ -41,9 +41,78 @@ export function getGridInterval(granularity: Granularity): number {
   if (granularity === "ONE_HOUR") {
     interval = granularityToMs(granularity) * 12; // Every 12 hours
   } else if (granularity === "ONE_DAY") {
-    interval = granularityToMs(granularity) * 6; // Every 6th hour
+    interval = granularityToMs(granularity) * 2; // Every 2 days instead of 6
   }
   return interval;
+}
+
+export type TimelineIteratorProps = {
+  granularity: Granularity;
+  viewportStartTimestamp: number;
+  viewportEndTimestamp: number;
+  canvasWidth: number;
+  callback: (x: number, timestamp: number) => void;
+};
+
+export function iterateTimeline({
+  callback,
+  granularity,
+  viewportStartTimestamp,
+  viewportEndTimestamp,
+  canvasWidth,
+}: TimelineIteratorProps): void {
+  const granularityMs = granularityToMs(granularity);
+
+  // Use fixed intervals based on granularity
+  const interval =
+    granularity === "ONE_HOUR"
+      ? 12 * granularityMs // Every 12 hours
+      : 2 * granularityMs; // Every 2 days for daily
+
+  // Find the first timestamp aligned with interval
+  const date = new Date(viewportStartTimestamp);
+  const baseTimestamp =
+    granularity === "ONE_HOUR"
+      ? new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          Math.floor(date.getHours() / 12) * 12, // Align to 12-hour intervals
+          0,
+          0,
+          0
+        ).getTime()
+      : new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          0,
+          0,
+          0,
+          0
+        ).getTime();
+
+  // Start from the first interval before viewport
+  let firstTimestamp = baseTimestamp;
+  while (firstTimestamp > viewportStartTimestamp - interval) {
+    firstTimestamp -= interval;
+  }
+
+  for (
+    let timestamp = firstTimestamp;
+    timestamp <= viewportEndTimestamp + interval;
+    timestamp += interval
+  ) {
+    const x = timeToX(canvasWidth, {
+      start: viewportStartTimestamp,
+      end: viewportEndTimestamp,
+    })(timestamp);
+
+    // Only draw if within visible area with some padding
+    if (x >= -50 && x <= canvasWidth + 50) {
+      callback(x, timestamp);
+    }
+  }
 }
 
 export function getFirstLabelTimestamp(
