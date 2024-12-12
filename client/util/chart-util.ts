@@ -66,37 +66,34 @@ export function iterateTimeline({
   // Use fixed intervals based on granularity
   const interval =
     granularity === "ONE_HOUR"
-      ? 12 * granularityMs // Every 12 hours
-      : 2 * granularityMs; // Every 2 days for daily
+      ? 12 * 3600000 // Every 12 hours (12 * 1 hour in ms)
+      : 2 * 86400000; // Every 2 days for daily
 
-  // Find the first timestamp aligned with interval
-  const date = new Date(viewportStartTimestamp);
-  const baseTimestamp =
-    granularity === "ONE_HOUR"
-      ? new Date(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate(),
-          Math.floor(date.getHours() / 12) * 12, // Align to 12-hour intervals
-          0,
-          0,
-          0
-        ).getTime()
-      : new Date(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate(),
-          0,
-          0,
-          0,
-          0
-        ).getTime();
-
-  // Start from the first interval before viewport
-  let firstTimestamp = baseTimestamp;
-  while (firstTimestamp > viewportStartTimestamp - interval) {
-    firstTimestamp -= interval;
+  let firstTimestamp: number;
+  if (granularity === "ONE_HOUR") {
+    // For hourly, align to 12-hour intervals in local time
+    const date = new Date(viewportStartTimestamp);
+    const baseHour = Math.floor(date.getHours() / 12) * 12;
+    firstTimestamp = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      baseHour,
+      0,
+      0,
+      0
+    ).getTime();
+  } else {
+    // For daily, align directly to candle boundaries
+    firstTimestamp = Math.floor(viewportStartTimestamp / interval) * interval;
   }
+
+  // Ensure we start before the viewport
+  firstTimestamp -=
+    interval *
+    Math.ceil(
+      (firstTimestamp - (viewportStartTimestamp - interval)) / interval
+    );
 
   for (
     let timestamp = firstTimestamp;
@@ -108,10 +105,7 @@ export function iterateTimeline({
       end: viewportEndTimestamp,
     })(timestamp);
 
-    // Only draw if within visible area with some padding
-    if (x >= -50 && x <= canvasWidth + 50) {
-      callback(x, timestamp);
-    }
+    callback(x, timestamp);
   }
 }
 
