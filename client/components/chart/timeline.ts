@@ -1,6 +1,11 @@
 import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
-import { formatDate, formatTime, iterateTimeline } from "../../util/chart-util";
+import {
+  formatDate,
+  formatTime,
+  getLocalAlignedTimestamp,
+  iterateTimeline,
+} from "../../util/chart-util";
 import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
 import { ChartState } from "../..";
@@ -59,10 +64,12 @@ export class Timeline extends CanvasBase {
       ctx.textAlign = "center";
       ctx.textBaseline = "top"; // Consistent text baseline
 
+      let count = 0;
       iterateTimeline({
         callback: (x: number, timestamp: number) => {
           const date = new Date(timestamp);
           const { shouldDrawLabel, shouldDrawDateLabel } = resolveShouldDraw(
+            count++,
             date,
             state.granularity
           );
@@ -151,49 +158,69 @@ type ShouldDrawResult = {
   shouldDrawDateLabel: boolean;
 };
 
-function resolveShouldDraw(date: Date, granularity: string): ShouldDrawResult {
+function resolveShouldDraw(
+  count: number,
+  date: Date,
+  granularity: string
+): ShouldDrawResult {
   let shouldDrawLabel = false;
   let shouldDrawDateLabel = false;
 
-  // For all granularities, check if we should draw a date label at midnight
+  // Convert UTC timestamp to local time for checking
+  const localDate = new Date(date.getTime());
+
+  // // For all granularities, check if we should draw a date label at midnight
   if (
     granularity !== "ONE_DAY" &&
-    date.getUTCHours() === 0 &&
-    date.getUTCMinutes() === 0
+    localDate.getHours() === 0 &&
+    localDate.getMinutes() === 0
   ) {
     shouldDrawDateLabel = true;
   }
 
   switch (granularity) {
     case "ONE_MINUTE":
-      shouldDrawLabel = date.getUTCMinutes() % 15 === 0; // Every 15 minutes
+      shouldDrawLabel = localDate.getMinutes() % 15 === 0; // Every 15 minutes
       break;
     case "FIVE_MINUTE":
-      shouldDrawLabel = date.getUTCMinutes() % 30 === 0; // Every 30 minutes
+      shouldDrawLabel = localDate.getMinutes() % 30 === 0; // Every 30 minutes
       break;
     case "FIFTEEN_MINUTE":
-      shouldDrawLabel = date.getUTCMinutes() === 0; // Every hour
+      shouldDrawLabel = localDate.getMinutes() === 0; // Every hour
       break;
     case "THIRTY_MINUTE":
       shouldDrawLabel =
-        date.getUTCHours() % 4 === 0 && date.getUTCMinutes() === 0; // Every 4th hour
+        localDate.getHours() % 4 === 0 && localDate.getMinutes() === 0; // Every 4th hour
       break;
     case "ONE_HOUR":
-      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Every 12 hours
+      shouldDrawLabel = localDate.getHours() % 12 === 0; // Every 12 hours
       break;
     case "TWO_HOUR":
-      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Every 12 hours
+      shouldDrawLabel = localDate.getHours() % 12 === 0; // Every 12 hours
       break;
     case "SIX_HOUR":
-      shouldDrawLabel = date.getUTCHours() % 24 === 0; // Every 24 hours
+      const alignedTimestamp = getLocalAlignedTimestamp(date.getTime(), 6);
+
+      const candlesSinceMidnight = Math.floor(
+        (date.getTime() - getLocalAlignedTimestamp(date.getTime(), 24)) /
+          (6 * 60 * 60 * 1000)
+      );
+
+      // Draw label every 4th candle starting from midnight
+      shouldDrawLabel =
+        candlesSinceMidnight % 4 === 0 && alignedTimestamp === date.getTime();
+
+      // Date label at midnight
+      shouldDrawDateLabel =
+        candlesSinceMidnight === 0 && alignedTimestamp === date.getTime();
       break;
     case "ONE_DAY":
       // don't draw time labels at all
       shouldDrawLabel = false;
-      shouldDrawDateLabel = date.getUTCDate() % 4 === 0;
+      shouldDrawDateLabel = localDate.getDate() % 4 === 0;
       break;
     default:
-      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Default to 12 hours
+      shouldDrawLabel = localDate.getHours() % 12 === 0; // Default to 12 hours
   }
 
   return { shouldDrawLabel, shouldDrawDateLabel };

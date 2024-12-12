@@ -61,13 +61,18 @@ export function iterateTimeline({
   viewportEndTimestamp,
   canvasWidth,
 }: TimelineIteratorProps): void {
-  const interval = granularityToMs(granularity); // Use candle interval
+  const interval = granularityToMs(granularity);
 
-  // Align to candle boundaries
-  const firstTimestamp =
-    Math.floor(viewportStartTimestamp / interval) * interval;
+  // For SIX_HOUR, align to local time boundaries
+  let firstTimestamp = Math.floor(viewportStartTimestamp / interval) * interval;
+  if (granularity === "SIX_HOUR") {
+    firstTimestamp = getLocalAlignedTimestamp(viewportStartTimestamp, 6);
+    // Ensure we start before viewport
+    while (firstTimestamp > viewportStartTimestamp - interval) {
+      firstTimestamp -= interval;
+    }
+  }
 
-  // Iterate over each candle
   for (
     let timestamp = firstTimestamp;
     timestamp <= viewportEndTimestamp + interval;
@@ -196,4 +201,59 @@ export function drawTimeLabel(
   ctx.textBaseline = "middle";
   ctx.fillStyle = textColor;
   ctx.fillText(timeText, x, y);
+}
+
+/*
+  Aligns a timestamp to the local time boundaries for a given interval
+
+  Especially useful for SIX_HOUR, where we want to align to the local time boundaries.
+
+  wondering why we only have this problem with 6 hour candles?
+
+  The issue is specific to 6-hour candles because of how they align with UTC time. Let's break it down:
+  For most granularities, the alignment is simpler:
+
+  - ONE_MINUTE to ONE_HOUR: These are natural divisions of an hour
+  - TWO_HOUR: Aligns nicely with even hours (0, 2, 4, 6, 8, 10...)
+  - ONE_DAY: Aligns with midnight UTC
+
+  But SIX_HOUR is special because:
+  The candles are fixed at UTC times: 00:00, 06:00, 12:00, 18:00
+
+  When viewing in different timezones, these UTC times translate to odd local times
+
+  For example, in UTC-5:
+    UTC 00:00 → Local 19:00 (previous day)
+    UTC 06:00 → Local 01:00
+    UTC 12:00 → Local 07:00
+    UTC 18:00 → Local 13:00
+
+  Other granularities don't have this issue because:
+  Hourly candles are frequent enough that timezone offset doesn't matter much
+  Daily candles always align with UTC midnight, which is a clear boundary
+  But 6-hour candles are in this awkward middle ground where:
+  They're infrequent enough that timezone matters
+  But frequent enough that we want them aligned with local time for readability
+  This is why we needed the special handling with getLocalAlignedTimestamp and 
+  candlesSinceMidnight calculations specifically for the SIX_HOUR case.
+*/
+export function getLocalAlignedTimestamp(
+  timestamp: number,
+  intervalHours: number
+): number {
+  const date = new Date(timestamp);
+  const offsetHours = date.getTimezoneOffset() / 60;
+
+  // Adjust timestamp to local time boundaries
+  const localHours = date.getUTCHours() - offsetHours;
+  const alignedHours = Math.floor(localHours / intervalHours) * intervalHours;
+
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate(),
+      alignedHours + offsetHours
+    )
+  ).getTime();
 }
