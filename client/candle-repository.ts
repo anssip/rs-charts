@@ -17,9 +17,8 @@ export interface FetchCandlesOptions {
 }
 
 export class CandleRepository {
-  private candles: CandleDataByTimestamp = new Map();
+  private candles: Map<string, CandleDataByTimestamp> = new Map();
   private readonly API_BASE_URL: string;
-  public readonly CANDLE_INTERVAL = 3600000; // 1 hour in milliseconds
   private bufferedRanges: Map<string, TimeRange> = new Map();
   private pendingFetches: Set<string> = new Set();
 
@@ -27,74 +26,102 @@ export class CandleRepository {
     this.API_BASE_URL = apiBaseUrl;
   }
 
+  private getKey(symbol: string, granularity: Granularity): string {
+    return `${symbol}:${granularity}`;
+  }
+
+  private getRangeKey(
+    symbol: string,
+    granularity: Granularity,
+    timeRange: TimeRange
+  ): string {
+    return `${symbol}:${granularity}:${Math.floor(
+      Number(timeRange.start)
+    )}:${Math.ceil(Number(timeRange.end))}`;
+  }
+
   async fetchCandles(
     options: FetchCandlesOptions
   ): Promise<CandleDataByTimestamp> {
     const { symbol, direction, granularity, timeRange } = options;
-    const rangeKey = `${symbol}-${timeRange.start}-${timeRange.end}`;
+    const key = this.getKey(symbol, granularity);
+    const rangeKey = this.getRangeKey(symbol, granularity, timeRange);
 
-    const symbolBufferedRange = this.bufferedRanges.get(symbol);
+    if (!this.candles.has(key)) {
+      this.candles.set(key, new Map());
+    }
+
+    const symbolBufferedRange = this.bufferedRanges.get(key);
 
     if (symbolBufferedRange) {
       const isWithinBuffer =
-        timeRange.start >= symbolBufferedRange.start &&
-        timeRange.end <= symbolBufferedRange.end;
+        Math.floor(Number(timeRange.start)) >=
+          Math.floor(Number(symbolBufferedRange.start)) &&
+        Math.ceil(Number(timeRange.end)) <=
+          Math.ceil(Number(symbolBufferedRange.end));
 
       if (isWithinBuffer) {
-        console.log(
-          `Repository: Range already buffered for symbol ${symbol}, returning existing data`
-        );
-        return this.candles;
+        console.log(`Repository: Range already buffered for ${key}`, {
+          requested: { start: timeRange.start, end: timeRange.end },
+          buffered: {
+            start: symbolBufferedRange.start,
+            end: symbolBufferedRange.end,
+          },
+        });
+        return this.candles.get(key)!;
       }
     }
 
     if (this.pendingFetches.has(rangeKey)) {
       console.log(`Repository: Fetch already pending for range ${rangeKey}`);
-      return this.candles;
+      return this.candles.get(key)!;
     }
 
     try {
       this.pendingFetches.add(rangeKey);
 
       const updatedBufferRange = symbolBufferedRange
-        ? direction === "backward"
-          ? {
-              start: timeRange.start,
-              end: symbolBufferedRange.end,
-            }
-          : {
-              start: symbolBufferedRange.start,
-              end: timeRange.end,
-            }
+        ? {
+            start: Math.min(
+              Number(timeRange.start),
+              Number(symbolBufferedRange.start)
+            ),
+            end: Math.max(
+              Number(timeRange.end),
+              Number(symbolBufferedRange.end)
+            ),
+          }
         : timeRange;
 
-      this.bufferedRanges.set(symbol, updatedBufferRange);
+      this.bufferedRanges.set(key, updatedBufferRange);
 
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
         timeRange
       );
-      console.log(
-        `Repository: Fetched range candles for ${symbol}:`,
-        rangeCandles.size
-      );
-      this.candles = new Map([...this.candles, ...rangeCandles]);
-      console.log(`Repository: Fetched candles for ${symbol}:`, {
+
+      const existingCandles = this.candles.get(key)!;
+      this.candles.set(key, new Map([...existingCandles, ...rangeCandles]));
+
+      console.log(`Repository: Fetched candles for ${key}:`, {
         requested: {
           start: new Date(timeRange.start),
           end: new Date(timeRange.end),
         },
-        received: this.candles.size,
+        received: rangeCandles.size,
+        total: this.candles.get(key)!.size,
       });
-      return this.candles;
+
+      return this.candles.get(key)!;
     } finally {
       this.pendingFetches.delete(rangeKey);
     }
   }
 
-  getCandles(): CandleDataByTimestamp {
-    return this.candles;
+  getCandles(symbol: string, granularity: Granularity): CandleDataByTimestamp {
+    const key = this.getKey(symbol, granularity);
+    return this.candles.get(key) || new Map();
   }
 
   private async fetchRange(
@@ -104,7 +131,7 @@ export class CandleRepository {
   ): Promise<CandleDataByTimestamp> {
     try {
       // Validate time range
-      if (range.end <= range.start) {
+      if (Number(range.end) <= Number(range.start)) {
         console.error("Invalid time range:", {
           start: new Date(range.start),
           end: new Date(range.end),

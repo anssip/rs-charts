@@ -1,4 +1,9 @@
-import { formatTime, getGridInterval, priceToY } from "../../util/chart-util";
+import {
+  formatTime,
+  getFirstLabelTimestamp,
+  getGridInterval,
+  priceToY,
+} from "../../util/chart-util";
 import { getPriceStep } from "../../util/price-util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
@@ -18,9 +23,12 @@ export class HairlineGrid implements Drawable {
       start: priceRange.min,
       end: priceRange.max,
     });
-    const gridInterval = getGridInterval(data);
-    const firstGridTimestamp =
-      Math.floor(context.viewportStartTimestamp / gridInterval) * gridInterval;
+    const gridInterval = getGridInterval(data.getGranularity());
+
+    const firstGridTimestamp = getFirstLabelTimestamp(
+      context.viewportStartTimestamp,
+      data.getGranularity()
+    );
 
     ctx.strokeStyle = "#ddd";
     ctx.setLineDash([5, 5]);

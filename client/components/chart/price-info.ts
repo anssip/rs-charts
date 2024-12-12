@@ -15,7 +15,8 @@ export class PriceInfo extends LitElement {
   product = "";
 
   @property({ type: String })
-  granularity: Granularity = "ONE_HOUR";
+  granularity: Granularity = (xin["state.granularity"] ??
+    "ONE_HOUR") as Granularity;
 
   @state()
   private liveCandle: LiveCandle | null = null;
@@ -64,6 +65,9 @@ export class PriceInfo extends LitElement {
     observe("state.liveCandle", (path) => {
       console.log("PriceInfo: liveCandle changed", xin[path]);
       this.liveCandle = xin[path] as LiveCandle;
+    });
+    observe("state.granularity", (path) => {
+      this.granularity = xin[path] as Granularity;
     });
   }
 

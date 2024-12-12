@@ -1,5 +1,6 @@
 import {
-  PriceHistory,
+  Granularity,
+  granularityToMs,
   PriceRange,
 } from "../../server/services/price-data/price-history-model";
 import { formatPrice } from "./price-util";
@@ -34,16 +35,34 @@ export const priceToCanvasY =
       end: priceRange.max,
     })(price);
 
-export function getGridInterval(data: PriceHistory): number {
-  let interval = data.granularityMs * 10; // Default every 10th candle
+export function getGridInterval(granularity: Granularity): number {
+  let interval = granularityToMs(granularity) * 10; // Default every 10th candle
 
-  if (data.getGranularity() === "ONE_HOUR") {
-    interval = data.granularityMs * 12; // Every 12 hours
-  } else if (data.getGranularity() === "ONE_DAY") {
-    // Monthly
-    interval = data.granularityMs * 6; // Every 6 months
+  if (granularity === "ONE_HOUR") {
+    interval = granularityToMs(granularity) * 12; // Every 12 hours
+  } else if (granularity === "ONE_DAY") {
+    interval = granularityToMs(granularity) * 6; // Every 6th hour
   }
   return interval;
+}
+
+export function getFirstLabelTimestamp(
+  startTimestamp: number,
+  granularity: Granularity
+) {
+  const firstMidnight = new Date(startTimestamp).setHours(0, 0, 0, 0);
+  const gridInterval = getGridInterval(granularity);
+  const granularityMs = granularityToMs(granularity);
+
+  return (
+    (Array.from(
+      {
+        length: Math.ceil(gridInterval / granularityMs),
+      },
+      (_, i) => firstMidnight + i * granularityMs
+    ).find((t) => t >= firstMidnight + gridInterval) ?? firstMidnight) -
+    gridInterval
+  );
 }
 
 export function formatTime(date: Date): string {
@@ -51,6 +70,14 @@ export function formatTime(date: Date): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+}
+
+export function formatDate(date: Date): string {
+  return date.toLocaleDateString([], {
+    month: "numeric",
+    day: "numeric",
   });
 }
 

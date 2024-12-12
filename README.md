@@ -20,6 +20,12 @@ bun run dev
 
 ## TODO
 
+- [ ] Fix timeline to not drow labels too close to each other
+- [ ] Use fonts and colors from the brand guide
+- [ ] Refactor to use the ChartManager
+- [ ] Add the ChartManager state wrapper
+- [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
+- [ ] Deploy to GCP or AWS with some CDN.
 - [x] Add textual live price info
 - [x] Add product selector
 - [ ] Add granularity selector
