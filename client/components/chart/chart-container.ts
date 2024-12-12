@@ -1,6 +1,9 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { SimplePriceHistory } from "../../../server/services/price-data/price-history-model";
+import {
+  granularityToMs,
+  SimplePriceHistory,
+} from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
 import "./price-axis";
@@ -19,7 +22,7 @@ import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
-const BUFFER_MULTIPLIER = 5;
+const BUFFER_MULTIPLIER = 1;
 export const CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
 export const TIMELINE_HEIGHT = 40;
 
@@ -34,6 +37,7 @@ export class ChartContainer extends LitElement {
     canvasWidth: 0,
     canvasHeight: 0,
     symbol: "BTC-USD",
+    granularity: "ONE_HOUR",
   };
 
   @property({ type: Array })
@@ -198,7 +202,10 @@ export class ChartContainer extends LitElement {
     return html`
       <div class="container">
         <div class="toolbar-top">
-          <top-toolbar .products=${this.products}></top-toolbar>
+          <top-toolbar
+            .products=${this.products}
+            .state=${this._state}
+          ></top-toolbar>
         </div>
         <div class="chart-area">
           <div class="price-info">
@@ -288,6 +295,7 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return;
 
     const timeRange = this._state.timeRange.end - this._state.timeRange.start;
+
     const viewportWidth =
       this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
     const timePerPixel = timeRange / viewportWidth;
@@ -304,12 +312,30 @@ export class ChartContainer extends LitElement {
     this.draw();
 
     // Check if we need more data
-    const bufferTimeRange = timeRange * BUFFER_MULTIPLIER;
+    // if (this._state.loading?.valueOf() ?? false) {
+    //   console.log("ChartContainer: Loading, not fetching more data");
+    //   return;
+    // }
+    const visibleTimeRange = timeRange;
+    const bufferZone = visibleTimeRange * BUFFER_MULTIPLIER;
+
+    const direction = timeShift > 0 ? "backward" : "forward";
     const needMoreData =
-      newStart < this._state.priceHistory.startTimestamp + bufferTimeRange ||
-      newEnd > this._state.priceHistory.endTimestamp - bufferTimeRange;
+      (direction === "backward" &&
+        newStart <
+          Number(this._state.priceHistory.startTimestamp) + bufferZone) ||
+      (direction === "forward" &&
+        newEnd > Number(this._state.priceHistory.endTimestamp) - bufferZone);
 
     if (needMoreData) {
+      console.log("ChartContainer: Need more data", {
+        reason:
+          newStart <
+            Number(this._state.priceHistory.startTimestamp) + bufferZone &&
+          direction === "backward"
+            ? "Close to start"
+            : "Close to end",
+      });
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
     }
   }
@@ -340,15 +366,15 @@ export class ChartContainer extends LitElement {
       direction === "backward"
         ? {
             start:
-              this._state.priceHistory.startTimestamp -
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
-            end: this._state.priceHistory.startTimestamp,
+              Number(this._state.priceHistory.startTimestamp) -
+              FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
+            end: Number(this._state.priceHistory.startTimestamp),
           }
         : {
-            start: this._state.priceHistory.endTimestamp,
+            start: Number(this._state.priceHistory.endTimestamp),
             end:
-              this._state.priceHistory.endTimestamp +
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+              Number(this._state.priceHistory.endTimestamp) +
+              FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
           };
     console.log("Dispatching chart-pan event", {
       direction,
@@ -461,8 +487,8 @@ export class ChartContainer extends LitElement {
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
     const { deltaY, isTrackpad } = event.detail;
-    const zoomCenter = 1; // Always zoom from top
-    const zoomMultiplier = isTrackpad ? 1 : 0.1;
+    const zoomCenter = 0.5; // Always zoom from the center
+    const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
     (this._state.priceRange as PriceRangeImpl).adjust(
       deltaY * zoomMultiplier,
       zoomCenter
@@ -478,7 +504,7 @@ export class ChartContainer extends LitElement {
       high: liveCandle.high,
       low: liveCandle.low,
       close: liveCandle.close,
-      granularity: "ONE_HOUR",
+      granularity: this._state.granularity,
       live: true,
     });
     this.draw();

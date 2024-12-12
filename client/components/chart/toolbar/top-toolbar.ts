@@ -1,22 +1,19 @@
-import { LitElement, html, css, PropertyValues } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
   getAllGranularities,
+  Granularity,
   granularityLabel,
+  granularityToMs,
+  numCandlesInRange,
 } from "../../../../server/services/price-data/price-history-model";
 import { CoinbaseProduct } from "../../../api/firestore-client";
 import "./product-select";
-import { xin } from "xinjs";
+import { touch, xin } from "xinjs";
 import { ChartState } from "../../..";
 
 @customElement("top-toolbar")
 export class TopToolbar extends LitElement {
-  @property({ type: String })
-  selectedTimeframe = "1H";
-
-  @property({ type: String })
-  selectedProduct = "BTC-USD";
-
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
@@ -34,15 +31,51 @@ export class TopToolbar extends LitElement {
   }
 
   private handleTimeframeChange(e: Event) {
-    const timeframe = (e.target as HTMLSelectElement).value;
-    this.selectedTimeframe = timeframe;
-    this.dispatchEvent(
-      new CustomEvent("timeframe-changed", {
-        detail: { timeframe },
-        bubbles: true,
-        composed: true,
-      })
+    const newGranularity = (e.target as HTMLSelectElement).value as Granularity;
+    console.log("TopToolbar: timeframe-changed", newGranularity);
+
+    const currentTimeRange = this.state.timeRange;
+    const candleCount = this.state.priceHistory.getCandlesInRange(
+      currentTimeRange.start,
+      currentTimeRange.end
+    ).length;
+
+    const newGranularityMs = granularityToMs(newGranularity);
+
+    // Calculate current number of candles and ensure it doesn't exceed MAX_CANDLES
+    const MAX_CANDLES = 300;
+    const newTimeSpan = candleCount * newGranularityMs;
+    const candidateTimeRange = {
+      start: currentTimeRange.end - newTimeSpan,
+      end: currentTimeRange.end,
+    };
+    const newCandleCount = numCandlesInRange(
+      newGranularity,
+      candidateTimeRange.start,
+      candidateTimeRange.end
     );
+    // check if newCandleCount is within MAX_CANDLES
+    const finalCandleCount = Math.min(newCandleCount, MAX_CANDLES);
+    const newEnd = Math.min(currentTimeRange.end, new Date().getTime());
+    const newTimeRange = {
+      start: newEnd - finalCandleCount * newGranularityMs,
+      end: newEnd,
+    };
+
+    this.state.timeRange = newTimeRange;
+    this.state.granularity = newGranularity;
+
+    console.log("TopToolbar: granularity change", {
+      oldGranularity: this.state.granularity,
+      newGranularity,
+      newCandleCount,
+      finalCandleCount,
+      newTimeSpan,
+      newTimeRange: {
+        start: new Date(this.state.timeRange.start),
+        end: new Date(this.state.timeRange.end),
+      },
+    });
   }
 
   private handleProductChange(e: CustomEvent) {
@@ -80,7 +113,7 @@ export class TopToolbar extends LitElement {
         <div class="controls">
           <select
             class="timeframe-select"
-            .value=${this.selectedTimeframe}
+            .value=${this.state.granularity}
             @change=${this.handleTimeframeChange}
           >
             ${granularities.map(
@@ -93,7 +126,7 @@ export class TopToolbar extends LitElement {
 
           <product-select
             .products=${this.products}
-            .selectedProduct=${this.selectedProduct}
+            .selectedProduct=${this.state.symbol}
             @product-changed=${this.handleProductChange}
           ></product-select>
         </div>
