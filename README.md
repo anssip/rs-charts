@@ -21,6 +21,7 @@ bun run dev
 ## TODO
 
 - [ ] Fix timeline to not drow labels too close to each other
+- [ ] Volume chart
 - [ ] Use fonts and colors from the brand guide
 - [ ] Refactor to use the ChartManager
 - [ ] Add the ChartManager state wrapper
@@ -32,6 +33,14 @@ bun run dev
 - [ ] Live candle to a separate canvas?
 - [x] Add crosshairs
 - [x] Remove viewportStartTimestamp and viewportEndTimestamp variables and use state.timeRange instead
+
+### After MVP
+
+- [ ] Binance integration
+- [ ] Scripting
+- [ ] Indicators
+- [ ] API
+- [ ] Trading
 
 # User Documentation
 
