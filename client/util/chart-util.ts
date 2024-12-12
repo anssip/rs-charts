@@ -61,40 +61,13 @@ export function iterateTimeline({
   viewportEndTimestamp,
   canvasWidth,
 }: TimelineIteratorProps): void {
-  const granularityMs = granularityToMs(granularity);
+  const interval = granularityToMs(granularity); // Use candle interval
 
-  // Use fixed intervals based on granularity
-  const interval =
-    granularity === "ONE_HOUR"
-      ? 12 * 3600000 // Every 12 hours (12 * 1 hour in ms)
-      : 2 * 86400000; // Every 2 days for daily
+  // Align to candle boundaries
+  const firstTimestamp =
+    Math.floor(viewportStartTimestamp / interval) * interval;
 
-  let firstTimestamp: number;
-  if (granularity === "ONE_HOUR") {
-    // For hourly, align to 12-hour intervals in local time
-    const date = new Date(viewportStartTimestamp);
-    const baseHour = Math.floor(date.getHours() / 12) * 12;
-    firstTimestamp = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      baseHour,
-      0,
-      0,
-      0
-    ).getTime();
-  } else {
-    // For daily, align directly to candle boundaries
-    firstTimestamp = Math.floor(viewportStartTimestamp / interval) * interval;
-  }
-
-  // Ensure we start before the viewport
-  firstTimestamp -=
-    interval *
-    Math.ceil(
-      (firstTimestamp - (viewportStartTimestamp - interval)) / interval
-    );
-
+  // Iterate over each candle
   for (
     let timestamp = firstTimestamp;
     timestamp <= viewportEndTimestamp + interval;

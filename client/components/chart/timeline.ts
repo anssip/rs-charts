@@ -1,21 +1,11 @@
 import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
-import {
-  formatDate,
-  formatTime,
-  getFirstLabelTimestamp,
-  getGridInterval,
-  iterateTimeline,
-  timeToX,
-} from "../../util/chart-util";
+import { formatDate, formatTime, iterateTimeline } from "../../util/chart-util";
 import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
-import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
 
 const dpr = window.devicePixelRatio ?? 1;
-
-const TIMELINE_START_POS = 0; // pixels from the left
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {
@@ -71,23 +61,27 @@ export class Timeline extends CanvasBase {
 
       iterateTimeline({
         callback: (x: number, timestamp: number) => {
-          // Draw tick mark
-          ctx.beginPath();
-          ctx.strokeStyle = "#ccc";
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, 5 * dpr);
-          ctx.stroke();
-
           const date = new Date(timestamp);
+          const { shouldDrawLabel, shouldDrawDateLabel } = resolveShouldDraw(
+            date,
+            state.granularity
+          );
 
-          // Draw time label
-          const timeLabel = formatTime(date);
-          ctx.fillText(timeLabel, x, 8 * dpr);
+          if (shouldDrawLabel) {
+            // Draw tick mark
+            ctx.beginPath();
+            ctx.strokeStyle = "#ccc";
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, 5 * dpr);
+            ctx.stroke();
 
-          // Draw date label if at midnight
-          if (date.getHours() === 0 && date.getMinutes() === 0) {
+            // Draw time label
+            const timeLabel = formatTime(date);
+            ctx.fillText(timeLabel, x, 1 * dpr);
+          }
+          if (shouldDrawDateLabel) {
             const dateLabel = formatDate(date);
-            ctx.fillText(dateLabel, x, 20 * dpr);
+            ctx.fillText(dateLabel, x, 10 * dpr);
           }
         },
         granularity: state.granularity,
@@ -150,4 +144,57 @@ export class Timeline extends CanvasBase {
   private handleDragEnd = () => {
     this.isDragging = false;
   };
+}
+
+type ShouldDrawResult = {
+  shouldDrawLabel: boolean;
+  shouldDrawDateLabel: boolean;
+};
+
+function resolveShouldDraw(date: Date, granularity: string): ShouldDrawResult {
+  let shouldDrawLabel = false;
+  let shouldDrawDateLabel = false;
+
+  // For all granularities, check if we should draw a date label at midnight
+  if (
+    granularity !== "ONE_DAY" &&
+    date.getUTCHours() === 0 &&
+    date.getUTCMinutes() === 0
+  ) {
+    shouldDrawDateLabel = true;
+  }
+
+  switch (granularity) {
+    case "ONE_MINUTE":
+      shouldDrawLabel = date.getUTCMinutes() % 15 === 0; // Every 15 minutes
+      break;
+    case "FIVE_MINUTE":
+      shouldDrawLabel = date.getUTCMinutes() % 30 === 0; // Every 30 minutes
+      break;
+    case "FIFTEEN_MINUTE":
+      shouldDrawLabel = date.getUTCMinutes() === 0; // Every hour
+      break;
+    case "THIRTY_MINUTE":
+      shouldDrawLabel =
+        date.getUTCHours() % 4 === 0 && date.getUTCMinutes() === 0; // Every 4th hour
+      break;
+    case "ONE_HOUR":
+      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Every 12 hours
+      break;
+    case "TWO_HOUR":
+      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Every 12 hours
+      break;
+    case "SIX_HOUR":
+      shouldDrawLabel = date.getUTCHours() % 24 === 0; // Every 24 hours
+      break;
+    case "ONE_DAY":
+      // don't draw time labels at all
+      shouldDrawLabel = false;
+      shouldDrawDateLabel = date.getUTCDate() % 4 === 0;
+      break;
+    default:
+      shouldDrawLabel = date.getUTCHours() % 12 === 0; // Default to 12 hours
+  }
+
+  return { shouldDrawLabel, shouldDrawDateLabel };
 }
