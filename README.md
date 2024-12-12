@@ -20,6 +20,7 @@ bun run dev
 
 ## TODO
 
+- [ ] Use fonts and colors from the brand guide
 - [ ] Refactor to use the ChartManager
 - [ ] Add the ChartManager state wrapper
 - [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)

@@ -1,9 +1,18 @@
 import { customElement } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
-import { formatTime, getGridInterval, timeToX } from "../../util/chart-util";
+import {
+  formatDate,
+  formatTime,
+  getFirstLabelTimestamp,
+  getGridInterval,
+  timeToX,
+} from "../../util/chart-util";
 import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
 import { PriceHistory } from "../../../server/services/price-data/price-history-model";
+import { ChartState } from "../..";
+
+const dpr = window.devicePixelRatio ?? 1;
 
 const TIMELINE_START_POS = 0; // pixels from the left
 
@@ -39,10 +48,19 @@ export class Timeline extends CanvasBase {
     const viewportEndTimestamp = this.timeRange.end;
     const canvasWidth = xin["state.canvasWidth"] as number;
 
-    const data = xin["state.priceHistory"] as PriceHistory;
-    console.log("Timeline: draw", { viewportStartTimestamp, viewportEndTimestamp, data });
+    const mapTimeToX = timeToX(canvasWidth, {
+      start: viewportStartTimestamp,
+      end: viewportEndTimestamp,
+    });
+    const state = xin["state"] as ChartState;
+    const data = state.priceHistory;
 
-    const dpr = window.devicePixelRatio ?? 1;
+    console.log("Timeline: draw", {
+      viewportStartTimestamp,
+      viewportEndTimestamp,
+      data,
+    });
+
     const ctx = this.ctx;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -51,18 +69,20 @@ export class Timeline extends CanvasBase {
     ctx.fillStyle = "#666";
     ctx.textAlign = "center";
 
-    const labelInterval = getGridInterval(data);
+    // Calculate the first midnight in local timezone
+    const gridInterval = getGridInterval(state.granularity);
+    const firstLabelTimestamp = getFirstLabelTimestamp(
+      viewportStartTimestamp,
+      state.granularity
+    );
 
-    const firstLabelTimestamp =
-      Math.floor(viewportStartTimestamp / labelInterval) * labelInterval;
-
+    // Draw time labels
     for (
       let timestamp = firstLabelTimestamp;
-      timestamp <= viewportEndTimestamp + labelInterval;
-      timestamp += labelInterval
+      timestamp <= viewportEndTimestamp + gridInterval;
+      timestamp += gridInterval
     ) {
-
-      const x = timeToX(canvasWidth, { start: viewportStartTimestamp, end: viewportEndTimestamp })(timestamp) + TIMELINE_START_POS;
+      const x = mapTimeToX(timestamp);
 
       // Only draw if the label is within the visible area
       if (x >= 0 && x <= this.canvas.width / dpr) {
@@ -73,12 +93,41 @@ export class Timeline extends CanvasBase {
         ctx.lineTo(x, 5 * dpr);
         ctx.stroke();
 
-        // Draw label near top
+        // Draw time label
         const date = new Date(timestamp);
         const label = formatTime(date);
         ctx.fillText(label, x, 12 * dpr);
       }
     }
+
+    // Draw date labels
+    const endDate = new Date(this.timeRange.end).setHours(24, 0, 0, 0);
+    const firstMidnight = new Date(viewportStartTimestamp).setHours(0, 0, 0, 0);
+    let currentDate = firstMidnight;
+    while (currentDate < endDate) {
+      const x = mapTimeToX(currentDate);
+      if (x >= 0 && x <= this.canvas!.width) {
+        this.drawDateLabel(ctx, currentDate, x);
+      }
+      currentDate += 24 * 60 * 60 * 1000; // Add one day
+    }
+  }
+
+  private drawDateLabel(
+    ctx: CanvasRenderingContext2D,
+    timestamp: number,
+    x: number
+  ) {
+    ctx.save();
+
+    ctx.font = `${6 * dpr}px Arial`;
+    ctx.fillStyle = "#666";
+    ctx.textAlign = "center";
+
+    const dateStr = formatDate(new Date(timestamp));
+
+    ctx.fillText(dateStr, x, 10);
+    ctx.restore();
   }
 
   bindEventListeners(canvas: HTMLCanvasElement) {
@@ -126,7 +175,4 @@ export class Timeline extends CanvasBase {
   private handleDragEnd = () => {
     this.isDragging = false;
   };
-
 }
-
-
