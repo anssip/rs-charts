@@ -52,6 +52,8 @@ export type TimelineIteratorProps = {
   viewportEndTimestamp: number;
   canvasWidth: number;
   callback: (x: number, timestamp: number) => void;
+  interval?: number;
+  alignToLocalTime?: boolean;
 };
 
 export function iterateTimeline({
@@ -60,12 +62,14 @@ export function iterateTimeline({
   viewportStartTimestamp,
   viewportEndTimestamp,
   canvasWidth,
+  interval: intervalProp,
+  alignToLocalTime = false,
 }: TimelineIteratorProps): void {
-  const interval = granularityToMs(granularity);
+  const interval = intervalProp ?? granularityToMs(granularity);
 
   // For SIX_HOUR, align to local time boundaries
   let firstTimestamp = Math.floor(viewportStartTimestamp / interval) * interval;
-  if (granularity === "SIX_HOUR") {
+  if (granularity === "SIX_HOUR" || alignToLocalTime) {
     firstTimestamp = getLocalAlignedTimestamp(viewportStartTimestamp, 6);
     // Ensure we start before viewport
     while (firstTimestamp > viewportStartTimestamp - interval) {
@@ -78,12 +82,15 @@ export function iterateTimeline({
     timestamp <= viewportEndTimestamp + interval;
     timestamp += interval
   ) {
+    const ts = alignToLocalTime
+      ? getLocalAlignedTimestamp(timestamp, 6)
+      : timestamp;
     const x = timeToX(canvasWidth, {
       start: viewportStartTimestamp,
       end: viewportEndTimestamp,
-    })(timestamp);
+    })(ts);
 
-    callback(x, timestamp);
+    callback(x, ts);
   }
 }
 
