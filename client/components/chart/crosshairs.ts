@@ -1,12 +1,15 @@
 import { observe, xin } from "xinjs";
 import { CanvasBase } from "./canvas-base";
-import { TimeRange } from "../../candle-repository";
-import { PriceRange } from "../../../server/services/price-data/price-history-model";
+import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { customElement } from "lit/decorators.js";
-import { canvasYToPrice } from "../../util/chart-util";
+import {
+  canvasYToPrice,
+  drawPriceLabel,
+  drawTimeLabel,
+  getLocalAlignedTimestamp,
+} from "../../util/chart-util";
 import { CandlestickChart } from "./chart";
-import { drawPriceLabel } from "../../util/chart-util";
-import { drawTimeLabel } from "../../util/chart-util";
+import { ChartState } from "../..";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
@@ -14,6 +17,7 @@ export class Crosshairs extends CanvasBase {
   private mouseY: number = -1;
   private cursorPrice: number = 0;
   private cursorTime: number = 0;
+  private snappedX: number = -1;
 
   override getId(): string {
     return "chart-crosshairs";
@@ -43,16 +47,38 @@ export class Crosshairs extends CanvasBase {
       return;
     }
 
+    const dpr = window.devicePixelRatio || 1;
     const chartWidth = xin["state.canvasWidth"] as number;
+    const state = xin["state"] as ChartState;
+    const timeRange = state.timeRange;
+    const priceRange = state.priceRange;
 
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
 
-    const timeRange = xin["state.timeRange"] as TimeRange;
-    const priceRange = xin["state.priceRange"] as PriceRange;
-
+    // Calculate time at mouse position
     const timeSpan = timeRange.end - timeRange.start;
-    this.cursorTime = timeRange.start + (this.mouseX / chartWidth) * timeSpan;
+    const mouseTime = timeRange.start + (this.mouseX / chartWidth) * timeSpan;
+
+    // Get the interval and snap to it
+    const interval = granularityToMs(state.granularity);
+    const firstTimestamp = Math.floor(timeRange.start / interval) * interval;
+
+    // Find the nearest interval timestamp
+    const intervalsSinceMidnight = Math.round(
+      (mouseTime - firstTimestamp) / interval
+    );
+    const snappedTime = firstTimestamp + intervalsSinceMidnight * interval;
+
+    // For SIX_HOUR, align to local time boundaries
+    this.cursorTime =
+      state.granularity === "SIX_HOUR"
+        ? getLocalAlignedTimestamp(snappedTime, 6)
+        : snappedTime;
+
+    // Calculate X position from snapped time
+    const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
+    this.snappedX = timePosition * chartWidth;
 
     this.cursorPrice = canvasYToPrice(this.mouseY, chart.canvas!, priceRange);
 
@@ -82,46 +108,46 @@ export class Crosshairs extends CanvasBase {
     }
 
     const ctx = this.ctx;
-    const dpr = window.devicePixelRatio || 1;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    const deviceMouseX = this.mouseX;
-    const deviceMouseY = this.mouseY;
-
+    // Draw horizontal line at mouse Y
+    ctx.beginPath();
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = "black";
     ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(0, deviceMouseY);
-    ctx.lineTo(this.canvas.width, deviceMouseY);
+    ctx.moveTo(0, this.mouseY);
+    ctx.lineTo(this.canvas.width, this.mouseY);
     ctx.stroke();
 
+    // Draw vertical line at snapped X
     ctx.beginPath();
-    ctx.moveTo(deviceMouseX, 0);
-    ctx.lineTo(deviceMouseX, this.canvas.height);
+    ctx.moveTo(this.snappedX, 0);
+    ctx.lineTo(this.snappedX, this.canvas.height);
     ctx.stroke();
 
     ctx.setLineDash([]);
 
+    const dpr = window.devicePixelRatio || 1;
+
+    // Draw labels
     drawPriceLabel(
       ctx,
       this.cursorPrice,
-      this.canvas.width / dpr - 50, // x position from left edge
-      deviceMouseY, // y position
-      "gray", // background color
-      "white", // text color
-      50 // width
+      this.canvas.width / dpr - 50,
+      this.mouseY,
+      "gray",
+      "white",
+      50
     );
 
     drawTimeLabel(
       ctx,
       this.cursorTime,
-      deviceMouseX,
+      this.snappedX,
       this.canvas.height / dpr - 10 * dpr,
-      "#eee", // light gray background
-      "#000" // black text
+      "#eee",
+      "#000"
     );
   }
 

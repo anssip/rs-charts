@@ -1,28 +1,13 @@
 import {
-  formatTime,
-  getGridInterval,
   iterateTimeline,
   priceToY,
+  getTimelineMarks,
 } from "../../util/chart-util";
 import { getPriceStep } from "../../util/price-util";
 import { DrawingContext, Drawable } from "./drawing-strategy";
 
 export class HairlineGrid implements Drawable {
-  private animationFrameId: number | null = null;
-
   public draw(context: DrawingContext): void {
-    // Cancel any pending animation frame
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
-
-    // Schedule the actual drawing
-    this.animationFrameId = requestAnimationFrame(() => {
-      this.drawGrid(context);
-    });
-  }
-
-  private drawGrid(context: DrawingContext): void {
     const {
       ctx,
       chartCanvas: canvas,
@@ -38,37 +23,32 @@ export class HairlineGrid implements Drawable {
       end: priceRange.max,
     });
 
-    ctx.strokeStyle = "#ddd";
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 1;
-
-    ctx.font = `${6 * dpr}px Arial`;
-    ctx.fillStyle = "#999";
-    ctx.textAlign = "center";
+    ctx.strokeStyle = "rgba(180, 180, 180, 1)";
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 0.5;
 
     iterateTimeline({
       callback: (x: number, timestamp: number) => {
-        // Only draw if the line is within the visible area
-        if (x >= 0 && x <= canvas.width) {
-          // Draw grid line
+        const { tickMark: tickkMark, dateChange } = getTimelineMarks(
+          new Date(timestamp),
+          data.getGranularity()
+        );
+        const doDraw =
+          data.getGranularity() === "ONE_DAY" ? dateChange : tickkMark;
+
+        if (doDraw && x >= 0 && x <= canvas.width) {
           ctx.beginPath();
           ctx.moveTo(x, 0);
           ctx.lineTo(x, canvas.height / dpr);
           ctx.stroke();
-
-          // Draw time label at the top of grid line
-          ctx.fillText(formatTime(new Date(timestamp)), x, 10);
         }
       },
       granularity: data.getGranularity(),
       viewportStartTimestamp,
       viewportEndTimestamp,
       canvasWidth: canvas.width / dpr,
-      interval: getGridInterval(data.getGranularity()),
-      alignToLocalTime: true,
     });
 
-    // Draw horizontal lines for price levels
     const priceStep = getPriceStep(priceRange.range);
     const firstPriceGridLine =
       Math.floor(priceRange.min / priceStep) * priceStep;
@@ -90,8 +70,6 @@ export class HairlineGrid implements Drawable {
   }
 
   public destroy(): void {
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
+    // No cleanup needed
   }
 }

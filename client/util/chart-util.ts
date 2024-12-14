@@ -63,14 +63,26 @@ export function iterateTimeline({
   viewportEndTimestamp,
   canvasWidth,
   interval: intervalProp,
-  alignToLocalTime = false,
+  alignToLocalTime = true,
 }: TimelineIteratorProps): void {
   const interval = intervalProp ?? granularityToMs(granularity);
 
-  // For SIX_HOUR, align to local time boundaries
+  // Calculate exact x positions based on time proportion
+  const timeToX = (timestamp: number) => {
+    const timePosition =
+      (timestamp - viewportStartTimestamp) /
+      (viewportEndTimestamp - viewportStartTimestamp);
+    return timePosition * canvasWidth;
+  };
+
   let firstTimestamp = Math.floor(viewportStartTimestamp / interval) * interval;
+
+  // Always align SIX_HOUR granularity, regardless of alignToLocalTime
   if (granularity === "SIX_HOUR" || alignToLocalTime) {
-    firstTimestamp = getLocalAlignedTimestamp(viewportStartTimestamp, 6);
+    firstTimestamp = getLocalAlignedTimestamp(
+      viewportStartTimestamp,
+      granularity === "SIX_HOUR" ? 6 : interval / (60 * 60 * 1000)
+    );
     // Ensure we start before viewport
     while (firstTimestamp > viewportStartTimestamp - interval) {
       firstTimestamp -= interval;
@@ -82,14 +94,14 @@ export function iterateTimeline({
     timestamp <= viewportEndTimestamp + interval;
     timestamp += interval
   ) {
-    const ts = alignToLocalTime
-      ? getLocalAlignedTimestamp(timestamp, 6)
-      : timestamp;
-    const x = timeToX(canvasWidth, {
-      start: viewportStartTimestamp,
-      end: viewportEndTimestamp,
-    })(ts);
-
+    const ts =
+      granularity === "SIX_HOUR" || alignToLocalTime
+        ? getLocalAlignedTimestamp(
+            timestamp,
+            granularity === "SIX_HOUR" ? 6 : interval / (60 * 60 * 1000)
+          )
+        : timestamp;
+    const x = timeToX(ts);
     callback(x, ts);
   }
 }
@@ -263,4 +275,75 @@ export function getLocalAlignedTimestamp(
       alignedHours + offsetHours
     )
   ).getTime();
+}
+
+type TimelineMarks = {
+  tickMark: boolean;
+  dateChange: boolean;
+};
+
+export function getTimelineMarks(
+  date: Date,
+  granularity: string
+): TimelineMarks {
+  let tickMark = false;
+  let dateChange = false;
+
+  // Convert UTC timestamp to local time for checking
+  const localDate = new Date(date.getTime());
+
+  if (
+    granularity !== "ONE_DAY" &&
+    localDate.getHours() === 0 &&
+    localDate.getMinutes() === 0
+  ) {
+    dateChange = true;
+  }
+
+  switch (granularity) {
+    case "ONE_MINUTE":
+      tickMark = localDate.getMinutes() % 15 === 0; // Every 15 minutes
+      break;
+    case "FIVE_MINUTE":
+      tickMark = localDate.getMinutes() % 30 === 0; // Every 30 minutes
+      break;
+    case "FIFTEEN_MINUTE":
+      tickMark = localDate.getMinutes() === 0; // Every hour
+      break;
+    case "THIRTY_MINUTE":
+      tickMark = localDate.getHours() % 4 === 0 && localDate.getMinutes() === 0; // Every 4th hour
+      break;
+    case "ONE_HOUR":
+      tickMark = localDate.getHours() % 12 === 0; // Every 12 hours
+      break;
+    case "TWO_HOUR":
+      tickMark = localDate.getHours() % 12 === 0; // Every 12 hours
+      break;
+    case "SIX_HOUR":
+      const alignedTimestamp = getLocalAlignedTimestamp(date.getTime(), 6);
+
+      const candlesSinceMidnight = Math.floor(
+        (date.getTime() - getLocalAlignedTimestamp(date.getTime(), 24)) /
+          (6 * 60 * 60 * 1000)
+      );
+
+      // Rvery 4th candle starting from midnight
+      tickMark =
+        candlesSinceMidnight % 4 === 0 && alignedTimestamp === date.getTime();
+
+      // Date change at midnight
+      dateChange =
+        candlesSinceMidnight === 0 && alignedTimestamp === date.getTime();
+      break;
+    case "ONE_DAY":
+      // no tick marks
+      tickMark = false;
+      // date change every 4th day
+      dateChange = localDate.getDate() % 4 === 0;
+      break;
+    default:
+      // Default to 12 hours
+      tickMark = localDate.getHours() % 12 === 0;
+  }
+  return { tickMark, dateChange };
 }
