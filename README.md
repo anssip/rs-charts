@@ -20,16 +20,15 @@ bun run dev
 
 ## TODO
 
-- [x] Fix timeline to not drow labels too close to each other
-- [ ] Refactor grid drawing to use new timeline iterator
-- [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
-- [ ] Fix candle alignment to center on granularities (30 minute candles are centered on exact hour or 30 minute mark)
-- [ ] Add iteratePriceRange to draw price labels and grid lines
 - [ ] Volume chart
 - [ ] Use fonts and colors from the brand guide
-- [ ] Refactor to use the ChartManager
-- [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
 - [ ] Deploy to GCP or AWS with some CDN.
+- [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
+- [x] Fix timeline to not drow labels too close to each other
+- [x] Refactor grid drawing to use new timeline iterator
+- [x] Fix candle alignment to center on granularities (30 minute candles are centered on exact hour or 30 minute mark)
+- [ ] Add iteratePriceRange to draw price labels and grid lines
+- [ ] Refactor to use the ChartManager
 - [x] Add textual live price info
 - [x] Add product selector
 - [ ] Add granularity selector
