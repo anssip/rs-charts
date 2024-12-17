@@ -47,6 +47,8 @@ export class LiveCandleSubscription {
         console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id); // Add this log
         if (snapshot.exists()) {
           const data = snapshot.data() as LiveCandle;
+
+          // TODO: Live candles do not include volume
           const candle: LiveCandle = {
             ...data,
             lastUpdate:
