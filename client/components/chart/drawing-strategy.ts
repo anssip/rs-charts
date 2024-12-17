@@ -5,6 +5,7 @@ import {
 } from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
 import { xin } from "xinjs";
+import { iterateTimeline } from "../../util/chart-util";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -31,103 +32,114 @@ export class CandlestickStrategy implements Drawable {
   private readonly FIXED_GAP_WIDTH = 2; // pixels
   private readonly MIN_CANDLE_WIDTH = 1; // pixels
   private readonly MAX_CANDLE_WIDTH = 500; // pixels
+  private animationFrameId: number | null = null;
 
   drawGrid(context: DrawingContext): void {
     this.grid.draw(context);
   }
 
   draw(context: DrawingContext): void {
+    // Cancel any pending animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+
+    // Schedule the actual drawing
+    this.animationFrameId = requestAnimationFrame(() => {
+      this.drawCandles(context);
+    });
+  }
+
+  private drawCandles(context: DrawingContext): void {
     const {
       ctx,
       chartCanvas: canvas,
       data,
-      axisMappings: { priceToY, timeToX },
+      axisMappings: { priceToY },
+      viewportStartTimestamp,
+      viewportEndTimestamp,
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
+    // 1. Clear the entire canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Draw the grid first (it will be in the background)
     this.drawGrid(context);
 
-    // Calculate number of candles in view
-    const timeSpan =
-      context.viewportEndTimestamp - context.viewportStartTimestamp;
+    // 3. Save the canvas state before drawing candles
+    ctx.save();
+
+    // Calculate candle width
+    const timeSpan = viewportEndTimestamp - viewportStartTimestamp;
     const candleCount = Math.ceil(timeSpan / data.granularityMs);
     const availableWidth = canvas.width / dpr;
 
-    // Calculate candle width to fill space with fixed gaps
-    const totalGapWidth = ((candleCount - 1) * this.FIXED_GAP_WIDTH) / dpr; // gaps between candles
+    const totalGapWidth = ((candleCount - 1) * this.FIXED_GAP_WIDTH) / dpr;
     const spaceForCandles = availableWidth - totalGapWidth;
     const candleWidth = Math.max(
       this.MIN_CANDLE_WIDTH,
       Math.min(this.MAX_CANDLE_WIDTH, spaceForCandles / candleCount)
     );
-    console.log("CandlestickStrategy: timeSpan", timeSpan / (1000 * 60));
-    console.log(
-      "CandlestickStrategy: granularity",
-      data.granularityMs / (1000 * 60 * 60)
-    );
-    console.log("CandlestickStrategy: candleCount", candleCount);
-    console.log("CandlestickStrategy: candleWidth", candleWidth);
 
-    const visibleCandles = data.getCandlesInRange(
-      context.viewportStartTimestamp,
-      context.viewportEndTimestamp
-    );
-    if (visibleCandles.length === 0) {
-      return;
-    }
+    // 4. Draw candles on top
+    iterateTimeline({
+      callback: (x: number, timestamp: number) => {
+        const candle = data.getCandle(timestamp);
+        if (!candle) return;
 
-    // console.log(
-    //   "CandlestickStrategy: Drawing, visibleCandles",
-    //   JSON.stringify({
-    //     viewportStartTimestamp: new Date(context.viewportStartTimestamp),
-    //     viewportEndTimestamp: new Date(context.viewportEndTimestamp),
-    //     priceRange: context.priceRange,
-    //     dataLength: data.length,
-    //     canvasWidth: canvas.width,
-    //     canvasHeight: canvas.height,
-    //     visibleCandlesLength: visibleCandles.length,
-    //     dpr,
-    //   })
-    // );
+        if (
+          `${candle.granularity}` !== `${xin["state.granularity"] as string}`
+        ) {
+          throw new Error(
+            `CandlestickStrategy: Candle granularity does not match state granularity: ${
+              candle.granularity
+            } !== ${xin["state.granularity"] as string}`
+          );
+        }
 
-    visibleCandles.forEach(([timestamp, candle]) => {
-      if (`${candle.granularity}` !== `${xin["state.granularity"] as string}`) {
-        throw new Error(
-          `CandlestickStrategy: Candle granularity does not match state granularity: ${
-            candle.granularity
-          } !== ${xin["state.granularity"] as string}`
-        );
-      }
-      const centerX = timeToX(timestamp);
-      const x = (centerX - candleWidth / 2) / dpr;
+        // Calculate x position for candle
+        const candleX = x - candleWidth / 2;
 
-      if (candle.live) {
-        console.log("Live: Drawing live candle:", candle);
-      }
+        // Draw wick
+        ctx.beginPath();
+        ctx.strokeStyle = candle.close > candle.open ? "#00a000" : "#d00000";
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1;
 
-      // Draw wick
-      ctx.beginPath();
-      ctx.strokeStyle = candle.close > candle.open ? "green" : "red";
-      ctx.setLineDash([]);
-      ctx.lineWidth = 1;
+        const highY = priceToY(candle.high);
+        const lowY = priceToY(candle.low);
+        const wickX = candleX + candleWidth / 2;
 
-      const highY = priceToY(candle.high);
-      const lowY = priceToY(candle.low);
-      const wickX = x + candleWidth / 2;
+        ctx.moveTo(wickX, highY);
+        ctx.lineTo(wickX, lowY);
+        ctx.stroke();
 
-      ctx.moveTo(wickX, highY);
-      ctx.lineTo(wickX, lowY);
-      ctx.stroke();
+        // Draw body
+        const openY = priceToY(candle.open);
+        const closeY = priceToY(candle.close);
+        const bodyHeight = Math.abs(closeY - openY);
+        const bodyTop = Math.min(closeY, openY);
 
-      // Draw body
-      const openY = priceToY(candle.open);
-      const closeY = priceToY(candle.close);
-      const bodyHeight = Math.abs(closeY - openY);
-      const bodyTop = Math.min(closeY, openY);
-
-      ctx.fillStyle = candle.close > candle.open ? "green" : "red";
-      ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+        ctx.fillStyle = candle.close > candle.open ? "#00a000" : "#d00000";
+        ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
+      },
+      granularity: data.getGranularity(),
+      viewportStartTimestamp,
+      viewportEndTimestamp,
+      canvasWidth: canvas.width / dpr,
+      interval: data.granularityMs,
+      alignToLocalTime: false,
     });
+
+    // 5. Restore the canvas state
+    ctx.restore();
+  }
+
+  public destroy(): void {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    this.grid.destroy();
   }
 }

@@ -3,24 +3,21 @@ import { CanvasBase } from "./canvas-base";
 import {
   formatDate,
   formatTime,
-  getFirstLabelTimestamp,
-  getGridInterval,
-  timeToX,
+  iterateTimeline,
+  getTimelineMarks,
 } from "../../util/chart-util";
 import { observe, xin } from "xinjs";
 import { TimeRange } from "../../candle-repository";
-import { PriceHistory } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
 
 const dpr = window.devicePixelRatio ?? 1;
-
-const TIMELINE_START_POS = 0; // pixels from the left
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {
   private isDragging = false;
   private lastX = 0;
   private timeRange: TimeRange = { start: 0, end: 0 };
+  private animationFrameId: number | null = null;
 
   override getId(): string {
     return "chart-timeline";
@@ -44,90 +41,67 @@ export class Timeline extends CanvasBase {
       console.warn("Timeline: canvas or ctx not found");
       return;
     }
-    const viewportStartTimestamp = this.timeRange.start;
-    const viewportEndTimestamp = this.timeRange.end;
-    const canvasWidth = xin["state.canvasWidth"] as number;
 
-    const mapTimeToX = timeToX(canvasWidth, {
-      start: viewportStartTimestamp,
-      end: viewportEndTimestamp,
-    });
-    const state = xin["state"] as ChartState;
-    const data = state.priceHistory;
-
-    console.log("Timeline: draw", {
-      viewportStartTimestamp,
-      viewportEndTimestamp,
-      data,
-    });
-
-    const ctx = this.ctx;
-
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    ctx.font = `${6 * dpr}px Arial`;
-    ctx.fillStyle = "#666";
-    ctx.textAlign = "center";
-
-    // Calculate the first midnight in local timezone
-    const gridInterval = getGridInterval(state.granularity);
-    const firstLabelTimestamp = getFirstLabelTimestamp(
-      viewportStartTimestamp,
-      state.granularity
-    );
-
-    // Draw time labels
-    for (
-      let timestamp = firstLabelTimestamp;
-      timestamp <= viewportEndTimestamp + gridInterval;
-      timestamp += gridInterval
-    ) {
-      const x = mapTimeToX(timestamp);
-
-      // Only draw if the label is within the visible area
-      if (x >= 0 && x <= this.canvas.width / dpr) {
-        // Draw tick mark
-        ctx.beginPath();
-        ctx.strokeStyle = "#ccc";
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 5 * dpr);
-        ctx.stroke();
-
-        // Draw time label
-        const date = new Date(timestamp);
-        const label = formatTime(date);
-        ctx.fillText(label, x, 12 * dpr);
-      }
+    // Cancel any pending animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Draw date labels
-    const endDate = new Date(this.timeRange.end).setHours(24, 0, 0, 0);
-    const firstMidnight = new Date(viewportStartTimestamp).setHours(0, 0, 0, 0);
-    let currentDate = firstMidnight;
-    while (currentDate < endDate) {
-      const x = mapTimeToX(currentDate);
-      if (x >= 0 && x <= this.canvas!.width) {
-        this.drawDateLabel(ctx, currentDate, x);
-      }
-      currentDate += 24 * 60 * 60 * 1000; // Add one day
-    }
+    // Schedule the actual drawing
+    this.animationFrameId = requestAnimationFrame(() => {
+      const viewportStartTimestamp = this.timeRange.start;
+      const viewportEndTimestamp = this.timeRange.end;
+      const canvasWidth = this.canvas!.width / dpr;
+
+      const state = xin["state"] as ChartState;
+
+      const ctx = this.ctx!;
+      ctx.clearRect(0, 0, this.canvas!.width, this.canvas!.height);
+
+      // Set text properties once
+      ctx.font = `${6 * dpr}px Arial`;
+      ctx.fillStyle = "#666";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top"; // Consistent text baseline
+
+      iterateTimeline({
+        callback: (x: number, timestamp: number) => {
+          const date = new Date(timestamp);
+          const { tickMark, dateChange } = getTimelineMarks(
+            date,
+            state.granularity
+          );
+
+          if (tickMark) {
+            // Draw tick mark
+            ctx.beginPath();
+            ctx.strokeStyle = "#ccc";
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, 5 * dpr);
+            ctx.stroke();
+
+            // Draw time label
+            const timeLabel = formatTime(date);
+            ctx.fillText(timeLabel, x, 1 * dpr);
+          }
+          if (dateChange) {
+            const dateLabel = formatDate(date);
+            ctx.fillText(dateLabel, x, 10 * dpr);
+          }
+        },
+        granularity: state.granularity,
+        viewportStartTimestamp,
+        viewportEndTimestamp,
+        canvasWidth,
+      });
+    });
   }
 
-  private drawDateLabel(
-    ctx: CanvasRenderingContext2D,
-    timestamp: number,
-    x: number
-  ) {
-    ctx.save();
-
-    ctx.font = `${6 * dpr}px Arial`;
-    ctx.fillStyle = "#666";
-    ctx.textAlign = "center";
-
-    const dateStr = formatDate(new Date(timestamp));
-
-    ctx.fillText(dateStr, x, 10);
-    ctx.restore();
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
   }
 
   bindEventListeners(canvas: HTMLCanvasElement) {

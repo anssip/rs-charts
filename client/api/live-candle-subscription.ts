@@ -33,10 +33,12 @@ export class LiveCandleSubscription {
   ): void {
     this.unsubscribe?.();
 
-    const interval = granularityLabel(granularity);
+    console.log(
+      `Live: subscribing to exchanges/coinbase/products/${symbol}/intervals/${granularity}`
+    );
     const docRef = doc(
       this.firestore,
-      `exchanges/coinbase/products/${symbol}/intervals/${interval}`
+      `exchanges/coinbase/products/${symbol}/intervals/${granularity}`
     );
 
     this._unsubscribe = onSnapshot(
@@ -55,7 +57,7 @@ export class LiveCandleSubscription {
           onUpdate(candle);
         } else {
           console.log(
-            `Live: Document exchanges/coinbase/products/${symbol}/intervals/${interval} does not exist`
+            `Live: Document exchanges/coinbase/products/${symbol}/intervals/${granularity} does not exist`
           );
         }
       },
