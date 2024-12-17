@@ -347,3 +347,7 @@ export function getTimelineMarks(
   }
   return { tickMark, dateChange };
 }
+
+export function getCandleInterval(granularity: Granularity): number {
+  return granularityToMs(granularity);
+}

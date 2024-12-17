@@ -1,7 +1,4 @@
-import {
-  CANDLE_INTERVAL,
-  ChartContainer,
-} from "./components/chart/chart-container";
+import { ChartContainer } from "./components/chart/chart-container";
 import { CandleRepository, TimeRange } from "./candle-repository";
 import {
   LiveCandleSubscription,
@@ -18,6 +15,7 @@ import {
 import { ChartState } from ".";
 import { FirestoreClient } from "./api/firestore-client";
 import { observe, xin } from "xinjs";
+import { getCandleInterval } from "./util/chart-util";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
@@ -95,7 +93,8 @@ export class App {
       const timestamps = Array.from(candles.keys()).sort((a, b) => a - b);
       const viewportEndTimestamp = timestamps[timestamps.length - 1];
       const viewportStartTimestamp =
-        viewportEndTimestamp - visibleCandles * CANDLE_INTERVAL;
+        viewportEndTimestamp -
+        visibleCandles * getCandleInterval(this.state.granularity);
 
       this.chartContainer!.endTimestamp = viewportEndTimestamp;
       this.chartContainer!.startTimestamp = viewportStartTimestamp;
