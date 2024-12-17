@@ -1,6 +1,6 @@
 import { html, LitElement, css } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
-import { observe } from "xinjs";
+import { observe, xinValue } from "xinjs";
 import { xin } from "xinjs";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { formatPrice } from "../../util/price-util";
@@ -12,7 +12,7 @@ import {
 @customElement("price-info")
 export class PriceInfo extends LitElement {
   @property({ type: String })
-  product = "";
+  symbol = "";
 
   @property({ type: String })
   granularity: Granularity = (xin["state.granularity"] ??
@@ -62,12 +62,15 @@ export class PriceInfo extends LitElement {
   `;
 
   firstUpdated() {
-    observe("state.liveCandle", (path) => {
-      console.log("PriceInfo: liveCandle changed", xin[path]);
-      this.liveCandle = xin[path] as LiveCandle;
+    observe("state.liveCandle", () => {
+      this.liveCandle = xinValue(xin["state.liveCandle"]) as LiveCandle;
     });
-    observe("state.granularity", (path) => {
-      this.granularity = xin[path] as Granularity;
+    observe("state.granularity", () => {
+      this.granularity = xinValue(xin["state.granularity"]) as Granularity;
+    });
+    observe("state.symbol", () => {
+      this.symbol = xinValue(xin["state.symbol"]) as string;
+      console.log("PriceInfo: symbol changed", this.symbol);
     });
   }
 
@@ -83,7 +86,7 @@ export class PriceInfo extends LitElement {
 
     return html`<div class="price-info">
       <span class="product-info">
-        ${this.product} • ${granularityLabel(this.granularity)}
+        ${this.symbol} • ${granularityLabel(this.granularity)}
       </span>
       <span>
         <span class="price-label">Open</span>

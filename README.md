@@ -20,7 +20,7 @@ bun run dev
 
 ## TODO
 
-- [ ] Volume chart
+- [x] Volume chart
 - [ ] Use fonts and colors from the brand guide
 - [ ] Deploy to GCP or AWS with some CDN.
 - [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
