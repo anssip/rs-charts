@@ -17,13 +17,12 @@ import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
-import { priceToY, timeToX } from "../../util/chart-util";
+import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
-export const CANDLE_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour in ms
 export const TIMELINE_HEIGHT = 40;
 
 @customElement("chart-container")
@@ -246,7 +245,8 @@ export class ChartContainer extends LitElement {
 
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
-      this._state.timeRange.end - visibleCandles * CANDLE_INTERVAL;
+      this._state.timeRange.end -
+      visibleCandles * getCandleInterval(this.state.granularity);
 
     if (
       newStartTimestamp > 0 &&
@@ -416,7 +416,7 @@ export class ChartContainer extends LitElement {
       timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
     const newTimeRange = Math.max(
       timeRange - timeAdjustment,
-      CANDLE_INTERVAL * 10
+      getCandleInterval(this._state.granularity) * 10
     );
     const rangeDifference = timeRange - newTimeRange;
 
@@ -424,9 +424,9 @@ export class ChartContainer extends LitElement {
     const newEnd =
       this._state.timeRange.end - rangeDifference * (1 - zoomCenter);
 
-    if (newEnd - newStart < CANDLE_INTERVAL * 10) {
+    if (newEnd - newStart < getCandleInterval(this._state.granularity) * 10) {
       const center = (newStart + newEnd) / 2;
-      const minHalfRange = CANDLE_INTERVAL * 5;
+      const minHalfRange = getCandleInterval(this._state.granularity) * 5;
       this._state.timeRange = {
         start: center - minHalfRange,
         end: center + minHalfRange,
@@ -460,7 +460,7 @@ export class ChartContainer extends LitElement {
     }
 
     const timeRange = this._state.timeRange.end - this._state.timeRange.start;
-    const numCandles = timeRange / CANDLE_INTERVAL;
+    const numCandles = timeRange / getCandleInterval(this._state.granularity);
 
     const availableWidth =
       this.chart.canvas.width / (window.devicePixelRatio ?? 1) -

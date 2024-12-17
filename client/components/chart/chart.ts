@@ -8,8 +8,7 @@ import { CanvasBase } from "./canvas-base";
 import { touch, xin } from "xinjs";
 import { ChartState } from "../..";
 import { TimeRange } from "../../candle-repository";
-import { CANDLE_INTERVAL } from "./chart-container";
-import { priceToY, timeToX } from "../../util/chart-util";
+import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
@@ -241,14 +240,14 @@ export class CandlestickChart extends CanvasBase implements Drawable {
         ? {
             start:
               this._state.priceHistory.startTimestamp -
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+              FETCH_BATCH_SIZE * getCandleInterval(this._state.granularity),
             end: this._state.priceHistory.startTimestamp,
           }
         : {
             start: this._state.priceHistory.endTimestamp,
             end:
               this._state.priceHistory.endTimestamp +
-              FETCH_BATCH_SIZE * CANDLE_INTERVAL,
+              FETCH_BATCH_SIZE * getCandleInterval(this._state.granularity),
           };
     console.log("Dispatching chart-pan event", {
       direction,
