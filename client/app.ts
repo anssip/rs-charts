@@ -248,13 +248,6 @@ export class App {
       async (liveCandle: LiveCandle) => {
         console.log("App: Received live candle:", liveCandle);
 
-        const oldState = {
-          ...this.state,
-        };
-        this.state.liveCandle = liveCandle;
-        this.chartContainer?.requestUpdate("state", oldState);
-
-        this.chartContainer?.updateLiveCandle(liveCandle);
         if (
           liveCandle.timestamp > (this.state.priceHistory.endTimestamp ?? 0)
         ) {
@@ -280,6 +273,8 @@ export class App {
             this.chartContainer.state = this.state;
           }
         }
+        this.state.liveCandle = liveCandle;
+        this.chartContainer?.updateLiveCandle(liveCandle);
       }
     );
   }

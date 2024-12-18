@@ -54,6 +54,7 @@ export class CoinbasePriceDataService {
         high: parseFloat(candle.high),
         low: parseFloat(candle.low),
         close: parseFloat(candle.close),
+        volume: parseFloat(candle.volume),
         granularity: granularity,
       });
       return data;

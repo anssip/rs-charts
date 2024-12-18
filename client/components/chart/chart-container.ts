@@ -11,6 +11,7 @@ import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
 import "./toolbar/top-toolbar";
+import "./volume-chart";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
@@ -214,6 +215,9 @@ export class ChartContainer extends LitElement {
           </div>
           <div class="chart">
             <candlestick-chart></candlestick-chart>
+          </div>
+          <div class="volume-chart">
+            <volume-chart></volume-chart>
           </div>
 
           <live-decorators></live-decorators>
@@ -505,6 +509,7 @@ export class ChartContainer extends LitElement {
       low: liveCandle.low,
       close: liveCandle.close,
       granularity: this._state.granularity,
+      volume: liveCandle.volume,
       live: true,
     });
     this.draw();
@@ -551,6 +556,27 @@ export class ChartContainer extends LitElement {
       pointer-events: auto;
     }
 
+    .volume-chart {
+      position: absolute;
+      bottom: ${TIMELINE_HEIGHT}px;
+      left: 0;
+      width: calc(100% - 50px);
+      height: 25%;
+      pointer-events: none;
+      z-index: 2;
+      background: none;
+    }
+
+    volume-chart {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: none;
+    }
+
     .price-axis-container,
     .timeline-container {
       position: absolute;
@@ -562,7 +588,7 @@ export class ChartContainer extends LitElement {
       right: 0;
       top: 0;
       width: 50px;
-      height: calc(100% - ${TIMELINE_HEIGHT}px);
+      height: 100%;
     }
 
     chart-timeline {
