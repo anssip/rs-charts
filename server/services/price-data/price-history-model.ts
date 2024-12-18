@@ -44,6 +44,7 @@ export interface CandleData {
   high: number;
   low: number;
   close: number;
+  volume: number;
   live: boolean;
 }
 export type CandleDataByTimestamp = Map<number, CandleData>;
@@ -354,6 +355,7 @@ export class SimplePriceHistory implements PriceHistory {
         high: Math.max(existingCandle.high, candle.high, candle.close),
         low: Math.min(existingCandle.low, candle.low, candle.close),
         close: candle.close, // Always update to latest price
+        volume: candle.volume,
         live: true,
         granularity: this.granularity,
       };
