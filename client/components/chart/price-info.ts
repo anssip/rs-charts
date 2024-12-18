@@ -54,7 +54,7 @@ export class PriceInfo extends LitElement {
     }
 
     .price-value {
-      color: var(--accent-color);
+      color: var(--accent-secondary-yellow-green);
       font-size: 13px;
       font-weight: 600;
       margin-left: 4px;

@@ -103,7 +103,14 @@ export class CandlestickStrategy implements Drawable {
 
         // Draw wick
         ctx.beginPath();
-        ctx.strokeStyle = candle.close > candle.open ? "#00a000" : "#d00000";
+        ctx.strokeStyle =
+          candle.close > candle.open
+            ? getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-accent-1")
+                .trim()
+            : getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-error")
+                .trim();
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
 
@@ -121,7 +128,14 @@ export class CandlestickStrategy implements Drawable {
         const bodyHeight = Math.abs(closeY - openY);
         const bodyTop = Math.min(closeY, openY);
 
-        ctx.fillStyle = candle.close > candle.open ? "#00a000" : "#d00000";
+        ctx.fillStyle =
+          candle.close > candle.open
+            ? getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-accent-1")
+                .trim()
+            : getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-error")
+                .trim();
         ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
       },
       granularity: data.getGranularity(),

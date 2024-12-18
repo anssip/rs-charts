@@ -1,7 +1,18 @@
 :root {
+    /* primary colors */
+    --color-primary: #5d5bed;
+    --color-primary-dark: #181818;
+
+    /* secondary colors */
+    --color-accent-1: #d7ea57;
+    --color-accent-2: #f1fee0;
+    --color-gray-100: #f8f8f8;
+    --color-error: #eb4545;
+    --color-white: #FFFFFF;
+
+    /* other */
     --color-background-secondary: rgb(143, 143, 143);
     --color-background-secondary-rgb: 143, 143, 143; /* Keep this for opacity use cases */
-    --accent-color: #56deaa;
 }
 
 html, body {

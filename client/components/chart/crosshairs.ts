@@ -47,7 +47,7 @@ export class Crosshairs extends CanvasBase {
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    // const dpr = window.devicePixelRatio || 1;
     const chartWidth = xin["state.canvasWidth"] as number;
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
@@ -113,9 +113,11 @@ export class Crosshairs extends CanvasBase {
 
     // Draw horizontal line at mouse Y
     ctx.beginPath();
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.strokeStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent-2")
+      .trim();
+    ctx.lineWidth = 0.5;
     ctx.moveTo(0, this.mouseY);
     ctx.lineTo(this.canvas.width, this.mouseY);
     ctx.stroke();
@@ -136,8 +138,12 @@ export class Crosshairs extends CanvasBase {
       this.cursorPrice,
       this.canvas.width / dpr - 50,
       this.mouseY,
-      "gray",
-      "white",
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-background-secondary")
+        .trim(),
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-primary-dark")
+        .trim(),
       50
     );
 
@@ -146,8 +152,12 @@ export class Crosshairs extends CanvasBase {
       this.cursorTime,
       this.snappedX,
       this.canvas.height / dpr - 10 * dpr,
-      "#eee",
-      "#000"
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-accent-2")
+        .trim(),
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-primary-dark")
+        .trim()
     );
   }
 

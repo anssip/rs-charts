@@ -532,19 +532,19 @@ export class ChartContainer extends LitElement {
       grid-template-columns: 1fr;
       grid-template-rows: 40px 1fr;
       gap: 1px;
-      background-color: #f5f5f5;
+      background-color: var(--color-primary-dark);
       position: relative;
     }
 
     .toolbar-top {
       grid-area: top-tb;
-      background: white;
+      background: var(--color-primary-dark);
     }
 
     .chart-area {
       grid-area: chart;
       position: relative;
-      background: white;
+      background: var(--color-primary-dark);
       overflow: hidden;
       pointer-events: auto;
     }
@@ -580,7 +580,7 @@ export class ChartContainer extends LitElement {
     .price-axis-container,
     .timeline-container {
       position: absolute;
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--color-primary-dark);
       z-index: 4;
     }
 
@@ -648,7 +648,7 @@ export class ChartContainer extends LitElement {
     price-axis {
       display: block;
       width: 100%;
-      height: 100%;
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
     }
 
     .price-info {
@@ -661,6 +661,7 @@ export class ChartContainer extends LitElement {
       border-radius: 4px;
       font-size: 14px;
       pointer-events: none;
+      color: var(--color-accent-2);
     }
   `;
 }

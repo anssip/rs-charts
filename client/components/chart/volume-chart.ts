@@ -93,11 +93,15 @@ export class VolumeChart extends CanvasBase {
 
         const y = this.canvas!.height / dpr - volumeHeight;
 
-        // Color the volume bars based on price movement
+        // Color the volume bars based on price movement with CSS variables
         ctx.fillStyle =
           candle.close >= candle.open
-            ? "rgba(0, 160, 0, 0.5)"
-            : "rgba(208, 0, 0, 0.5)";
+            ? `${getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-accent-1")
+                .trim()}80` // 50% opacity
+            : `${getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-error")
+                .trim()}80`; // 50% opacity
 
         ctx.fillRect(x - barWidth / 2, y, barWidth, volumeHeight);
       },

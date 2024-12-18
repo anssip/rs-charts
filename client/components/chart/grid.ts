@@ -23,7 +23,9 @@ export class HairlineGrid implements Drawable {
       end: priceRange.max,
     });
 
-    ctx.strokeStyle = "rgba(180, 180, 180, 1)";
+    ctx.strokeStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-background-secondary")
+      .trim();
     ctx.setLineDash([3, 3]);
     ctx.lineWidth = 0.5;
 
