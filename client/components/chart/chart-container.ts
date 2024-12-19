@@ -515,6 +515,66 @@ export class ChartContainer extends LitElement {
     this.draw();
   }
 
+  // TODO: This kind of stuff should be moved to a public API
+  public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
+    if (!this.chart) return;
+
+    const durationMs = durationSeconds * 1000;
+    const FRAMES_PER_SECOND = 60;
+    const totalFrames = (durationMs / 1000) * FRAMES_PER_SECOND;
+    let currentFrame = 0;
+
+    const startRange = { ...this._state.timeRange };
+    const candleInterval = getCandleInterval(this._state.granularity);
+    const numCandles = Math.abs(movementSeconds / (candleInterval / 1000)); // Convert movement to number of candles
+    const movementMs = numCandles * candleInterval; // Total movement in ms based on candle intervals
+    const targetRange = {
+      start:
+        startRange.start - (movementSeconds > 0 ? movementMs : -movementMs),
+      end: startRange.end - (movementSeconds > 0 ? movementMs : -movementMs),
+    };
+
+    console.log("ChartContainer: Panning timeline", {
+      movementSeconds,
+      candleInterval,
+      numCandles,
+      movementMs,
+      startRange,
+      targetRange,
+    });
+
+    const animate = () => {
+      currentFrame++;
+      const progress = currentFrame / totalFrames;
+      const easeProgress = this.easeInOutCubic(progress);
+
+      // Interpolate between start and target ranges
+      const newTimeRange = {
+        start:
+          startRange.start +
+          (targetRange.start - startRange.start) * easeProgress,
+        end: startRange.end + (targetRange.end - startRange.end) * easeProgress,
+      };
+
+      this._state.timeRange = newTimeRange;
+
+      touch("state.timeRange");
+      // TODO: Make the drawingStrategy listen to state.timeRange
+      this.draw();
+
+      if (currentFrame < totalFrames) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+
+  // Cubic easing function for smooth animation
+  private easeInOutCubic(x: number): number {
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  }
+
   static styles = css`
     :host {
       display: block;

@@ -55,10 +55,10 @@ export class App {
 
   getInitialTimeRange(): TimeRange {
     const now = Date.now();
-    const end = new Date(now + 1000 * 60 * 60);
+    const hourInMs = 60 * 60 * 1000;
     return {
-      end: end.getTime(),
-      start: now - 10 * 24 * 60 * 60 * 1000, // 10 days back
+      end: now + hourInMs, // 1 hour into the future
+      start: now - 300 * hourInMs, // 300 hours back
     };
   }
 
@@ -128,14 +128,11 @@ export class App {
       // TODO: combine these in the state
       this.refetchData();
     });
-    // observe("state.timeRange", (_) => {
-    //   console.log(
-    //     "App: timeRange changed",
-    //     this.state.timeRange,
-    //     this.state.granularity
-    //   );
-    //   this.refetchData();
-    // });
+    setTimeout(() => {
+      // Pan back by 1 candle
+      const candleInterval = getCandleInterval(this.state.granularity);
+      this.chartContainer!.panTimeline(-1 * (candleInterval / 1000), 0.5);
+    }, 1000);
   };
 
   private async refetchData() {

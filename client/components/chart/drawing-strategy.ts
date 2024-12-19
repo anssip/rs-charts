@@ -39,15 +39,7 @@ export class CandlestickStrategy implements Drawable {
   }
 
   draw(context: DrawingContext): void {
-    // Cancel any pending animation frame
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
-
-    // Schedule the actual drawing
-    this.animationFrameId = requestAnimationFrame(() => {
-      this.drawCandles(context);
-    });
+    this.drawCandles(context);
   }
 
   private drawCandles(context: DrawingContext): void {
