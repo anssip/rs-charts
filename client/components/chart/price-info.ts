@@ -30,16 +30,6 @@ export class PriceInfo extends LitElement {
       font-family: system-ui, -apple-system, sans-serif;
     }
 
-    .price-info {
-      background-color: rgba(var(--color-background-secondary-rgb), 0.8);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
     .product-info {
       font-weight: 600;
       font-size: 14px;

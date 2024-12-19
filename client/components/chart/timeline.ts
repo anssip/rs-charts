@@ -60,7 +60,9 @@ export class Timeline extends CanvasBase {
 
       // Set text properties once
       ctx.font = `${6 * dpr}px Arial`;
-      ctx.fillStyle = "#666";
+      ctx.fillStyle = getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-background-secondary")
+        .trim();
       ctx.textAlign = "center";
       ctx.textBaseline = "top"; // Consistent text baseline
 
@@ -75,7 +77,9 @@ export class Timeline extends CanvasBase {
           if (tickMark) {
             // Draw tick mark
             ctx.beginPath();
-            ctx.strokeStyle = "#ccc";
+            ctx.strokeStyle = getComputedStyle(document.documentElement)
+              .getPropertyValue("--color-background-secondary")
+              .trim();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, 5 * dpr);
             ctx.stroke();

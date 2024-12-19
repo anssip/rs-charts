@@ -151,9 +151,9 @@ export class Crosshairs extends CanvasBase {
       ctx,
       this.cursorTime,
       this.snappedX,
-      this.canvas.height / dpr - 10 * dpr,
+      this.canvas.height / dpr - 5 * dpr,
       getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-accent-2")
+        .getPropertyValue("--color-background-secondary")
         .trim(),
       getComputedStyle(document.documentElement)
         .getPropertyValue("--color-primary-dark")

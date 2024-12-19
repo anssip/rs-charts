@@ -653,7 +653,7 @@ export class ChartContainer extends LitElement {
 
     .price-info {
       position: absolute;
-      top: 12px;
+      top: 0;
       left: 8px;
       z-index: 6;
       background: none;
@@ -662,6 +662,7 @@ export class ChartContainer extends LitElement {
       font-size: 14px;
       pointer-events: none;
       color: var(--color-accent-2);
+      background-color: rgba(var(--color-primary-rgb), 0.8);
     }
   `;
 }

@@ -164,7 +164,7 @@ export class TopToolbar extends LitElement {
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 16px;
+      padding: 0 8px;
       height: 100%;
       background: var(--color-primary-dark);
       color: var(--color-accent-2);
