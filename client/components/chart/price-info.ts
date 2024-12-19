@@ -27,7 +27,7 @@ export class PriceInfo extends LitElement {
       display: block;
       min-width: 300px;
       white-space: nowrap;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: var(--font-primary);
     }
 
     .product-info {

@@ -68,9 +68,26 @@ export class ProductSelect extends LitElement {
   private scrollToSelected() {
     const selectedElement = this.renderRoot.querySelector(
       ".result-item.selected"
-    );
-    if (selectedElement) {
-      selectedElement.scrollIntoView({ block: "nearest" });
+    ) as HTMLElement;
+    const resultsContainer = this.renderRoot.querySelector(
+      ".results"
+    ) as HTMLElement;
+
+    if (selectedElement && resultsContainer) {
+      const containerRect = resultsContainer.getBoundingClientRect();
+      const elementRect = selectedElement.getBoundingClientRect();
+      const padding = 40; // Pixels of padding to keep visible above/below
+
+      // Check if element is getting close to the bottom of visible area
+      if (elementRect.bottom > containerRect.bottom - padding) {
+        resultsContainer.scrollTop +=
+          elementRect.bottom - containerRect.bottom + padding;
+      }
+      // Check if element is getting close to the top of visible area
+      else if (elementRect.top < containerRect.top + padding) {
+        resultsContainer.scrollTop -=
+          containerRect.top - elementRect.top + padding;
+      }
     }
   }
 
@@ -384,6 +401,24 @@ export class ProductSelect extends LitElement {
     .results {
       max-height: 300px;
       overflow-y: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-background-secondary)
+        var(--color-primary-dark);
+    }
+
+    .results::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .results::-webkit-scrollbar-track {
+      background: var(--color-primary-dark);
+    }
+
+    .results::-webkit-scrollbar-thumb {
+      background-color: var(--color-background-secondary);
+      border-radius: 4px;
+      border: 2px solid var(--color-primary-dark);
     }
 
     .result-item {
@@ -393,9 +428,13 @@ export class ProductSelect extends LitElement {
       padding: 8px 16px;
       cursor: pointer;
       color: var(--color-accent-2);
+      transition: background-color 0.2s ease;
     }
 
-    .result-item:hover,
+    .result-item:hover:not(.selected) {
+      background: rgba(var(--color-background-secondary-rgb), 0.3);
+    }
+
     .result-item.selected {
       background: var(--color-background-secondary);
     }
