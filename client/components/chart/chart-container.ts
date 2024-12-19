@@ -21,6 +21,7 @@ import { ChartState } from "../..";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
+import "./logo";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -231,6 +232,7 @@ export class ChartContainer extends LitElement {
               .padding=${this.padding}
             ></chart-timeline>
           </div>
+          <chart-logo></chart-logo>
         </div>
       </div>
     `;
@@ -723,6 +725,13 @@ export class ChartContainer extends LitElement {
       pointer-events: none;
       color: var(--color-accent-2);
       background-color: rgba(var(--color-primary-rgb), 0.8);
+    }
+
+    chart-logo {
+      position: absolute;
+      bottom: ${TIMELINE_HEIGHT + 8}px;
+      left: 8px;
+      z-index: 7;
     }
   `;
 }
