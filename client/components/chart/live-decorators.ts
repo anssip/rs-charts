@@ -55,7 +55,9 @@ export class LiveDecorators extends CanvasBase {
     });
 
     // Draw the horizontal line
-    this.ctx.strokeStyle = "darkgray";
+    this.ctx.strokeStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent-2")
+      .trim();
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(0, priceY(this.currentPrice));

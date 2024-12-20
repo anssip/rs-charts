@@ -45,16 +45,9 @@ export class VolumeChart extends CanvasBase {
       this._state.timeRange.start,
       this._state.timeRange.end
     );
-
-    // Add safety check for empty candles
     if (!candles || candles.length === 0) {
-      console.warn("VolumeChart: No candles in range", {
-        start: new Date(this._state.timeRange.start),
-        end: new Date(this._state.timeRange.end),
-      });
       return;
     }
-
     // Calculate max volume including a minimum to prevent division by zero
     const maxVolume = Math.max(
       1, // Minimum value to prevent division by zero
@@ -93,11 +86,15 @@ export class VolumeChart extends CanvasBase {
 
         const y = this.canvas!.height / dpr - volumeHeight;
 
-        // Color the volume bars based on price movement
+        // Color the volume bars based on price movement with CSS variables
         ctx.fillStyle =
           candle.close >= candle.open
-            ? "rgba(0, 160, 0, 0.5)"
-            : "rgba(208, 0, 0, 0.5)";
+            ? `${getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-accent-1")
+                .trim()}80` // 50% opacity
+            : `${getComputedStyle(document.documentElement)
+                .getPropertyValue("--color-error")
+                .trim()}80`; // 50% opacity
 
         ctx.fillRect(x - barWidth / 2, y, barWidth, volumeHeight);
       },

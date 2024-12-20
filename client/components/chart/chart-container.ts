@@ -21,6 +21,7 @@ import { ChartState } from "../..";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
+import "./logo";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -151,6 +152,8 @@ export class ChartContainer extends LitElement {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
+
+    this.setupFocusHandler();
   }
 
   updated() {
@@ -187,6 +190,7 @@ export class ChartContainer extends LitElement {
       "timeline-zoom",
       this.handleTimelineZoom as EventListener
     );
+    window.removeEventListener("focus", this.handleWindowFocus);
   }
 
   @property({ type: Object })
@@ -231,6 +235,7 @@ export class ChartContainer extends LitElement {
               .padding=${this.padding}
             ></chart-timeline>
           </div>
+          <chart-logo></chart-logo>
         </div>
       </div>
     `;
@@ -515,6 +520,76 @@ export class ChartContainer extends LitElement {
     this.draw();
   }
 
+  // TODO: This kind of stuff should be moved to a public API
+  public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
+    if (!this.chart) return;
+
+    const durationMs = durationSeconds * 1000;
+    const FRAMES_PER_SECOND = 60;
+    const totalFrames = (durationMs / 1000) * FRAMES_PER_SECOND;
+    let currentFrame = 0;
+
+    const startRange = { ...this._state.timeRange };
+    const candleInterval = getCandleInterval(this._state.granularity);
+    const numCandles = Math.abs(movementSeconds / (candleInterval / 1000)); // Convert movement to number of candles
+    const movementMs = numCandles * candleInterval; // Total movement in ms based on candle intervals
+    const targetRange = {
+      start:
+        startRange.start - (movementSeconds > 0 ? movementMs : -movementMs),
+      end: startRange.end - (movementSeconds > 0 ? movementMs : -movementMs),
+    };
+
+    console.log("ChartContainer: Panning timeline", {
+      movementSeconds,
+      candleInterval,
+      numCandles,
+      movementMs,
+      startRange,
+      targetRange,
+    });
+
+    const animate = () => {
+      currentFrame++;
+      const progress = currentFrame / totalFrames;
+      const easeProgress = this.easeInOutCubic(progress);
+
+      // Interpolate between start and target ranges
+      const newTimeRange = {
+        start:
+          startRange.start +
+          (targetRange.start - startRange.start) * easeProgress,
+        end: startRange.end + (targetRange.end - startRange.end) * easeProgress,
+      };
+
+      this._state.timeRange = newTimeRange;
+
+      touch("state.timeRange");
+      // TODO: Make the drawingStrategy listen to state.timeRange
+      this.draw();
+
+      if (currentFrame < totalFrames) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+
+  // Cubic easing function for smooth animation
+  private easeInOutCubic(x: number): number {
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  }
+
+  private setupFocusHandler() {
+    window.addEventListener("focus", this.handleWindowFocus);
+  }
+
+  private handleWindowFocus = () => {
+    if (this.chart) {
+      this.draw();
+    }
+  };
+
   static styles = css`
     :host {
       display: block;
@@ -532,19 +607,19 @@ export class ChartContainer extends LitElement {
       grid-template-columns: 1fr;
       grid-template-rows: 40px 1fr;
       gap: 1px;
-      background-color: #f5f5f5;
+      background-color: var(--color-primary-dark);
       position: relative;
     }
 
     .toolbar-top {
       grid-area: top-tb;
-      background: white;
+      background: var(--color-primary-dark);
     }
 
     .chart-area {
       grid-area: chart;
       position: relative;
-      background: white;
+      background: var(--color-primary-dark);
       overflow: hidden;
       pointer-events: auto;
     }
@@ -580,7 +655,7 @@ export class ChartContainer extends LitElement {
     .price-axis-container,
     .timeline-container {
       position: absolute;
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--color-primary-dark);
       z-index: 4;
     }
 
@@ -648,12 +723,12 @@ export class ChartContainer extends LitElement {
     price-axis {
       display: block;
       width: 100%;
-      height: 100%;
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
     }
 
     .price-info {
       position: absolute;
-      top: 12px;
+      top: 8px;
       left: 8px;
       z-index: 6;
       background: none;
@@ -661,6 +736,19 @@ export class ChartContainer extends LitElement {
       border-radius: 4px;
       font-size: 14px;
       pointer-events: none;
+      color: var(--color-accent-2);
+      background-color: rgba(var(--color-primary-rgb), 0.8);
+      width: fit-content;
+      max-width: calc(
+        100% - 66px
+      ); /* Account for price axis width (50px) + right margin (16px) */
+    }
+
+    chart-logo {
+      position: absolute;
+      bottom: ${TIMELINE_HEIGHT + 8}px;
+      left: 8px;
+      z-index: 7;
     }
   `;
 }

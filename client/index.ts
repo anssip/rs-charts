@@ -67,8 +67,14 @@ const firestore = getFirestore(firebaseApp);
 window.addEventListener("DOMContentLoaded", () => {
   const chartApp = new App(firestore, state);
 
-  window.addEventListener("unload", () => {
+  window.addEventListener("pagehide", () => {
     chartApp.cleanup();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      chartApp.cleanup();
+    }
   });
 });
 
