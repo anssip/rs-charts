@@ -728,7 +728,7 @@ export class ChartContainer extends LitElement {
 
     .price-info {
       position: absolute;
-      top: 0;
+      top: 8px;
       left: 8px;
       z-index: 6;
       background: none;
@@ -738,6 +738,10 @@ export class ChartContainer extends LitElement {
       pointer-events: none;
       color: var(--color-accent-2);
       background-color: rgba(var(--color-primary-rgb), 0.8);
+      width: fit-content;
+      max-width: calc(
+        100% - 66px
+      ); /* Account for price axis width (50px) + right margin (16px) */
     }
 
     chart-logo {

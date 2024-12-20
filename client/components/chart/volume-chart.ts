@@ -45,16 +45,9 @@ export class VolumeChart extends CanvasBase {
       this._state.timeRange.start,
       this._state.timeRange.end
     );
-
-    // Add safety check for empty candles
     if (!candles || candles.length === 0) {
-      console.warn("VolumeChart: No candles in range", {
-        start: new Date(this._state.timeRange.start),
-        end: new Date(this._state.timeRange.end),
-      });
       return;
     }
-
     // Calculate max volume including a minimum to prevent division by zero
     const maxVolume = Math.max(
       1, // Minimum value to prevent division by zero

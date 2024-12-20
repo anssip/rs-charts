@@ -25,14 +25,43 @@ export class PriceInfo extends LitElement {
   static styles = css`
     :host {
       display: block;
-      min-width: 300px;
-      white-space: nowrap;
+      min-width: 160px;
+      max-width: 100%;
+      white-space: normal;
       font-family: var(--font-primary);
+    }
+
+    .price-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .product-info {
       font-weight: 600;
       font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .price-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .price-row {
+      display: flex;
+      gap: 8px;
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .price-item {
+      display: inline-flex;
+      align-items: center;
+      flex: 1;
+      min-width: 80px;
+      max-width: calc(50% - 4px);
     }
 
     .price-label {
@@ -40,14 +69,57 @@ export class PriceInfo extends LitElement {
       text-transform: uppercase;
       font-size: 11px;
       font-weight: 500;
-      margin-left: 8px;
+      font-family: var(--font-secondary);
+      flex-shrink: 0;
     }
 
     .price-value {
-      color: var(--accent-secondary-yellow-green);
       font-size: 13px;
       font-weight: 600;
       margin-left: 4px;
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (min-width: 768px) {
+      :host {
+        min-width: min-content;
+        white-space: nowrap;
+      }
+
+      .price-info {
+        flex-direction: row;
+        align-items: center;
+        width: max-content;
+      }
+
+      .product-info {
+        margin-bottom: 0;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+
+      .price-group {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 12px;
+      }
+
+      .price-row {
+        flex: 0 0 auto;
+        gap: 12px;
+      }
+
+      .price-item {
+        min-width: max-content;
+        max-width: none;
+      }
+
+      .price-value {
+        overflow: visible;
+      }
     }
   `;
 
@@ -65,6 +137,13 @@ export class PriceInfo extends LitElement {
   }
 
   render() {
+    const isBearish = this.liveCandle
+      ? this.liveCandle.close < this.liveCandle.open
+      : false;
+    const priceValueColor = isBearish
+      ? "var(--color-error)"
+      : "var(--color-accent-1)";
+
     const [close, open, low, high] = ["close", "open", "low", "high"].map(
       (price) =>
         this.liveCandle?.[price as keyof LiveCandle]
@@ -78,16 +157,36 @@ export class PriceInfo extends LitElement {
       <span class="product-info">
         ${this.symbol} • ${granularityLabel(this.granularity)}
       </span>
-      <span>
-        <span class="price-label">Open</span>
-        <span class="price-value">${open}</span>
-        <span class="price-label">High</span>
-        <span class="price-value">${high}</span>
-        <span class="price-label">Low</span>
-        <span class="price-value">${low}</span>
-        <span class="price-label">Close</span>
-        <span class="price-value">${close}</span>
-      </span>
+      <div class="price-group">
+        <div class="price-row">
+          <span class="price-item">
+            <span class="price-label">Open</span>
+            <span class="price-value" style="color: ${priceValueColor}"
+              >${open}</span
+            >
+          </span>
+          <span class="price-item">
+            <span class="price-label">High</span>
+            <span class="price-value" style="color: ${priceValueColor}"
+              >${high}</span
+            >
+          </span>
+        </div>
+        <div class="price-row">
+          <span class="price-item">
+            <span class="price-label">Low</span>
+            <span class="price-value" style="color: ${priceValueColor}"
+              >${low}</span
+            >
+          </span>
+          <span class="price-item">
+            <span class="price-label">Close</span>
+            <span class="price-value" style="color: ${priceValueColor}"
+              >${close}</span
+            >
+          </span>
+        </div>
+      </div>
     </div>`;
   }
 }

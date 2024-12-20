@@ -38,7 +38,6 @@ export class Timeline extends CanvasBase {
 
   draw() {
     if (!this.canvas || !this.ctx) {
-      console.warn("Timeline: canvas or ctx not found");
       return;
     }
 
