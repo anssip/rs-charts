@@ -68,9 +68,26 @@ export class ProductSelect extends LitElement {
   private scrollToSelected() {
     const selectedElement = this.renderRoot.querySelector(
       ".result-item.selected"
-    );
-    if (selectedElement) {
-      selectedElement.scrollIntoView({ block: "nearest" });
+    ) as HTMLElement;
+    const resultsContainer = this.renderRoot.querySelector(
+      ".results"
+    ) as HTMLElement;
+
+    if (selectedElement && resultsContainer) {
+      const containerRect = resultsContainer.getBoundingClientRect();
+      const elementRect = selectedElement.getBoundingClientRect();
+      const padding = 40; // Pixels of padding to keep visible above/below
+
+      // Check if element is getting close to the bottom of visible area
+      if (elementRect.bottom > containerRect.bottom - padding) {
+        resultsContainer.scrollTop +=
+          elementRect.bottom - containerRect.bottom + padding;
+      }
+      // Check if element is getting close to the top of visible area
+      else if (elementRect.top < containerRect.top + padding) {
+        resultsContainer.scrollTop -=
+          containerRect.top - elementRect.top + padding;
+      }
     }
   }
 
@@ -252,12 +269,17 @@ export class ProductSelect extends LitElement {
 
     .symbol-button {
       padding: 4px 8px;
-      border: 1px solid #ddd;
       border-radius: 4px;
-      background: white;
+      border: 1px solid var(--color-background-secondary);
+      background: var(--color-primary-dark);
+      color: var(--color-accent-2);
       cursor: pointer;
       min-width: 120px;
       text-align: left;
+    }
+
+    .symbol-button:hover {
+      border-color: var(--color-accent-1);
     }
 
     .modal-backdrop {
@@ -270,18 +292,16 @@ export class ProductSelect extends LitElement {
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding-top: 50px;
+      padding-top: 100px;
       z-index: 1000;
     }
 
     .modal {
-      background: white;
+      background: var(--color-primary-dark);
       border-radius: 8px;
-      width: 600px;
+      width: 500px;
       max-width: 90vw;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .modal-header {
@@ -289,140 +309,161 @@ export class ProductSelect extends LitElement {
       justify-content: space-between;
       align-items: center;
       padding: 16px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--color-background-secondary);
     }
 
     .modal-header h2 {
       margin: 0;
+      color: var(--color-accent-2);
       font-size: 18px;
     }
 
     .close-button {
       background: none;
       border: none;
+      color: var(--color-accent-2);
       font-size: 24px;
       cursor: pointer;
       padding: 0;
-      color: #666;
+    }
+
+    .close-button:hover {
+      color: var(--color-accent-1);
     }
 
     .search-container {
       padding: 16px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: center;
+      border-bottom: 1px solid var(--color-background-secondary);
     }
 
-    .search-container input {
+    input {
       width: calc(100% - 32px);
-      padding: 8px 12px;
-      border: 1px solid #ddd;
+      padding: 8px;
       border-radius: 4px;
       font-size: 14px;
+      border: 1px solid var(--color-background-secondary);
+      background: var(--color-primary-dark);
+      color: var(--color-accent-2);
     }
 
-    .search-container input:focus {
+    input:focus {
       outline: none;
-      border-color: #2196f3;
-      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+      border-color: var(--color-accent-1);
+      box-shadow: 0 0 0 2px var(--color-accent-1);
     }
 
     .tabs {
       display: flex;
-      padding: 0 16px;
-      border-bottom: 1px solid #eee;
+      padding: 8px 16px;
+      gap: 8px;
+      border-bottom: 1px solid var(--color-background-secondary);
     }
 
     .tabs button {
-      padding: 8px 16px;
+      padding: 4px 12px;
       border: none;
       background: none;
+      color: var(--color-accent-2);
       cursor: pointer;
-      border-bottom: 2px solid transparent;
+      border-radius: 4px;
+    }
+
+    .tabs button:hover {
+      background: var(--color-background-secondary);
     }
 
     .tabs button.active {
-      border-bottom-color: #2196f3;
-      color: #2196f3;
+      background: var(--color-accent-1);
+      color: var(--color-primary-dark);
     }
 
     .filter-row {
-      padding: 8px 16px;
-      border-bottom: 1px solid #eee;
       display: flex;
       align-items: center;
+      padding: 8px 16px;
       gap: 8px;
+      border-bottom: 1px solid var(--color-background-secondary);
     }
 
     .source-select {
       padding: 4px 8px;
-      border: 1px solid #ddd;
       border-radius: 4px;
-      color: #999;
-      background-color: #f5f5f5;
-      cursor: not-allowed;
-    }
-
-    .source-select:disabled {
-      opacity: 0.7;
+      border: 1px solid var(--color-background-secondary);
+      background: var(--color-primary-dark);
+      color: var(--color-accent-2);
     }
 
     .coming-soon-badge {
       font-size: 12px;
-      color: #999;
-      font-style: italic;
+      color: var(--color-background-secondary);
     }
 
     .results {
+      max-height: 300px;
       overflow-y: auto;
-      flex: 1;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-background-secondary)
+        var(--color-primary-dark);
+    }
+
+    .results::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .results::-webkit-scrollbar-track {
+      background: var(--color-primary-dark);
+    }
+
+    .results::-webkit-scrollbar-thumb {
+      background-color: var(--color-background-secondary);
+      border-radius: 4px;
+      border: 2px solid var(--color-primary-dark);
     }
 
     .result-item {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       padding: 8px 16px;
       cursor: pointer;
-      border-bottom: 1px solid #eee;
+      color: var(--color-accent-2);
+      transition: background-color 0.2s ease;
     }
 
-    .result-item:hover,
-    .result-item.selected {
-      background: #f5f5f5;
+    .result-item:hover:not(.selected) {
+      background: rgba(var(--color-background-secondary-rgb), 0.3);
     }
 
     .result-item.selected {
-      background: #e3f2fd; /* Light blue background for selected item */
+      background: var(--color-background-secondary);
     }
 
     .symbol {
-      font-weight: 500;
+      font-weight: bold;
     }
 
     .exchange {
-      color: #666;
-    }
-
-    .coming-soon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 200px;
-      color: #666;
-    }
-
-    .coming-soon-message {
-      font-size: 16px;
-      font-weight: 500;
-      text-align: center;
-      padding: 16px;
-      background: #f5f5f5;
-      border-radius: 8px;
+      color: var(--color-background-secondary);
+      font-size: 14px;
     }
 
     .highlight {
-      color: #4caf50;
-      font-weight: bold;
+      background: var(--color-accent-1);
+      color: var(--color-primary-dark);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .coming-soon {
+      padding: 32px;
+      text-align: center;
+      color: var(--color-background-secondary);
+    }
+
+    .coming-soon-message {
+      font-size: 18px;
+      margin-bottom: 8px;
     }
   `;
 }

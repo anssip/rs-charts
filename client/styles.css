@@ -1,8 +1,39 @@
 :root {
+    /* primary colors */
+    --color-primary: #5d5bed;
+    --color-primary-rgb: 93, 93, 237;
+    --color-primary-dark: #181818;
+
+    /* secondary colors */
+    --color-accent-1: #d7ea57;
+    --color-accent-2: #f1fee0;
+    --color-gray-100: #f8f8f8;
+    --color-error: #eb4545;
+    --color-white: #FFFFFF;
+
+    /* other */
     --color-background-secondary: rgb(143, 143, 143);
     --color-background-secondary-rgb: 143, 143, 143; /* Keep this for opacity use cases */
-    --accent-color: #56deaa;
+
+    /* fonts */
+    --font-primary: "Plus Jakarta Sans", serif;
+    --font-secondary: "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
+
+.plus-jakarta-sans-font-primary {
+    font-family: "Plus Jakarta Sans", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.lexend-font-secondary {
+    font-family: "Lexend", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+  
 
 html, body {
     margin: 0;
@@ -15,7 +46,7 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
-    font-family: Arial, sans-serif;
+    font-family: var(--font-primary);
     height: 100vh;
 }
 

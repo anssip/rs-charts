@@ -23,7 +23,11 @@ export class HairlineGrid implements Drawable {
       end: priceRange.max,
     });
 
-    ctx.strokeStyle = "rgba(180, 180, 180, 1)";
+    const gridColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-background-secondary-rgb")
+      .trim();
+
+    ctx.strokeStyle = `rgba(${gridColor}, 0.3)`;
     ctx.setLineDash([3, 3]);
     ctx.lineWidth = 0.5;
 

@@ -24,7 +24,7 @@ export const priceToY =
     const percentage =
       (price - priceRange.start) / (priceRange.end - priceRange.start);
     const y = (1 - percentage) * availableHeight;
-    return y;
+    return y / dpr;
   };
 
 export const priceToCanvasY =
@@ -146,7 +146,7 @@ export function canvasYToPrice(
   canvas: HTMLCanvasElement,
   priceRange: PriceRange
 ): number {
-  const availableHeight = canvas.height;
+  const availableHeight = canvas.height / dpr;
   // Invert the percentage calculation
   const percentage = 1 - y / availableHeight;
   // Convert percentage to price
