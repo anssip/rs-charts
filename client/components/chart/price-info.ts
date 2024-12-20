@@ -21,7 +21,6 @@ export class PriceInfo extends LitElement {
   @state()
   private liveCandle: LiveCandle | null = null;
 
-  // TODO: style this once we have the brand colors
   static styles = css`
     :host {
       display: block;
@@ -32,16 +31,36 @@ export class PriceInfo extends LitElement {
     }
 
     .price-info {
-      display: grid;
-      grid-template-columns: repeat(6, auto);
+      display: flex;
+      flex-wrap: wrap;
       gap: 24px;
       align-items: center;
+      width: 100%;
+    }
+
+    .metadata-group {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .price-group {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex: 2;
+      justify-content: space-between;
+      min-width: 400px;
     }
 
     .price-item {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      min-width: 0;
+      flex: 1;
     }
 
     .price-label {
@@ -55,43 +74,45 @@ export class PriceInfo extends LitElement {
     .price-value {
       font-size: 13px;
       font-weight: 500;
-    }
-
-    .product-info {
-      font-size: 13px;
-      font-weight: 600;
-      font-family: var(--font-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     @media (max-width: 767px) {
       .price-info {
-        display: flex;
         flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .metadata-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
+        min-width: 0;
       }
 
       .price-group {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+        min-width: 0;
       }
 
       .price-item {
         flex-direction: row;
         align-items: center;
         gap: 8px;
-        min-width: 0;
+        flex: 0;
+      }
+
+      .price-label {
+        min-width: 60px;
       }
 
       .price-value {
-        flex-shrink: 1;
+        flex: 1;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .product-info {
-        margin-bottom: 4px;
       }
     }
   `;
@@ -126,93 +147,49 @@ export class PriceInfo extends LitElement {
           : "..."
     );
 
-    // Desktop layout
-    // TODO: use a responsive flex layout here to remove code duplication
-    const desktopLayout = html`
+    return html`
       <div class="price-info">
-        <div class="price-item">
-          <span class="price-label">Symbol</span>
-          <span class="price-value" style="color: var(--color-accent-2)"
-            >${this.symbol}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">Time Frame</span>
-          <span class="price-value" style="color: var(--color-accent-2)"
-            >${granularityLabel(this.granularity)}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">Open</span>
-          <span class="price-value" style="color: ${priceValueColor}"
-            >${open}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">High</span>
-          <span class="price-value" style="color: ${priceValueColor}"
-            >${high}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">Low</span>
-          <span class="price-value" style="color: ${priceValueColor}"
-            >${low}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">Close</span>
-          <span class="price-value" style="color: ${priceValueColor}"
-            >${close}</span
-          >
-        </div>
-      </div>
-    `;
-
-    // Mobile layout
-    const mobileLayout = html`
-      <div class="price-info">
-        <div class="price-item">
-          <span class="price-label">Symbol</span>
-          <span class="price-value" style="color: var(--color-accent-2)"
-            >${this.symbol}</span
-          >
-        </div>
-        <div class="price-item">
-          <span class="price-label">Time Frame</span>
-          <span class="price-value" style="color: var(--color-accent-2)"
-            >${granularityLabel(this.granularity)}</span
-          >
+        <div class="metadata-group">
+          <div class="price-item">
+            <span class="price-label">Symbol</span>
+            <span class="price-value" style="color: var(--color-accent-2)"
+              >${this.symbol}</span
+            >
+          </div>
+          <div class="price-item">
+            <span class="price-label">Time Frame</span>
+            <span class="price-value" style="color: var(--color-accent-2)"
+              >${granularityLabel(this.granularity)}</span
+            >
+          </div>
         </div>
         <div class="price-group">
-          <span class="price-item">
+          <div class="price-item">
             <span class="price-label">Open</span>
             <span class="price-value" style="color: ${priceValueColor}"
               >${open}</span
             >
-          </span>
-          <span class="price-item">
+          </div>
+          <div class="price-item">
             <span class="price-label">High</span>
             <span class="price-value" style="color: ${priceValueColor}"
               >${high}</span
             >
-          </span>
-          <span class="price-item">
+          </div>
+          <div class="price-item">
             <span class="price-label">Low</span>
             <span class="price-value" style="color: ${priceValueColor}"
               >${low}</span
             >
-          </span>
-          <span class="price-item">
+          </div>
+          <div class="price-item">
             <span class="price-label">Close</span>
             <span class="price-value" style="color: ${priceValueColor}"
               >${close}</span
             >
-          </span>
+          </div>
         </div>
       </div>
     `;
-
-    return window.innerWidth >= 768 ? desktopLayout : mobileLayout;
   }
 }
