@@ -13,6 +13,7 @@ export class PriceAxis extends CanvasBase {
   private priceRange: PriceRange = new PriceRangeImpl(0, 0);
   private isDragging = false;
   private lastY = 0;
+  private liveCandle: LiveCandle | null = null;
 
   override getId(): string {
     return "price-axis";
@@ -25,11 +26,9 @@ export class PriceAxis extends CanvasBase {
     console.log("PriceAxis: priceRange", this.priceRange);
 
     observe("state.liveCandle", (path) => {
-      console.log(
-        "PriceAxis: liveCandle.close changed",
-        (xin[path] as LiveCandle).close
-      );
-      this.currentPrice = (xin[path] as LiveCandle).close;
+      console.log("PriceAxis: liveCandle changed", xin[path] as LiveCandle);
+      this.liveCandle = xin[path] as LiveCandle;
+      this.currentPrice = this.liveCandle.close;
       this.draw();
     });
     observe("state.priceRange", (path) => {
@@ -86,13 +85,29 @@ export class PriceAxis extends CanvasBase {
       }
     }
 
+    // Determine if the price movement is bearish or bullish
+    const isBearish = this.liveCandle
+      ? this.liveCandle.close < this.liveCandle.open
+      : false;
+
+    // Get the appropriate color based on price movement
+    const priceColor = isBearish
+      ? getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-error")
+          .trim()
+      : getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-accent-1")
+          .trim();
+
     drawPriceLabel(
       ctx,
       this.currentPrice,
       0,
       priceY(this.currentPrice),
-      "#333",
-      "#fff",
+      priceColor,
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-accent-2")
+        .trim(),
       this.canvas.width / dpr
     );
   }

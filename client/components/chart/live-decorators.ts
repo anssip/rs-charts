@@ -11,18 +11,20 @@ import { priceToY } from "../../util/chart-util";
 export class LiveDecorators extends CanvasBase {
   private currentPrice: number = 0;
   private priceRange: PriceRange = new PriceRangeImpl(0, 0);
+  private liveCandle: LiveCandle | null = null;
 
   firstUpdated() {
     super.firstUpdated();
 
     this.priceRange = xin["state.priceRange"] as PriceRange;
-    // observe liveCandle.close from app state
+    // observe liveCandle from app state
     observe("state.liveCandle", (path) => {
       console.log(
-        "LiveDecorators: liveCandle.close changed",
-        (xin[path] as LiveCandle).close
+        "LiveDecorators: liveCandle changed",
+        xin[path] as LiveCandle
       );
-      this.currentPrice = (xin[path] as LiveCandle).close;
+      this.liveCandle = xin[path] as LiveCandle;
+      this.currentPrice = this.liveCandle.close;
       this.draw();
     });
     observe("state.priceRange", (path) => {
@@ -54,10 +56,19 @@ export class LiveDecorators extends CanvasBase {
       end: this.priceRange.max,
     });
 
-    // Draw the horizontal line
-    this.ctx.strokeStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
-      .trim();
+    // Determine if the price movement is bearish or bullish
+    const isBearish = this.liveCandle
+      ? this.liveCandle.close < this.liveCandle.open
+      : false;
+
+    // Draw the horizontal line with color based on price movement
+    this.ctx.strokeStyle = isBearish
+      ? getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-error")
+          .trim()
+      : getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-accent-1")
+          .trim();
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(0, priceY(this.currentPrice));

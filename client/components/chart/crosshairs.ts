@@ -115,9 +115,9 @@ export class Crosshairs extends CanvasBase {
     ctx.beginPath();
     ctx.setLineDash([2, 2]);
     ctx.strokeStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
+      .getPropertyValue("--color-primary")
       .trim();
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 1;
     ctx.moveTo(0, this.mouseY);
     ctx.lineTo(this.canvas.width, this.mouseY);
     ctx.stroke();
