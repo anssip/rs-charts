@@ -152,6 +152,8 @@ export class ChartContainer extends LitElement {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
+
+    this.setupFocusHandler();
   }
 
   updated() {
@@ -188,6 +190,7 @@ export class ChartContainer extends LitElement {
       "timeline-zoom",
       this.handleTimelineZoom as EventListener
     );
+    window.removeEventListener("focus", this.handleWindowFocus);
   }
 
   @property({ type: Object })
@@ -576,6 +579,16 @@ export class ChartContainer extends LitElement {
   private easeInOutCubic(x: number): number {
     return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
   }
+
+  private setupFocusHandler() {
+    window.addEventListener("focus", this.handleWindowFocus);
+  }
+
+  private handleWindowFocus = () => {
+    if (this.chart) {
+      this.draw();
+    }
+  };
 
   static styles = css`
     :host {

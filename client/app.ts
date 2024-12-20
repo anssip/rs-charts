@@ -62,6 +62,7 @@ export class App {
     };
   }
 
+  // TODO: Make this monitor the subscription state and reconnect if it's lost
   private handleChartReady = async (
     event: CustomEvent<{ visibleCandles: number }>
   ) => {

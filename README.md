@@ -21,16 +21,17 @@ bun run dev
 ## TODO
 
 - [x] Volume chart
-- [ ] Use fonts and colors from the brand guide
+- [x] Use fonts and colors from the brand guide
 
   - [x] dark mode
   - [ ] light mode
-  - [ ] use the blue color for buttons and other UI elements
-  - [ ] tweak the timeline and price axis moving labels
-  - [ ] typography
+  - [x] use the blue color for buttons and other UI elements
+  - [x] tweak the timeline and price axis moving labels
+  - [x] typography
   - [x] logo to the corner of the chart, top right
 
 - [ ] Deploy to GCP or AWS with some CDN.
+- [ ] Live candle subscription monitoring of the subscription state and reconnect if it's lost
 - [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
 - [x] Fix timeline to not drow labels too close to each other
 - [x] Refactor grid drawing to use new timeline iterator
