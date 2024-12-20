@@ -205,17 +205,17 @@ export class ChartContainer extends LitElement {
   render() {
     return html`
       <div class="container">
-        <div class="toolbar-top">
-          <top-toolbar
-            .products=${this.products}
-            .state=${this._state}
-          ></top-toolbar>
+        <div class="price-info">
+          <price-info
+            .product=${this._state.liveCandle?.productId}
+          ></price-info>
         </div>
         <div class="chart-area">
-          <div class="price-info">
-            <price-info
-              .product=${this._state.liveCandle?.productId}
-            ></price-info>
+          <div class="toolbar-top">
+            <top-toolbar
+              .products=${this.products}
+              .state=${this._state}
+            ></top-toolbar>
           </div>
           <div class="chart">
             <candlestick-chart></candlestick-chart>
@@ -598,30 +598,41 @@ export class ChartContainer extends LitElement {
     }
 
     .container {
-      display: grid;
+      display: flex;
+      flex-direction: column;
       width: 100%;
       height: 100%;
-      grid-template-areas:
-        "top-tb"
-        "chart";
-      grid-template-columns: 1fr;
-      grid-template-rows: 40px 1fr;
-      gap: 1px;
       background-color: var(--color-primary-dark);
-      position: relative;
+      gap: 8px;
     }
 
     .toolbar-top {
-      grid-area: top-tb;
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 7;
+      background: transparent;
+      width: fit-content;
+    }
+
+    .price-info {
+      flex: 0 0 auto;
       background: var(--color-primary-dark);
+      border-radius: 12px;
+      margin: 8px 8px 0 8px;
+      padding: 12px 16px;
+      border: 1px solid rgba(143, 143, 143, 0.2);
     }
 
     .chart-area {
-      grid-area: chart;
+      flex: 1;
       position: relative;
       background: var(--color-primary-dark);
       overflow: hidden;
       pointer-events: auto;
+      border-radius: 12px;
+      margin: 0 8px 8px 8px;
+      border: 1px solid rgba(143, 143, 143, 0.2);
     }
 
     .chart {
@@ -672,6 +683,7 @@ export class ChartContainer extends LitElement {
       height: 100%;
       pointer-events: auto;
     }
+
     .timeline-container {
       bottom: 0;
       left: 0px;
@@ -724,24 +736,6 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: calc(100% - ${TIMELINE_HEIGHT}px);
-    }
-
-    .price-info {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 6;
-      background: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 14px;
-      pointer-events: none;
-      color: var(--color-accent-2);
-      background-color: rgba(var(--color-primary-rgb), 0.8);
-      width: fit-content;
-      max-width: calc(
-        100% - 66px
-      ); /* Account for price axis width (50px) + right margin (16px) */
     }
 
     chart-logo {

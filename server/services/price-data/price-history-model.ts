@@ -34,7 +34,7 @@ export function granularityLabel(granularity: Granularity): string {
     ["SIX_HOUR", "6h"],
     ["ONE_DAY", "1d"],
   ]);
-  return labels.get(granularity) ?? granularity;
+  return labels.get(String(granularity)) ?? String(granularity);
 }
 
 export interface CandleData {

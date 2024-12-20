@@ -161,13 +161,14 @@ export class TopToolbar extends LitElement {
 
   static styles = css`
     .toolbar {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 0 8px;
-      height: 100%;
-      background: var(--color-primary-dark);
+      padding: 0;
+      background: transparent;
       color: var(--color-accent-2);
+      border-radius: 4px;
+      border: 1px solid rgba(var(--color-background-secondary-rgb), 0.2);
     }
 
     .controls {
@@ -185,23 +186,25 @@ export class TopToolbar extends LitElement {
       width: 100%;
       padding: 4px 8px;
       border-radius: 4px;
-      border: 1px solid var(--color-background-secondary);
-      background: var(--color-primary-dark);
+      border: 0.5px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-50);
       color: var(--color-accent-2);
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 14px;
+      backdrop-filter: blur(4px);
     }
 
     .dropdown-button:hover {
       border-color: var(--color-accent-1);
+      background: rgba(var(--color-primary-dark-rgb), 0.8);
     }
 
     .arrow {
-      border: solid var(--color-background-secondary);
-      border-width: 0 2px 2px 0;
+      border: solid rgba(var(--color-background-secondary-rgb), 0.5);
+      border-width: 0 1px 1px 0;
       display: inline-block;
       padding: 3px;
       margin-left: 8px;
@@ -222,27 +225,28 @@ export class TopToolbar extends LitElement {
       left: 0;
       right: 0;
       margin-top: 4px;
-      background: var(--color-primary-dark);
-      border: 1px solid var(--color-background-secondary);
+      background: rgba(var(--color-primary-dark-rgb), 0.95);
+      border: 0.5px solid rgba(var(--color-background-secondary-rgb), 0.3);
       border-radius: 4px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       z-index: 1000;
+      backdrop-filter: blur(8px);
     }
 
     .dropdown-item {
       padding: 8px 12px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      transition: all 0.2s ease;
       color: var(--color-accent-2);
       font-size: 14px;
     }
 
     .dropdown-item:hover {
-      background: var(--color-background-secondary);
+      background: rgba(var(--color-background-secondary-rgb), 0.2);
     }
 
     .dropdown-item.selected {
-      background: var(--color-background-secondary);
+      background: rgba(var(--color-background-secondary-rgb), 0.3);
       font-weight: bold;
     }
   `;

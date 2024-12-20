@@ -32,93 +32,66 @@ export class PriceInfo extends LitElement {
     }
 
     .price-info {
+      display: grid;
+      grid-template-columns: repeat(6, auto);
+      gap: 24px;
+      align-items: center;
+    }
+
+    .price-item {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .product-info {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-
-    .price-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .price-row {
-      display: flex;
-      gap: 8px;
-      flex: 1 1 100%;
-      min-width: 0;
-    }
-
-    .price-item {
-      display: inline-flex;
-      align-items: center;
-      flex: 1;
-      min-width: 80px;
-      max-width: calc(50% - 4px);
-    }
-
     .price-label {
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.5);
       text-transform: uppercase;
       font-size: 11px;
       font-weight: 500;
       font-family: var(--font-secondary);
-      flex-shrink: 0;
     }
 
     .price-value {
       font-size: 13px;
-      font-weight: 600;
-      margin-left: 4px;
-      flex-shrink: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-weight: 500;
     }
 
-    @media (min-width: 768px) {
-      :host {
-        min-width: min-content;
-        white-space: nowrap;
-      }
+    .product-info {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-secondary);
+    }
 
+    @media (max-width: 767px) {
       .price-info {
-        flex-direction: row;
-        align-items: center;
-        width: max-content;
-      }
-
-      .product-info {
-        margin-bottom: 0;
-        margin-right: 12px;
-        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
       .price-group {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 12px;
-      }
-
-      .price-row {
-        flex: 0 0 auto;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
 
       .price-item {
-        min-width: max-content;
-        max-width: none;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
       }
 
       .price-value {
-        overflow: visible;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .product-info {
+        margin-bottom: 4px;
       }
     }
   `;
@@ -153,12 +126,65 @@ export class PriceInfo extends LitElement {
           : "..."
     );
 
-    return html`<div class="price-info">
-      <span class="product-info">
-        ${this.symbol} • ${granularityLabel(this.granularity)}
-      </span>
-      <div class="price-group">
-        <div class="price-row">
+    // Desktop layout
+    // TODO: use a responsive flex layout here to remove code duplication
+    const desktopLayout = html`
+      <div class="price-info">
+        <div class="price-item">
+          <span class="price-label">Symbol</span>
+          <span class="price-value" style="color: var(--color-accent-2)"
+            >${this.symbol}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">Time Frame</span>
+          <span class="price-value" style="color: var(--color-accent-2)"
+            >${granularityLabel(this.granularity)}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">Open</span>
+          <span class="price-value" style="color: ${priceValueColor}"
+            >${open}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">High</span>
+          <span class="price-value" style="color: ${priceValueColor}"
+            >${high}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">Low</span>
+          <span class="price-value" style="color: ${priceValueColor}"
+            >${low}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">Close</span>
+          <span class="price-value" style="color: ${priceValueColor}"
+            >${close}</span
+          >
+        </div>
+      </div>
+    `;
+
+    // Mobile layout
+    const mobileLayout = html`
+      <div class="price-info">
+        <div class="price-item">
+          <span class="price-label">Symbol</span>
+          <span class="price-value" style="color: var(--color-accent-2)"
+            >${this.symbol}</span
+          >
+        </div>
+        <div class="price-item">
+          <span class="price-label">Time Frame</span>
+          <span class="price-value" style="color: var(--color-accent-2)"
+            >${granularityLabel(this.granularity)}</span
+          >
+        </div>
+        <div class="price-group">
           <span class="price-item">
             <span class="price-label">Open</span>
             <span class="price-value" style="color: ${priceValueColor}"
@@ -171,8 +197,6 @@ export class PriceInfo extends LitElement {
               >${high}</span
             >
           </span>
-        </div>
-        <div class="price-row">
           <span class="price-item">
             <span class="price-label">Low</span>
             <span class="price-value" style="color: ${priceValueColor}"
@@ -187,6 +211,8 @@ export class PriceInfo extends LitElement {
           </span>
         </div>
       </div>
-    </div>`;
+    `;
+
+    return window.innerWidth >= 768 ? desktopLayout : mobileLayout;
   }
 }
