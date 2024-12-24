@@ -5,7 +5,8 @@ import { observe, xin } from "xinjs";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { PriceRange } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
-import { drawPriceLabel, priceToY } from "../../util/chart-util";
+import { PRICEAXIS_WIDTH } from "./chart-container";
+import { priceToY } from "../../util/chart-util";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -60,15 +61,17 @@ export class PriceAxis extends CanvasBase {
       end: this.priceRange.max,
     });
 
-    ctx.font = `${6 * dpr}px Arial`;
-    ctx.fillStyle = "#666";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "middle";
-    ctx.strokeStyle = "#ccc";
-
     const priceStep = getPriceStep(this.priceRange.range);
     const firstPriceGridLine =
       Math.floor(this.priceRange.min / priceStep) * priceStep;
+
+    // Set font once for all labels
+    const fontFamily = getComputedStyle(document.documentElement)
+      .getPropertyValue("--font-primary")
+      .trim();
+    ctx.font = `${10}px ${fontFamily}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     for (
       let price = firstPriceGridLine;
@@ -79,9 +82,18 @@ export class PriceAxis extends CanvasBase {
 
       if (y >= 0 && y <= this.canvas.height / dpr) {
         const priceText = formatPrice(price);
-        ctx.font = `${10}px Arial`;
-        const textMetrics = ctx.measureText(priceText);
-        ctx.fillText(priceText, textMetrics.width, y);
+        const labelWidth = PRICEAXIS_WIDTH;
+        const labelHeight = 20 / dpr;
+
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, labelWidth, labelHeight);
+
+        // Draw text
+        ctx.fillStyle = "#666";
+        ctx.fillText(priceText, labelWidth / 2, y);
       }
     }
 
@@ -99,17 +111,33 @@ export class PriceAxis extends CanvasBase {
           .getPropertyValue("--color-accent-1")
           .trim();
 
-    drawPriceLabel(
-      ctx,
-      this.currentPrice,
-      0,
-      priceY(this.currentPrice),
-      priceColor,
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-accent-2")
-        .trim(),
-      this.canvas.width / dpr
-    );
+    const textColor = isBearish
+      ? getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-accent-2")
+          .trim()
+      : getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+
+    // Draw live price label
+    const priceYPos = priceY(this.currentPrice);
+    const labelWidth = PRICEAXIS_WIDTH;
+    const labelHeight = 20;
+
+    // Draw background
+    ctx.fillStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-primary-dark")
+      .trim();
+    ctx.fillRect(0, priceYPos - labelHeight / 2, labelWidth, labelHeight);
+
+    // Draw border
+    ctx.strokeStyle = priceColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, priceYPos - labelHeight / 2, labelWidth, labelHeight);
+
+    // Draw text
+    ctx.fillStyle = textColor;
+    ctx.fillText(formatPrice(this.currentPrice), labelWidth / 2, priceYPos);
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
@@ -134,7 +162,8 @@ export class PriceAxis extends CanvasBase {
 
   private handleWheel = (e: WheelEvent) => {
     e.preventDefault();
-    const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
+    const isTrackpad =
+      Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < this.canvas!.width;
     this.dispatchZoom(e.deltaY, isTrackpad);
   };
 

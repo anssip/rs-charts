@@ -26,6 +26,7 @@ import "./logo";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 40;
+export const PRICEAXIS_WIDTH = 70;
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -637,7 +638,7 @@ export class ChartContainer extends LitElement {
 
     .chart {
       position: relative;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
     }
@@ -646,7 +647,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT}px;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: 25%;
       pointer-events: none;
       z-index: 2;
@@ -673,7 +674,7 @@ export class ChartContainer extends LitElement {
     .price-axis-container {
       right: 0;
       top: 0;
-      width: 50px;
+      width: ${PRICEAXIS_WIDTH}px;
       height: 100%;
     }
 
@@ -687,7 +688,7 @@ export class ChartContainer extends LitElement {
     .timeline-container {
       bottom: 0;
       left: 0px;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: ${TIMELINE_HEIGHT}px;
       pointer-events: auto;
     }
@@ -696,7 +697,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
@@ -712,7 +713,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: none;
       z-index: 6;

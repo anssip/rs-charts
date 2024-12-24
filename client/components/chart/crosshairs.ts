@@ -4,12 +4,13 @@ import { granularityToMs } from "../../../server/services/price-data/price-histo
 import { customElement } from "lit/decorators.js";
 import {
   canvasYToPrice,
-  drawPriceLabel,
   drawTimeLabel,
   getLocalAlignedTimestamp,
 } from "../../util/chart-util";
 import { CandlestickChart } from "./chart";
 import { ChartState } from "../..";
+import { PRICEAXIS_WIDTH } from "./chart-container";
+import { formatPrice } from "../../util/price-util";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
@@ -47,12 +48,12 @@ export class Crosshairs extends CanvasBase {
       return;
     }
 
-    // const dpr = window.devicePixelRatio || 1;
     const chartWidth = xin["state.canvasWidth"] as number;
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
     const priceRange = state.priceRange;
 
+    // Scale mouse coordinates for DPI
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
 
@@ -108,6 +109,7 @@ export class Crosshairs extends CanvasBase {
     }
 
     const ctx = this.ctx;
+    const dpr = window.devicePixelRatio || 1;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -130,23 +132,49 @@ export class Crosshairs extends CanvasBase {
 
     ctx.setLineDash([]);
 
-    const dpr = window.devicePixelRatio || 1;
+    // Draw price label
+    const textColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent-2")
+      .trim();
+    const backgroundColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-primary-dark")
+      .trim();
+    const borderColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-primary")
+      .trim();
 
-    // Draw labels
-    drawPriceLabel(
-      ctx,
-      this.cursorPrice,
-      this.canvas.width / dpr - 50,
-      this.mouseY,
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-background-secondary")
-        .trim(),
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-primary-dark")
-        .trim(),
-      50
+    // Set font
+    const fontFamily = getComputedStyle(document.documentElement)
+      .getPropertyValue("--font-primary")
+      .trim();
+    ctx.font = `${10}px ${fontFamily}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Draw price label
+    const labelWidth = PRICEAXIS_WIDTH;
+    const labelHeight = 20;
+    const labelX = this.canvas.width / dpr - labelWidth;
+    const labelY = this.mouseY;
+
+    // Draw background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(labelX, labelY - labelHeight / 2, labelWidth, labelHeight);
+
+    // Draw border
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(labelX, labelY - labelHeight / 2, labelWidth, labelHeight);
+
+    // Draw text
+    ctx.fillStyle = textColor;
+    ctx.fillText(
+      formatPrice(this.cursorPrice),
+      labelX + labelWidth / 2,
+      labelY
     );
 
+    // Draw time label
     drawTimeLabel(
       ctx,
       this.cursorTime,
