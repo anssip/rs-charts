@@ -111,13 +111,9 @@ export class PriceAxis extends CanvasBase {
           .getPropertyValue("--color-accent-1")
           .trim();
 
-    const textColor = isBearish
-      ? getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-accent-2")
-          .trim()
-      : getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-primary-dark")
-          .trim();
+    const textColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent-2")
+      .trim();
 
     // Draw live price label
     const priceYPos = priceY(this.currentPrice);
