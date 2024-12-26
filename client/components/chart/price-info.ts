@@ -226,30 +226,31 @@ export class PriceInfo extends LitElement {
       gap: 24px;
       align-items: center;
       width: 100%;
+      justify-content: space-between;
     }
 
     .metadata-group {
       display: flex;
-      gap: 24px;
+      gap: 12px;
       align-items: center;
-      flex: 1;
-      min-width: 200px;
+      flex: 0 auto;
+      min-width: 0;
     }
 
     .price-group {
       display: flex;
-      gap: 24px;
+      gap: 36px;
       align-items: center;
-      flex: 2;
-      justify-content: space-between;
-      min-width: 400px;
+      flex: 0 auto;
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .price-item {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      min-width: 0;
+      min-width: 100px;
       flex: 1;
     }
 
@@ -266,6 +267,7 @@ export class PriceInfo extends LitElement {
       font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
+      min-width: 80px;
     }
 
     @media (max-width: 767px) {
@@ -276,8 +278,7 @@ export class PriceInfo extends LitElement {
       }
 
       .metadata-group {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
         gap: 8px;
         min-width: 0;
       }
@@ -285,7 +286,7 @@ export class PriceInfo extends LitElement {
       .price-group {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        gap: 16px;
         min-width: 0;
       }
 
@@ -294,6 +295,7 @@ export class PriceInfo extends LitElement {
         align-items: center;
         gap: 8px;
         flex: 0;
+        min-width: unset;
       }
 
       .price-label {
@@ -302,7 +304,7 @@ export class PriceInfo extends LitElement {
 
       .price-value {
         flex: 1;
-        min-width: 0;
+        min-width: unset;
       }
     }
 
