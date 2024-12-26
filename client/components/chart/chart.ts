@@ -43,7 +43,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   @property({ type: Object })
   _options: ChartOptions = {
-    candleWidth: 15,
+    candleWidth: 7,
     candleGap: 2,
     minCandleWidth: 2,
     maxCandleWidth: 100,

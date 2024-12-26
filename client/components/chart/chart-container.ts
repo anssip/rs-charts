@@ -60,7 +60,7 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   options: ChartOptions = {
-    candleWidth: 15,
+    candleWidth: 7,
     candleGap: 2,
     minCandleWidth: 2,
     maxCandleWidth: 100,

@@ -20,10 +20,9 @@ bun run dev
 
 ## TODO
 
-- [ ] Crosshairs speech bubble with price info and volume info (disappears after mouse move and reappears when mouse stops over the chart)
-- [ ] Move symbol and granularity selection to price-info panel
-- [ ] Make price-axis wider
-- [ ] Move logo to the price-info panel
+- [ ] Show volume info in price-info panel
+- [x] Move symbol and granularity selection to price-info panel
+- [x] Make price-axis wider
 - [x] Volume chart
 - [x] Use fonts and colors from the brand guide
 
