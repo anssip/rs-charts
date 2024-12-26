@@ -20,7 +20,7 @@ bun run dev
 
 ## TODO
 
-- [ ] Show volume info in price-info panel
+- [x] Show volume info in price-info panel
 - [x] Move symbol and granularity selection to price-info panel
 - [x] Make price-axis wider
 - [x] Volume chart

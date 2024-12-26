@@ -125,10 +125,15 @@ export class Crosshairs extends CanvasBase {
     ctx.stroke();
 
     // Draw vertical line at snapped X
-    ctx.beginPath();
-    ctx.moveTo(this.snappedX, 0);
-    ctx.lineTo(this.snappedX, this.canvas.height);
-    ctx.stroke();
+    if (
+      this.snappedX >= 0 &&
+      this.snappedX <= this.canvas.width / dpr - PRICEAXIS_WIDTH
+    ) {
+      ctx.beginPath();
+      ctx.moveTo(this.snappedX, 0);
+      ctx.lineTo(this.snappedX, this.canvas.height);
+      ctx.stroke();
+    }
 
     ctx.setLineDash([]);
 

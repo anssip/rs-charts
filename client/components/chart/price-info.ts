@@ -14,6 +14,7 @@ import {
 import { CoinbaseProduct } from "../../api/firestore-client";
 import "../chart/toolbar/product-select";
 import { ChartState } from "../..";
+import "../common/button";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -152,17 +153,14 @@ export class PriceInfo extends LitElement {
             ></product-select>
           </div>
           <div class="price-item" style="position: relative;">
-            <span
-              class="clickable timeframe-button"
+            <spot-button
+              class="timeframe-button"
+              label="Time Frame"
+              .value=${granularityLabel(this.granularity)}
               @click=${() =>
                 (this.isGranularityDropdownOpen =
                   !this.isGranularityDropdownOpen)}
-            >
-              <span class="button-label">Time Frame</span>
-              <span class="button-value"
-                >${granularityLabel(this.granularity)}</span
-              >
-            </span>
+            ></spot-button>
             ${this.isGranularityDropdownOpen
               ? html`
                   <div class="granularity-dropdown">
@@ -308,34 +306,6 @@ export class PriceInfo extends LitElement {
       }
     }
 
-    .clickable {
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(24, 26, 27, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-      padding: 6px 0;
-      font-size: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      width: 100px;
-      box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.5),
-        2px 2px 8px rgba(0, 0, 0, 0.5),
-        -2px 2px 4px var(--color-accent-1, rgba(255, 255, 255, 0.1)),
-        2px 2px 4px var(--color-accent-1, rgba(255, 255, 255, 0.1));
-      backdrop-filter: blur(8px);
-    }
-
-    .clickable:hover {
-      border-color: var(--color-accent-1);
-      background: rgba(24, 26, 27, 0.95);
-      box-shadow: -2px 2px 12px rgba(0, 0, 0, 0.6),
-        2px 2px 12px rgba(0, 0, 0, 0.6), -2px 2px 8px var(--color-accent-1),
-        2px 2px 8px var(--color-accent-1);
-    }
-
     .granularity-dropdown {
       position: absolute;
       top: 100%;
@@ -364,16 +334,6 @@ export class PriceInfo extends LitElement {
     .granularity-option.selected {
       background: rgba(255, 255, 255, 0.15);
       color: var(--color-accent-1);
-    }
-
-    .button-label {
-      font-size: 11px;
-      color: var(--color-background-secondary);
-      text-transform: uppercase;
-    }
-
-    .button-value {
-      color: var(--color-accent-2);
     }
   `;
 }

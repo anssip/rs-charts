@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CoinbaseProduct } from "../../../api/firestore-client";
+import "../../common/button";
 
 @customElement("product-select")
 export class ProductSelect extends LitElement {
@@ -189,12 +190,11 @@ export class ProductSelect extends LitElement {
   render() {
     return html`
       <div class="product-select">
-        <button @click=${this.handleOpen} class="symbol-button">
-          <span class="button-label">Symbol</span>
-          <span class="button-value"
-            >${this.selectedProduct || "Select Symbol"}</span
-          >
-        </button>
+        <spot-button
+          @click=${this.handleOpen}
+          label="Symbol"
+          .value=${this.selectedProduct || "Select Symbol"}
+        ></spot-button>
 
         ${this.isOpen
           ? html`
@@ -268,35 +268,6 @@ export class ProductSelect extends LitElement {
     .product-select {
       position: relative;
       display: inline-block;
-    }
-
-    .symbol-button {
-      background: rgba(24, 26, 27, 0.9);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-      padding: 6px 12px;
-      color: var(--color-accent-2);
-      cursor: pointer;
-      width: 100px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.5),
-        2px 2px 8px rgba(0, 0, 0, 0.5),
-        -2px 2px 4px var(--color-accent-1, rgba(255, 255, 255, 0.1)),
-        2px 2px 4px var(--color-accent-1, rgba(255, 255, 255, 0.1));
-      backdrop-filter: blur(8px);
-    }
-
-    .symbol-button:hover {
-      border-color: var(--color-accent-1);
-      background: rgba(24, 26, 27, 0.95);
-      box-shadow: -2px 2px 12px rgba(0, 0, 0, 0.6),
-        2px 2px 12px rgba(0, 0, 0, 0.6), -2px 2px 8px var(--color-accent-1),
-        2px 2px 8px var(--color-accent-1);
     }
 
     .modal-backdrop {
@@ -499,16 +470,6 @@ export class ProductSelect extends LitElement {
     .coming-soon-message {
       font-size: 18px;
       margin-bottom: 8px;
-    }
-
-    .button-label {
-      font-size: 11px;
-      color: var(--color-background-secondary);
-      text-transform: uppercase;
-    }
-
-    .button-value {
-      color: var(--color-accent-2);
     }
   `;
 }
