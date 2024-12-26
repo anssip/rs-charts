@@ -163,13 +163,22 @@ export class Crosshairs extends CanvasBase {
     const labelY = this.mouseY;
 
     // Draw background
+    const cornerRadius = 4;
+    ctx.beginPath();
+    ctx.roundRect(
+      labelX,
+      labelY - labelHeight / 2,
+      labelWidth,
+      labelHeight,
+      cornerRadius
+    );
     ctx.fillStyle = backgroundColor;
-    ctx.fillRect(labelX, labelY - labelHeight / 2, labelWidth, labelHeight);
+    ctx.fill();
 
     // Draw border
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 1;
-    ctx.strokeRect(labelX, labelY - labelHeight / 2, labelWidth, labelHeight);
+    ctx.stroke();
 
     // Draw text
     ctx.fillStyle = textColor;

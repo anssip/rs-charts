@@ -122,18 +122,27 @@ export class PriceAxis extends CanvasBase {
 
     const priceYPos = priceY(this.currentPrice);
     const labelWidth = PRICEAXIS_WIDTH;
-    const labelHeight = 36;
+    const labelHeight = 30;
 
-    // Draw background
+    // Draw background with rounded corners
+    const cornerRadius = 4;
+    ctx.beginPath();
+    ctx.roundRect(
+      0,
+      priceYPos - labelHeight / 2,
+      labelWidth,
+      labelHeight,
+      cornerRadius
+    );
     ctx.fillStyle = getComputedStyle(document.documentElement)
       .getPropertyValue("--color-primary-dark")
       .trim();
-    ctx.fillRect(0, priceYPos - labelHeight / 2, labelWidth, labelHeight);
+    ctx.fill();
 
-    // Draw border
+    // Draw border with rounded corners
     ctx.strokeStyle = priceColor;
     ctx.lineWidth = 1;
-    ctx.strokeRect(0, priceYPos - labelHeight / 2, labelWidth, labelHeight);
+    ctx.stroke();
 
     // Draw price text
     ctx.fillStyle = textColor;
