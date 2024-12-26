@@ -10,7 +10,6 @@ import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
-import "./toolbar/top-toolbar";
 import "./volume-chart";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { TimeRange } from "../../candle-repository";
@@ -209,15 +208,10 @@ export class ChartContainer extends LitElement {
         <div class="price-info">
           <price-info
             .product=${this._state.liveCandle?.productId}
+            .symbols=${this.products}
           ></price-info>
         </div>
         <div class="chart-area">
-          <div class="toolbar-top">
-            <top-toolbar
-              .products=${this.products}
-              .state=${this._state}
-            ></top-toolbar>
-          </div>
           <div class="chart">
             <candlestick-chart></candlestick-chart>
           </div>
@@ -244,6 +238,8 @@ export class ChartContainer extends LitElement {
 
   private handleResize(width: number, height: number) {
     if (!this.chart) return;
+    if (!this._state?.granularity) return;
+
     if (this._state.priceHistory.getCandles().size === 0) {
       this.chart.resize(width, height);
       return;
@@ -256,7 +252,7 @@ export class ChartContainer extends LitElement {
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
       this._state.timeRange.end -
-      visibleCandles * getCandleInterval(this.state.granularity);
+      visibleCandles * getCandleInterval(this._state.granularity);
 
     if (
       newStartTimestamp > 0 &&
