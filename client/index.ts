@@ -11,8 +11,8 @@ import {
   PriceHistory,
   PriceRange,
   SimplePriceHistory,
+  TimeRange,
 } from "../server/services/price-data/price-history-model";
-import { TimeRange } from "./candle-repository";
 import { LiveCandle } from "./api/live-candle-subscription";
 import { ChartContainer } from "./components/chart/chart-container";
 
@@ -74,6 +74,9 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       chartApp.cleanup();
+    }
+    if (document.visibilityState === "visible") {
+      chartApp.fetchGaps();
     }
   });
 });

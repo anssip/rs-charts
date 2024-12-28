@@ -2,12 +2,8 @@ import {
   CandleData,
   CandleDataByTimestamp,
   Granularity,
+  TimeRange,
 } from "../server/services/price-data/price-history-model";
-
-export interface TimeRange {
-  start: number;
-  end: number;
-}
 
 export interface FetchCandlesOptions {
   symbol: string;
@@ -43,7 +39,7 @@ export class CandleRepository {
   async fetchCandles(
     options: FetchCandlesOptions
   ): Promise<CandleDataByTimestamp> {
-    const { symbol, direction, granularity, timeRange } = options;
+    const { symbol, granularity, timeRange } = options;
     const key = this.getKey(symbol, granularity);
     const rangeKey = this.getRangeKey(symbol, granularity, timeRange);
 
@@ -80,26 +76,25 @@ export class CandleRepository {
     try {
       this.pendingFetches.add(rangeKey);
 
-      const updatedBufferRange = symbolBufferedRange
-        ? {
-            start: Math.min(
-              Number(timeRange.start),
-              Number(symbolBufferedRange.start)
-            ),
-            end: Math.max(
-              Number(timeRange.end),
-              Number(symbolBufferedRange.end)
-            ),
-          }
-        : timeRange;
-
-      this.bufferedRanges.set(key, updatedBufferRange);
-
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
         timeRange
       );
+      const minStartInResult = Math.min(...rangeCandles.keys());
+      const maxEndInResult = Math.max(...rangeCandles.keys());
+
+      const updatedBufferRange = symbolBufferedRange
+        ? {
+            start: Math.min(
+              minStartInResult,
+              Number(symbolBufferedRange.start)
+            ),
+            end: Math.max(maxEndInResult, Number(symbolBufferedRange.end)),
+          }
+        : timeRange;
+
+      this.bufferedRanges.set(key, updatedBufferRange);
 
       const existingCandles = this.candles.get(key)!;
       this.candles.set(key, new Map([...existingCandles, ...rangeCandles]));

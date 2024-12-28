@@ -7,8 +7,7 @@ import {
   getTimelineMarks,
 } from "../../util/chart-util";
 import { observe, xin } from "xinjs";
-import { TimeRange } from "../../candle-repository";
-import { ChartState } from "../..";
+import { TimeRange } from "../../../server/services/price-data/price-history-model";
 
 const dpr = window.devicePixelRatio ?? 1;
 

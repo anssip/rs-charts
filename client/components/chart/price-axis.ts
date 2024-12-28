@@ -11,6 +11,7 @@ import { PriceRangeImpl } from "../../util/price-range";
 import { PRICEAXIS_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
+import { ChartState } from "../..";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -205,7 +206,9 @@ export class PriceAxis extends CanvasBase {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    const granularityMs = granularityToMs(xin["state.granularity"]);
+    const granularityMs = granularityToMs(
+      xin["state.granularity"] as Granularity
+    );
     const showHours = granularityMs >= 24 * 60 * 60 * 1000;
 
     if (showHours) {
@@ -235,6 +238,25 @@ export class PriceAxis extends CanvasBase {
     const msLeft = currentPeriodEnd - now;
 
     this.timeLeft = this.formatTimeLeft(msLeft);
+
+    if (msLeft <= 1000) {
+      const state = xin["state"] as ChartState;
+      // dispatch event to fetch new candle
+      console.log("PriceAxis: dispatching fetch-next-candle event");
+      this.dispatchEvent(
+        new CustomEvent("fetch-next-candle", {
+          detail: {
+            granularity: state.granularity,
+            timeRange: {
+              start: state.timeRange.end + 1000,
+              end: state.timeRange.end + granularityMs * 2,
+            },
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
 
     if (!this.ctx || !this.canvas) return;
 

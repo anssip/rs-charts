@@ -110,7 +110,9 @@ export class PriceInfo extends LitElement {
     );
 
     const finalCandleCount = Math.min(newCandleCount, MAX_CANDLES);
-    const newEnd = Math.min(currentTimeRange.end, new Date().getTime());
+    const newEnd =
+      Math.min(currentTimeRange.end, new Date().getTime()) +
+      newGranularityMs * 2;
     const newTimeRange = {
       start: newEnd - finalCandleCount * newGranularityMs,
       end: newEnd,

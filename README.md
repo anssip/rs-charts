@@ -20,6 +20,7 @@ bun run dev
 
 ## TODO
 
+- [ ] Changing to 1 minute candles it starts to show error message "Ignoring old candle"
 - [x] Show volume info in price-info panel
 - [x] Move symbol and granularity selection to price-info panel
 - [x] Make price-axis wider

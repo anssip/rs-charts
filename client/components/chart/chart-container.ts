@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import {
   granularityToMs,
   SimplePriceHistory,
+  TimeRange,
 } from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
@@ -12,7 +13,6 @@ import "./crosshairs";
 import "./price-info";
 import "./volume-chart";
 import { CandlestickChart, ChartOptions } from "./chart";
-import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
@@ -334,14 +334,6 @@ export class ChartContainer extends LitElement {
         newEnd > Number(this._state.priceHistory.endTimestamp) - bufferZone);
 
     if (needMoreData) {
-      console.log("ChartContainer: Need more data", {
-        reason:
-          newStart <
-            Number(this._state.priceHistory.startTimestamp) + bufferZone &&
-          direction === "backward"
-            ? "Close to start"
-            : "Close to end",
-      });
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
     }
   }
@@ -382,12 +374,6 @@ export class ChartContainer extends LitElement {
               Number(this._state.priceHistory.endTimestamp) +
               FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
           };
-    console.log("Dispatching chart-pan event", {
-      direction,
-      timeRange,
-      visibleCandles: this.calculateVisibleCandles(),
-      needMoreData: true,
-    });
     this.dispatchEvent(
       new CustomEvent("chart-pan", {
         detail: {
@@ -503,8 +489,8 @@ export class ChartContainer extends LitElement {
     this.draw();
   };
 
-  public updateLiveCandle(liveCandle: LiveCandle): void {
-    this._state.priceHistory.setLiveCandle({
+  public updateLiveCandle(liveCandle: LiveCandle): boolean {
+    const isSuccess = this._state.priceHistory.setLiveCandle({
       timestamp: liveCandle.timestamp * 1000,
       open: liveCandle.open,
       high: liveCandle.high,
@@ -514,7 +500,10 @@ export class ChartContainer extends LitElement {
       volume: liveCandle.volume,
       live: true,
     });
-    this.draw();
+    if (isSuccess) {
+      this.draw();
+    }
+    return isSuccess;
   }
 
   // TODO: This kind of stuff should be moved to a public API
@@ -579,13 +568,21 @@ export class ChartContainer extends LitElement {
 
   private setupFocusHandler() {
     window.addEventListener("focus", this.handleWindowFocus);
+    document.addEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange.bind(this)
+    );
   }
 
   private handleWindowFocus = () => {
-    if (this.chart) {
+    this.draw();
+  };
+
+  private handleVisibilityChange(): void {
+    if (document.visibilityState === "visible") {
       this.draw();
     }
-  };
+  }
 
   static styles = css`
     :host {
