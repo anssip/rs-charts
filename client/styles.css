@@ -1,8 +1,9 @@
 :root {
     /* primary colors */
     --color-primary: #5d5bed;
-    --color-primary-rgb: 93, 93, 237;
     --color-primary-dark: #181818;
+    --color-primary-rgb: 93, 93, 237;
+    --color-primary-dark-rgb: 24, 24, 24;
 
     /* secondary colors */
     --color-accent-1: #d7ea57;
@@ -13,7 +14,17 @@
 
     /* other */
     --color-background-secondary: rgb(143, 143, 143);
-    --color-background-secondary-rgb: 143, 143, 143; /* Keep this for opacity use cases */
+    --color-background-secondary-rgb: 143, 143, 143;
+
+    /* opacity variants */
+    --color-primary-dark-50: rgba(24, 24, 24, 0.5);
+    --color-primary-dark-70: rgba(24, 24, 24, 0.7);
+    --color-primary-dark-95: rgba(24, 24, 24, 0.85);
+    --color-primary-dark-97: rgba(24, 24, 24, 0.87);
+    --color-primary-dark-98: rgba(24, 24, 24, 0.88);
+    --color-background-secondary-20: rgba(143, 143, 143, 0.15);
+    --color-background-secondary-30: rgba(143, 143, 143, 0.2);
+    --color-modal-backdrop: rgba(0, 0, 0, 0.5);
 
     /* fonts */
     --font-primary: "Plus Jakarta Sans", serif;

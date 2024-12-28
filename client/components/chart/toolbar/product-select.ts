@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CoinbaseProduct } from "../../../api/firestore-client";
+import "../../common/button";
 
 @customElement("product-select")
 export class ProductSelect extends LitElement {
@@ -189,9 +190,11 @@ export class ProductSelect extends LitElement {
   render() {
     return html`
       <div class="product-select">
-        <button @click=${this.handleOpen} class="symbol-button">
-          ${this.selectedProduct || "Select Symbol"}
-        </button>
+        <spot-button
+          @click=${this.handleOpen}
+          label="Symbol"
+          .value=${this.selectedProduct || "Select Symbol"}
+        ></spot-button>
 
         ${this.isOpen
           ? html`
@@ -267,41 +270,39 @@ export class ProductSelect extends LitElement {
       display: inline-block;
     }
 
-    .symbol-button {
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--color-background-secondary);
-      background: var(--color-primary-dark);
-      color: var(--color-accent-2);
-      cursor: pointer;
-      min-width: 120px;
-      text-align: left;
-    }
-
-    .symbol-button:hover {
-      border-color: var(--color-accent-1);
-    }
-
     .modal-backdrop {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--color-modal-backdrop);
       display: flex;
       justify-content: center;
       align-items: flex-start;
       padding-top: 100px;
       z-index: 1000;
+      isolation: isolate;
     }
 
     .modal {
-      background: var(--color-primary-dark);
+      position: relative;
+      z-index: 1001;
+      background: var(--color-primary-dark-50);
       border-radius: 8px;
       width: 500px;
       max-width: 90vw;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--color-background-secondary-20);
+    }
+
+    .modal::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--color-primary-dark-50);
+      border-radius: inherit;
+      z-index: -1;
     }
 
     .modal-header {
@@ -309,7 +310,8 @@ export class ProductSelect extends LitElement {
       justify-content: space-between;
       align-items: center;
       padding: 16px;
-      border-bottom: 1px solid var(--color-background-secondary);
+      border-bottom: 1px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-98);
     }
 
     .modal-header h2 {
@@ -333,7 +335,8 @@ export class ProductSelect extends LitElement {
 
     .search-container {
       padding: 16px;
-      border-bottom: 1px solid var(--color-background-secondary);
+      border-bottom: 1px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-98);
     }
 
     input {
@@ -341,8 +344,8 @@ export class ProductSelect extends LitElement {
       padding: 8px;
       border-radius: 4px;
       font-size: 14px;
-      border: 1px solid var(--color-background-secondary);
-      background: var(--color-primary-dark);
+      border: 1px solid var(--color-background-secondary-30);
+      background: var(--color-primary-dark-98);
       color: var(--color-accent-2);
     }
 
@@ -356,7 +359,8 @@ export class ProductSelect extends LitElement {
       display: flex;
       padding: 8px 16px;
       gap: 8px;
-      border-bottom: 1px solid var(--color-background-secondary);
+      border-bottom: 1px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-98);
     }
 
     .tabs button {
@@ -382,14 +386,15 @@ export class ProductSelect extends LitElement {
       align-items: center;
       padding: 8px 16px;
       gap: 8px;
-      border-bottom: 1px solid var(--color-background-secondary);
+      border-bottom: 1px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-98);
     }
 
     .source-select {
       padding: 4px 8px;
       border-radius: 4px;
-      border: 1px solid var(--color-background-secondary);
-      background: var(--color-primary-dark);
+      border: 1px solid var(--color-background-secondary-30);
+      background: var(--color-primary-dark-98);
       color: var(--color-accent-2);
     }
 
@@ -404,7 +409,8 @@ export class ProductSelect extends LitElement {
       scroll-behavior: smooth;
       scrollbar-width: thin;
       scrollbar-color: var(--color-background-secondary)
-        var(--color-primary-dark);
+        var(--color-primary-dark-98);
+      background: var(--color-primary-dark-98);
     }
 
     .results::-webkit-scrollbar {
@@ -412,7 +418,7 @@ export class ProductSelect extends LitElement {
     }
 
     .results::-webkit-scrollbar-track {
-      background: var(--color-primary-dark);
+      background: var(--color-primary-dark-98);
     }
 
     .results::-webkit-scrollbar-thumb {
@@ -432,11 +438,11 @@ export class ProductSelect extends LitElement {
     }
 
     .result-item:hover:not(.selected) {
-      background: rgba(var(--color-background-secondary-rgb), 0.3);
+      background: rgba(var(--color-background-secondary-rgb), 0.2);
     }
 
     .result-item.selected {
-      background: var(--color-background-secondary);
+      background: rgba(var(--color-background-secondary-rgb), 0.3);
     }
 
     .symbol {

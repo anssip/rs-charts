@@ -1,7 +1,9 @@
 import { xin } from "xinjs";
 import { ChartState } from "..";
-import { Granularity } from "../../server/services/price-data/price-history-model";
-import { TimeRange } from "../candle-repository";
+import {
+  Granularity,
+  TimeRange,
+} from "../../server/services/price-data/price-history-model";
 import { LiveCandle } from "../api/live-candle-subscription";
 import { PriceRange } from "../../server/services/price-data/price-history-model";
 import { SimplePriceHistory } from "../../server/services/price-data/price-history-model";
