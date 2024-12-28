@@ -7,9 +7,8 @@ import {
 import { CanvasBase } from "./canvas-base";
 import { touch, xin } from "xinjs";
 import { ChartState } from "../..";
-import { TimeRange } from "../../candle-repository";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
-
+import { TimeRange } from "../../../server/services/price-data/price-history-model";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
 
@@ -43,7 +42,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   @property({ type: Object })
   _options: ChartOptions = {
-    candleWidth: 15,
+    candleWidth: 7,
     candleGap: 2,
     minCandleWidth: 2,
     maxCandleWidth: 100,

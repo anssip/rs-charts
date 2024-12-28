@@ -1,4 +1,4 @@
-import { LitElement, PropertyValues, html } from "lit";
+import { LitElement, html } from "lit";
 
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
@@ -16,10 +16,9 @@ export abstract class CanvasBase extends LitElement {
   }
 
   firstUpdated() {
-
     const bindListeners = (canvas: HTMLCanvasElement) => {
       this.bindEventListeners(canvas);
-    }
+    };
 
     requestAnimationFrame(() => {
       this.canvas = this.renderRoot.querySelector("canvas");
@@ -75,7 +74,7 @@ export abstract class CanvasBase extends LitElement {
 
   bindEventListeners(_: HTMLCanvasElement): void {
     // no default listeners
-  };
+  }
 
   public resize(width: number, height: number) {
     console.log("CanvasBase: resize", { id: this.id, width, height });
@@ -95,7 +94,6 @@ export abstract class CanvasBase extends LitElement {
     this.canvas.style.height = `${height}px`;
     this.canvas.height = height * dpr;
 
-
     // Reset any previous transforms
     this.ctx.resetTransform();
     this.ctx.scale(dpr, dpr);
@@ -104,5 +102,5 @@ export abstract class CanvasBase extends LitElement {
 
   draw(): void {
     // should be implemented by subclasses
-  };
+  }
 }

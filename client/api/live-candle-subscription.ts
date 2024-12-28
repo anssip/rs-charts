@@ -5,10 +5,7 @@ import {
   DocumentSnapshot,
   DocumentData,
 } from "firebase/firestore";
-import {
-  Granularity,
-  granularityLabel,
-} from "../../server/services/price-data/price-history-model";
+import { Granularity } from "../../server/services/price-data/price-history-model";
 
 export interface LiveCandle {
   timestamp: number;
@@ -23,19 +20,96 @@ export interface LiveCandle {
 
 export class LiveCandleSubscription {
   private _unsubscribe: (() => void) | null = null;
+  private _lastUpdateTime: number = Date.now();
+  private _monitorInterval: ReturnType<typeof setInterval> | null = null;
+  private _currentSymbol: string | null = null;
+  private _currentGranularity: Granularity | null = null;
+  private _currentCallback: ((candle: LiveCandle) => void) | null = null;
+  private readonly TIMEOUT_MS = 30000; // 30 seconds
+  private _lastCheckTime: number = Date.now();
 
-  constructor(private firestore: Firestore) {}
+  constructor(private firestore: Firestore) {
+    // Add visibility change listener to detect when the page becomes visible again
+    if (typeof document !== "undefined") {
+      document.addEventListener(
+        "visibilitychange",
+        this.handleVisibilityChange.bind(this)
+      );
+    }
+  }
+
+  private handleVisibilityChange(): void {
+    if (document.visibilityState === "visible") {
+      const now = Date.now();
+      const timeSinceLastCheck = now - this._lastCheckTime;
+
+      console.log(
+        `Live: Page became visible after ${timeSinceLastCheck}ms, reconnecting...`
+      );
+      this.reconnect();
+    }
+  }
+
+  private checkConnection(): void {
+    const timeSinceLastUpdate = Date.now() - this._lastUpdateTime;
+    if (timeSinceLastUpdate > this.TIMEOUT_MS) {
+      console.log(
+        `Live: No updates for ${timeSinceLastUpdate}ms, reconnecting...`
+      );
+      this.reconnect();
+    }
+    this._lastCheckTime = Date.now();
+  }
+
+  private startMonitoring(): void {
+    this.stopMonitoring();
+    this._lastCheckTime = Date.now();
+    this._monitorInterval = setInterval(() => {
+      this.checkConnection();
+    }, 5000); // Check every 5 seconds
+  }
+
+  private stopMonitoring(): void {
+    if (this._monitorInterval) {
+      clearInterval(this._monitorInterval);
+      this._monitorInterval = null;
+    }
+  }
+
+  private reconnect(): void {
+    console.log("Live: reconnect()", {
+      _currentSymbol: this._currentSymbol,
+      _currentGranularity: this._currentGranularity,
+      _currentCallback: this._currentCallback,
+    });
+    if (
+      this._currentSymbol &&
+      this._currentGranularity &&
+      this._currentCallback !== null
+    ) {
+      this.subscribe(
+        this._currentSymbol,
+        this._currentGranularity,
+        this._currentCallback
+      );
+    }
+  }
 
   subscribe(
     symbol: string,
     granularity: Granularity,
     onUpdate: (candle: LiveCandle) => void
   ): void {
-    this.unsubscribe?.();
-
     console.log(
       `Live: subscribing to exchanges/coinbase/products/${symbol}/intervals/${granularity}`
     );
+    this.unsubscribe();
+
+    this._currentSymbol = symbol;
+    this._currentGranularity = granularity;
+    this._currentCallback = onUpdate;
+    this._lastUpdateTime = Date.now();
+
     const docRef = doc(
       this.firestore,
       `exchanges/coinbase/products/${symbol}/intervals/${granularity}`
@@ -44,7 +118,8 @@ export class LiveCandleSubscription {
     this._unsubscribe = onSnapshot(
       docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id); // Add this log
+        this._lastUpdateTime = Date.now(); // Update the timestamp on each update
+        console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id);
         if (snapshot.exists()) {
           const data = snapshot.data() as LiveCandle;
 
@@ -69,14 +144,30 @@ export class LiveCandleSubscription {
           error.code,
           error.message
         );
+        // Start reconnection process on error
+        setTimeout(() => this.reconnect(), 1000);
       }
     );
+
+    this.startMonitoring();
   }
 
   unsubscribe(): void {
     if (this._unsubscribe) {
       this._unsubscribe();
       this._unsubscribe = null;
+    }
+    this.stopMonitoring();
+    // this._currentSymbol = null;
+    // this._currentGranularity = null;
+    // this._currentCallback = null;
+
+    // Remove visibility change listener
+    if (typeof document !== "undefined") {
+      document.removeEventListener(
+        "visibilitychange",
+        this.handleVisibilityChange.bind(this)
+      );
     }
   }
 }

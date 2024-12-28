@@ -1,5 +1,10 @@
 import { PriceRangeImpl } from "../../../client/util/price-range";
 
+export interface TimeRange {
+  start: number;
+  end: number;
+}
+
 export type Granularity =
   | "ONE_MINUTE"
   | "FIVE_MINUTE"
@@ -34,7 +39,7 @@ export function granularityLabel(granularity: Granularity): string {
     ["SIX_HOUR", "6h"],
     ["ONE_DAY", "1d"],
   ]);
-  return labels.get(granularity) ?? granularity;
+  return labels.get(String(granularity)) ?? String(granularity);
 }
 
 export interface CandleData {
@@ -83,7 +88,8 @@ export interface PriceHistory {
   ): [number, CandleData][];
   findNearestCandleIndex(timestamp: number): number;
   getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange;
-  setLiveCandle(candle: CandleData): void;
+  setLiveCandle(candle: CandleData): boolean;
+  getGaps(startTimestamp: number, endTimestamp: number): TimeRange[];
 }
 
 const GRANULARITY_TO_MS = new Map([
@@ -325,15 +331,31 @@ export class SimplePriceHistory implements PriceHistory {
     return GRANULARITY_TO_MS.get(`${this.granularity}`) ?? 60 * 60 * 1000;
   }
 
-  setLiveCandle(candle: CandleData): void {
+  /**
+   * Set a live candle to the price history.
+   * @param candle - The live candle to set.
+   * @returns True if the candle was set, false otherwise.
+   */
+  setLiveCandle(candle: CandleData): boolean {
+    console.log("Live: Setting live candle to price history:", candle);
     if (this.candles.size === 0) {
-      return;
+      return false;
     }
-    // TODO: check if this is working properly
+    if (candle.granularity.valueOf() !== this.granularity) {
+      console.log(
+        "Live: Ignoring candle with different granularity:",
+        candle.granularity,
+        this.granularity
+      );
+      return false;
+    }
     if (candle.timestamp < this.endTimestamp) {
-      console.log("Live: Ignoring old candle:", candle);
-      // TODO: ignore if old
-      return;
+      console.log(
+        "Live: Ignoring candle before end timestamp:",
+        candle.timestamp,
+        this.endTimestamp
+      );
+      return false;
     }
 
     const existingCandle = this.getCandle(candle.timestamp);
@@ -375,5 +397,23 @@ export class SimplePriceHistory implements PriceHistory {
     }
 
     console.log("Live: Updated candle:", this.getCandle(candle.timestamp));
+    return true;
+  }
+
+  getGaps(startTimestamp: number, endTimestamp: number): TimeRange[] {
+    const granularityMs = this.granularityMs;
+    // accumulate all gaps from the timeline. A gap is a period where this price history does not have a candle
+    const numSteps = Math.ceil((endTimestamp - startTimestamp) / granularityMs);
+    return Array.from({ length: numSteps }).reduce<TimeRange[]>(
+      (gaps, _, i) => {
+        const currentTimestamp = startTimestamp + i * granularityMs;
+        const nextTimestamp = currentTimestamp + granularityMs;
+        if (!this.isCandleAvailable(currentTimestamp)) {
+          gaps.push({ start: currentTimestamp, end: nextTimestamp });
+        }
+        return gaps;
+      },
+      []
+    );
   }
 }

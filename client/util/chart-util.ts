@@ -153,38 +153,14 @@ export function canvasYToPrice(
   return priceRange.min + percentage * (priceRange.max - priceRange.min);
 }
 
-export function drawPriceLabel(
-  ctx: CanvasRenderingContext2D,
-  price: number,
-  x: number,
-  y: number,
-  backgroundColor: string = "#333",
-  textColor: string = "#fff",
-  width: number = 100
-) {
-  // const dpr = window.devicePixelRatio ?? 1;
-  ctx.font = `${10}px Arial`;
-
-  const formattedPrice = formatPrice(price);
-  const padding = 2 * dpr;
-
-  const textMetrics = ctx.measureText(formattedPrice);
-  const rectHeight =
-    textMetrics.actualBoundingBoxAscent +
-    textMetrics.actualBoundingBoxDescent +
-    padding;
-
-  ctx.fillStyle = backgroundColor;
-  ctx.fillRect(x, y - (rectHeight + padding) / 2, width, rectHeight + padding);
-
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-
-  ctx.fillStyle = textColor;
-  const textX = x + textMetrics.width + padding;
-  // const textX = x + width - padding / 2;
-  ctx.fillText(formattedPrice, textX, y);
-}
+export type PriceLabelOptions = {
+  price: number;
+  backgroundColor: string;
+  textColor: string;
+  borderColor: string;
+  width: number;
+  height: number;
+};
 
 export function drawTimeLabel(
   ctx: CanvasRenderingContext2D,

@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import {
   granularityToMs,
   SimplePriceHistory,
+  TimeRange,
 } from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
@@ -10,10 +11,8 @@ import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
-import "./toolbar/top-toolbar";
 import "./volume-chart";
 import { CandlestickChart, ChartOptions } from "./chart";
-import { TimeRange } from "../../candle-repository";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
@@ -26,6 +25,7 @@ import "./logo";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 40;
+export const PRICEAXIS_WIDTH = 70;
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -60,7 +60,7 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   options: ChartOptions = {
-    candleWidth: 15,
+    candleWidth: 7,
     candleGap: 2,
     minCandleWidth: 2,
     maxCandleWidth: 100,
@@ -205,18 +205,13 @@ export class ChartContainer extends LitElement {
   render() {
     return html`
       <div class="container">
-        <div class="toolbar-top">
-          <top-toolbar
-            .products=${this.products}
-            .state=${this._state}
-          ></top-toolbar>
+        <div class="price-info">
+          <price-info
+            .product=${this._state.liveCandle?.productId}
+            .symbols=${this.products}
+          ></price-info>
         </div>
         <div class="chart-area">
-          <div class="price-info">
-            <price-info
-              .product=${this._state.liveCandle?.productId}
-            ></price-info>
-          </div>
           <div class="chart">
             <candlestick-chart></candlestick-chart>
           </div>
@@ -243,6 +238,8 @@ export class ChartContainer extends LitElement {
 
   private handleResize(width: number, height: number) {
     if (!this.chart) return;
+    if (!this._state?.granularity) return;
+
     if (this._state.priceHistory.getCandles().size === 0) {
       this.chart.resize(width, height);
       return;
@@ -255,7 +252,7 @@ export class ChartContainer extends LitElement {
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
       this._state.timeRange.end -
-      visibleCandles * getCandleInterval(this.state.granularity);
+      visibleCandles * getCandleInterval(this._state.granularity);
 
     if (
       newStartTimestamp > 0 &&
@@ -337,14 +334,6 @@ export class ChartContainer extends LitElement {
         newEnd > Number(this._state.priceHistory.endTimestamp) - bufferZone);
 
     if (needMoreData) {
-      console.log("ChartContainer: Need more data", {
-        reason:
-          newStart <
-            Number(this._state.priceHistory.startTimestamp) + bufferZone &&
-          direction === "backward"
-            ? "Close to start"
-            : "Close to end",
-      });
       this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
     }
   }
@@ -385,12 +374,6 @@ export class ChartContainer extends LitElement {
               Number(this._state.priceHistory.endTimestamp) +
               FETCH_BATCH_SIZE * granularityToMs(this._state.granularity),
           };
-    console.log("Dispatching chart-pan event", {
-      direction,
-      timeRange,
-      visibleCandles: this.calculateVisibleCandles(),
-      needMoreData: true,
-    });
     this.dispatchEvent(
       new CustomEvent("chart-pan", {
         detail: {
@@ -506,8 +489,8 @@ export class ChartContainer extends LitElement {
     this.draw();
   };
 
-  public updateLiveCandle(liveCandle: LiveCandle): void {
-    this._state.priceHistory.setLiveCandle({
+  public updateLiveCandle(liveCandle: LiveCandle): boolean {
+    const isSuccess = this._state.priceHistory.setLiveCandle({
       timestamp: liveCandle.timestamp * 1000,
       open: liveCandle.open,
       high: liveCandle.high,
@@ -517,7 +500,10 @@ export class ChartContainer extends LitElement {
       volume: liveCandle.volume,
       live: true,
     });
-    this.draw();
+    if (isSuccess) {
+      this.draw();
+    }
+    return isSuccess;
   }
 
   // TODO: This kind of stuff should be moved to a public API
@@ -582,13 +568,21 @@ export class ChartContainer extends LitElement {
 
   private setupFocusHandler() {
     window.addEventListener("focus", this.handleWindowFocus);
+    document.addEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange.bind(this)
+    );
   }
 
   private handleWindowFocus = () => {
-    if (this.chart) {
+    this.draw();
+  };
+
+  private handleVisibilityChange(): void {
+    if (document.visibilityState === "visible") {
       this.draw();
     }
-  };
+  }
 
   static styles = css`
     :host {
@@ -598,35 +592,46 @@ export class ChartContainer extends LitElement {
     }
 
     .container {
-      display: grid;
+      display: flex;
+      flex-direction: column;
       width: 100%;
       height: 100%;
-      grid-template-areas:
-        "top-tb"
-        "chart";
-      grid-template-columns: 1fr;
-      grid-template-rows: 40px 1fr;
-      gap: 1px;
       background-color: var(--color-primary-dark);
-      position: relative;
+      gap: 8px;
     }
 
     .toolbar-top {
-      grid-area: top-tb;
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 7;
+      background: transparent;
+      width: fit-content;
+    }
+
+    .price-info {
+      flex: 0 0 auto;
       background: var(--color-primary-dark);
+      border-radius: 12px;
+      margin: 8px 8px 0 8px;
+      padding: 12px 16px;
+      border: 1px solid rgba(143, 143, 143, 0.2);
     }
 
     .chart-area {
-      grid-area: chart;
+      flex: 1;
       position: relative;
       background: var(--color-primary-dark);
       overflow: hidden;
       pointer-events: auto;
+      border-radius: 12px;
+      margin: 0 8px 8px 8px;
+      border: 1px solid rgba(143, 143, 143, 0.2);
     }
 
     .chart {
       position: relative;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
     }
@@ -635,7 +640,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT}px;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: 25%;
       pointer-events: none;
       z-index: 2;
@@ -662,7 +667,7 @@ export class ChartContainer extends LitElement {
     .price-axis-container {
       right: 0;
       top: 0;
-      width: 50px;
+      width: ${PRICEAXIS_WIDTH}px;
       height: 100%;
     }
 
@@ -672,10 +677,11 @@ export class ChartContainer extends LitElement {
       height: 100%;
       pointer-events: auto;
     }
+
     .timeline-container {
       bottom: 0;
       left: 0px;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: ${TIMELINE_HEIGHT}px;
       pointer-events: auto;
     }
@@ -684,7 +690,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
@@ -700,7 +706,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - 50px);
+      width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: none;
       z-index: 6;
@@ -724,24 +730,6 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: calc(100% - ${TIMELINE_HEIGHT}px);
-    }
-
-    .price-info {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 6;
-      background: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 14px;
-      pointer-events: none;
-      color: var(--color-accent-2);
-      background-color: rgba(var(--color-primary-rgb), 0.8);
-      width: fit-content;
-      max-width: calc(
-        100% - 66px
-      ); /* Account for price axis width (50px) + right margin (16px) */
     }
 
     chart-logo {

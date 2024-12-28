@@ -20,6 +20,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        volume: 1000,
         live: false,
       },
       {
@@ -29,6 +30,7 @@ describe("SimplePriceHistory", () => {
         high: 115,
         low: 95,
         close: 110,
+        volume: 1000,
         live: false,
       },
       {
@@ -38,6 +40,7 @@ describe("SimplePriceHistory", () => {
         high: 120,
         low: 100,
         close: 115,
+        volume: 1000,
         live: false,
       },
     ];
@@ -112,6 +115,7 @@ describe("SimplePriceHistory", () => {
       high: 110,
       low: 90,
       close: 105,
+      volume: 1000,
       live: false,
     };
     fiveMinCandles.set(baseTime, candle);
@@ -141,6 +145,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        volume: 1000,
         live: false,
       });
     });
@@ -175,6 +180,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        volume: 1000,
         live: false,
       });
     });
@@ -213,6 +219,7 @@ describe("SimplePriceHistory", () => {
         high: 110,
         low: 90,
         close: 105,
+        volume: 1000,
         live: false,
       });
     });
@@ -241,5 +248,46 @@ describe("SimplePriceHistory", () => {
       1700007200000, // +2h
       1700010800000, // +3h
     ]);
+  });
+
+  test("getGaps returns correct gaps in the timeline", () => {
+    const candles = new Map<number, CandleData>();
+    const baseTime = 1700000000000; // base time
+    const hourInMs = 3600000; // 1 hour in milliseconds
+
+    // Add candles with gaps
+    // We'll add candles at hours 0, 1, 3, 4, 6 (leaving gaps at hours 2 and 5)
+    [0, 1, 3, 4, 6].forEach((hour) => {
+      candles.set(baseTime + hour * hourInMs, {
+        granularity: "ONE_HOUR",
+        timestamp: baseTime + hour * hourInMs,
+        open: 100,
+        high: 110,
+        low: 90,
+        close: 105,
+        volume: 1000,
+        live: false,
+      });
+    });
+
+    const priceHistory = new SimplePriceHistory("ONE_HOUR", candles);
+
+    // Get gaps from start to end (covering all 7 hours)
+    const gaps = priceHistory.getGaps(baseTime, baseTime + 6 * hourInMs);
+
+    // Should find two gaps: one at hour 2 and one at hour 5
+    expect(gaps.length).toBe(2);
+
+    // Verify the first gap (hour 2)
+    expect(gaps[0]).toEqual({
+      start: baseTime + 2 * hourInMs,
+      end: baseTime + 3 * hourInMs,
+    });
+
+    // Verify the second gap (hour 5)
+    expect(gaps[1]).toEqual({
+      start: baseTime + 5 * hourInMs,
+      end: baseTime + 6 * hourInMs,
+    });
   });
 });

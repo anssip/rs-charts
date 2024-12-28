@@ -1,5 +1,5 @@
 import { ChartContainer } from "./components/chart/chart-container";
-import { CandleRepository, TimeRange } from "./candle-repository";
+import { CandleRepository } from "./candle-repository";
 import {
   LiveCandleSubscription,
   LiveCandle,
@@ -11,6 +11,7 @@ import {
   granularityToMs,
   numCandlesInRange,
   SimplePriceHistory,
+  TimeRange,
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
 import { FirestoreClient } from "./api/firestore-client";
@@ -49,6 +50,10 @@ export class App {
     this.chartContainer.addEventListener(
       "chart-pan",
       this.handlePan as unknown as EventListener
+    );
+    this.chartContainer.addEventListener(
+      "fetch-next-candle",
+      this.handleFetchNextCandle as unknown as EventListener
     );
     this.startLiveCandleSubscription("BTC-USD", "ONE_HOUR");
   }
@@ -170,12 +175,10 @@ export class App {
     if (needMoreData && timeRange) {
       const rangeKey = `${timeRange.start}-${timeRange.end}`;
 
-      // Check if we're already fetching this range
       if (this.pendingFetches.has(rangeKey)) {
         console.log("Already fetching range:", timeRange);
         return;
       }
-
       const newCandles = await this.fetchData(
         this.state.symbol,
         this.state.granularity,
@@ -188,6 +191,21 @@ export class App {
         );
         this.chartContainer.state = this.state;
       }
+    }
+  };
+
+  private handleFetchNextCandle = async (event: CustomEvent) => {
+    console.log("handling fetch-next-candle event:", event);
+    const { granularity, timeRange } = event.detail;
+    const newCandles = await this.fetchData(
+      this.state.symbol,
+      granularity,
+      timeRange
+    );
+    if (newCandles) {
+      console.log("App: fetch-next-candle newCandles", newCandles);
+      this.state.priceHistory = new SimplePriceHistory(granularity, newCandles);
+      this.chartContainer!.state = this.state;
     }
   };
 
@@ -239,46 +257,49 @@ export class App {
     symbol: string,
     granularity: Granularity
   ): void {
-    this.liveCandleSubscription.unsubscribe();
     this.liveCandleSubscription.subscribe(
       symbol,
       granularity,
       async (liveCandle: LiveCandle) => {
-        console.log("App: Received live candle:", liveCandle);
-
-        if (
-          liveCandle.timestamp > (this.state.priceHistory.endTimestamp ?? 0)
-        ) {
-          console.log("Fetching more data up to the live candle:", liveCandle);
-          if (!this.state.priceHistory.endTimestamp) {
-            console.error("No end timestamp found");
-            return;
-          }
-          const timeRange = {
-            start: this.state.priceHistory.endTimestamp,
-            end: liveCandle.timestamp,
-          };
-          const newCandles = await this.fetchData(
-            symbol,
-            granularity,
-            timeRange
-          );
-          this.state.priceHistory = new SimplePriceHistory(
-            granularity,
-            new Map(newCandles)
-          );
-          if (this.chartContainer) {
-            this.chartContainer.state = this.state;
-          }
+        if (this.chartContainer?.updateLiveCandle(liveCandle)) {
+          this.state.liveCandle = liveCandle;
         }
-        this.state.liveCandle = liveCandle;
-        this.chartContainer?.updateLiveCandle(liveCandle);
       }
     );
   }
 
+  public async fetchGaps(): Promise<void> {
+    const gaps = this.state.priceHistory.getGaps(
+      this.state.timeRange.start,
+      this.state.timeRange.end
+    );
+    if (gaps.length === 0) {
+      return;
+    }
+    console.log("App: gaps:", gaps);
+    // fetch the data for the gaps
+    const results = await Promise.all(
+      gaps.map((gap) =>
+        this.fetchData(this.state.symbol, this.state.granularity, gap)
+      )
+    );
+    // The last result is the new candles. The CandleRepository always returns
+    // all accumulated candles, that it has ever fetched and we can pop the latest one.
+    const newCandles = results.pop();
+    console.log("App: newCandles for gaps", newCandles);
+
+    this.state.priceHistory = new SimplePriceHistory(
+      this.state.granularity,
+      new Map(newCandles)
+    );
+    if (this.chartContainer) {
+      this.chartContainer.state = this.state;
+    }
+  }
+
   public cleanup(): void {
     // @ts-ignore
+    // TODO: Make the subscription handle cleanup on page hide
     this.liveCandleSubscription!.unsubscribe();
   }
 }
