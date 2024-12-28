@@ -10,6 +10,7 @@
     "build:client": "bun build ./client/index.ts --outdir ./dist/client --target browser",
     "build:server": "bun build ./server/index.ts --outdir ./dist/server --target bun",
     "build": "npm run build:client && npm run build:server & cp client/*.html client/*.css ./dist/client",
+    "start": "bun run ./dist/server/index.js",
     "test": "bun test"
   },
   "devDependencies": {
