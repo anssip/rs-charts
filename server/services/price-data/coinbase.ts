@@ -10,9 +10,13 @@ export class CoinbasePriceDataService {
   private readonly client: CBAdvancedTradeClient;
 
   constructor(apiKey: string, privateKey: string) {
+    console.log("Initializing Coinbase client with:");
+    console.log("API Key length:", apiKey.length);
+    console.log("Private Key starts with:", privateKey.substring(0, 27));
+
     this.client = new CBAdvancedTradeClient({
-      apiKey,
-      apiSecret: privateKey,
+      apiKey: apiKey.trim(),
+      apiSecret: privateKey.trim(),
     });
   }
 
@@ -23,9 +27,10 @@ export class CoinbasePriceDataService {
     end,
   }: PriceDataOptions): Promise<CandleDataByTimestamp> {
     try {
-      console.log("Fetching candles with time range:", {
-        start: start,
-        end: end,
+      console.log("Making Coinbase API request with params:", {
+        product_id: symbol,
+        start: Math.floor(start.getTime() / 1000),
+        end: Math.floor(end.getTime() / 1000),
         granularity,
       });
 
@@ -38,7 +43,22 @@ export class CoinbasePriceDataService {
 
       return this.transformData(response.candles, granularity);
     } catch (error) {
-      console.error("Error fetching price data:", error);
+      if (error instanceof Error && "response" in error) {
+        const typedError = error as {
+          response: {
+            status: number;
+            statusText: string;
+            headers: any;
+            data: any;
+          };
+        };
+        console.error("Coinbase API Error Response:", {
+          status: typedError.response.status,
+          statusText: typedError.response.statusText,
+          headers: typedError.response.headers,
+          data: typedError.response.data,
+        });
+      }
       throw error;
     }
   }

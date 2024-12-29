@@ -13,8 +13,7 @@ if (!CB_API_KEY || !CB_PRIVATE_KEY) {
 }
 
 // Add debug logging (remove in production)
-console.log("API Key length:", CB_API_KEY.length);
-console.log("Private Key length:", CB_PRIVATE_KEY.length);
+console.log("API Key:", CB_API_KEY);
 console.log(
   "Private Key first/last chars:",
   CB_PRIVATE_KEY.substring(0, 10) +
