@@ -1,0 +1,16 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--build-arg",
+        "API_BASE_URL=${_API_BASE_URL}",
+        "-t",
+        "gcr.io/$PROJECT_ID/$_SERVICE_NAME",
+        ".",
+      ]
+substitutions:
+  _API_BASE_URL: ""
+  _SERVICE_NAME: "spotcanvas-server"
+images:
+  - "gcr.io/$PROJECT_ID/$_SERVICE_NAME"

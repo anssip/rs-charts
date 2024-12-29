@@ -14,12 +14,19 @@ if (!CB_API_KEY || !CB_PRIVATE_KEY) {
 
 const priceService = new CoinbasePriceDataService(CB_API_KEY, CB_PRIVATE_KEY);
 
+const port = process.env.PORT || 8080;
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://spotcanvas.com",
+  "https://chart-api.spotcanvas.com",
+];
+
 const server = serve({
-  port: 3000,
+  port: port,
   async fetch(req) {
     const origin = req.headers.get("Origin");
-    const allowedOrigins = ["http://localhost:3000", "http://127.0.0.1:3000"];
-
     const corsHeaders = {
       "Access-Control-Allow-Origin": allowedOrigins.includes(origin ?? "")
         ? origin

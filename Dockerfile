@@ -12,12 +12,16 @@ RUN bun install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build the application
-RUN bun run build
+# Set build argument
+ARG API_BASE_URL
+ENV API_BASE_URL=$API_BASE_URL
+
+# Build the application with the environment variable
+RUN API_BASE_URL=$API_BASE_URL bun run build
 
 # Expose the port your server listens on
 ENV PORT=8080
 EXPOSE 8080
 
-# Start the server
-CMD ["bun", "run", "start"] 
+# Make sure the start command is explicit
+CMD ["bun", "./dist/server/index.js"] 
