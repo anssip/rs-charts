@@ -48,6 +48,8 @@ export class ChartContainer extends LitElement {
   private lastX = 0;
   private lastY = 0;
   private resizeObserver!: ResizeObserver;
+  private lastTouchDistance = 0;
+  private isZooming = false;
 
   private chart: CandlestickChart | null = null;
 
@@ -92,6 +94,16 @@ export class ChartContainer extends LitElement {
 
     const chartContainer = this.renderRoot.querySelector(".chart");
     if (chartContainer) {
+      // Get the computed style to check if we have a fixed height
+      const computedStyle = getComputedStyle(chartContainer);
+      const height = parseFloat(computedStyle.height);
+      const width = parseFloat(computedStyle.width);
+
+      // Initial resize with the computed dimensions
+      if (height > 0 && width > 0) {
+        this.handleResize(width, height);
+      }
+
       this.resizeObserver = new ResizeObserver((entries) => {
         const entry = entries[0];
         if (entry) {
@@ -107,6 +119,7 @@ export class ChartContainer extends LitElement {
     this.chart = chartElement as CandlestickChart;
 
     if (chartElement) {
+      // Mouse events
       chartElement.addEventListener(
         "mousedown",
         this.handleDragStart as EventListener
@@ -124,6 +137,24 @@ export class ChartContainer extends LitElement {
         this.handleDragEnd as EventListener
       );
       chartElement.addEventListener("wheel", this.handleWheel as EventListener);
+
+      // Touch events
+      chartElement.addEventListener(
+        "touchstart",
+        this.handleTouchStart as EventListener
+      );
+      chartElement.addEventListener(
+        "touchmove",
+        this.handleTouchMove as EventListener
+      );
+      chartElement.addEventListener(
+        "touchend",
+        this.handleTouchEnd as EventListener
+      );
+      chartElement.addEventListener(
+        "touchcancel",
+        this.handleTouchEnd as EventListener
+      );
     }
 
     // Forward chart-ready and chart-pan events from the candlestick chart
@@ -156,8 +187,8 @@ export class ChartContainer extends LitElement {
     this.setupFocusHandler();
   }
 
-  updated() {
-    console.log("ChartContainer: Updated");
+  protected updated(changedProperties: Map<string, unknown>) {
+    super.updated(changedProperties);
     this.draw();
   }
 
@@ -225,10 +256,7 @@ export class ChartContainer extends LitElement {
             <price-axis></price-axis>
           </div>
           <div class="timeline-container">
-            <chart-timeline
-              .options=${this.options}
-              .padding=${this.padding}
-            ></chart-timeline>
+            <chart-timeline></chart-timeline>
           </div>
           <chart-logo></chart-logo>
         </div>
@@ -584,6 +612,79 @@ export class ChartContainer extends LitElement {
     }
   }
 
+  private handleTouchStart = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling while touching the chart
+    this.isDragging = true;
+
+    if (e.touches.length === 2) {
+      // Initialize pinch-to-zoom
+      this.isZooming = true;
+      this.lastTouchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    } else if (e.touches.length === 1) {
+      // Single touch for panning
+      this.lastX = e.touches[0].clientX;
+      this.lastY = e.touches[0].clientY;
+    }
+  };
+
+  private handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    if (!this.isDragging) return;
+
+    if (e.touches.length === 2 && this.isZooming) {
+      // Handle pinch-to-zoom
+      const currentDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+
+      const deltaDistance = currentDistance - this.lastTouchDistance;
+      const zoomSensitivity = 0.5;
+      const isZoomingIn = deltaDistance > 0;
+
+      // Use the midpoint of the two touches as the zoom center
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+
+      // Apply zoom sensitivity to the delta
+      const adjustedDelta = deltaDistance * zoomSensitivity;
+
+      // Dispatch zoom event similar to mouse wheel zoom
+      this.dispatchEvent(
+        new CustomEvent("timeline-zoom", {
+          detail: {
+            deltaX: isZoomingIn ? -adjustedDelta : adjustedDelta,
+            clientX: centerX,
+            rect,
+            isTrackpad: true,
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+
+      this.lastTouchDistance = currentDistance;
+    } else if (e.touches.length === 1) {
+      // Handle panning
+      const deltaX = e.touches[0].clientX - this.lastX;
+      const deltaY = e.touches[0].clientY - this.lastY;
+
+      this.handlePan(deltaX);
+      this.handleVerticalPan(deltaY);
+
+      this.lastX = e.touches[0].clientX;
+      this.lastY = e.touches[0].clientY;
+    }
+  };
+
+  private handleTouchEnd = () => {
+    this.isDragging = false;
+    this.isZooming = false;
+  };
+
   static styles = css`
     :host {
       display: block;
@@ -632,7 +733,7 @@ export class ChartContainer extends LitElement {
     .chart {
       position: relative;
       width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: calc(100% - ${TIMELINE_HEIGHT}px);
+      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: auto;
     }
 
@@ -668,7 +769,7 @@ export class ChartContainer extends LitElement {
       right: 0;
       top: 0;
       width: ${PRICEAXIS_WIDTH}px;
-      height: 100%;
+      height: var(--spotcanvas-chart-height, 100%);
     }
 
     chart-timeline {
@@ -691,7 +792,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: calc(100% - ${TIMELINE_HEIGHT}px);
+      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: auto;
       z-index: 1;
       cursor: crosshair;
@@ -707,7 +808,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: calc(100% - ${TIMELINE_HEIGHT}px);
+      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: none;
       z-index: 6;
     }
@@ -729,7 +830,7 @@ export class ChartContainer extends LitElement {
     price-axis {
       display: block;
       width: 100%;
-      height: calc(100% - ${TIMELINE_HEIGHT}px);
+      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
     }
 
     chart-logo {
