@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --watch",
+    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"http://localhost:8080\"}' --watch",
     "dev:server": "bun build ./server/index.ts --outdir ./dist/server --target bun --watch",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run ./dist/server/index.js\"",
     "predev": "bun run build",
-    "build:client": "bun build ./client/index.ts --outdir ./dist/client --target browser",
+    "build:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define \"import.meta.env={\\\"API_BASE_URL\\\":\\\"${API_BASE_URL}\\\"}\"",
     "build:server": "bun build ./server/index.ts --outdir ./dist/server --target bun",
-    "build": "npm run build:client && npm run build:server & cp client/*.html client/*.css ./dist/client",
+    "build": "mkdir -p dist/client && bun run build:client && bun run build:server && cp client/*.html client/*.css ./dist/client",
+    "start": "bun run ./dist/server/index.js",
     "test": "bun test"
   },
   "devDependencies": {

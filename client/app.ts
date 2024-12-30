@@ -17,10 +17,11 @@ import { ChartState } from ".";
 import { FirestoreClient } from "./api/firestore-client";
 import { observe, xin } from "xinjs";
 import { getCandleInterval } from "./util/chart-util";
+import { config } from "./config";
 
 export class App {
   private chartContainer: ChartContainer | null = null;
-  private readonly API_BASE_URL = "http://localhost:3000";
+  private readonly API_BASE_URL = config.apiBaseUrl;
   private candleRepository: CandleRepository;
   private pendingFetches: Set<string> = new Set();
   private liveCandleSubscription: LiveCandleSubscription;
