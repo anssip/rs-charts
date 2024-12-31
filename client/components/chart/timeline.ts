@@ -192,7 +192,6 @@ export class Timeline extends CanvasBase {
 
       const deltaDistance = currentDistance - this.lastTouchDistance;
       const zoomSensitivity = 0.5;
-      const isZoomingIn = deltaDistance > 0;
 
       // Use the midpoint of the two touches as the zoom center
       const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
@@ -201,11 +200,7 @@ export class Timeline extends CanvasBase {
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
       // Dispatch zoom event similar to mouse wheel zoom
-      this.dispatchZoom(
-        isZoomingIn ? adjustedDelta : -adjustedDelta,
-        centerX,
-        true
-      );
+      this.dispatchZoom(adjustedDelta, centerX, true);
 
       this.lastTouchDistance = currentDistance;
     } else if (e.touches.length === 1) {
