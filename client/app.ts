@@ -41,7 +41,6 @@ export class App {
 
   async initialize() {
     if (!this.chartContainer) {
-      console.error("Chart container component not found");
       return;
     }
 
@@ -86,27 +85,15 @@ export class App {
 
   // TODO: Make this monitor the subscription state and reconnect if it's lost
   private handleChartReady = async (
-    event: CustomEvent<{ visibleCandles: number }>
+    _: CustomEvent<{ visibleCandles: number }>
   ) => {
-    console.log("handleChartReady event:", event);
-
     const timeRange = this.getInitialTimeRange();
-
-    console.log("Initial fetch params:", {
-      timeRange: {
-        start: new Date(timeRange.start),
-        end: new Date(timeRange.end),
-      },
-    });
-
     const candles = await this.candleRepository.fetchCandles({
       symbol: xin["state.symbol"] as string,
       granularity: xin["state.granularity"] as Granularity,
       timeRange,
     });
     if (candles.size > 0) {
-      console.log("Initial data fetched, number of candles:", candles.size);
-
       this.state.priceHistory = new SimplePriceHistory(
         xin["state.granularity"] as Granularity,
         new Map(candles.entries())
@@ -131,7 +118,6 @@ export class App {
         viewportStartTimestamp,
         viewportEndTimestamp
       );
-      console.log("App: priceRange", this.state.priceRange);
       if (this.chartContainer) {
         this.chartContainer.state = this.state;
       }
@@ -140,7 +126,6 @@ export class App {
         "coinbase",
         "online"
       );
-      console.log("App: products", products);
       this.chartContainer!.products = products;
     }
     observe("state.symbol", (_) => {
@@ -184,7 +169,6 @@ export class App {
   }
 
   private handlePan = async (event: CustomEvent) => {
-    console.log("handlePan event:", event);
     if (!this.chartContainer) return;
 
     const { timeRange, needMoreData } = event.detail;
@@ -193,7 +177,6 @@ export class App {
       const rangeKey = `${timeRange.start}-${timeRange.end}`;
 
       if (this.pendingFetches.has(rangeKey)) {
-        console.log("Already fetching range:", timeRange);
         return;
       }
       const newCandles = await this.fetchData(
@@ -212,7 +195,6 @@ export class App {
   };
 
   private handleFetchNextCandle = async (event: CustomEvent) => {
-    console.log("handling fetch-next-candle event:", event);
     const { granularity, timeRange } = event.detail;
     const newCandles = await this.fetchData(
       this.state.symbol,
@@ -220,7 +202,6 @@ export class App {
       timeRange
     );
     if (newCandles) {
-      console.log("App: fetch-next-candle newCandles", newCandles);
       this.state.priceHistory = new SimplePriceHistory(granularity, newCandles);
       this.chartContainer!.state = this.state;
     }
@@ -251,12 +232,10 @@ export class App {
     const rangeKey = `${symbol}-${granularity}-${adjustedTimeRange.start}-${adjustedTimeRange.end}`;
 
     if (this.pendingFetches.has(rangeKey)) {
-      console.log("App: Already fetching range:", timeRange, symbol);
       return Promise.resolve(null);
     }
     try {
       this.pendingFetches.add(rangeKey);
-      console.log("App: fetching time range:", timeRange, symbol);
       this.state.loading = true;
       const candles = await this.candleRepository.fetchCandles({
         symbol,
@@ -293,7 +272,6 @@ export class App {
     if (gaps.length === 0) {
       return;
     }
-    console.log("App: gaps:", gaps);
     // fetch the data for the gaps
     const results = await Promise.all(
       gaps.map((gap) =>
@@ -303,7 +281,6 @@ export class App {
     // The last result is the new candles. The CandleRepository always returns
     // all accumulated candles, that it has ever fetched and we can pop the latest one.
     const newCandles = results.pop();
-    console.log("App: newCandles for gaps", newCandles);
 
     this.state.priceHistory = new SimplePriceHistory(
       this.state.granularity,

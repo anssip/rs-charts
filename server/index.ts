@@ -44,8 +44,6 @@ const server = serve({
     const url = new URL(req.url);
     let filePath = url.pathname;
 
-    console.log("filePath", filePath);
-
     if (filePath.startsWith("/api")) {
       if (filePath === "/api/candles") {
         if (!url.searchParams.has("start") || !url.searchParams.has("end")) {
@@ -61,7 +59,6 @@ const server = serve({
         }
         try {
           const params = new URLSearchParams(url.search);
-          console.log("params", params);
           const candles = await priceService.fetchCandles({
             symbol: params.get("symbol") ?? "BTC-USD",
             granularity: (params.get("granularity") ??

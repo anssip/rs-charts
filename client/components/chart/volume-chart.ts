@@ -27,7 +27,6 @@ export class VolumeChart extends CanvasBase {
     });
     observe("state.liveCandle", () => {
       // make sure we have the latest state with the live candle
-      console.log("VolumeChart: received live candle", xin["state.liveCandle"]);
       this._state = xin["state"] as ChartState;
       this.draw();
     });
@@ -73,12 +72,7 @@ export class VolumeChart extends CanvasBase {
       callback: (x: number, timestamp: number) => {
         const candle = this._state!.priceHistory.getCandle(timestamp);
         if (!candle || typeof candle.volume === "undefined") {
-          console.log("VolumeChart: skipping candle", candle);
           return;
-        }
-
-        if (candle.live) {
-          console.log("VolumeChart: drawing live candle volume", candle);
         }
 
         const volumeHeight = (candle.volume || 0) * volumeScale;

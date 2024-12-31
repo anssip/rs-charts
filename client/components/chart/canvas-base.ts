@@ -23,24 +23,14 @@ export abstract class CanvasBase extends LitElement {
     requestAnimationFrame(() => {
       this.canvas = this.renderRoot.querySelector("canvas");
       if (!this.canvas) {
-        console.error("No canvas found in renderRoot");
         return;
       }
       this.ctx = this.canvas.getContext("2d");
       if (!this.ctx) {
-        console.error("Failed to get 2d context");
         return;
       }
       const rect = this.getBoundingClientRect();
       const dpr = window.devicePixelRatio ?? 1;
-
-      console.log("Setting up canvas with:", {
-        id: this.id,
-        rect,
-        dpr,
-        width: rect.width * dpr,
-        height: rect.height * dpr,
-      });
 
       this.canvas.width = rect.width * dpr;
       this.canvas.height = rect.height * dpr;
@@ -77,13 +67,10 @@ export abstract class CanvasBase extends LitElement {
   }
 
   public resize(width: number, height: number) {
-    console.log("CanvasBase: resize", { id: this.id, width, height });
     if (width === 0 || height === 0) {
-      console.warn("Invalid dimensions received:", width, height);
       return;
     }
     if (!this.canvas || !this.ctx) {
-      console.warn("Canvas or context not found");
       return;
     }
     const dpr = window.devicePixelRatio ?? 1;

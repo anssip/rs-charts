@@ -57,19 +57,11 @@ export class CandleRepository {
           Math.ceil(Number(symbolBufferedRange.end));
 
       if (isWithinBuffer) {
-        console.log(`Repository: Range already buffered for ${key}`, {
-          requested: { start: timeRange.start, end: timeRange.end },
-          buffered: {
-            start: symbolBufferedRange.start,
-            end: symbolBufferedRange.end,
-          },
-        });
         return this.candles.get(key)!;
       }
     }
 
     if (this.pendingFetches.has(rangeKey)) {
-      console.log(`Repository: Fetch already pending for range ${rangeKey}`);
       return this.candles.get(key)!;
     }
 
@@ -98,15 +90,6 @@ export class CandleRepository {
 
       const existingCandles = this.candles.get(key)!;
       this.candles.set(key, new Map([...existingCandles, ...rangeCandles]));
-
-      console.log(`Repository: Fetched candles for ${key}:`, {
-        requested: {
-          start: new Date(timeRange.start),
-          end: new Date(timeRange.end),
-        },
-        received: rangeCandles.size,
-        total: this.candles.get(key)!.size,
-      });
 
       return this.candles.get(key)!;
     } finally {
@@ -142,7 +125,6 @@ export class CandleRepository {
             end: range.end.toString(),
           })
       );
-      console.log("Repository: Fetch response:", response);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

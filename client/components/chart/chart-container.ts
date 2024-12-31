@@ -41,6 +41,9 @@ export class ChartContainer extends LitElement {
     granularity: "ONE_HOUR",
   };
 
+  @state()
+  private isTouchOnly = false;
+
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
@@ -73,12 +76,14 @@ export class ChartContainer extends LitElement {
 
   constructor() {
     super();
-    console.log("ChartContainer: Constructor called");
+    // Check if device is touch-only (no mouse/trackpad)
+    this.isTouchOnly = window.matchMedia(
+      "(hover: none) and (pointer: coarse)"
+    ).matches;
   }
 
   connectedCallback() {
     super.connectedCallback();
-    console.log("ChartContainer: Connected to DOM");
   }
 
   set startTimestamp(startTimestamp: number) {
@@ -90,8 +95,6 @@ export class ChartContainer extends LitElement {
   }
 
   firstUpdated() {
-    console.log("ChartContainer: First update completed");
-
     const chartContainer = this.renderRoot.querySelector(".chart");
     if (chartContainer) {
       // Get the computed style to check if we have a fixed height
@@ -115,7 +118,6 @@ export class ChartContainer extends LitElement {
     }
 
     const chartElement = this.renderRoot.querySelector("candlestick-chart");
-    console.log("chartElement", chartElement);
     this.chart = chartElement as CandlestickChart;
 
     if (chartElement) {
@@ -160,10 +162,6 @@ export class ChartContainer extends LitElement {
     // Forward chart-ready and chart-pan events from the candlestick chart
     if (this.chart) {
       this.chart.addEventListener("chart-ready", (e: Event) => {
-        console.log(
-          "ChartContainer: Chart ready event received",
-          (e as CustomEvent).detail
-        );
         this.dispatchEvent(
           new CustomEvent("chart-ready", {
             detail: (e as CustomEvent).detail,
@@ -210,7 +208,6 @@ export class ChartContainer extends LitElement {
         }),
       },
     };
-    console.log("ChartContainer: Drawing chart", context);
     this.chart.drawWithContext(context);
   }
 
@@ -226,10 +223,6 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   set state(state: ChartState) {
-    console.log("ChartContainer: Setting state", {
-      min: state.priceRange.min,
-      max: state.priceRange.max,
-    });
     this._state = state;
   }
 
@@ -251,7 +244,9 @@ export class ChartContainer extends LitElement {
           </div>
 
           <live-decorators></live-decorators>
-          <chart-crosshairs></chart-crosshairs>
+          ${!this.isTouchOnly
+            ? html`<chart-crosshairs></chart-crosshairs>`
+            : ""}
           <div class="price-axis-container">
             <price-axis></price-axis>
           </div>
@@ -345,11 +340,6 @@ export class ChartContainer extends LitElement {
     this._state.timeRange = { start: newStart, end: newEnd };
     this.draw();
 
-    // Check if we need more data
-    // if (this._state.loading?.valueOf() ?? false) {
-    //   console.log("ChartContainer: Loading, not fetching more data");
-    //   return;
-    // }
     const visibleTimeRange = timeRange;
     const bufferZone = visibleTimeRange * BUFFER_MULTIPLIER;
 
@@ -553,15 +543,6 @@ export class ChartContainer extends LitElement {
       end: startRange.end - (movementSeconds > 0 ? movementMs : -movementMs),
     };
 
-    console.log("ChartContainer: Panning timeline", {
-      movementSeconds,
-      candleInterval,
-      numCandles,
-      movementMs,
-      startRange,
-      targetRange,
-    });
-
     const animate = () => {
       currentFrame++;
       const progress = currentFrame / totalFrames;
@@ -632,7 +613,6 @@ export class ChartContainer extends LitElement {
 
   private handleTouchMove = (e: TouchEvent) => {
     e.preventDefault();
-    console.log("ChartContainer: Touch move", e.touches.length);
     if (!this.isDragging) return;
 
     if (e.touches.length === 2 && this.isZooming) {
