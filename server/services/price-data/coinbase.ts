@@ -10,10 +10,6 @@ export class CoinbasePriceDataService {
   private readonly client: CBAdvancedTradeClient;
 
   constructor(apiKey: string, privateKey: string) {
-    console.log("Initializing Coinbase client with:");
-    console.log("API Key length:", apiKey.length);
-    console.log("Private Key starts with:", privateKey.substring(0, 27));
-
     this.client = new CBAdvancedTradeClient({
       apiKey: apiKey.trim(),
       apiSecret: privateKey.trim(),
@@ -27,13 +23,6 @@ export class CoinbasePriceDataService {
     end,
   }: PriceDataOptions): Promise<CandleDataByTimestamp> {
     try {
-      console.log("Making Coinbase API request with params:", {
-        product_id: symbol,
-        start: Math.floor(start.getTime() / 1000),
-        end: Math.floor(end.getTime() / 1000),
-        granularity,
-      });
-
       const response = await this.client.getProductCandles({
         product_id: symbol,
         start: Math.floor(start.getTime() / 1000).toString(),

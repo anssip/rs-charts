@@ -27,7 +27,7 @@ export class HairlineGrid implements Drawable {
       .getPropertyValue("--color-background-secondary-rgb")
       .trim();
 
-    ctx.strokeStyle = `rgba(${gridColor}, 0.3)`;
+    ctx.strokeStyle = `rgba(${gridColor}, 0.25)`;
     ctx.setLineDash([3, 3]);
     ctx.lineWidth = 0.5;
 
