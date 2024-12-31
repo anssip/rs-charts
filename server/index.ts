@@ -11,6 +11,7 @@ const CB_PRIVATE_KEY = process.env.COINBASE_PRIVATE_KEY;
 if (!CB_API_KEY || !CB_PRIVATE_KEY) {
   throw new Error("Coinbase API credentials are required");
 }
+
 const priceService = new CoinbasePriceDataService(CB_API_KEY, CB_PRIVATE_KEY);
 const port = process.env.PORT || 8080;
 
@@ -20,6 +21,15 @@ const allowedOrigins = [
   "https://spotcanvas.com",
   "https://chart-api.spotcanvas.com",
   "https://spot-ws.webflow.io",
+];
+
+const port = process.env.PORT || 8080;
+
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+  "https://spotcanvas.com",
+  "https://chart-api.spotcanvas.com",
 ];
 
 const server = serve({
