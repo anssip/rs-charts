@@ -30,6 +30,7 @@ const allowedOrigins = [
   "http://127.0.0.1:8080",
   "https://spotcanvas.com",
   "https://chart-api.spotcanvas.com",
+  "https://spot-ws.webflow.io",
 ];
 
 const server = serve({
