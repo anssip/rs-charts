@@ -19,6 +19,8 @@ export class PriceAxis extends CanvasBase {
   private priceRange: PriceRange = new PriceRangeImpl(0, 0);
   private isDragging = false;
   private lastY = 0;
+  private lastTouchDistance = 0;
+  private isZooming = false;
   private liveCandle: LiveCandle | null = null;
   private countdownInterval: number | null = null;
   private timeLeft: string = "";
@@ -157,11 +159,18 @@ export class PriceAxis extends CanvasBase {
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
+    // Mouse events
     canvas.addEventListener("mousedown", this.handleDragStart);
     canvas.addEventListener("mousemove", this.handleDragMove);
     canvas.addEventListener("mouseup", this.handleDragEnd);
     canvas.addEventListener("mouseleave", this.handleDragEnd);
     canvas.addEventListener("wheel", this.handleWheel);
+
+    // Touch events
+    canvas.addEventListener("touchstart", this.handleTouchStart);
+    canvas.addEventListener("touchmove", this.handleTouchMove);
+    canvas.addEventListener("touchend", this.handleTouchEnd);
+    canvas.addEventListener("touchcancel", this.handleTouchEnd);
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -284,4 +293,56 @@ export class PriceAxis extends CanvasBase {
       clearInterval(this.countdownInterval);
     }
   }
+
+  private handleTouchStart = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling while touching the axis
+    this.isDragging = true;
+
+    if (e.touches.length === 2) {
+      // Initialize pinch-to-zoom
+      this.isZooming = true;
+      this.lastTouchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    } else if (e.touches.length === 1) {
+      // Single touch for dragging
+      this.lastY = e.touches[0].clientY;
+    }
+  };
+
+  private handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    if (!this.isDragging) return;
+
+    if (e.touches.length === 2 && this.isZooming) {
+      // Handle pinch-to-zoom
+      const currentDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+
+      const deltaDistance = currentDistance - this.lastTouchDistance;
+      const zoomSensitivity = 0.5;
+      const isZoomingIn = deltaDistance > 0;
+
+      // Apply zoom sensitivity to the delta and invert for natural pinch behavior
+      const adjustedDelta = deltaDistance * zoomSensitivity;
+
+      // Dispatch zoom event similar to mouse wheel zoom
+      this.dispatchZoom(isZoomingIn ? adjustedDelta : -adjustedDelta, true);
+
+      this.lastTouchDistance = currentDistance;
+    } else if (e.touches.length === 1) {
+      // Handle dragging
+      const deltaY = e.touches[0].clientY - this.lastY;
+      this.dispatchZoom(-deltaY, false);
+      this.lastY = e.touches[0].clientY;
+    }
+  };
+
+  private handleTouchEnd = () => {
+    this.isDragging = false;
+    this.isZooming = false;
+  };
 }

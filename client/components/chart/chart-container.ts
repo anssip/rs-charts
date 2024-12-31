@@ -632,6 +632,7 @@ export class ChartContainer extends LitElement {
 
   private handleTouchMove = (e: TouchEvent) => {
     e.preventDefault();
+    console.log("ChartContainer: Touch move", e.touches.length);
     if (!this.isDragging) return;
 
     if (e.touches.length === 2 && this.isZooming) {
@@ -643,20 +644,19 @@ export class ChartContainer extends LitElement {
 
       const deltaDistance = currentDistance - this.lastTouchDistance;
       const zoomSensitivity = 0.5;
-      const isZoomingIn = deltaDistance > 0;
 
       // Use the midpoint of the two touches as the zoom center
       const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const rect = (e.target as HTMLElement).getBoundingClientRect();
 
-      // Apply zoom sensitivity to the delta
+      // Apply zoom sensitivity to the delta and invert for natural pinch behavior
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
       // Dispatch zoom event similar to mouse wheel zoom
       this.dispatchEvent(
         new CustomEvent("timeline-zoom", {
           detail: {
-            deltaX: isZoomingIn ? -adjustedDelta : adjustedDelta,
+            deltaX: adjustedDelta,
             clientX: centerX,
             rect,
             isTrackpad: true,

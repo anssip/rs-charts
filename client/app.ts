@@ -44,6 +44,19 @@ export class App {
       console.error("Chart container component not found");
       return;
     }
+
+    // Wait for chart container to be ready
+    await new Promise<void>((resolve) => {
+      const checkReady = () => {
+        if (this.chartContainer?.isConnected) {
+          resolve();
+        } else {
+          requestAnimationFrame(checkReady);
+        }
+      };
+      checkReady();
+    });
+
     this.chartContainer.addEventListener(
       "chart-ready",
       this.handleChartReady as unknown as EventListener
@@ -57,6 +70,9 @@ export class App {
       this.handleFetchNextCandle as unknown as EventListener
     );
     this.startLiveCandleSubscription("BTC-USD", "ONE_HOUR");
+
+    // Trigger initial data fetch
+    await this.handleChartReady(new CustomEvent("chart-ready"));
   }
 
   getInitialTimeRange(): TimeRange {

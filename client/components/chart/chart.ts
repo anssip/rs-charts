@@ -5,10 +5,9 @@ import {
   DrawingContext,
 } from "./drawing-strategy";
 import { CanvasBase } from "./canvas-base";
-import { touch, xin } from "xinjs";
+import { xin } from "xinjs";
 import { ChartState } from "../..";
-import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
-import { TimeRange } from "../../../server/services/price-data/price-history-model";
+import { priceToY, timeToX } from "../../util/chart-util";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
 

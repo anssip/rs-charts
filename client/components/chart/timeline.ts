@@ -8,6 +8,7 @@ import {
 } from "../../util/chart-util";
 import { observe, xin } from "xinjs";
 import { TimeRange } from "../../../server/services/price-data/price-history-model";
+import { ChartState } from "../..";
 
 const dpr = window.devicePixelRatio ?? 1;
 
@@ -15,6 +16,8 @@ const dpr = window.devicePixelRatio ?? 1;
 export class Timeline extends CanvasBase {
   private isDragging = false;
   private lastX = 0;
+  private lastTouchDistance = 0;
+  private isZooming = false;
   private timeRange: TimeRange = { start: 0, end: 0 };
   private animationFrameId: number | null = null;
 
@@ -107,11 +110,18 @@ export class Timeline extends CanvasBase {
   }
 
   bindEventListeners(canvas: HTMLCanvasElement) {
+    // Mouse events
     canvas.addEventListener("mousedown", this.handleDragStart);
     canvas.addEventListener("mousemove", this.handleDragMove);
     canvas.addEventListener("mouseup", this.handleDragEnd);
     canvas.addEventListener("mouseleave", this.handleDragEnd);
     canvas.addEventListener("wheel", this.handleWheel);
+
+    // Touch events
+    canvas.addEventListener("touchstart", this.handleTouchStart);
+    canvas.addEventListener("touchmove", this.handleTouchMove);
+    canvas.addEventListener("touchend", this.handleTouchEnd);
+    canvas.addEventListener("touchcancel", this.handleTouchEnd);
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -150,5 +160,64 @@ export class Timeline extends CanvasBase {
 
   private handleDragEnd = () => {
     this.isDragging = false;
+  };
+
+  private handleTouchStart = (e: TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling while touching the timeline
+    this.isDragging = true;
+
+    if (e.touches.length === 2) {
+      // Initialize pinch-to-zoom
+      this.isZooming = true;
+      this.lastTouchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    } else if (e.touches.length === 1) {
+      // Single touch for dragging
+      this.lastX = e.touches[0].clientX;
+    }
+  };
+
+  private handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    if (!this.isDragging) return;
+
+    if (e.touches.length === 2 && this.isZooming) {
+      // Handle pinch-to-zoom
+      const currentDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+
+      const deltaDistance = currentDistance - this.lastTouchDistance;
+      const zoomSensitivity = 0.5;
+      const isZoomingIn = deltaDistance > 0;
+
+      // Use the midpoint of the two touches as the zoom center
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+
+      // Apply zoom sensitivity to the delta and invert for natural pinch behavior
+      const adjustedDelta = deltaDistance * zoomSensitivity;
+
+      // Dispatch zoom event similar to mouse wheel zoom
+      this.dispatchZoom(
+        isZoomingIn ? adjustedDelta : -adjustedDelta,
+        centerX,
+        true
+      );
+
+      this.lastTouchDistance = currentDistance;
+    } else if (e.touches.length === 1) {
+      // Handle dragging
+      const deltaX = e.touches[0].clientX - this.lastX;
+      this.dispatchZoom(deltaX, e.touches[0].clientX, false);
+      this.lastX = e.touches[0].clientX;
+    }
+  };
+
+  private handleTouchEnd = () => {
+    this.isDragging = false;
+    this.isZooming = false;
   };
 }
