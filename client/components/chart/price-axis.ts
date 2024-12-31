@@ -33,17 +33,14 @@ export class PriceAxis extends CanvasBase {
     super.firstUpdated();
 
     this.priceRange = xin["state.priceRange"] as PriceRange;
-    console.log("PriceAxis: priceRange", this.priceRange);
 
     observe("state.liveCandle", (path) => {
-      console.log("PriceAxis: liveCandle changed", xin[path] as LiveCandle);
       this.liveCandle = xin[path] as LiveCandle;
       this.currentPrice = this.liveCandle.close;
       this.startCountdown();
       this.draw();
     });
     observe("state.priceRange", (path) => {
-      console.log("PriceAxis: priceRange changed", xin[path]);
       this.priceRange = xin[path] as PriceRange;
       this.draw();
     });
@@ -251,7 +248,6 @@ export class PriceAxis extends CanvasBase {
     if (msLeft <= 1000) {
       const state = xin["state"] as ChartState;
       // dispatch event to fetch new candle
-      console.log("PriceAxis: dispatching fetch-next-candle event");
       this.dispatchEvent(
         new CustomEvent("fetch-next-candle", {
           detail: {

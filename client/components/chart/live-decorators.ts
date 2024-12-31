@@ -19,16 +19,11 @@ export class LiveDecorators extends CanvasBase {
     this.priceRange = xin["state.priceRange"] as PriceRange;
     // observe liveCandle from app state
     observe("state.liveCandle", (path) => {
-      console.log(
-        "LiveDecorators: liveCandle changed",
-        xin[path] as LiveCandle
-      );
       this.liveCandle = xin[path] as LiveCandle;
       this.currentPrice = this.liveCandle.close;
       this.draw();
     });
     observe("state.priceRange", (path) => {
-      console.log("LiveDecorators: priceRange changed", xin[path]);
       this.priceRange = xin[path] as PriceRange;
       this.draw();
     });
@@ -43,8 +38,6 @@ export class LiveDecorators extends CanvasBase {
   }
 
   draw() {
-    console.log("LiveDecorators: draw");
-
     if (!this.canvas || !this.ctx) return;
     const width = this.canvas.width;
     const height = this.canvas.height;

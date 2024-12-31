@@ -337,35 +337,18 @@ export class SimplePriceHistory implements PriceHistory {
    * @returns True if the candle was set, false otherwise.
    */
   setLiveCandle(candle: CandleData): boolean {
-    console.log("Live: Setting live candle to price history:", candle);
     if (this.candles.size === 0) {
       return false;
     }
     if (candle.granularity.valueOf() !== this.granularity) {
-      console.log(
-        "Live: Ignoring candle with different granularity:",
-        candle.granularity,
-        this.granularity
-      );
       return false;
     }
     if (candle.timestamp < this.endTimestamp) {
-      console.log(
-        "Live: Ignoring candle before end timestamp:",
-        candle.timestamp,
-        this.endTimestamp
-      );
       return false;
     }
 
     const existingCandle = this.getCandle(candle.timestamp);
-    if (existingCandle) {
-      console.log(
-        "Live: Existing candle:",
-        new Date(existingCandle?.timestamp)
-      );
-      console.log("Live: New live candle:", new Date(candle.timestamp));
-    }
+
     if (existingCandle) {
       // For an existing candle:
       // - Keep the original open price
@@ -396,7 +379,6 @@ export class SimplePriceHistory implements PriceHistory {
       this.candlesSortedByTimestamp.sort(([a], [b]) => a - b);
     }
 
-    console.log("Live: Updated candle:", this.getCandle(candle.timestamp));
     return true;
   }
 

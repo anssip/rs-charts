@@ -42,10 +42,6 @@ export class LiveCandleSubscription {
     if (document.visibilityState === "visible") {
       const now = Date.now();
       const timeSinceLastCheck = now - this._lastCheckTime;
-
-      console.log(
-        `Live: Page became visible after ${timeSinceLastCheck}ms, reconnecting...`
-      );
       this.reconnect();
     }
   }
@@ -53,9 +49,6 @@ export class LiveCandleSubscription {
   private checkConnection(): void {
     const timeSinceLastUpdate = Date.now() - this._lastUpdateTime;
     if (timeSinceLastUpdate > this.TIMEOUT_MS) {
-      console.log(
-        `Live: No updates for ${timeSinceLastUpdate}ms, reconnecting...`
-      );
       this.reconnect();
     }
     this._lastCheckTime = Date.now();
@@ -77,11 +70,6 @@ export class LiveCandleSubscription {
   }
 
   private reconnect(): void {
-    console.log("Live: reconnect()", {
-      _currentSymbol: this._currentSymbol,
-      _currentGranularity: this._currentGranularity,
-      _currentCallback: this._currentCallback,
-    });
     if (
       this._currentSymbol &&
       this._currentGranularity &&
@@ -100,9 +88,6 @@ export class LiveCandleSubscription {
     granularity: Granularity,
     onUpdate: (candle: LiveCandle) => void
   ): void {
-    console.log(
-      `Live: subscribing to exchanges/coinbase/products/${symbol}/intervals/${granularity}`
-    );
     this.unsubscribe();
 
     this._currentSymbol = symbol;
@@ -118,8 +103,7 @@ export class LiveCandleSubscription {
     this._unsubscribe = onSnapshot(
       docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
-        this._lastUpdateTime = Date.now(); // Update the timestamp on each update
-        console.log("Live: Received snapshot:", snapshot.exists(), snapshot.id);
+        this._lastUpdateTime = Date.now();
         if (snapshot.exists()) {
           const data = snapshot.data() as LiveCandle;
 
@@ -132,18 +116,9 @@ export class LiveCandleSubscription {
                 : new Date(data.lastUpdate),
           };
           onUpdate(candle);
-        } else {
-          console.log(
-            `Live: Document exchanges/coinbase/products/${symbol}/intervals/${granularity} does not exist`
-          );
         }
       },
-      (error) => {
-        console.error(
-          "Live: Error in live candle subscription:",
-          error.code,
-          error.message
-        );
+      (_) => {
         // Start reconnection process on error
         setTimeout(() => this.reconnect(), 1000);
       }

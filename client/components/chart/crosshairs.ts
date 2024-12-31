@@ -44,7 +44,6 @@ export class Crosshairs extends CanvasBase {
     ) as CandlestickChart;
     const rect = chart?.getBoundingClientRect();
     if (!rect) {
-      console.error("Crosshairs: chart not found");
       return;
     }
 

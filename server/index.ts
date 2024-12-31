@@ -23,15 +23,6 @@ const allowedOrigins = [
   "https://spot-ws.webflow.io",
 ];
 
-const port = process.env.PORT || 8080;
-
-const allowedOrigins = [
-  "http://localhost:8080",
-  "http://127.0.0.1:8080",
-  "https://spotcanvas.com",
-  "https://chart-api.spotcanvas.com",
-];
-
 const server = serve({
   port: port,
   async fetch(req) {
@@ -53,8 +44,6 @@ const server = serve({
     const url = new URL(req.url);
     let filePath = url.pathname;
 
-    console.log("filePath", filePath);
-
     if (filePath.startsWith("/api")) {
       if (filePath === "/api/candles") {
         if (!url.searchParams.has("start") || !url.searchParams.has("end")) {
@@ -70,7 +59,6 @@ const server = serve({
         }
         try {
           const params = new URLSearchParams(url.search);
-          console.log("params", params);
           const candles = await priceService.fetchCandles({
             symbol: params.get("symbol") ?? "BTC-USD",
             granularity: (params.get("granularity") ??

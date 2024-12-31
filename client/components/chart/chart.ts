@@ -66,7 +66,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   @property({ type: Object })
   public set state(state: ChartState) {
-    console.log("CandlestickChart: Setting state", state);
     this._state = state;
   }
 
@@ -83,13 +82,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   public drawWithContext(context: DrawingContext) {
     if (!this.ctx || !this.canvas) {
-      console.warn("Cannot draw chart:", {
-        hasContext: !!this.ctx,
-        hasCanvas: !!this.canvas,
-        dataSize: context.data.length,
-      });
       return;
     }
+
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawingStrategy.draw(context);
   }
