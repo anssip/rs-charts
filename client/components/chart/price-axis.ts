@@ -320,13 +320,12 @@ export class PriceAxis extends CanvasBase {
 
       const deltaDistance = currentDistance - this.lastTouchDistance;
       const zoomSensitivity = 0.5;
-      const isZoomingIn = deltaDistance > 0;
 
       // Apply zoom sensitivity to the delta and invert for natural pinch behavior
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
       // Dispatch zoom event similar to mouse wheel zoom
-      this.dispatchZoom(isZoomingIn ? adjustedDelta : -adjustedDelta, true);
+      this.dispatchZoom(adjustedDelta, true);
 
       this.lastTouchDistance = currentDistance;
     } else if (e.touches.length === 1) {
