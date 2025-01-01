@@ -12,6 +12,7 @@ import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
 import "./volume-chart";
+import "./context-menu";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
@@ -21,6 +22,7 @@ import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import "./logo";
+import { MenuItem, ChartContextMenu } from "./context-menu";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -49,9 +51,6 @@ export class ChartContainer extends LitElement {
 
   @state()
   private isFullWindow = false;
-
-  @state()
-  private showContextMenu = false;
 
   @state()
   private contextMenuPosition = { x: 0, y: 0 };
@@ -149,7 +148,7 @@ export class ChartContainer extends LitElement {
       chartElement.addEventListener("wheel", this.handleWheel as EventListener);
       chartElement.addEventListener(
         "dblclick",
-        this.handleDoubleClick as EventListener
+        this.handleFullScreen as EventListener
       );
       chartElement.addEventListener(
         "contextmenu",
@@ -251,6 +250,17 @@ export class ChartContainer extends LitElement {
   }
 
   render() {
+    const menuItems: MenuItem[] = [
+      {
+        label: this.isFullWindow ? "Exit Full Window" : "Full Window",
+        action: this.toggleFullWindow,
+      },
+      {
+        label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
+        action: this.handleFullScreen,
+      },
+    ];
+
     return html`
       <div
         class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
@@ -285,19 +295,10 @@ export class ChartContainer extends LitElement {
           <chart-logo></chart-logo>
         </div>
 
-        ${this.showContextMenu
-          ? html`
-              <div
-                class="context-menu"
-                style="left: ${this.contextMenuPosition.x}px; top: ${this
-                  .contextMenuPosition.y}px"
-              >
-                <div class="menu-item" @click=${this.toggleFullWindow}>
-                  ${this.isFullWindow ? "Exit Full Window" : "Full Window"}
-                </div>
-              </div>
-            `
-          : ""}
+        <chart-context-menu
+          .position=${this.contextMenuPosition}
+          .items=${menuItems}
+        ></chart-context-menu>
       </div>
     `;
   }
@@ -708,7 +709,7 @@ export class ChartContainer extends LitElement {
     this.isZooming = false;
   };
 
-  private handleDoubleClick = async () => {
+  private handleFullScreen = async () => {
     try {
       if (!this.isFullscreen) {
         await this.requestFullscreen();
@@ -730,14 +731,24 @@ export class ChartContainer extends LitElement {
   private handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
     this.contextMenuPosition = { x: e.clientX, y: e.clientY };
-    this.showContextMenu = true;
 
-    // Add one-time click listener to close menu when clicking outside
+    // Add one-time click listener to close menu
     setTimeout(() => {
+      const contextMenu = this.renderRoot.querySelector(
+        "chart-context-menu"
+      ) as ChartContextMenu;
+      if (contextMenu) {
+        contextMenu.show = true;
+      }
       document.addEventListener(
         "click",
         () => {
-          this.showContextMenu = false;
+          const contextMenu = this.renderRoot.querySelector(
+            "chart-context-menu"
+          ) as ChartContextMenu;
+          if (contextMenu) {
+            contextMenu.show = false;
+          }
         },
         { once: true }
       );
@@ -746,7 +757,6 @@ export class ChartContainer extends LitElement {
 
   private toggleFullWindow = () => {
     this.isFullWindow = !this.isFullWindow;
-    this.showContextMenu = false;
     if (this.isFullWindow) {
       this.classList.add("full-window");
     } else {
@@ -939,27 +949,6 @@ export class ChartContainer extends LitElement {
       bottom: ${TIMELINE_HEIGHT + 8}px;
       left: 8px;
       z-index: 7;
-    }
-
-    .context-menu {
-      position: fixed;
-      background: var(--color-primary-dark);
-      border: 1px solid rgba(143, 143, 143, 0.2);
-      border-radius: 4px;
-      padding: 4px 0;
-      min-width: 150px;
-      z-index: 1001;
-    }
-
-    .menu-item {
-      padding: 8px 16px;
-      cursor: pointer;
-      color: var(--color-text-primary);
-      font-size: 14px;
-    }
-
-    .menu-item:hover {
-      background: rgba(143, 143, 143, 0.1);
     }
   `;
 }
