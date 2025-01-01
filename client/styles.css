@@ -74,13 +74,6 @@ h1.app-header {
     flex: 0 0 auto;
 }
 
-/* Hide everything except chart-container when in fullscreen or full window mode */
-body:-webkit-full-screen > *:not(.chart-container),
-body:fullscreen > *:not(.chart-container),
-body:has(chart-container.full-window) > *:not(.chart-container) {
-    display: none;
-}
-
 .chart-container {
     width: 100%;
     height: var(--spotcanvas-chart-height);

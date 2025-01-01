@@ -149,7 +149,7 @@ export class ChartContainer extends LitElement {
       chartElement.addEventListener("wheel", this.handleWheel as EventListener);
       chartElement.addEventListener(
         "dblclick",
-        this.handleFullScreen as EventListener
+        this.handleFullScreenToggle as EventListener
       );
       chartElement.addEventListener(
         "contextmenu",
@@ -201,13 +201,20 @@ export class ChartContainer extends LitElement {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
+    window.addEventListener("spotcanvas-upgrade", this.handleUpgrade);
 
     this.setupFocusHandler();
 
     // Add event listeners for toolbar actions
-    this.addEventListener("toggle-fullscreen", this.handleFullScreen);
+    this.addEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
   }
+
+  private handleUpgrade = () => {
+    if (this.isFullscreen) {
+      this.handleFullScreenToggle();
+    }
+  };
 
   protected updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
@@ -247,7 +254,7 @@ export class ChartContainer extends LitElement {
       "fullscreenchange",
       this.handleFullscreenChange
     );
-    this.removeEventListener("toggle-fullscreen", this.handleFullScreen);
+    this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
   }
 
@@ -273,7 +280,7 @@ export class ChartContainer extends LitElement {
       },
       {
         label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
-        action: this.handleFullScreen,
+        action: this.handleFullScreenToggle,
       },
       {
         label: "Drawing Tools",
@@ -744,7 +751,7 @@ export class ChartContainer extends LitElement {
     this.isZooming = false;
   };
 
-  private handleFullScreen = async () => {
+  private handleFullScreenToggle = async () => {
     try {
       if (!this.isFullscreen) {
         await this.requestFullscreen();
