@@ -23,6 +23,7 @@ import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import "./logo";
 import { MenuItem, ChartContextMenu } from "./context-menu";
+import "./toolbar/chart-toolbar";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -202,6 +203,10 @@ export class ChartContainer extends LitElement {
     );
 
     this.setupFocusHandler();
+
+    // Add event listeners for toolbar actions
+    this.addEventListener("toggle-fullscreen", this.handleFullScreen);
+    this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
   }
 
   protected updated(changedProperties: Map<string, unknown>) {
@@ -242,11 +247,22 @@ export class ChartContainer extends LitElement {
       "fullscreenchange",
       this.handleFullscreenChange
     );
+    this.removeEventListener("toggle-fullscreen", this.handleFullScreen);
+    this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
   }
 
   @property({ type: Object })
   set state(state: ChartState) {
     this._state = state;
+  }
+
+  private dispatchUpgrade() {
+    this.dispatchEvent(
+      new CustomEvent("spotcanvas-upgrade", {
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   render() {
@@ -258,6 +274,19 @@ export class ChartContainer extends LitElement {
       {
         label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
         action: this.handleFullScreen,
+      },
+      {
+        label: "Drawing Tools",
+        action: () => this.dispatchUpgrade(),
+        separator: true,
+      },
+      {
+        label: "Chart Settings",
+        action: () => this.dispatchUpgrade(),
+      },
+      {
+        label: "Assets",
+        action: () => this.dispatchUpgrade(),
       },
     ];
 
@@ -293,6 +322,12 @@ export class ChartContainer extends LitElement {
             <chart-timeline></chart-timeline>
           </div>
           <chart-logo></chart-logo>
+          <div class="toolbar-container">
+            <chart-toolbar
+              .isFullscreen=${this.isFullscreen}
+              .isFullWindow=${this.isFullWindow}
+            ></chart-toolbar>
+          </div>
         </div>
 
         <chart-context-menu
@@ -949,6 +984,13 @@ export class ChartContainer extends LitElement {
       bottom: ${TIMELINE_HEIGHT + 8}px;
       left: 8px;
       z-index: 7;
+    }
+
+    .toolbar-container {
+      position: absolute;
+      top: 16px;
+      right: ${PRICEAXIS_WIDTH + 16}px;
+      z-index: 10;
     }
   `;
 }

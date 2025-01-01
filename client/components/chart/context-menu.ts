@@ -9,6 +9,7 @@ export interface MenuPosition {
 export interface MenuItem {
   label: string;
   action: () => void;
+  separator?: boolean;
 }
 
 @customElement("chart-context-menu")
@@ -31,7 +32,8 @@ export class ChartContextMenu extends LitElement {
         style="left: ${this.position.x}px; top: ${this.position.y}px"
       >
         ${this.items.map(
-          (item) => html`
+          (item, index) => html`
+            ${item.separator ? html`<div class="separator"></div>` : ""}
             <div class="menu-item" @click=${item.action}>${item.label}</div>
           `
         )}
@@ -42,7 +44,8 @@ export class ChartContextMenu extends LitElement {
   static styles = css`
     .context-menu {
       position: fixed;
-      background: var(--color-primary-dark);
+      background: rgba(24, 24, 24, 0.5);
+      backdrop-filter: blur(8px);
       border: 1px solid rgba(143, 143, 143, 0.2);
       border-radius: 4px;
       padding: 0;
@@ -58,7 +61,13 @@ export class ChartContextMenu extends LitElement {
     }
 
     .menu-item:hover {
-      background: rgba(143, 143, 143, 0.1);
+      background: rgba(143, 143, 143, 0.5);
+    }
+
+    .separator {
+      height: 1px;
+      background: rgba(143, 143, 143, 0.2);
+      margin: 4px 0;
     }
   `;
 }
