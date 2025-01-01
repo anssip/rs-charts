@@ -44,6 +44,18 @@ export class ChartContainer extends LitElement {
   @state()
   private isTouchOnly = false;
 
+  @state()
+  private isFullscreen = false;
+
+  @state()
+  private isFullWindow = false;
+
+  @state()
+  private showContextMenu = false;
+
+  @state()
+  private contextMenuPosition = { x: 0, y: 0 };
+
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
@@ -80,10 +92,6 @@ export class ChartContainer extends LitElement {
     this.isTouchOnly = window.matchMedia(
       "(hover: none) and (pointer: coarse)"
     ).matches;
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
   }
 
   set startTimestamp(startTimestamp: number) {
@@ -139,6 +147,14 @@ export class ChartContainer extends LitElement {
         this.handleDragEnd as EventListener
       );
       chartElement.addEventListener("wheel", this.handleWheel as EventListener);
+      chartElement.addEventListener(
+        "dblclick",
+        this.handleDoubleClick as EventListener
+      );
+      chartElement.addEventListener(
+        "contextmenu",
+        this.handleContextMenu as EventListener
+      );
 
       // Touch events
       chartElement.addEventListener(
@@ -156,6 +172,10 @@ export class ChartContainer extends LitElement {
       chartElement.addEventListener(
         "touchcancel",
         this.handleTouchEnd as EventListener
+      );
+      document.addEventListener(
+        "fullscreenchange",
+        this.handleFullscreenChange
       );
     }
 
@@ -219,6 +239,10 @@ export class ChartContainer extends LitElement {
       this.handleTimelineZoom as EventListener
     );
     window.removeEventListener("focus", this.handleWindowFocus);
+    document.removeEventListener(
+      "fullscreenchange",
+      this.handleFullscreenChange
+    );
   }
 
   @property({ type: Object })
@@ -228,7 +252,12 @@ export class ChartContainer extends LitElement {
 
   render() {
     return html`
-      <div class="container">
+      <div
+        class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
+          .isFullWindow
+          ? "full-window"
+          : ""}"
+      >
         <div class="price-info">
           <price-info
             .product=${this._state.liveCandle?.productId}
@@ -255,6 +284,20 @@ export class ChartContainer extends LitElement {
           </div>
           <chart-logo></chart-logo>
         </div>
+
+        ${this.showContextMenu
+          ? html`
+              <div
+                class="context-menu"
+                style="left: ${this.contextMenuPosition.x}px; top: ${this
+                  .contextMenuPosition.y}px"
+              >
+                <div class="menu-item" @click=${this.toggleFullWindow}>
+                  ${this.isFullWindow ? "Exit Full Window" : "Full Window"}
+                </div>
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -665,10 +708,70 @@ export class ChartContainer extends LitElement {
     this.isZooming = false;
   };
 
+  private handleDoubleClick = async () => {
+    try {
+      if (!this.isFullscreen) {
+        await this.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Error attempting to toggle fullscreen:", err);
+    }
+  };
+
+  private handleFullscreenChange = () => {
+    this.isFullscreen = document.fullscreenElement === this;
+    if (!this.isFullscreen) {
+      this.handleResize(this.clientWidth, this.clientHeight);
+    }
+  };
+
+  private handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    this.contextMenuPosition = { x: e.clientX, y: e.clientY };
+    this.showContextMenu = true;
+
+    // Add one-time click listener to close menu when clicking outside
+    setTimeout(() => {
+      document.addEventListener(
+        "click",
+        () => {
+          this.showContextMenu = false;
+        },
+        { once: true }
+      );
+    }, 0);
+  };
+
+  private toggleFullWindow = () => {
+    this.isFullWindow = !this.isFullWindow;
+    this.showContextMenu = false;
+    if (this.isFullWindow) {
+      this.classList.add("full-window");
+    } else {
+      this.classList.remove("full-window");
+    }
+    this.handleResize(this.clientWidth, this.clientHeight);
+  };
+
   static styles = css`
     :host {
       display: block;
       width: 100%;
+      height: 100%;
+    }
+
+    :host(:fullscreen),
+    :host(.full-window) {
+      background: var(--color-primary-dark);
+      padding: 16px;
+      box-sizing: border-box;
+      --spotcanvas-chart-height: 100%;
+    }
+
+    :host(:fullscreen) .container,
+    :host(.full-window) .container {
       height: 100%;
     }
 
@@ -679,6 +782,24 @@ export class ChartContainer extends LitElement {
       height: 100%;
       background-color: var(--color-primary-dark);
       gap: 8px;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+
+    .container.fullscreen,
+    .container.full-window {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .container.fullscreen .chart-area,
+    .container.full-window .chart-area {
+      height: calc(100vh - 120px);
     }
 
     .toolbar-top {
@@ -694,7 +815,7 @@ export class ChartContainer extends LitElement {
       flex: 0 0 auto;
       background: var(--color-primary-dark);
       border-radius: 12px;
-      margin: 8px 8px 0 8px;
+      margin: 8px 0;
       padding: 12px 16px;
       border: 1px solid rgba(143, 143, 143, 0.2);
     }
@@ -706,7 +827,7 @@ export class ChartContainer extends LitElement {
       overflow: hidden;
       pointer-events: auto;
       border-radius: 12px;
-      margin: 0 8px 8px 8px;
+      margin: 0;
       border: 1px solid rgba(143, 143, 143, 0.2);
     }
 
@@ -818,6 +939,27 @@ export class ChartContainer extends LitElement {
       bottom: ${TIMELINE_HEIGHT + 8}px;
       left: 8px;
       z-index: 7;
+    }
+
+    .context-menu {
+      position: fixed;
+      background: var(--color-primary-dark);
+      border: 1px solid rgba(143, 143, 143, 0.2);
+      border-radius: 4px;
+      padding: 4px 0;
+      min-width: 150px;
+      z-index: 1001;
+    }
+
+    .menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: var(--color-text-primary);
+      font-size: 14px;
+    }
+
+    .menu-item:hover {
+      background: rgba(143, 143, 143, 0.1);
     }
   `;
 }
