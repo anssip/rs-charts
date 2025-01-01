@@ -12,12 +12,116 @@
 
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="index.js"></script>
+
+    <style>
+        .upgrade-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-primary-dark);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(143, 143, 143, 0.2);
+            text-align: center;
+            z-index: 10000;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .upgrade-popup.show {
+            display: block;
+        }
+
+        .upgrade-popup-text {
+            color: var(--color-accent-2);
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .upgrade-button {
+            background: var(--color-primary);
+            color: var(--color-accent-2);
+            border: none;
+            padding: 8px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            font-family: var(--font-primary);
+        }
+
+        .upgrade-button:hover {
+            transform: scale(1.05);
+            background: var(--color-primary);
+            opacity: 0.9;
+        }
+
+        .upgrade-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+        }
+
+        .upgrade-backdrop.show {
+            display: block !important;
+        }
+
+        .upgrade-popup.show {
+            display: block !important;
+        }
+        
+
+    </style>
 </head>
 
 <body>
-    <h1>Spot Canvas</h1>
+    <h1 class="app-header">Spot Canvas</h1>
     <div class="chart-container">
     </div>
+
+    <div class="upgrade-backdrop"></div>
+    <div class="upgrade-popup">
+        <div class="upgrade-popup-text">Upgrade to enable all features</div>
+        <button class="upgrade-button">Upgrade</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const popup = document.querySelector('.upgrade-popup');
+            const backdrop = document.querySelector('.upgrade-backdrop');
+            const upgradeButton = document.querySelector('.upgrade-button');
+            const chartContainer = document.querySelector('chart-container');
+
+            function hidePopup() {
+                popup.classList.remove('show');
+                backdrop.classList.remove('show');
+            }
+
+            function showPopup() {
+                popup.classList.add('show');
+                backdrop.classList.add('show');
+            }
+
+            chartContainer.addEventListener('spotcanvas-upgrade', () => {
+                showPopup();
+            });
+
+            backdrop.addEventListener('click', hidePopup);
+            upgradeButton.addEventListener('click', () => {
+                hidePopup();
+                // Add actual upgrade logic here
+                console.log('Upgrade clicked');
+            });
+        });
+    </script>
 </body>
 
 </html>
