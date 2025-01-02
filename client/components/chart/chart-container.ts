@@ -31,7 +31,7 @@ export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
 
-const MOBILE_TOOLBAR_TOP_POSITION = "85px";
+const MOBILE_TOOLBAR_TOP_POSITION = "90px";
 const DESKTOP_TOOLBAR_TOP_POSITION = "70px";
 
 @customElement("chart-container")
@@ -105,6 +105,9 @@ export class ChartContainer extends LitElement {
 
   @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
+
+  private lastTapTime = 0;
+  private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
 
   constructor() {
     super();
@@ -784,6 +787,17 @@ export class ChartContainer extends LitElement {
 
   private handleTouchStart = (e: TouchEvent) => {
     e.preventDefault(); // Prevent scrolling while touching the chart
+
+    // Handle double tap
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - this.lastTapTime;
+    if (tapLength < this.DOUBLE_TAP_DELAY && tapLength > 0) {
+      // Double tap detected
+      this.toggleFullWindow();
+      return;
+    }
+    this.lastTapTime = currentTime;
+
     this.isDragging = true;
 
     if (e.touches.length === 2) {
@@ -855,6 +869,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleFullScreenToggle = async () => {
+    if (this.isMobile) return; // Don't handle fullscreen on mobile
     try {
       if (!this.isFullscreen) {
         await this.requestFullscreen();
@@ -867,6 +882,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleFullscreenChange = () => {
+    if (this.isMobile) return; // Don't handle fullscreen on mobile
     this.isFullscreen = document.fullscreenElement === this;
     if (!this.isFullscreen) {
       this.handleResize(this.clientWidth, this.clientHeight);

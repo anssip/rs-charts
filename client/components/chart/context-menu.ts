@@ -124,7 +124,16 @@ export class ChartContextMenu extends LitElement {
     return html`
       <div
         class="menu-item ${isSelected ? "selected" : ""}"
-        @click=${item.action}
+        @click=${() => {
+          item.action?.();
+          this.show = false;
+          this.dispatchEvent(
+            new CustomEvent("menu-close", {
+              bubbles: true,
+              composed: true,
+            })
+          );
+        }}
         @mouseover=${() => (this.selectedIndex = actionableIndex)}
       >
         ${item.label}

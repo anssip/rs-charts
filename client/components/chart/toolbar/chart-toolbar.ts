@@ -108,6 +108,13 @@ export class ChartToolbar extends LitElement {
     );
   }
 
+  private hideTooltips() {
+    const tooltips = this.renderRoot.querySelectorAll(".tooltip");
+    tooltips.forEach((tooltip) => {
+      (tooltip as HTMLElement).style.opacity = "0";
+    });
+  }
+
   render() {
     const indicatorMenuItems: MenuItem[] = [
       {
@@ -141,6 +148,7 @@ export class ChartToolbar extends LitElement {
             class="toolbar-button ${this.isFullWindow ? "active" : ""}"
             @click=${(e: Event) => {
               e.stopPropagation();
+              this.hideTooltips();
               this.dispatchToggle("fullwindow");
             }}
           >
@@ -171,6 +179,7 @@ export class ChartToolbar extends LitElement {
                   class="toolbar-button ${this.isFullscreen ? "active" : ""}"
                   @click=${(e: Event) => {
                     e.stopPropagation();
+                    this.hideTooltips();
                     this.dispatchToggle("fullscreen");
                   }}
                 >
