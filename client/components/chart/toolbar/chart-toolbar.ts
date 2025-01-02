@@ -367,11 +367,21 @@ export class ChartToolbar extends LitElement {
       border-radius: 4px;
       transition: all 0.2s ease;
       position: relative;
+      outline: none;
     }
 
     .toolbar-button:hover {
       background: rgba(143, 143, 143, 0.1);
       transform: scale(1.05);
+    }
+
+    .toolbar-button:focus {
+      background: rgba(143, 143, 143, 0.1);
+      box-shadow: -1px -1px 6px rgba(0, 0, 0, 0.4),
+        1px -1px 6px rgba(0, 0, 0, 0.4), -1px 1px 6px rgba(0, 0, 0, 0.4),
+        1px 1px 6px rgba(0, 0, 0, 0.4), -1px -1px 4px var(--color-accent-1),
+        1px -1px 4px var(--color-accent-1), -1px 1px 4px var(--color-accent-1),
+        1px 1px 4px var(--color-accent-1);
     }
 
     .toolbar-button:hover .tooltip {
