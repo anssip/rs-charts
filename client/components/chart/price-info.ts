@@ -16,7 +16,6 @@ import "../chart/toolbar/product-select";
 import { ChartState } from "../..";
 import "../common/button";
 import "../chart/context-menu";
-import { MenuItem } from "../chart/context-menu";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -298,8 +297,10 @@ export class PriceInfo extends LitElement {
       display: flex;
       gap: 12px;
       align-items: center;
+      justify-content: flex-start;
       flex: 0 auto;
       min-width: 0;
+      flex-grow: 1;
     }
 
     .price-group {
@@ -315,7 +316,6 @@ export class PriceInfo extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      flex: 1;
     }
 
     .price-label {
@@ -338,12 +338,22 @@ export class PriceInfo extends LitElement {
       .price-info {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
+        padding-top: 4px;
+      }
+
+      .price-group {
+        order: -1;
+        display: flex;
         gap: 8px;
+        min-width: 0;
+        justify-content: space-between;
+        margin-top: -10px;
       }
 
       .metadata-group {
         display: flex;
-        gap: 4px;
+        gap: 8px;
         min-width: 0;
         justify-content: center;
         padding: 0 12px;
@@ -358,13 +368,6 @@ export class PriceInfo extends LitElement {
       .metadata-group spot-button,
       .metadata-group product-select {
         width: 100%;
-      }
-
-      .price-group {
-        display: flex;
-        gap: 8px;
-        min-width: 0;
-        justify-content: space-between;
       }
 
       .price-group .price-item {

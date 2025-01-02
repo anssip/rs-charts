@@ -45,9 +45,8 @@ export class ChartToolbar extends LitElement {
   }
 
   private handleIndicatorsClick(e: MouseEvent) {
-    e.stopPropagation(); // Prevent the click from immediately triggering the document click handler
+    e.stopPropagation();
 
-    // Toggle menu state
     if (this.showIndicatorsMenu) {
       this.showIndicatorsMenu = false;
       document.removeEventListener("click", this.closeMenuHandler);
@@ -56,19 +55,19 @@ export class ChartToolbar extends LitElement {
 
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
+    const toolbarRect = this.renderRoot
+      .querySelector(".toolbar")
+      ?.getBoundingClientRect();
 
-    // Position the menu below the button using viewport coordinates
+    // Position the menu below the button, accounting for toolbar's position
     this.indicatorsMenuPosition = {
-      x: rect.left,
-      y: rect.bottom + 4,
+      x: rect.left - (toolbarRect?.left || 0),
+      y: rect.height + 4,
     };
 
     this.showIndicatorsMenu = true;
 
-    // Remove any existing click listener
     document.removeEventListener("click", this.closeMenuHandler);
-
-    // Add the click listener on the next tick
     setTimeout(() => {
       document.addEventListener("click", this.closeMenuHandler);
     }, 0);

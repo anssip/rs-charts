@@ -39,13 +39,13 @@ export class Button extends LitElement {
       align-items: center;
       gap: 4px;
       width: 100px;
-      box-shadow: -1px -1px 4px rgba(0, 0, 0, 0.3),
-        1px -1px 4px rgba(0, 0, 0, 0.3), -1px 1px 4px rgba(0, 0, 0, 0.3),
-        1px 1px 4px rgba(0, 0, 0, 0.3),
-        -1px -1px 2px var(--color-accent-1, rgba(255, 255, 255, 0.05)),
-        1px -1px 2px var(--color-accent-1, rgba(255, 255, 255, 0.05)),
-        -1px 1px 2px var(--color-accent-1, rgba(255, 255, 255, 0.05)),
-        1px 1px 2px var(--color-accent-1, rgba(255, 255, 255, 0.05));
+      box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.2),
+        1px -1px 2px rgba(0, 0, 0, 0.2), -1px 1px 2px rgba(0, 0, 0, 0.2),
+        1px 1px 2px rgba(0, 0, 0, 0.2),
+        -1px -1px 1px var(--color-accent-1, rgba(255, 255, 255, 0.03)),
+        1px -1px 1px var(--color-accent-1, rgba(255, 255, 255, 0.03)),
+        -1px 1px 1px var(--color-accent-1, rgba(255, 255, 255, 0.03)),
+        1px 1px 1px var(--color-accent-1, rgba(255, 255, 255, 0.03));
       backdrop-filter: blur(8px);
       outline: none;
     }

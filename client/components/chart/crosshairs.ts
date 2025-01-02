@@ -9,7 +9,7 @@ import {
 } from "../../util/chart-util";
 import { CandlestickChart } from "./chart";
 import { ChartState } from "../..";
-import { PRICEAXIS_WIDTH } from "./chart-container";
+import { PRICEAXIS_WIDTH, TIMELINE_HEIGHT } from "./chart-container";
 import { formatPrice } from "../../util/price-util";
 
 @customElement("chart-crosshairs")
@@ -113,15 +113,17 @@ export class Crosshairs extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Draw horizontal line at mouse Y
-    ctx.beginPath();
-    ctx.setLineDash([2, 2]);
-    ctx.strokeStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary")
-      .trim();
-    ctx.lineWidth = 1;
-    ctx.moveTo(0, this.mouseY);
-    ctx.lineTo(this.canvas.width, this.mouseY);
-    ctx.stroke();
+    if (this.mouseY < this.canvas.height / dpr - TIMELINE_HEIGHT) {
+      ctx.beginPath();
+      ctx.setLineDash([2, 2]);
+      ctx.strokeStyle = getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-primary")
+        .trim();
+      ctx.lineWidth = 1;
+      ctx.moveTo(0, this.mouseY);
+      ctx.lineTo(this.canvas.width, this.mouseY);
+      ctx.stroke();
+    }
 
     // Draw vertical line at snapped X
     if (

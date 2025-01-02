@@ -27,8 +27,12 @@ import "./toolbar/chart-toolbar";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
-export const TIMELINE_HEIGHT = 40;
+export const TIMELINE_HEIGHT = 25;
 export const PRICEAXIS_WIDTH = 70;
+export const PRICEAXIS_MOBILE_WIDTH = 45;
+
+const MOBILE_TOOLBAR_TOP_POSITION = "80px";
+const DESKTOP_TOOLBAR_TOP_POSITION = "70px";
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -58,6 +62,9 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
+
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
 
   private isDragging = false;
   private lastX = 0;
@@ -92,6 +99,12 @@ export class ChartContainer extends LitElement {
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
   private readonly RESIZE_DEBOUNCE_MS = 100;
+
+  @state()
+  private toolbarTopPosition = "70px";
+
+  @state()
+  private priceAxisWidth = PRICEAXIS_WIDTH;
 
   constructor() {
     super();
@@ -146,6 +159,8 @@ export class ChartContainer extends LitElement {
         }
       });
       this.resizeObserver.observe(chartContainer);
+      this.isMobile = this.mobileMediaQuery.matches;
+      this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
     }
 
     const chartElement = this.renderRoot.querySelector("candlestick-chart");
@@ -234,6 +249,17 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-volume", () => this.toggleVolume());
   }
 
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.toolbarTopPosition = this.isMobile
+      ? MOBILE_TOOLBAR_TOP_POSITION
+      : DESKTOP_TOOLBAR_TOP_POSITION;
+    this.priceAxisWidth = this.isMobile
+      ? PRICEAXIS_MOBILE_WIDTH
+      : PRICEAXIS_WIDTH;
+    this.draw();
+  };
+
   private handleUpgrade = () => {
     if (this.isFullscreen) {
       this.handleFullScreenToggle();
@@ -287,6 +313,10 @@ export class ChartContainer extends LitElement {
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener("toggle-volume", () => this.toggleVolume());
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
   }
 
   @property({ type: Object })
@@ -355,6 +385,8 @@ export class ChartContainer extends LitElement {
           .isFullWindow
           ? "full-window"
           : ""}"
+        style="--toolbar-top-position: ${this
+          .toolbarTopPosition}; --price-axis-width: ${this.priceAxisWidth}px;"
       >
         <div class="price-info">
           <price-info
@@ -381,16 +413,17 @@ export class ChartContainer extends LitElement {
             <chart-timeline></chart-timeline>
           </div>
           <chart-logo></chart-logo>
-          <div class="toolbar-container">
-            <chart-toolbar
-              .isFullscreen=${this.isFullscreen}
-              .isFullWindow=${this.isFullWindow}
-              .showVolume=${this.showVolume}
-              @toggle-fullscreen=${this.handleFullScreenToggle}
-              @toggle-fullwindow=${this.toggleFullWindow}
-              @upgrade-click=${this.dispatchUpgrade}
-            ></chart-toolbar>
-          </div>
+        </div>
+
+        <div class="toolbar-container">
+          <chart-toolbar
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.showVolume}
+            @toggle-fullscreen=${this.handleFullScreenToggle}
+            @toggle-fullwindow=${this.toggleFullWindow}
+            @upgrade-click=${this.dispatchUpgrade}
+          ></chart-toolbar>
         </div>
 
         <chart-context-menu
@@ -892,6 +925,7 @@ export class ChartContainer extends LitElement {
       gap: 8px;
       padding: 0 16px;
       box-sizing: border-box;
+      position: relative;
     }
 
     .volume-chart[hidden] {
@@ -945,7 +979,7 @@ export class ChartContainer extends LitElement {
 
     .chart {
       position: relative;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: auto;
     }
@@ -958,7 +992,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT}px;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: 25%;
       pointer-events: none;
       z-index: 2;
@@ -985,7 +1019,7 @@ export class ChartContainer extends LitElement {
     .price-axis-container {
       right: 0;
       top: 0;
-      width: ${PRICEAXIS_WIDTH}px;
+      width: var(--price-axis-width, ${PRICEAXIS_WIDTH}px);
       height: var(--spotcanvas-chart-height, 100%);
     }
 
@@ -999,7 +1033,7 @@ export class ChartContainer extends LitElement {
     .timeline-container {
       bottom: 0;
       left: 0px;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: ${TIMELINE_HEIGHT}px;
       pointer-events: auto;
     }
@@ -1008,7 +1042,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: auto;
       z-index: 1;
@@ -1024,7 +1058,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: none;
       z-index: 6;
@@ -1053,15 +1087,18 @@ export class ChartContainer extends LitElement {
     chart-logo {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT + 8}px;
-      left: 8px;
       z-index: 7;
     }
 
     .toolbar-container {
       position: absolute;
-      top: 16px;
-      right: ${PRICEAXIS_WIDTH + 16}px;
-      z-index: 10;
+      left: 50%;
+      transform: translateX(-50%);
+      top: var(--toolbar-top-position, 70px);
+      z-index: 7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   `;
 }
