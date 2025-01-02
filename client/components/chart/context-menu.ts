@@ -24,6 +24,28 @@ export class ChartContextMenu extends LitElement {
   @property({ type: Boolean })
   show = false;
 
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      this.show = false;
+      this.dispatchEvent(
+        new CustomEvent("menu-close", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleKeyDown);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleKeyDown);
+  }
+
   private renderMenuItem(item: MenuItem) {
     if (item.separator) {
       return html`<div class="separator"></div>`;
