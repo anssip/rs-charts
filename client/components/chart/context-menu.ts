@@ -8,8 +8,9 @@ export interface MenuPosition {
 
 export interface MenuItem {
   label: string;
-  action: () => void;
+  action?: () => void;
   separator?: boolean;
+  isHeader?: boolean;
 }
 
 @customElement("chart-context-menu")
@@ -23,6 +24,40 @@ export class ChartContextMenu extends LitElement {
   @property({ type: Boolean })
   show = false;
 
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      this.show = false;
+      this.dispatchEvent(
+        new CustomEvent("menu-close", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener("keydown", this.handleKeyDown);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener("keydown", this.handleKeyDown);
+  }
+
+  private renderMenuItem(item: MenuItem) {
+    if (item.separator) {
+      return html`<div class="separator"></div>`;
+    }
+    if (item.isHeader) {
+      return html`<div class="menu-header">${item.label}</div>`;
+    }
+    return html`
+      <div class="menu-item" @click=${item.action}>${item.label}</div>
+    `;
+  }
+
   render() {
     if (!this.show) return null;
 
@@ -31,12 +66,7 @@ export class ChartContextMenu extends LitElement {
         class="context-menu"
         style="left: ${this.position.x}px; top: ${this.position.y}px"
       >
-        ${this.items.map(
-          (item, index) => html`
-            ${item.separator ? html`<div class="separator"></div>` : ""}
-            <div class="menu-item" @click=${item.action}>${item.label}</div>
-          `
-        )}
+        ${this.items.map((item) => this.renderMenuItem(item))}
       </div>
     `;
   }
@@ -58,10 +88,22 @@ export class ChartContextMenu extends LitElement {
       cursor: pointer;
       color: var(--color-accent-2);
       font-size: 14px;
+      transition: background-color 0.2s ease;
     }
 
     .menu-item:hover {
       background: rgba(143, 143, 143, 0.5);
+    }
+
+    .menu-header {
+      padding: 8px 16px;
+      color: var(--color-primary);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      opacity: 0.7;
+      cursor: default;
+      user-select: none;
     }
 
     .separator {

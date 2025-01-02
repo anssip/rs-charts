@@ -32,8 +32,22 @@ export class VolumeChart extends CanvasBase {
     });
   }
 
+  private isVisible(): boolean {
+    // Check if element is hidden via attribute or style
+    if (this.hidden || this.style.display === "none") return false;
+
+    // Check if element has zero dimensions
+    const rect = this.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+
+    return true;
+  }
+
   draw() {
     if (!this.canvas || !this.ctx || !this._state) return;
+
+    // Skip drawing if the element is not visible
+    if (!this.isVisible()) return;
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
