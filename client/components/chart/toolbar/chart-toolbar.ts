@@ -289,6 +289,10 @@ export class ChartToolbar extends LitElement {
         .show=${this.showIndicatorsMenu}
         .position=${this.indicatorsMenuPosition}
         .items=${indicatorMenuItems}
+        @menu-close=${() => {
+          this.showIndicatorsMenu = false;
+          document.removeEventListener("click", this.closeMenuHandler);
+        }}
       ></chart-context-menu>
     `;
   }
