@@ -89,6 +89,10 @@ export class ChartContainer extends LitElement {
   @state()
   private showVolume = false;
 
+  private resizeAnimationFrame: number | null = null;
+  private resizeTimeout: number | null = null;
+  private readonly RESIZE_DEBOUNCE_MS = 100;
+
   constructor() {
     super();
     // Check if device is touch-only (no mouse/trackpad)
@@ -122,7 +126,23 @@ export class ChartContainer extends LitElement {
         const entry = entries[0];
         if (entry) {
           const { width, height } = entry.contentRect;
-          this.handleResize(width, height);
+
+          // Cancel any pending animation frame
+          if (this.resizeAnimationFrame) {
+            cancelAnimationFrame(this.resizeAnimationFrame);
+          }
+
+          // Clear any pending timeout
+          if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+          }
+
+          // Set a new timeout for debouncing
+          this.resizeTimeout = window.setTimeout(() => {
+            this.resizeAnimationFrame = requestAnimationFrame(() => {
+              this.handleResize(width, height);
+            });
+          }, this.RESIZE_DEBOUNCE_MS);
         }
       });
       this.resizeObserver.observe(chartContainer);
@@ -249,6 +269,12 @@ export class ChartContainer extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.resizeObserver?.disconnect();
+    if (this.resizeAnimationFrame) {
+      cancelAnimationFrame(this.resizeAnimationFrame);
+    }
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
     window.removeEventListener(
       "timeline-zoom",
       this.handleTimelineZoom as EventListener

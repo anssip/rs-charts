@@ -32,11 +32,12 @@ export class ChartToolbar extends LitElement {
   private handleIndicatorsClick(e: MouseEvent) {
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
+    const toolbarRect = this.getBoundingClientRect();
 
-    // Position the menu below the button
+    // Position the menu below the button, relative to the toolbar
     this.indicatorsMenuPosition = {
-      x: rect.left,
-      y: rect.bottom + 4,
+      x: rect.left - toolbarRect.left,
+      y: rect.height + 4,
     };
 
     this.showIndicatorsMenu = true;
@@ -139,7 +140,7 @@ export class ChartToolbar extends LitElement {
 
         <div class="tooltip-wrapper">
           <button
-            class="toolbar-button ${this.showVolume ? "active" : ""}"
+            class="toolbar-button ${this.showIndicatorsMenu ? "active" : ""}"
             @click=${this.handleIndicatorsClick}
           >
             <svg
