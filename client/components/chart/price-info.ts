@@ -166,19 +166,6 @@ export class PriceInfo extends LitElement {
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
 
-    // Create menu items from granularities
-    const menuItems: MenuItem[] = [
-      {
-        label: "Time Frame",
-        isHeader: true,
-      },
-      ...getAllGranularities().map((g) => ({
-        label: granularityLabel(g),
-        action: () => this.handleGranularityChange(g),
-      })),
-    ];
-
-    // Position the menu
     this.granularityMenuPosition = {
       x: rect.left,
       y: rect.bottom + 4,
