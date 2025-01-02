@@ -18,7 +18,7 @@
 
     /* chart dimensions */
     /* use 100% for dynamic height */
-    --spotcanvas-chart-height: 600px;
+    --spotcanvas-chart-height: 100%;
 
     /* opacity variants */
     --color-primary-dark-50: rgba(24, 24, 24, 0.5);

@@ -31,7 +31,7 @@ export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
 
-const MOBILE_TOOLBAR_TOP_POSITION = "80px";
+const MOBILE_TOOLBAR_TOP_POSITION = "85px";
 const DESKTOP_TOOLBAR_TOP_POSITION = "70px";
 
 @customElement("chart-container")
@@ -112,6 +112,18 @@ export class ChartContainer extends LitElement {
     this.isTouchOnly = window.matchMedia(
       "(hover: none) and (pointer: coarse)"
     ).matches;
+
+    // Initialize mobile state and width
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.toolbarTopPosition = this.isMobile
+      ? MOBILE_TOOLBAR_TOP_POSITION
+      : DESKTOP_TOOLBAR_TOP_POSITION;
+    this.priceAxisWidth = this.isMobile
+      ? PRICEAXIS_MOBILE_WIDTH
+      : PRICEAXIS_WIDTH;
+
+    // Add mobile media query listener
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
 
   set startTimestamp(startTimestamp: number) {
@@ -159,8 +171,6 @@ export class ChartContainer extends LitElement {
         }
       });
       this.resizeObserver.observe(chartContainer);
-      this.isMobile = this.mobileMediaQuery.matches;
-      this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
     }
 
     const chartElement = this.renderRoot.querySelector("candlestick-chart");
@@ -349,10 +359,14 @@ export class ChartContainer extends LitElement {
         label: this.isFullWindow ? "Exit Full Window" : "Full Window",
         action: this.toggleFullWindow,
       },
-      {
-        label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
-        action: this.handleFullScreenToggle,
-      },
+      ...(this.isMobile
+        ? []
+        : [
+            {
+              label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
+              action: this.handleFullScreenToggle,
+            },
+          ]),
       {
         label: "separator",
         separator: true,
@@ -892,10 +906,8 @@ export class ChartContainer extends LitElement {
     }
     this.isFullWindow = !this.isFullWindow;
     if (this.isFullWindow) {
-      document.documentElement.style.overflow = "hidden";
       this.classList.add("full-window");
     } else {
-      document.documentElement.style.overflow = "";
       this.classList.remove("full-window");
     }
     // Force a resize after the class change
@@ -908,8 +920,8 @@ export class ChartContainer extends LitElement {
     :host {
       display: block;
       width: 100%;
-      height: 100%;
-      max-height: var(--spotcanvas-chart-height, 600px);
+      height: var(--spotcanvas-chart-height, 600px);
+      min-height: 400px;
     }
 
     :host(:fullscreen),
@@ -917,14 +929,18 @@ export class ChartContainer extends LitElement {
       background: var(--color-primary-dark);
       padding: 16px;
       box-sizing: border-box;
-      max-height: none;
       height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
 
     :host(:fullscreen) .container,
     :host(.full-window) .container {
       height: 100%;
-      max-height: none;
+      overflow: hidden;
     }
 
     .container {
@@ -932,12 +948,29 @@ export class ChartContainer extends LitElement {
       flex-direction: column;
       width: 100%;
       height: 100%;
-      max-height: var(--spotcanvas-chart-height, 600px);
       background-color: var(--color-primary-dark);
       gap: 8px;
       padding: 0 16px;
       box-sizing: border-box;
       position: relative;
+      overflow: hidden;
+    }
+
+    .chart-area {
+      flex: 1;
+      position: relative;
+      background: var(--color-primary-dark);
+      overflow: hidden;
+      pointer-events: auto;
+      border-radius: 12px;
+      margin: 0;
+      border: 1px solid rgba(143, 143, 143, 0.2);
+      height: calc(100% - 120px);
+    }
+
+    :host(:fullscreen) .chart-area,
+    :host(.full-window) .chart-area {
+      height: calc(100vh - 200px);
     }
 
     .volume-chart[hidden] {
@@ -976,24 +1009,6 @@ export class ChartContainer extends LitElement {
       margin: 8px 0;
       padding: 12px 16px;
       border: 1px solid rgba(143, 143, 143, 0.2);
-    }
-
-    .chart-area {
-      flex: 1;
-      position: relative;
-      background: var(--color-primary-dark);
-      overflow: hidden;
-      pointer-events: auto;
-      border-radius: 12px;
-      margin: 0;
-      border: 1px solid rgba(143, 143, 143, 0.2);
-      max-height: calc(var(--spotcanvas-chart-height, 600px) - 120px);
-    }
-
-    :host(:fullscreen) .chart-area,
-    :host(.full-window) .chart-area {
-      max-height: none;
-      height: calc(100vh - 200px);
     }
 
     .chart {

@@ -8,11 +8,7 @@ import {
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
-import {
-  PRICEAXIS_WIDTH,
-  PRICEAXIS_MOBILE_WIDTH,
-  TIMELINE_HEIGHT,
-} from "./chart-container";
+import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
@@ -31,6 +27,17 @@ export class PriceAxis extends CanvasBase {
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
+
+  constructor() {
+    super();
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+  }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.draw();
+  };
 
   override getId(): string {
     return "price-axis";
@@ -51,14 +58,18 @@ export class PriceAxis extends CanvasBase {
       this.priceRange = xin[path] as PriceRange;
       this.draw();
     });
-    this.isMobile = this.mobileMediaQuery.matches;
-    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
 
-  private handleMobileChange = (e: MediaQueryListEvent) => {
-    this.isMobile = e.matches;
-    this.draw();
-  };
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
+  }
 
   useResizeObserver(): boolean {
     return true;
@@ -297,13 +308,6 @@ export class PriceAxis extends CanvasBase {
       () => this.updateCountdown(),
       1000
     );
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-    }
   }
 
   private handleTouchStart = (e: TouchEvent) => {

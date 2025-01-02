@@ -20,6 +20,28 @@ export class ChartToolbar extends LitElement {
   @state()
   private indicatorsMenuPosition = { x: 0, y: 0 };
 
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
+
+  constructor() {
+    super();
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+  }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.requestUpdate();
+  };
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
+  }
+
   private closeMenuHandler = (e: MouseEvent) => {
     // Don't close if clicking inside the menu
     const path = e.composedPath();
@@ -142,33 +164,39 @@ export class ChartToolbar extends LitElement {
           </button>
         </div>
 
-        <div class="tooltip-wrapper">
-          <button
-            class="toolbar-button ${this.isFullscreen ? "active" : ""}"
-            @click=${(e: Event) => {
-              e.stopPropagation();
-              this.dispatchToggle("fullscreen");
-            }}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2 7V2H7M22 7V2H17M2 17V22H7M22 17V22H17"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            <span class="tooltip"
-              >${this.isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span
-            >
-          </button>
-        </div>
+        ${!this.isMobile
+          ? html`
+              <div class="tooltip-wrapper">
+                <button
+                  class="toolbar-button ${this.isFullscreen ? "active" : ""}"
+                  @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this.dispatchToggle("fullscreen");
+                  }}
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 7V2H7M22 7V2H17M2 17V22H7M22 17V22H17"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <span class="tooltip"
+                    >${this.isFullscreen
+                      ? "Exit Fullscreen"
+                      : "Fullscreen"}</span
+                  >
+                </button>
+              </div>
+            `
+          : ""}
 
         <div class="tooltip-wrapper">
           <button
