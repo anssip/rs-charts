@@ -1,5 +1,7 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
+import "../context-menu";
+import { MenuItem } from "../context-menu";
 
 @customElement("chart-toolbar")
 export class ChartToolbar extends LitElement {
@@ -8,6 +10,30 @@ export class ChartToolbar extends LitElement {
 
   @property({ type: Boolean })
   isFullWindow = false;
+
+  @property({ type: Boolean })
+  showVolume = false;
+
+  @state()
+  private showIndicatorsMenu = false;
+
+  @state()
+  private indicatorsMenuPosition = { x: 0, y: 0 };
+
+  private closeMenuHandler = (e: MouseEvent) => {
+    // Don't close if clicking inside the menu
+    const path = e.composedPath();
+    const isClickInsideMenu = path.some(
+      (element) =>
+        element instanceof HTMLElement &&
+        element.tagName.toLowerCase() === "chart-context-menu"
+    );
+
+    if (!isClickInsideMenu) {
+      this.showIndicatorsMenu = false;
+      document.removeEventListener("click", this.closeMenuHandler);
+    }
+  };
 
   private dispatchToggle(type: "fullscreen" | "fullwindow") {
     this.dispatchEvent(
@@ -18,7 +44,72 @@ export class ChartToolbar extends LitElement {
     );
   }
 
+  private handleIndicatorsClick(e: MouseEvent) {
+    e.stopPropagation(); // Prevent the click from immediately triggering the document click handler
+
+    // Toggle menu state
+    if (this.showIndicatorsMenu) {
+      this.showIndicatorsMenu = false;
+      document.removeEventListener("click", this.closeMenuHandler);
+      return;
+    }
+
+    const button = e.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+
+    // Position the menu below the button using viewport coordinates
+    this.indicatorsMenuPosition = {
+      x: rect.left,
+      y: rect.bottom + 4,
+    };
+
+    this.showIndicatorsMenu = true;
+
+    // Remove any existing click listener
+    document.removeEventListener("click", this.closeMenuHandler);
+
+    // Add the click listener on the next tick
+    setTimeout(() => {
+      document.addEventListener("click", this.closeMenuHandler);
+    }, 0);
+  }
+
+  private toggleVolume() {
+    this.showVolume = !this.showVolume;
+    this.dispatchEvent(
+      new CustomEvent("toggle-volume", {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   render() {
+    const indicatorMenuItems: MenuItem[] = [
+      {
+        isHeader: true,
+        label: "Indicators",
+      },
+      {
+        label: "Volume",
+        action: () => this.toggleVolume(),
+      },
+      {
+        label: "separator",
+        separator: true,
+      },
+      {
+        label: "Add... (Pro)",
+        action: () =>
+          this.dispatchEvent(
+            new CustomEvent("spotcanvas-upgrade", {
+              bubbles: true,
+              composed: true,
+            })
+          ),
+      },
+    ];
+
     return html`
       <div class="toolbar">
         <div class="tooltip-wrapper">
@@ -68,6 +159,29 @@ export class ChartToolbar extends LitElement {
             <span class="tooltip"
               >${this.isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span
             >
+          </button>
+        </div>
+
+        <div class="tooltip-wrapper">
+          <button
+            class="toolbar-button ${this.showIndicatorsMenu ? "active" : ""}"
+            @click=${this.handleIndicatorsClick}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M8 18V7M12 18V11M16 18V15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="tooltip">Indicators</span>
           </button>
         </div>
 
@@ -170,10 +284,20 @@ export class ChartToolbar extends LitElement {
           </button>
         </div>
       </div>
+
+      <chart-context-menu
+        .show=${this.showIndicatorsMenu}
+        .position=${this.indicatorsMenuPosition}
+        .items=${indicatorMenuItems}
+      ></chart-context-menu>
     `;
   }
 
   static styles = css`
+    :host {
+      position: relative;
+    }
+
     .toolbar {
       display: flex;
       gap: 8px;
@@ -182,6 +306,12 @@ export class ChartToolbar extends LitElement {
       backdrop-filter: blur(8px);
       border-radius: 8px;
       border: 1px solid rgba(143, 143, 143, 0.2);
+      position: relative;
+    }
+
+    chart-context-menu {
+      position: fixed;
+      z-index: 1000;
     }
 
     .tooltip-wrapper {
