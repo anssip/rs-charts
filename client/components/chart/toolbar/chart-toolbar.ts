@@ -36,10 +36,13 @@ export class ChartToolbar extends LitElement {
   };
 
   private dispatchToggle(type: "fullscreen" | "fullwindow") {
+    const eventName =
+      type === "fullscreen" ? "toggle-fullscreen" : "toggle-fullwindow";
     this.dispatchEvent(
-      new CustomEvent(`toggle-${type}`, {
+      new CustomEvent(eventName, {
         bubbles: true,
         composed: true,
+        detail: { type },
       })
     );
   }
@@ -114,7 +117,10 @@ export class ChartToolbar extends LitElement {
         <div class="tooltip-wrapper">
           <button
             class="toolbar-button ${this.isFullWindow ? "active" : ""}"
-            @click=${() => this.dispatchToggle("fullwindow")}
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this.dispatchToggle("fullwindow");
+            }}
           >
             <svg
               width="24"
@@ -139,7 +145,10 @@ export class ChartToolbar extends LitElement {
         <div class="tooltip-wrapper">
           <button
             class="toolbar-button ${this.isFullscreen ? "active" : ""}"
-            @click=${() => this.dispatchToggle("fullscreen")}
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this.dispatchToggle("fullscreen");
+            }}
           >
             <svg
               width="24"

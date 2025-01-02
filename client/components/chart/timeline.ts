@@ -80,11 +80,11 @@ export class Timeline extends CanvasBase {
 
           if (tickMark) {
             const timeLabel = formatTime(date);
-            ctx.fillText(timeLabel, x, 1);
+            ctx.fillText(timeLabel, x, 3);
           }
           if (dateChange) {
             const dateLabel = formatDate(date);
-            ctx.fillText(dateLabel, x, 10);
+            ctx.fillText(dateLabel, x, 17);
           }
         },
         granularity: state.granularity,

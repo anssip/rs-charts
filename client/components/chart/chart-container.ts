@@ -27,7 +27,7 @@ import "./toolbar/chart-toolbar";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
-export const TIMELINE_HEIGHT = 25;
+export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
 
@@ -886,14 +886,22 @@ export class ChartContainer extends LitElement {
     }, 0);
   };
 
-  private toggleFullWindow = () => {
+  private toggleFullWindow = (e?: Event) => {
+    if (e) {
+      e.stopPropagation();
+    }
     this.isFullWindow = !this.isFullWindow;
     if (this.isFullWindow) {
+      document.documentElement.style.overflow = "hidden";
       this.classList.add("full-window");
     } else {
+      document.documentElement.style.overflow = "";
       this.classList.remove("full-window");
     }
-    this.handleResize(this.clientWidth, this.clientHeight);
+    // Force a resize after the class change
+    requestAnimationFrame(() => {
+      this.handleResize(this.clientWidth, this.clientHeight);
+    });
   };
 
   static styles = css`
@@ -901,6 +909,7 @@ export class ChartContainer extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
+      max-height: var(--spotcanvas-chart-height, 600px);
     }
 
     :host(:fullscreen),
@@ -908,12 +917,14 @@ export class ChartContainer extends LitElement {
       background: var(--color-primary-dark);
       padding: 16px;
       box-sizing: border-box;
-      --spotcanvas-chart-height: 100%;
+      max-height: none;
+      height: 100vh;
     }
 
     :host(:fullscreen) .container,
     :host(.full-window) .container {
       height: 100%;
+      max-height: none;
     }
 
     .container {
@@ -921,6 +932,7 @@ export class ChartContainer extends LitElement {
       flex-direction: column;
       width: 100%;
       height: 100%;
+      max-height: var(--spotcanvas-chart-height, 600px);
       background-color: var(--color-primary-dark);
       gap: 8px;
       padding: 0 16px;
@@ -975,12 +987,19 @@ export class ChartContainer extends LitElement {
       border-radius: 12px;
       margin: 0;
       border: 1px solid rgba(143, 143, 143, 0.2);
+      max-height: calc(var(--spotcanvas-chart-height, 600px) - 120px);
+    }
+
+    :host(:fullscreen) .chart-area,
+    :host(.full-window) .chart-area {
+      max-height: none;
+      height: calc(100vh - 200px);
     }
 
     .chart {
       position: relative;
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
     }
 
@@ -1020,7 +1039,12 @@ export class ChartContainer extends LitElement {
       right: 0;
       top: 0;
       width: var(--price-axis-width, ${PRICEAXIS_WIDTH}px);
-      height: var(--spotcanvas-chart-height, 100%);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
+    }
+
+    :host(:fullscreen) .price-axis-container,
+    :host(.full-window) .price-axis-container {
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
     }
 
     chart-timeline {
@@ -1043,7 +1067,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
       cursor: crosshair;
@@ -1059,7 +1083,7 @@ export class ChartContainer extends LitElement {
       top: 0;
       left: 0;
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: none;
       z-index: 6;
     }
@@ -1081,7 +1105,7 @@ export class ChartContainer extends LitElement {
     price-axis {
       display: block;
       width: 100%;
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      height: 100%;
     }
 
     chart-logo {
