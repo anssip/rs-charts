@@ -86,6 +86,9 @@ export class ChartContainer extends LitElement {
   // Add zoom factor to control how much the timeline affects the viewport
   private readonly ZOOM_FACTOR = 0.005;
 
+  @state()
+  private showVolume = false;
+
   constructor() {
     super();
     // Check if device is touch-only (no mouse/trackpad)
@@ -208,6 +211,7 @@ export class ChartContainer extends LitElement {
     // Add event listeners for toolbar actions
     this.addEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
+    this.addEventListener("toggle-volume", () => this.toggleVolume());
   }
 
   private handleUpgrade = () => {
@@ -256,6 +260,7 @@ export class ChartContainer extends LitElement {
     );
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
+    this.removeEventListener("toggle-volume", () => this.toggleVolume());
   }
 
   @property({ type: Object })
@@ -272,6 +277,16 @@ export class ChartContainer extends LitElement {
     );
   }
 
+  private toggleVolume() {
+    this.showVolume = !this.showVolume;
+    const volumeChart = this.renderRoot.querySelector(
+      ".volume-chart"
+    ) as HTMLElement;
+    if (volumeChart) {
+      volumeChart.hidden = !this.showVolume;
+    }
+  }
+
   render() {
     const menuItems: MenuItem[] = [
       {
@@ -283,16 +298,27 @@ export class ChartContainer extends LitElement {
         action: this.handleFullScreenToggle,
       },
       {
-        label: "Drawing Tools",
-        action: () => this.dispatchUpgrade(),
+        label: "separator",
         separator: true,
       },
       {
-        label: "Chart Settings",
+        label: "Indicators",
+        isHeader: true,
+      },
+      {
+        label: "Volume",
+        action: () => this.toggleVolume(),
+      },
+      {
+        label: "separator",
+        separator: true,
+      },
+      {
+        label: "Drawing Tools (Pro)",
         action: () => this.dispatchUpgrade(),
       },
       {
-        label: "Assets",
+        label: "Assets (Pro)",
         action: () => this.dispatchUpgrade(),
       },
     ];
@@ -314,7 +340,7 @@ export class ChartContainer extends LitElement {
           <div class="chart">
             <candlestick-chart></candlestick-chart>
           </div>
-          <div class="volume-chart">
+          <div class="volume-chart" ?hidden=${!this.showVolume}>
             <volume-chart></volume-chart>
           </div>
 
@@ -333,6 +359,10 @@ export class ChartContainer extends LitElement {
             <chart-toolbar
               .isFullscreen=${this.isFullscreen}
               .isFullWindow=${this.isFullWindow}
+              .showVolume=${this.showVolume}
+              @toggle-fullscreen=${this.handleFullScreenToggle}
+              @toggle-fullwindow=${this.toggleFullWindow}
+              @upgrade-click=${this.dispatchUpgrade}
             ></chart-toolbar>
           </div>
         </div>
@@ -838,6 +868,10 @@ export class ChartContainer extends LitElement {
       box-sizing: border-box;
     }
 
+    .volume-chart[hidden] {
+      display: none;
+    }
+
     .container.fullscreen,
     .container.full-window {
       position: fixed;
@@ -888,6 +922,10 @@ export class ChartContainer extends LitElement {
       width: calc(100% - ${PRICEAXIS_WIDTH}px);
       height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
       pointer-events: auto;
+    }
+
+    .volume-chart[hidden] {
+      display: none;
     }
 
     .volume-chart {
