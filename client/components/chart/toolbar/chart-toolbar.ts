@@ -65,6 +65,7 @@ export class ChartToolbar extends LitElement {
         bubbles: true,
         composed: true,
         detail: { type },
+        cancelable: true,
       })
     );
   }
@@ -148,6 +149,7 @@ export class ChartToolbar extends LitElement {
             class="toolbar-button ${this.isFullWindow ? "active" : ""}"
             @click=${(e: Event) => {
               e.stopPropagation();
+              e.preventDefault();
               this.hideTooltips();
               this.dispatchToggle("fullwindow");
             }}
@@ -179,6 +181,7 @@ export class ChartToolbar extends LitElement {
                   class="toolbar-button ${this.isFullscreen ? "active" : ""}"
                   @click=${(e: Event) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     this.hideTooltips();
                     this.dispatchToggle("fullscreen");
                   }}

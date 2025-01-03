@@ -275,22 +275,30 @@ export class PriceInfo extends LitElement {
             .isFullscreen=${this.isFullscreen}
             .isFullWindow=${this.isFullWindow}
             .showVolume=${this.showVolume}
-            @toggle-fullscreen=${(e: CustomEvent) =>
+            @toggle-fullscreen=${(e: CustomEvent) => {
+              if (e.defaultPrevented) return;
+              e.preventDefault();
+              e.stopPropagation();
               this.dispatchEvent(
                 new CustomEvent("toggle-fullscreen", {
                   bubbles: true,
                   composed: true,
-                  detail: e.detail,
+                  cancelable: true,
                 })
-              )}
-            @toggle-fullwindow=${(e: CustomEvent) =>
+              );
+            }}
+            @toggle-fullwindow=${(e: CustomEvent) => {
+              if (e.defaultPrevented) return;
+              e.preventDefault();
+              e.stopPropagation();
               this.dispatchEvent(
                 new CustomEvent("toggle-fullwindow", {
                   bubbles: true,
                   composed: true,
-                  detail: e.detail,
+                  cancelable: true,
                 })
-              )}
+              );
+            }}
             @toggle-volume=${() =>
               this.dispatchEvent(
                 new CustomEvent("toggle-volume", {
