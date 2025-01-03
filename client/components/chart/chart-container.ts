@@ -31,9 +31,6 @@ export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
 
-const MOBILE_TOOLBAR_TOP_POSITION = "90px";
-const DESKTOP_TOOLBAR_TOP_POSITION = "70px";
-
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
   @state()
@@ -248,7 +245,8 @@ export class ChartContainer extends LitElement {
     this.setupFocusHandler();
 
     // Add event listeners for toolbar actions
-    this.addEventListener("toggle-fullscreen", this.handleFullScreenToggle);
+    this.addEventListener("toggle-fullscreen", ((e: Event) =>
+      this.handleFullScreenToggle(e as CustomEvent)) as EventListener);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.addEventListener("toggle-volume", () => this.toggleVolume());
   }
@@ -261,9 +259,9 @@ export class ChartContainer extends LitElement {
     this.draw();
   };
 
-  private handleUpgrade = () => {
+  private handleUpgrade = async () => {
     if (this.isFullscreen) {
-      this.handleFullScreenToggle();
+      await document.exitFullscreen();
     }
   };
 
@@ -355,7 +353,10 @@ export class ChartContainer extends LitElement {
         : [
             {
               label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
-              action: this.handleFullScreenToggle,
+              action: () =>
+                this.handleFullScreenToggle(
+                  new CustomEvent("toggle-fullscreen")
+                ),
             },
           ]),
       {
@@ -851,8 +852,12 @@ export class ChartContainer extends LitElement {
     this.isZooming = false;
   };
 
-  private handleFullScreenToggle = async () => {
-    if (this.isMobile) return; // Don't handle fullscreen on mobile
+  private handleFullScreenToggle = async (e: Event) => {
+    if (this.isMobile) return;
+    if (e.defaultPrevented) return;
+    e.preventDefault();
+    e.stopPropagation();
+
     try {
       if (!this.isFullscreen) {
         await this.requestFullscreen();
@@ -900,7 +905,9 @@ export class ChartContainer extends LitElement {
   };
 
   private toggleFullWindow = (e?: Event) => {
+    if (e?.defaultPrevented) return;
     if (e) {
+      e.preventDefault();
       e.stopPropagation();
     }
     this.isFullWindow = !this.isFullWindow;

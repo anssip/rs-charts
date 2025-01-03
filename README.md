@@ -20,6 +20,7 @@ bun run dev
 
 ## TODO
 
+- [ ] Gaps loading should widen the gaps to ensure partial candles are loaded. Also the loading should bypass the caches in candleRepository.
 - [ ] Changing to 1 minute candles it starts to show error message "Ignoring old candle"
 - [x] Show volume info in price-info panel
 - [x] Move symbol and granularity selection to price-info panel
@@ -34,8 +35,8 @@ bun run dev
   - [x] typography
   - [x] logo to the corner of the chart, top right
 
-- [ ] Deploy to GCP or AWS with some CDN.
-- [ ] Live candle subscription monitoring of the subscription state and reconnect if it's lost
+- [x] Deploy to GCP or AWS with some CDN.
+- [x] Live candle subscription monitoring of the subscription state and reconnect if it's lost
 - [ ] Add a loading indicator on top of the chart area (with SpotCanvas logo)
 - [x] Fix timeline to not drow labels too close to each other
 - [x] Refactor grid drawing to use new timeline iterator
