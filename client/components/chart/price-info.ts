@@ -16,6 +16,7 @@ import "../chart/toolbar/product-select";
 import { ChartState } from "../..";
 import "../common/button";
 import "../chart/context-menu";
+import "./toolbar/chart-toolbar";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -24,6 +25,15 @@ export class PriceInfo extends LitElement {
 
   @property({ type: Array })
   symbols: CoinbaseProduct[] = [];
+
+  @property({ type: Boolean })
+  isFullscreen = false;
+
+  @property({ type: Boolean })
+  isFullWindow = false;
+
+  @property({ type: Boolean })
+  showVolume = false;
 
   @property({ type: String })
   granularity: Granularity = (xin["state.granularity"] ??
@@ -260,6 +270,44 @@ export class PriceInfo extends LitElement {
           </div>
         </div>
 
+        <div class="toolbar-container">
+          <chart-toolbar
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.showVolume}
+            @toggle-fullscreen=${(e: CustomEvent) =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-fullscreen", {
+                  bubbles: true,
+                  composed: true,
+                  detail: e.detail,
+                })
+              )}
+            @toggle-fullwindow=${(e: CustomEvent) =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-fullwindow", {
+                  bubbles: true,
+                  composed: true,
+                  detail: e.detail,
+                })
+              )}
+            @toggle-volume=${() =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-volume", {
+                  bubbles: true,
+                  composed: true,
+                })
+              )}
+            @upgrade-click=${() =>
+              this.dispatchEvent(
+                new CustomEvent("upgrade-click", {
+                  bubbles: true,
+                  composed: true,
+                })
+              )}
+          ></chart-toolbar>
+        </div>
+
         <chart-context-menu
           .show=${this.isGranularityDropdownOpen}
           .position=${this.granularityMenuPosition}
@@ -291,6 +339,7 @@ export class PriceInfo extends LitElement {
       align-items: center;
       width: 100%;
       justify-content: space-between;
+      position: relative;
     }
 
     .metadata-group {
@@ -332,6 +381,17 @@ export class PriceInfo extends LitElement {
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 80px;
+    }
+
+    .toolbar-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: -40px;
+      z-index: 7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     @media (max-width: 767px) {

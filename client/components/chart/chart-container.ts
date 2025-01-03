@@ -101,9 +101,6 @@ export class ChartContainer extends LitElement {
   private readonly RESIZE_DEBOUNCE_MS = 100;
 
   @state()
-  private toolbarTopPosition = "70px";
-
-  @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
 
   private lastTapTime = 0;
@@ -118,12 +115,6 @@ export class ChartContainer extends LitElement {
 
     // Initialize mobile state and width
     this.isMobile = this.mobileMediaQuery.matches;
-    this.toolbarTopPosition = this.isMobile
-      ? MOBILE_TOOLBAR_TOP_POSITION
-      : DESKTOP_TOOLBAR_TOP_POSITION;
-    this.priceAxisWidth = this.isMobile
-      ? PRICEAXIS_MOBILE_WIDTH
-      : PRICEAXIS_WIDTH;
 
     // Add mobile media query listener
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
@@ -264,9 +255,6 @@ export class ChartContainer extends LitElement {
 
   private handleMobileChange = (e: MediaQueryListEvent) => {
     this.isMobile = e.matches;
-    this.toolbarTopPosition = this.isMobile
-      ? MOBILE_TOOLBAR_TOP_POSITION
-      : DESKTOP_TOOLBAR_TOP_POSITION;
     this.priceAxisWidth = this.isMobile
       ? PRICEAXIS_MOBILE_WIDTH
       : PRICEAXIS_WIDTH;
@@ -402,13 +390,19 @@ export class ChartContainer extends LitElement {
           .isFullWindow
           ? "full-window"
           : ""}"
-        style="--toolbar-top-position: ${this
-          .toolbarTopPosition}; --price-axis-width: ${this.priceAxisWidth}px;"
+        style="--price-axis-width: ${this.priceAxisWidth}px;"
       >
         <div class="price-info">
           <price-info
             .product=${this._state.liveCandle?.productId}
             .symbols=${this.products}
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.showVolume}
+            @toggle-fullscreen=${this.handleFullScreenToggle}
+            @toggle-fullwindow=${this.toggleFullWindow}
+            @toggle-volume=${() => this.toggleVolume()}
+            @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
         <div class="chart-area">
@@ -430,17 +424,6 @@ export class ChartContainer extends LitElement {
             <chart-timeline></chart-timeline>
           </div>
           <chart-logo></chart-logo>
-        </div>
-
-        <div class="toolbar-container">
-          <chart-toolbar
-            .isFullscreen=${this.isFullscreen}
-            .isFullWindow=${this.isFullWindow}
-            .showVolume=${this.showVolume}
-            @toggle-fullscreen=${this.handleFullScreenToggle}
-            @toggle-fullwindow=${this.toggleFullWindow}
-            @upgrade-click=${this.dispatchUpgrade}
-          ></chart-toolbar>
         </div>
 
         <chart-context-menu
@@ -1009,15 +992,6 @@ export class ChartContainer extends LitElement {
       height: calc(100vh - 120px);
     }
 
-    .toolbar-top {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 7;
-      background: transparent;
-      width: fit-content;
-    }
-
     .price-info {
       flex: 0 0 auto;
       background: var(--color-primary-dark);
@@ -1025,6 +999,8 @@ export class ChartContainer extends LitElement {
       margin: 8px 0;
       padding: 12px 16px;
       border: 1px solid rgba(143, 143, 143, 0.2);
+      position: relative;
+      z-index: 8;
     }
 
     .chart {
@@ -1143,17 +1119,6 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT + 8}px;
       z-index: 7;
-    }
-
-    .toolbar-container {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      top: var(--toolbar-top-position, 70px);
-      z-index: 7;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
   `;
 }
