@@ -20,6 +20,8 @@ bun run dev
 
 ## TODO
 
+- [ ] Require a click on the chart to enabe mouse/wheel/touch events
+- [ ] Change the background color of the chart in the website
 - [ ] Gaps loading should widen the gaps to ensure partial candles are loaded. Also the loading should bypass the caches in candleRepository.
 - [ ] Widen the gap between candles
 - [ ] Changing to 1 minute candles it starts to show error message "Ignoring old candle"
