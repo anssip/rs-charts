@@ -15,6 +15,8 @@ import { CoinbaseProduct } from "../../api/firestore-client";
 import "../chart/toolbar/product-select";
 import { ChartState } from "../..";
 import "../common/button";
+import "../chart/context-menu";
+import "./toolbar/chart-toolbar";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -23,6 +25,15 @@ export class PriceInfo extends LitElement {
 
   @property({ type: Array })
   symbols: CoinbaseProduct[] = [];
+
+  @property({ type: Boolean })
+  isFullscreen = false;
+
+  @property({ type: Boolean })
+  isFullWindow = false;
+
+  @property({ type: Boolean })
+  showVolume = false;
 
   @property({ type: String })
   granularity: Granularity = (xin["state.granularity"] ??
@@ -35,7 +46,15 @@ export class PriceInfo extends LitElement {
   private isGranularityDropdownOpen = false;
 
   @state()
+  private granularityMenuPosition = { x: 0, y: 0 };
+
+  @state()
   private _state: ChartState = xin["state"] as ChartState;
+
+  @state()
+  private isMobile = false;
+
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
   firstUpdated() {
     observe("state.liveCandle", () => {
@@ -51,29 +70,54 @@ export class PriceInfo extends LitElement {
       this._state = xin["state"] as ChartState;
     });
 
+    // Add media query listener
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+
     document.addEventListener("click", this.handleClickOutside);
-    document.addEventListener("keydown", this.handleKeyPress);
-    document.addEventListener("click", this.handleClickOutside);
+    window.addEventListener("keydown", this.handleKeyPress);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener("click", this.handleClickOutside);
+    window.removeEventListener("keydown", this.handleKeyPress);
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
   }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+  };
 
   private handleClickOutside = (e: MouseEvent) => {
     const path = e.composedPath();
     const dropdownEl = this.renderRoot.querySelector(".granularity-dropdown");
-    const timeframeEl = this.renderRoot.querySelector(".timeframe-button");
+    const buttonEl = this.renderRoot.querySelector("spot-button");
+
+    // If clicking outside both the dropdown and the button, close the dropdown
     if (
       !path.includes(dropdownEl as EventTarget) &&
-      !path.includes(timeframeEl as EventTarget)
+      !path.includes(buttonEl as EventTarget)
     ) {
       this.isGranularityDropdownOpen = false;
     }
   };
 
   private handleKeyPress = (e: KeyboardEvent) => {
+    // Handle Escape key for granularity dropdown
+    if (e.key === "Escape") {
+      if (this.isGranularityDropdownOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.isGranularityDropdownOpen = false;
+        return;
+      }
+    }
+
+    // Handle keyboard shortcuts for product select
     if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
       return;
     }
@@ -127,6 +171,18 @@ export class PriceInfo extends LitElement {
     this._state.symbol = e.detail.product;
   }
 
+  private handleGranularityClick(e: MouseEvent) {
+    const button = e.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+
+    this.granularityMenuPosition = {
+      x: rect.left,
+      y: rect.bottom + 4,
+    };
+
+    this.isGranularityDropdownOpen = !this.isGranularityDropdownOpen;
+  }
+
   render() {
     const isBearish = this.liveCandle
       ? this.liveCandle.close < this.liveCandle.open
@@ -134,6 +190,13 @@ export class PriceInfo extends LitElement {
     const priceValueColor = isBearish
       ? "var(--color-error)"
       : "var(--color-accent-1)";
+
+    const priceLabels = {
+      open: { full: "Open", short: "O:" },
+      high: { full: "High", short: "H:" },
+      low: { full: "Low", short: "L:" },
+      close: { full: "Close", short: "C:" },
+    };
 
     const [close, open, low, high] = ["close", "open", "low", "high"].map(
       (price) =>
@@ -149,6 +212,7 @@ export class PriceInfo extends LitElement {
         <div class="metadata-group">
           <div class="price-item">
             <product-select
+              .compact=${this.isMobile}
               .products=${this.symbols}
               .selectedProduct=${this.symbol}
               @product-changed=${this.handleProductChange}
@@ -156,59 +220,105 @@ export class PriceInfo extends LitElement {
           </div>
           <div class="price-item" style="position: relative;">
             <spot-button
-              class="timeframe-button"
+              .compact=${this.isMobile}
               label="Time Frame"
               .value=${granularityLabel(this.granularity)}
-              @click=${() =>
-                (this.isGranularityDropdownOpen =
-                  !this.isGranularityDropdownOpen)}
+              @click=${this.handleGranularityClick}
             ></spot-button>
-            ${this.isGranularityDropdownOpen
-              ? html`
-                  <div class="granularity-dropdown">
-                    ${getAllGranularities().map(
-                      (g) => html`
-                        <div
-                          class="granularity-option ${g === this.granularity
-                            ? "selected"
-                            : ""}"
-                          @click=${() => this.handleGranularityChange(g)}
-                        >
-                          ${granularityLabel(g)}
-                        </div>
-                      `
-                    )}
-                  </div>
-                `
-              : ""}
           </div>
         </div>
         <div class="price-group">
           <div class="price-item">
-            <span class="price-label">Open</span>
+            <span class="price-label"
+              >${this.isMobile
+                ? priceLabels.open.short
+                : priceLabels.open.full}</span
+            >
             <span class="price-value" style="color: ${priceValueColor}"
               >${open}</span
             >
           </div>
           <div class="price-item">
-            <span class="price-label">High</span>
+            <span class="price-label"
+              >${this.isMobile
+                ? priceLabels.high.short
+                : priceLabels.high.full}</span
+            >
             <span class="price-value" style="color: ${priceValueColor}"
               >${high}</span
             >
           </div>
           <div class="price-item">
-            <span class="price-label">Low</span>
+            <span class="price-label"
+              >${this.isMobile
+                ? priceLabels.low.short
+                : priceLabels.low.full}</span
+            >
             <span class="price-value" style="color: ${priceValueColor}"
               >${low}</span
             >
           </div>
           <div class="price-item">
-            <span class="price-label">Close</span>
+            <span class="price-label"
+              >${this.isMobile
+                ? priceLabels.close.short
+                : priceLabels.close.full}</span
+            >
             <span class="price-value" style="color: ${priceValueColor}"
               >${close}</span
             >
           </div>
         </div>
+
+        <div class="toolbar-container">
+          <chart-toolbar
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.showVolume}
+            @toggle-fullscreen=${(e: CustomEvent) =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-fullscreen", {
+                  bubbles: true,
+                  composed: true,
+                  detail: e.detail,
+                })
+              )}
+            @toggle-fullwindow=${(e: CustomEvent) =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-fullwindow", {
+                  bubbles: true,
+                  composed: true,
+                  detail: e.detail,
+                })
+              )}
+            @toggle-volume=${() =>
+              this.dispatchEvent(
+                new CustomEvent("toggle-volume", {
+                  bubbles: true,
+                  composed: true,
+                })
+              )}
+            @upgrade-click=${() =>
+              this.dispatchEvent(
+                new CustomEvent("upgrade-click", {
+                  bubbles: true,
+                  composed: true,
+                })
+              )}
+          ></chart-toolbar>
+        </div>
+
+        <chart-context-menu
+          .show=${this.isGranularityDropdownOpen}
+          .position=${this.granularityMenuPosition}
+          .items=${getAllGranularities().map((g) => ({
+            label: granularityLabel(g),
+            action: () => this.handleGranularityChange(g),
+          }))}
+          @menu-close=${() => {
+            this.isGranularityDropdownOpen = false;
+          }}
+        ></chart-context-menu>
       </div>
     `;
   }
@@ -229,14 +339,17 @@ export class PriceInfo extends LitElement {
       align-items: center;
       width: 100%;
       justify-content: space-between;
+      position: relative;
     }
 
     .metadata-group {
       display: flex;
       gap: 12px;
       align-items: center;
+      justify-content: flex-start;
       flex: 0 auto;
       min-width: 0;
+      flex-grow: 1;
     }
 
     .price-group {
@@ -252,8 +365,6 @@ export class PriceInfo extends LitElement {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      min-width: 100px;
-      flex: 1;
     }
 
     .price-label {
@@ -272,72 +383,70 @@ export class PriceInfo extends LitElement {
       min-width: 80px;
     }
 
+    .toolbar-container {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: -40px;
+      z-index: 7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
     @media (max-width: 767px) {
       .price-info {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
+        padding-top: 4px;
+      }
+
+      .price-group {
+        order: -1;
+        display: flex;
+        gap: 8px;
+        min-width: 0;
+        justify-content: space-between;
+        margin-top: -10px;
       }
 
       .metadata-group {
         display: flex;
         gap: 8px;
         min-width: 0;
+        justify-content: center;
+        padding: 0 12px;
       }
 
-      .price-group {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        min-width: 0;
+      .metadata-group .price-item {
+        flex: 1;
+        max-width: 120px;
+        position: relative;
       }
 
-      .price-item {
+      .metadata-group spot-button,
+      .metadata-group product-select {
+        width: 100%;
+      }
+
+      .price-group .price-item {
         flex-direction: row;
         align-items: center;
-        gap: 8px;
-        flex: 0;
+        gap: 4px;
+        flex: 1;
         min-width: unset;
       }
 
       .price-label {
-        min-width: 60px;
+        min-width: 20px;
+        font-size: 10px;
       }
 
       .price-value {
-        flex: 1;
+        font-size: 11px;
         min-width: unset;
       }
-    }
-
-    .granularity-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      margin-top: 4px;
-      background: rgb(24, 26, 27);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-        0 0 8px rgba(255, 255, 255, 0.05);
-      z-index: 1000;
-      min-width: 120px;
-    }
-
-    .granularity-option {
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      color: var(--color-background-secondary);
-    }
-
-    .granularity-option:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    .granularity-option.selected {
-      background: rgba(255, 255, 255, 0.15);
-      color: var(--color-accent-1);
     }
   `;
 }

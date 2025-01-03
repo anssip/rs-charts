@@ -20,6 +20,28 @@ export class ChartToolbar extends LitElement {
   @state()
   private indicatorsMenuPosition = { x: 0, y: 0 };
 
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
+
+  constructor() {
+    super();
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+  }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.requestUpdate();
+  };
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
+  }
+
   private closeMenuHandler = (e: MouseEvent) => {
     // Don't close if clicking inside the menu
     const path = e.composedPath();
@@ -36,18 +58,20 @@ export class ChartToolbar extends LitElement {
   };
 
   private dispatchToggle(type: "fullscreen" | "fullwindow") {
+    const eventName =
+      type === "fullscreen" ? "toggle-fullscreen" : "toggle-fullwindow";
     this.dispatchEvent(
-      new CustomEvent(`toggle-${type}`, {
+      new CustomEvent(eventName, {
         bubbles: true,
         composed: true,
+        detail: { type },
       })
     );
   }
 
   private handleIndicatorsClick(e: MouseEvent) {
-    e.stopPropagation(); // Prevent the click from immediately triggering the document click handler
+    e.stopPropagation();
 
-    // Toggle menu state
     if (this.showIndicatorsMenu) {
       this.showIndicatorsMenu = false;
       document.removeEventListener("click", this.closeMenuHandler);
@@ -56,19 +80,19 @@ export class ChartToolbar extends LitElement {
 
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
+    const toolbarRect = this.renderRoot
+      .querySelector(".toolbar")
+      ?.getBoundingClientRect();
 
-    // Position the menu below the button using viewport coordinates
+    // Position the menu below the button, accounting for toolbar's position
     this.indicatorsMenuPosition = {
-      x: rect.left,
-      y: rect.bottom + 4,
+      x: rect.left - (toolbarRect?.left || 0),
+      y: rect.height + 4,
     };
 
     this.showIndicatorsMenu = true;
 
-    // Remove any existing click listener
     document.removeEventListener("click", this.closeMenuHandler);
-
-    // Add the click listener on the next tick
     setTimeout(() => {
       document.addEventListener("click", this.closeMenuHandler);
     }, 0);
@@ -82,6 +106,13 @@ export class ChartToolbar extends LitElement {
         composed: true,
       })
     );
+  }
+
+  private hideTooltips() {
+    const tooltips = this.renderRoot.querySelectorAll(".tooltip");
+    tooltips.forEach((tooltip) => {
+      (tooltip as HTMLElement).style.opacity = "0";
+    });
   }
 
   render() {
@@ -115,7 +146,11 @@ export class ChartToolbar extends LitElement {
         <div class="tooltip-wrapper">
           <button
             class="toolbar-button ${this.isFullWindow ? "active" : ""}"
-            @click=${() => this.dispatchToggle("fullwindow")}
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this.hideTooltips();
+              this.dispatchToggle("fullwindow");
+            }}
           >
             <svg
               width="24"
@@ -137,30 +172,40 @@ export class ChartToolbar extends LitElement {
           </button>
         </div>
 
-        <div class="tooltip-wrapper">
-          <button
-            class="toolbar-button ${this.isFullscreen ? "active" : ""}"
-            @click=${() => this.dispatchToggle("fullscreen")}
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2 7V2H7M22 7V2H17M2 17V22H7M22 17V22H17"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            <span class="tooltip"
-              >${this.isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span
-            >
-          </button>
-        </div>
+        ${!this.isMobile
+          ? html`
+              <div class="tooltip-wrapper">
+                <button
+                  class="toolbar-button ${this.isFullscreen ? "active" : ""}"
+                  @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this.hideTooltips();
+                    this.dispatchToggle("fullscreen");
+                  }}
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 7V2H7M22 7V2H17M2 17V22H7M22 17V22H17"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <span class="tooltip"
+                    >${this.isFullscreen
+                      ? "Exit Fullscreen"
+                      : "Fullscreen"}</span
+                  >
+                </button>
+              </div>
+            `
+          : ""}
 
         <div class="tooltip-wrapper">
           <button
@@ -367,11 +412,21 @@ export class ChartToolbar extends LitElement {
       border-radius: 4px;
       transition: all 0.2s ease;
       position: relative;
+      outline: none;
     }
 
     .toolbar-button:hover {
       background: rgba(143, 143, 143, 0.1);
       transform: scale(1.05);
+    }
+
+    .toolbar-button:focus {
+      background: rgba(143, 143, 143, 0.1);
+      box-shadow: -1px -1px 6px rgba(0, 0, 0, 0.4),
+        1px -1px 6px rgba(0, 0, 0, 0.4), -1px 1px 6px rgba(0, 0, 0, 0.4),
+        1px 1px 6px rgba(0, 0, 0, 0.4), -1px -1px 4px var(--color-accent-1),
+        1px -1px 4px var(--color-accent-1), -1px 1px 4px var(--color-accent-1),
+        1px 1px 4px var(--color-accent-1);
     }
 
     .toolbar-button:hover .tooltip {

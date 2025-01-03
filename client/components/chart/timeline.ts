@@ -60,7 +60,10 @@ export class Timeline extends CanvasBase {
       ctx.clearRect(0, 0, this.canvas!.width, this.canvas!.height);
 
       // Set text properties once
-      ctx.font = `${6 * dpr}px Arial`;
+      const fontFamily = getComputedStyle(document.documentElement)
+        .getPropertyValue("--font-primary")
+        .trim();
+      ctx.font = `${10}px ${fontFamily}`;
       ctx.fillStyle = getComputedStyle(document.documentElement)
         .getPropertyValue("--color-background-secondary")
         .trim();
@@ -76,22 +79,12 @@ export class Timeline extends CanvasBase {
           );
 
           if (tickMark) {
-            // Draw tick mark
-            ctx.beginPath();
-            ctx.strokeStyle = getComputedStyle(document.documentElement)
-              .getPropertyValue("--color-background-secondary")
-              .trim();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, 5 * dpr);
-            ctx.stroke();
-
-            // Draw time label
             const timeLabel = formatTime(date);
-            ctx.fillText(timeLabel, x, 1 * dpr);
+            ctx.fillText(timeLabel, x, 3);
           }
           if (dateChange) {
             const dateLabel = formatDate(date);
-            ctx.fillText(dateLabel, x, 10 * dpr);
+            ctx.fillText(dateLabel, x, 17);
           }
         },
         granularity: state.granularity,

@@ -19,6 +19,7 @@ const allowedOrigins = [
   "http://localhost:8080",
   "http://127.0.0.1:8080",
   "https://spotcanvas.com",
+  "https://www.spotcanvas.com",
   "https://chart-api.spotcanvas.com",
   "https://spot-ws.webflow.io",
 ];
@@ -28,15 +29,19 @@ const server = serve({
   async fetch(req) {
     const origin = req.headers.get("Origin");
     const corsHeaders = {
-      "Access-Control-Allow-Origin": allowedOrigins.includes(origin ?? "")
-        ? origin
-        : allowedOrigins[0],
+      "Access-Control-Allow-Origin":
+        origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0],
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Cache-Control, Pragma, User-Agent, Accept, Origin, Referer, Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Expose-Headers": "*",
+      Vary: "Origin",
     };
 
     if (req.method === "OPTIONS") {
       return new Response(null, {
+        status: 204,
         headers: corsHeaders as HeadersInit,
       });
     }
@@ -99,12 +104,20 @@ const server = serve({
     try {
       const clientFile = Bun.file(`dist/client${filePath}`);
       if (await clientFile.exists()) {
-        return new Response(clientFile);
+        return new Response(clientFile, {
+          headers: corsHeaders as HeadersInit,
+        });
       }
 
-      return new Response("Not Found", { status: 404 });
+      return new Response("Not Found", {
+        status: 404,
+        headers: corsHeaders as HeadersInit,
+      });
     } catch (e) {
-      return new Response("Error", { status: 500 });
+      return new Response("Error", {
+        status: 500,
+        headers: corsHeaders as HeadersInit,
+      });
     }
   },
 });

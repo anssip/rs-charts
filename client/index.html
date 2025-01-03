@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>SpotCanvas</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,8 +77,16 @@
         .upgrade-popup.show {
             display: block !important;
         }
-        
 
+        /* Add padding at the bottom to ensure scrollability */
+        body {
+            padding-bottom: 50vh;
+        }
+
+        /* Ensure the chart container doesn't inherit the padding */
+        .chart-container {
+            margin-bottom: -50vh;
+        }
     </style>
 </head>
 

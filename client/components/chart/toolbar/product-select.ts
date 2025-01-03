@@ -11,6 +11,9 @@ export class ProductSelect extends LitElement {
   @property({ type: String })
   selectedProduct = "";
 
+  @property({ type: Boolean })
+  compact = false;
+
   @state()
   private isOpen = false;
 
@@ -189,25 +192,35 @@ export class ProductSelect extends LitElement {
 
   render() {
     return html`
-      <div class="product-select">
+      <div class="product-select" part="container">
         <spot-button
           @click=${this.handleOpen}
-          label="Symbol"
+          .label=${this.compact ? undefined : "Symbol"}
           .value=${this.selectedProduct || "Select Symbol"}
+          ?compact=${this.compact}
+          part="button"
         ></spot-button>
 
         ${this.isOpen
           ? html`
-              <div class="modal-backdrop">
-                <div class="modal" tabindex="0">
-                  <div class="modal-header">
+              <div class="modal-backdrop" part="backdrop">
+                <div
+                  class="modal ${this.compact ? "compact" : ""}"
+                  part="modal"
+                  tabindex="0"
+                >
+                  <div class="modal-header" part="header">
                     <h2>Symbol Search</h2>
-                    <button class="close-button" @click=${this.handleClose}>
+                    <button
+                      class="close-button"
+                      @click=${this.handleClose}
+                      part="close"
+                    >
                       ×
                     </button>
                   </div>
 
-                  <div class="search-container">
+                  <div class="search-container" part="search">
                     <input
                       type="text"
                       placeholder="Search"
@@ -215,42 +228,47 @@ export class ProductSelect extends LitElement {
                       @input=${this.handleSearch}
                       @keydown=${this.handleKeyDown}
                       autofocus
+                      part="input"
                     />
                   </div>
 
-                  <div class="tabs">
+                  <div class="tabs" part="tabs">
                     <button
                       class=${this.selectedTab === "All" ? "active" : ""}
                       @click=${() => (this.selectedTab = "All")}
+                      part="tab"
                     >
                       All
                     </button>
                     <button
                       class=${this.selectedTab === "Stocks" ? "active" : ""}
                       @click=${() => (this.selectedTab = "Stocks")}
+                      part="tab"
                     >
                       Stocks
                     </button>
                     <button
                       class=${this.selectedTab === "Crypto" ? "active" : ""}
                       @click=${() => (this.selectedTab = "Crypto")}
+                      part="tab"
                     >
                       Crypto
                     </button>
                     <button
                       class=${this.selectedTab === "Forex" ? "active" : ""}
                       @click=${() => (this.selectedTab = "Forex")}
+                      part="tab"
                     >
                       Forex
                     </button>
                   </div>
 
-                  <div class="filter-row">
-                    <select class="source-select" disabled>
+                  <div class="filter-row" part="filter">
+                    <select class="source-select" disabled part="select">
                       <option>All sources</option>
                       <option selected>Coinbase</option>
                     </select>
-                    <div class="coming-soon-badge">
+                    <div class="coming-soon-badge" part="badge">
                       More exchanges coming soon
                     </div>
                   </div>
@@ -268,6 +286,11 @@ export class ProductSelect extends LitElement {
     .product-select {
       position: relative;
       display: inline-block;
+      width: 100%;
+    }
+
+    .product-select.compact spot-button::part(label) {
+      display: none;
     }
 
     .modal-backdrop {
@@ -294,6 +317,10 @@ export class ProductSelect extends LitElement {
       max-width: 90vw;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       border: 1px solid var(--color-background-secondary-20);
+    }
+
+    .modal.compact {
+      width: 300px;
     }
 
     .modal::before {
@@ -361,6 +388,13 @@ export class ProductSelect extends LitElement {
       gap: 8px;
       border-bottom: 1px solid var(--color-background-secondary-20);
       background: var(--color-primary-dark-98);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .tabs button {
@@ -370,6 +404,8 @@ export class ProductSelect extends LitElement {
       color: var(--color-accent-2);
       cursor: pointer;
       border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .tabs button:hover {
@@ -388,6 +424,17 @@ export class ProductSelect extends LitElement {
       gap: 8px;
       border-bottom: 1px solid var(--color-background-secondary-20);
       background: var(--color-primary-dark-98);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .filter-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .compact .filter-row {
+      flex-wrap: wrap;
     }
 
     .source-select {
