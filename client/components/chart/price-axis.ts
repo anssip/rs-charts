@@ -8,7 +8,7 @@ import {
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
-import { PRICEAXIS_WIDTH } from "./chart-container";
+import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
@@ -24,6 +24,20 @@ export class PriceAxis extends CanvasBase {
   private liveCandle: LiveCandle | null = null;
   private countdownInterval: number | null = null;
   private timeLeft: string = "";
+
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
+
+  constructor() {
+    super();
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+  }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.draw();
+  };
 
   override getId(): string {
     return "price-axis";
@@ -44,6 +58,17 @@ export class PriceAxis extends CanvasBase {
       this.priceRange = xin[path] as PriceRange;
       this.draw();
     });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
   }
 
   useResizeObserver(): boolean {
@@ -84,7 +109,9 @@ export class PriceAxis extends CanvasBase {
 
       if (y >= 0 && y <= this.canvas.height / dpr) {
         const priceText = formatPrice(price);
-        const labelWidth = PRICEAXIS_WIDTH;
+        const labelWidth = this.isMobile
+          ? PRICEAXIS_MOBILE_WIDTH
+          : PRICEAXIS_WIDTH;
         const labelHeight = 20 / dpr;
 
         // Draw background
@@ -121,7 +148,7 @@ export class PriceAxis extends CanvasBase {
       .trim();
 
     const priceYPos = priceY(this.currentPrice);
-    const labelWidth = PRICEAXIS_WIDTH;
+    const labelWidth = this.isMobile ? PRICEAXIS_MOBILE_WIDTH : PRICEAXIS_WIDTH;
     const labelHeight = 30;
 
     // Draw background with rounded corners
@@ -281,13 +308,6 @@ export class PriceAxis extends CanvasBase {
       () => this.updateCountdown(),
       1000
     );
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-    }
   }
 
   private handleTouchStart = (e: TouchEvent) => {

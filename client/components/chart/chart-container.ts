@@ -27,8 +27,12 @@ import "./toolbar/chart-toolbar";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
-export const TIMELINE_HEIGHT = 40;
+export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
+export const PRICEAXIS_MOBILE_WIDTH = 45;
+
+const MOBILE_TOOLBAR_TOP_POSITION = "90px";
+const DESKTOP_TOOLBAR_TOP_POSITION = "70px";
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -58,6 +62,9 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
+
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
 
   private isDragging = false;
   private lastX = 0;
@@ -93,12 +100,24 @@ export class ChartContainer extends LitElement {
   private resizeTimeout: number | null = null;
   private readonly RESIZE_DEBOUNCE_MS = 100;
 
+  @state()
+  private priceAxisWidth = PRICEAXIS_WIDTH;
+
+  private lastTapTime = 0;
+  private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
+
   constructor() {
     super();
     // Check if device is touch-only (no mouse/trackpad)
     this.isTouchOnly = window.matchMedia(
       "(hover: none) and (pointer: coarse)"
     ).matches;
+
+    // Initialize mobile state and width
+    this.isMobile = this.mobileMediaQuery.matches;
+
+    // Add mobile media query listener
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
 
   set startTimestamp(startTimestamp: number) {
@@ -234,6 +253,14 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-volume", () => this.toggleVolume());
   }
 
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.priceAxisWidth = this.isMobile
+      ? PRICEAXIS_MOBILE_WIDTH
+      : PRICEAXIS_WIDTH;
+    this.draw();
+  };
+
   private handleUpgrade = () => {
     if (this.isFullscreen) {
       this.handleFullScreenToggle();
@@ -287,6 +314,10 @@ export class ChartContainer extends LitElement {
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener("toggle-volume", () => this.toggleVolume());
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
   }
 
   @property({ type: Object })
@@ -319,10 +350,14 @@ export class ChartContainer extends LitElement {
         label: this.isFullWindow ? "Exit Full Window" : "Full Window",
         action: this.toggleFullWindow,
       },
-      {
-        label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
-        action: this.handleFullScreenToggle,
-      },
+      ...(this.isMobile
+        ? []
+        : [
+            {
+              label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
+              action: this.handleFullScreenToggle,
+            },
+          ]),
       {
         label: "separator",
         separator: true,
@@ -355,11 +390,19 @@ export class ChartContainer extends LitElement {
           .isFullWindow
           ? "full-window"
           : ""}"
+        style="--price-axis-width: ${this.priceAxisWidth}px;"
       >
         <div class="price-info">
           <price-info
             .product=${this._state.liveCandle?.productId}
             .symbols=${this.products}
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.showVolume}
+            @toggle-fullscreen=${this.handleFullScreenToggle}
+            @toggle-fullwindow=${this.toggleFullWindow}
+            @toggle-volume=${() => this.toggleVolume()}
+            @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
         <div class="chart-area">
@@ -381,16 +424,6 @@ export class ChartContainer extends LitElement {
             <chart-timeline></chart-timeline>
           </div>
           <chart-logo></chart-logo>
-          <div class="toolbar-container">
-            <chart-toolbar
-              .isFullscreen=${this.isFullscreen}
-              .isFullWindow=${this.isFullWindow}
-              .showVolume=${this.showVolume}
-              @toggle-fullscreen=${this.handleFullScreenToggle}
-              @toggle-fullwindow=${this.toggleFullWindow}
-              @upgrade-click=${this.dispatchUpgrade}
-            ></chart-toolbar>
-          </div>
         </div>
 
         <chart-context-menu
@@ -737,6 +770,17 @@ export class ChartContainer extends LitElement {
 
   private handleTouchStart = (e: TouchEvent) => {
     e.preventDefault(); // Prevent scrolling while touching the chart
+
+    // Handle double tap
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - this.lastTapTime;
+    if (tapLength < this.DOUBLE_TAP_DELAY && tapLength > 0) {
+      // Double tap detected
+      this.toggleFullWindow();
+      return;
+    }
+    this.lastTapTime = currentTime;
+
     this.isDragging = true;
 
     if (e.touches.length === 2) {
@@ -808,6 +852,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleFullScreenToggle = async () => {
+    if (this.isMobile) return; // Don't handle fullscreen on mobile
     try {
       if (!this.isFullscreen) {
         await this.requestFullscreen();
@@ -820,6 +865,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleFullscreenChange = () => {
+    if (this.isMobile) return; // Don't handle fullscreen on mobile
     this.isFullscreen = document.fullscreenElement === this;
     if (!this.isFullscreen) {
       this.handleResize(this.clientWidth, this.clientHeight);
@@ -853,21 +899,28 @@ export class ChartContainer extends LitElement {
     }, 0);
   };
 
-  private toggleFullWindow = () => {
+  private toggleFullWindow = (e?: Event) => {
+    if (e) {
+      e.stopPropagation();
+    }
     this.isFullWindow = !this.isFullWindow;
     if (this.isFullWindow) {
       this.classList.add("full-window");
     } else {
       this.classList.remove("full-window");
     }
-    this.handleResize(this.clientWidth, this.clientHeight);
+    // Force a resize after the class change
+    requestAnimationFrame(() => {
+      this.handleResize(this.clientWidth, this.clientHeight);
+    });
   };
 
   static styles = css`
     :host {
       display: block;
       width: 100%;
-      height: 100%;
+      height: var(--spotcanvas-chart-height, 600px);
+      min-height: 400px;
     }
 
     :host(:fullscreen),
@@ -875,12 +928,18 @@ export class ChartContainer extends LitElement {
       background: var(--color-primary-dark);
       padding: 16px;
       box-sizing: border-box;
-      --spotcanvas-chart-height: 100%;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
 
     :host(:fullscreen) .container,
     :host(.full-window) .container {
       height: 100%;
+      overflow: hidden;
     }
 
     .container {
@@ -892,6 +951,25 @@ export class ChartContainer extends LitElement {
       gap: 8px;
       padding: 0 16px;
       box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chart-area {
+      flex: 1;
+      position: relative;
+      background: var(--color-primary-dark);
+      overflow: hidden;
+      pointer-events: auto;
+      border-radius: 12px;
+      margin: 0;
+      border: 1px solid rgba(143, 143, 143, 0.2);
+      height: calc(100% - 120px);
+    }
+
+    :host(:fullscreen) .chart-area,
+    :host(.full-window) .chart-area {
+      height: calc(100vh - 200px);
     }
 
     .volume-chart[hidden] {
@@ -914,15 +992,6 @@ export class ChartContainer extends LitElement {
       height: calc(100vh - 120px);
     }
 
-    .toolbar-top {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      z-index: 7;
-      background: transparent;
-      width: fit-content;
-    }
-
     .price-info {
       flex: 0 0 auto;
       background: var(--color-primary-dark);
@@ -930,23 +999,14 @@ export class ChartContainer extends LitElement {
       margin: 8px 0;
       padding: 12px 16px;
       border: 1px solid rgba(143, 143, 143, 0.2);
-    }
-
-    .chart-area {
-      flex: 1;
       position: relative;
-      background: var(--color-primary-dark);
-      overflow: hidden;
-      pointer-events: auto;
-      border-radius: 12px;
-      margin: 0;
-      border: 1px solid rgba(143, 143, 143, 0.2);
+      z-index: 8;
     }
 
     .chart {
       position: relative;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
     }
 
@@ -958,7 +1018,7 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT}px;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: 25%;
       pointer-events: none;
       z-index: 2;
@@ -985,8 +1045,13 @@ export class ChartContainer extends LitElement {
     .price-axis-container {
       right: 0;
       top: 0;
-      width: ${PRICEAXIS_WIDTH}px;
-      height: var(--spotcanvas-chart-height, 100%);
+      width: var(--price-axis-width, ${PRICEAXIS_WIDTH}px);
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
+    }
+
+    :host(:fullscreen) .price-axis-container,
+    :host(.full-window) .price-axis-container {
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
     }
 
     chart-timeline {
@@ -999,7 +1064,7 @@ export class ChartContainer extends LitElement {
     .timeline-container {
       bottom: 0;
       left: 0px;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: ${TIMELINE_HEIGHT}px;
       pointer-events: auto;
     }
@@ -1008,8 +1073,8 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
       cursor: crosshair;
@@ -1024,8 +1089,8 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - ${PRICEAXIS_WIDTH}px);
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
+      height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: none;
       z-index: 6;
     }
@@ -1047,21 +1112,13 @@ export class ChartContainer extends LitElement {
     price-axis {
       display: block;
       width: 100%;
-      height: var(--spotcanvas-chart-height, calc(100% - ${TIMELINE_HEIGHT}px));
+      height: 100%;
     }
 
     chart-logo {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT + 8}px;
-      left: 8px;
       z-index: 7;
-    }
-
-    .toolbar-container {
-      position: absolute;
-      top: 16px;
-      right: ${PRICEAXIS_WIDTH + 16}px;
-      z-index: 10;
     }
   `;
 }

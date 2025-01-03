@@ -1,5 +1,5 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 
 export interface MenuPosition {
   x: number;
@@ -24,17 +24,78 @@ export class ChartContextMenu extends LitElement {
   @property({ type: Boolean })
   show = false;
 
+  @state()
+  private selectedIndex = -1;
+
   private handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      this.show = false;
-      this.dispatchEvent(
-        new CustomEvent("menu-close", {
-          bubbles: true,
-          composed: true,
-        })
-      );
+    if (!this.show) return;
+
+    const menuItems = this.items.filter(
+      (item) => !item.separator && !item.isHeader
+    );
+
+    switch (e.key) {
+      case "ArrowDown":
+      case "ArrowUp":
+        e.preventDefault();
+        e.stopPropagation();
+        const isArrowDown = e.key === "ArrowDown";
+        this.selectedIndex = isArrowDown
+          ? Math.min(this.selectedIndex + 1, menuItems.length - 1)
+          : Math.max(this.selectedIndex - 1, 0);
+        if (isArrowDown && this.selectedIndex === -1) this.selectedIndex = 0;
+        this.scrollToSelected();
+        break;
+      case "Enter":
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.selectedIndex >= 0) {
+          const selectedItem = menuItems[this.selectedIndex];
+          if (selectedItem?.action) {
+            selectedItem.action();
+            this.show = false;
+            this.dispatchEvent(
+              new CustomEvent("menu-close", {
+                bubbles: true,
+                composed: true,
+              })
+            );
+          }
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        this.show = false;
+        this.dispatchEvent(
+          new CustomEvent("menu-close", {
+            bubbles: true,
+            composed: true,
+          })
+        );
+        break;
     }
   };
+
+  private scrollToSelected() {
+    const selectedElement = this.renderRoot.querySelector(
+      ".menu-item.selected"
+    ) as HTMLElement;
+    const menuContainer = this.renderRoot.querySelector(
+      ".context-menu"
+    ) as HTMLElement;
+
+    if (selectedElement && menuContainer) {
+      const containerRect = menuContainer.getBoundingClientRect();
+      const elementRect = selectedElement.getBoundingClientRect();
+
+      if (elementRect.bottom > containerRect.bottom) {
+        menuContainer.scrollTop += elementRect.bottom - containerRect.bottom;
+      } else if (elementRect.top < containerRect.top) {
+        menuContainer.scrollTop -= containerRect.top - elementRect.top;
+      }
+    }
+  }
 
   connectedCallback() {
     super.connectedCallback();
@@ -46,15 +107,37 @@ export class ChartContextMenu extends LitElement {
     document.removeEventListener("keydown", this.handleKeyDown);
   }
 
-  private renderMenuItem(item: MenuItem) {
+  private renderMenuItem(item: MenuItem, index: number) {
     if (item.separator) {
       return html`<div class="separator"></div>`;
     }
     if (item.isHeader) {
       return html`<div class="menu-header">${item.label}</div>`;
     }
+
+    const actionableItems = this.items.filter(
+      (item) => !item.separator && !item.isHeader
+    );
+    const actionableIndex = actionableItems.indexOf(item);
+    const isSelected = actionableIndex === this.selectedIndex;
+
     return html`
-      <div class="menu-item" @click=${item.action}>${item.label}</div>
+      <div
+        class="menu-item ${isSelected ? "selected" : ""}"
+        @click=${() => {
+          item.action?.();
+          this.show = false;
+          this.dispatchEvent(
+            new CustomEvent("menu-close", {
+              bubbles: true,
+              composed: true,
+            })
+          );
+        }}
+        @mouseover=${() => (this.selectedIndex = actionableIndex)}
+      >
+        ${item.label}
+      </div>
     `;
   }
 
@@ -65,8 +148,9 @@ export class ChartContextMenu extends LitElement {
       <div
         class="context-menu"
         style="left: ${this.position.x}px; top: ${this.position.y}px"
+        tabindex="0"
       >
-        ${this.items.map((item) => this.renderMenuItem(item))}
+        ${this.items.map((item, index) => this.renderMenuItem(item, index))}
       </div>
     `;
   }
@@ -81,6 +165,9 @@ export class ChartContextMenu extends LitElement {
       padding: 0;
       min-width: 150px;
       z-index: 1001;
+      outline: none;
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
     .menu-item {
@@ -91,7 +178,8 @@ export class ChartContextMenu extends LitElement {
       transition: background-color 0.2s ease;
     }
 
-    .menu-item:hover {
+    .menu-item:hover,
+    .menu-item.selected {
       background: rgba(143, 143, 143, 0.5);
     }
 
