@@ -213,7 +213,8 @@ export class App {
     timeRange: {
       start: number;
       end: number;
-    }
+    },
+    skipCache: boolean = false
   ): Promise<CandleDataByTimestamp | null> {
     const candleCount = numCandlesInRange(
       granularity,
@@ -241,6 +242,7 @@ export class App {
         symbol,
         granularity,
         timeRange: adjustedTimeRange,
+        skipCache,
       });
       this.state.loading = false;
       return candles;
@@ -272,10 +274,19 @@ export class App {
     if (gaps.length === 0) {
       return;
     }
+    const widenGap = (gap: TimeRange) => ({
+      start: gap.start - this.state.priceHistory.granularityMs,
+      end: gap.end + this.state.priceHistory.granularityMs,
+    });
     // fetch the data for the gaps
     const results = await Promise.all(
       gaps.map((gap) =>
-        this.fetchData(this.state.symbol, this.state.granularity, gap)
+        this.fetchData(
+          this.state.symbol,
+          this.state.granularity,
+          widenGap(gap),
+          true // skip cache to make sure we get also partially filled live candles
+        )
       )
     );
     // The last result is the new candles. The CandleRepository always returns
