@@ -10,6 +10,7 @@ export interface FetchCandlesOptions {
   direction?: "forward" | "backward";
   granularity: Granularity;
   timeRange: TimeRange;
+  skipCache?: boolean;
 }
 
 export class CandleRepository {
@@ -39,7 +40,7 @@ export class CandleRepository {
   async fetchCandles(
     options: FetchCandlesOptions
   ): Promise<CandleDataByTimestamp> {
-    const { symbol, granularity, timeRange } = options;
+    const { symbol, granularity, timeRange, skipCache } = options;
     const key = this.getKey(symbol, granularity);
     const rangeKey = this.getRangeKey(symbol, granularity, timeRange);
 
@@ -49,7 +50,7 @@ export class CandleRepository {
 
     const symbolBufferedRange = this.bufferedRanges.get(key);
 
-    if (symbolBufferedRange) {
+    if (symbolBufferedRange && !skipCache) {
       const isWithinBuffer =
         Math.floor(Number(timeRange.start)) >=
           Math.floor(Number(symbolBufferedRange.start)) &&

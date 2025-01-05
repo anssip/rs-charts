@@ -29,7 +29,7 @@ export interface AxisMappings {
 
 export class CandlestickStrategy implements Drawable {
   private grid: HairlineGrid = new HairlineGrid();
-  private readonly FIXED_GAP_WIDTH = 2; // pixels
+  private readonly FIXED_GAP_WIDTH = 6; // pixels
   private readonly MIN_CANDLE_WIDTH = 1; // pixels
   private readonly MAX_CANDLE_WIDTH = 500; // pixels
   private animationFrameId: number | null = null;
