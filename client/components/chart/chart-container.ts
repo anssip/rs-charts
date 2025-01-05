@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
   granularityToMs,
@@ -123,6 +123,13 @@ export class ChartContainer extends LitElement {
 
   set endTimestamp(endTimestamp: number) {
     this._state.timeRange.end = endTimestamp;
+  }
+
+  protected update(changedProperties: PropertyValues): void {
+    super.update(changedProperties);
+    if (changedProperties.has("products")) {
+      this.draw();
+    }
   }
 
   firstUpdated() {
