@@ -111,7 +111,7 @@ export class ChartContainer extends LitElement {
     ).matches;
 
     // Initialize mobile state and width
-    this.isMobile = this.mobileMediaQuery.matches;
+    this.handleMobileChange();
 
     // Add mobile media query listener
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
@@ -258,8 +258,8 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-volume", () => this.toggleVolume());
   }
 
-  private handleMobileChange = (e: MediaQueryListEvent) => {
-    this.isMobile = e.matches;
+  private handleMobileChange = (e?: MediaQueryListEvent) => {
+    this.isMobile = e?.matches ?? this.mobileMediaQuery.matches;
     this.priceAxisWidth = this.isMobile
       ? PRICEAXIS_MOBILE_WIDTH
       : PRICEAXIS_WIDTH;
