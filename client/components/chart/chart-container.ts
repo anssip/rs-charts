@@ -433,6 +433,9 @@ export class ChartContainer extends LitElement {
                 this.isActive = true;
                 this.isDragging = false;
                 this.isZooming = false;
+                if (this.isMobile) {
+                  this.toggleFullWindow();
+                }
               }}
             >
               Click to activate
