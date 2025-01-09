@@ -103,6 +103,9 @@ export class ChartContainer extends LitElement {
   private lastTapTime = 0;
   private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
 
+  @state()
+  private isActive = false;
+
   constructor() {
     super();
     // Check if device is touch-only (no mouse/trackpad)
@@ -223,6 +226,10 @@ export class ChartContainer extends LitElement {
         "fullscreenchange",
         this.handleFullscreenChange
       );
+
+      // Add click outside listener
+      document.addEventListener("click", this.handleClickOutside);
+      document.addEventListener("touchstart", this.handleClickOutside);
     }
 
     // Forward chart-ready and chart-pan events from the candlestick chart
@@ -316,6 +323,8 @@ export class ChartContainer extends LitElement {
       "fullscreenchange",
       this.handleFullscreenChange
     );
+    document.removeEventListener("click", this.handleClickOutside);
+    document.removeEventListener("touchstart", this.handleClickOutside);
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener("toggle-volume", () => this.toggleVolume());
@@ -415,7 +424,19 @@ export class ChartContainer extends LitElement {
         </div>
         <div class="chart-area">
           <div class="chart">
-            <candlestick-chart></candlestick-chart>
+            <candlestick-chart
+              class="${this.isActive ? "active" : ""}"
+            ></candlestick-chart>
+            <div
+              class="activate-label ${this.isActive ? "hidden" : ""}"
+              @click=${() => {
+                this.isActive = true;
+                this.isDragging = false;
+                this.isZooming = false;
+              }}
+            >
+              Click to activate
+            </div>
           </div>
           <div class="volume-chart" ?hidden=${!this.showVolume}>
             <volume-chart></volume-chart>
@@ -473,13 +494,17 @@ export class ChartContainer extends LitElement {
   }
 
   private handleDragStart = (e: MouseEvent) => {
+    if (!this.isActive) {
+      this.isActive = true;
+      return;
+    }
     this.isDragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
   };
 
   private handleDragMove = (e: MouseEvent) => {
-    if (!this.isDragging) return;
+    if (!this.isActive || !this.isDragging) return;
 
     const deltaX = e.clientX - this.lastX;
     const deltaY = e.clientY - this.lastY;
@@ -496,6 +521,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleWheel = (e: WheelEvent) => {
+    if (!this.isActive) return;
     e.preventDefault();
     const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
 
@@ -777,6 +803,10 @@ export class ChartContainer extends LitElement {
   }
 
   private handleTouchStart = (e: TouchEvent) => {
+    if (!this.isActive) {
+      this.isActive = true;
+      return;
+    }
     e.preventDefault(); // Prevent scrolling while touching the chart
 
     // Handle double tap
@@ -806,8 +836,8 @@ export class ChartContainer extends LitElement {
   };
 
   private handleTouchMove = (e: TouchEvent) => {
+    if (!this.isActive || !this.isDragging) return;
     e.preventDefault();
-    if (!this.isDragging) return;
 
     if (e.touches.length === 2 && this.isZooming) {
       // Handle pinch-to-zoom
@@ -929,6 +959,15 @@ export class ChartContainer extends LitElement {
     });
   };
 
+  private handleClickOutside = (e: MouseEvent | TouchEvent) => {
+    const path = e.composedPath();
+    if (!path.includes(this)) {
+      this.isActive = false;
+      this.isDragging = false;
+      this.isZooming = false;
+    }
+  };
+
   static styles = css`
     :host {
       display: block;
@@ -979,6 +1018,12 @@ export class ChartContainer extends LitElement {
       margin: 0;
       border: 1px solid rgba(143, 143, 143, 0.2);
       height: calc(100% - 120px);
+      transition: box-shadow 0.2s ease-in-out;
+    }
+
+    .chart-area:has(candlestick-chart.active) {
+      box-shadow: 0 4px 12px
+        color-mix(in srgb, var(--color-accent-1) 30%, transparent);
     }
 
     :host(:fullscreen) .chart-area,
@@ -1022,6 +1067,33 @@ export class ChartContainer extends LitElement {
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
+    }
+
+    .activate-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      backdrop-filter: blur(8px);
+      background: transparent;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1.5em;
+      font-weight: 600;
+      color: var(--color-accent-2);
+      z-index: 10;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s ease-in-out;
+      pointer-events: auto;
+    }
+
+    .activate-label:hover {
+      opacity: 1;
+    }
+
+    .activate-label.hidden {
+      display: none;
     }
 
     .volume-chart[hidden] {
@@ -1091,10 +1163,14 @@ export class ChartContainer extends LitElement {
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
       z-index: 1;
+      cursor: default;
+    }
+
+    candlestick-chart.active {
       cursor: crosshair;
     }
 
-    candlestick-chart:active {
+    candlestick-chart.active:active {
       cursor: grabbing;
     }
 
