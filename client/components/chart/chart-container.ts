@@ -103,6 +103,9 @@ export class ChartContainer extends LitElement {
   private lastTapTime = 0;
   private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
 
+  @property({ type: Boolean, reflect: true, attribute: "require-activation" })
+  requireActivation = false;
+
   @state()
   private isActive = false;
 
@@ -281,6 +284,14 @@ export class ChartContainer extends LitElement {
 
   protected updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
+    if (changedProperties.has("requireActivation")) {
+      // Only set isActive to true if requireActivation is explicitly false
+      if (this.requireActivation === false) {
+        this.isActive = true;
+      } else {
+        this.isActive = false;
+      }
+    }
     this.draw();
   }
 
@@ -427,26 +438,26 @@ export class ChartContainer extends LitElement {
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"
             ></candlestick-chart>
-            <div
-              class="activate-label ${this.isActive ? "hidden" : ""}"
-              @click=${() => {
-                this.isActive = true;
-                this.isDragging = false;
-                this.isZooming = false;
-                if (this.isMobile) {
-                  this.toggleFullWindow();
-                }
-              }}
-            >
-              Click to activate
-            </div>
+            ${this.requireActivation
+              ? html`<div
+                  class="activate-label ${this.isActive ? "hidden" : ""}"
+                  @click=${() => {
+                    this.isActive = true;
+                    if (this.isMobile) {
+                      this.toggleFullWindow();
+                    }
+                  }}
+                >
+                  Click to activate
+                </div>`
+              : ""}
           </div>
           <div class="volume-chart" ?hidden=${!this.showVolume}>
             <volume-chart></volume-chart>
           </div>
 
           <live-decorators></live-decorators>
-          ${!this.isTouchOnly
+          ${!this.isTouchOnly && this.isActive
             ? html`<chart-crosshairs></chart-crosshairs>`
             : ""}
           <div class="price-axis-container">
@@ -497,8 +508,11 @@ export class ChartContainer extends LitElement {
   }
 
   private handleDragStart = (e: MouseEvent) => {
-    if (!this.isActive) {
+    if (this.requireActivation && !this.isActive) {
       this.isActive = true;
+      if (this.isMobile) {
+        this.toggleFullWindow();
+      }
       return;
     }
     this.isDragging = true;
@@ -507,7 +521,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleDragMove = (e: MouseEvent) => {
-    if (!this.isActive || !this.isDragging) return;
+    if ((this.requireActivation && !this.isActive) || !this.isDragging) return;
 
     const deltaX = e.clientX - this.lastX;
     const deltaY = e.clientY - this.lastY;
@@ -524,7 +538,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleWheel = (e: WheelEvent) => {
-    if (!this.isActive) return;
+    if (this.requireActivation && !this.isActive) return;
     e.preventDefault();
     const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
 
@@ -806,8 +820,11 @@ export class ChartContainer extends LitElement {
   }
 
   private handleTouchStart = (e: TouchEvent) => {
-    if (!this.isActive) {
+    if (this.requireActivation && !this.isActive) {
       this.isActive = true;
+      if (this.isMobile) {
+        this.toggleFullWindow();
+      }
       return;
     }
     e.preventDefault(); // Prevent scrolling while touching the chart
@@ -839,7 +856,7 @@ export class ChartContainer extends LitElement {
   };
 
   private handleTouchMove = (e: TouchEvent) => {
-    if (!this.isActive || !this.isDragging) return;
+    if ((this.requireActivation && !this.isActive) || !this.isDragging) return;
     e.preventDefault();
 
     if (e.touches.length === 2 && this.isZooming) {
@@ -1196,6 +1213,7 @@ export class ChartContainer extends LitElement {
       height: 100%;
       z-index: 5;
       pointer-events: none;
+      cursor: crosshair;
     }
 
     chart-crosshairs > * {
@@ -1214,4 +1232,10 @@ export class ChartContainer extends LitElement {
       z-index: 7;
     }
   `;
+
+  static get properties() {
+    return {
+      requireActivation: { type: Boolean, attribute: "require-activation" },
+    };
+  }
 }

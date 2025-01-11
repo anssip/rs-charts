@@ -81,11 +81,39 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-const container = document.querySelector(".chart-container");
+const container = document.querySelector(".chart-container") as HTMLElement;
+const existingChart = container?.querySelector(
+  "chart-container"
+) as ChartContainer;
+
 if (container) {
-  const chartContainerElement: ChartContainer = elements.chartContainer();
+  // Set chart height from computed style and observe changes
+  const updateChartHeight = () => {
+    const computedStyle = getComputedStyle(container);
+    container.style.setProperty(
+      "--spotcanvas-chart-height",
+      computedStyle.height
+    );
+  };
 
-  chartContainerElement.state = state;
+  // Initial height set
+  updateChartHeight();
 
-  container.append(chartContainerElement);
+  // Observe container size changes
+  const resizeObserver = new ResizeObserver(updateChartHeight);
+  resizeObserver.observe(container);
+
+  if (!existingChart) {
+    const chartContainerElement: ChartContainer = elements.chartContainer();
+    if (container.hasAttribute("data-spotcanvas-require-activation")) {
+      chartContainerElement.setAttribute("require-activation", "");
+    }
+    chartContainerElement.state = state;
+    container.append(chartContainerElement);
+  } else {
+    if (container.hasAttribute("data-spotcanvas-require-activation")) {
+      existingChart.setAttribute("require-activation", "");
+    }
+    existingChart.state = state;
+  }
 }
