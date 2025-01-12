@@ -30,8 +30,8 @@
 
 ### Q1 2025§
 
-- [ ] Client side scripting framework.
-- [ ] Indicators for the chart. Implemented using the client side scripting framework.
+- [ ] Server-side scripting framework.
+- [ ] Indicators for the chart. Implemented using the server-side scripting framework.
 - [ ] Drawing tools for technical analysis.
 - [ ] Add more sources for assets (crypto, stocks, forex, etc.) We need to prioritize the most popular ones.
 
