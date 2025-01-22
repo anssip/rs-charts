@@ -100,11 +100,11 @@ export class ChartToolbar extends LitElement {
   }
 
   private toggleVolume() {
-    this.showVolume = !this.showVolume;
     this.dispatchEvent(
       new CustomEvent("toggle-volume", {
         bubbles: true,
         composed: true,
+        detail: { show: !this.showVolume },
       })
     );
   }

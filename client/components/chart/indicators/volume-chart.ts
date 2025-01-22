@@ -1,8 +1,8 @@
-import { customElement, property } from "lit/decorators.js";
-import { CanvasBase } from "./canvas-base";
+import { customElement } from "lit/decorators.js";
+import { CanvasBase } from "../canvas-base";
 import { observe, xin } from "xinjs";
-import { ChartState } from "../..";
-import { iterateTimeline } from "../../util/chart-util";
+import { ChartState } from "../../..";
+import { iterateTimeline } from "../../../util/chart-util";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {

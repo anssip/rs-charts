@@ -11,7 +11,7 @@ import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
-import "./volume-chart";
+import "./indicators/volume-chart";
 import "./context-menu";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
@@ -24,6 +24,7 @@ import { CoinbaseProduct } from "../../api/firestore-client";
 import "./logo";
 import { MenuItem, ChartContextMenu } from "./context-menu";
 import "./toolbar/chart-toolbar";
+import "./indicators/indicator-container";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -265,7 +266,9 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-fullscreen", ((e: Event) =>
       this.handleFullScreenToggle(e as CustomEvent)) as EventListener);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.addEventListener("toggle-volume", () => this.toggleVolume());
+    this.addEventListener("toggle-volume", (e: CustomEvent) =>
+      this.toggleVolume(e)
+    );
   }
 
   private handleMobileChange = (e?: MediaQueryListEvent) => {
@@ -338,7 +341,9 @@ export class ChartContainer extends LitElement {
     document.removeEventListener("touchstart", this.handleClickOutside);
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.removeEventListener("toggle-volume", () => this.toggleVolume());
+    this.removeEventListener("toggle-volume", (e: CustomEvent) =>
+      this.toggleVolume(e)
+    );
     this.mobileMediaQuery.removeEventListener(
       "change",
       this.handleMobileChange
@@ -359,10 +364,10 @@ export class ChartContainer extends LitElement {
     );
   }
 
-  private toggleVolume() {
-    this.showVolume = !this.showVolume;
+  private toggleVolume(e: CustomEvent) {
+    this.showVolume = e.detail.show;
     const volumeChart = this.renderRoot.querySelector(
-      ".volume-chart"
+      "indicator-container"
     ) as HTMLElement;
     if (volumeChart) {
       volumeChart.hidden = !this.showVolume;
@@ -396,7 +401,12 @@ export class ChartContainer extends LitElement {
       },
       {
         label: "Volume",
-        action: () => this.toggleVolume(),
+        action: () => {
+          const event = new CustomEvent("toggle-volume", {
+            detail: { show: !this.showVolume },
+          });
+          this.toggleVolume(event);
+        },
       },
       {
         label: "separator",
@@ -429,7 +439,7 @@ export class ChartContainer extends LitElement {
             .showVolume=${this.showVolume}
             @toggle-fullscreen=${this.handleFullScreenToggle}
             @toggle-fullwindow=${this.toggleFullWindow}
-            @toggle-volume=${() => this.toggleVolume()}
+            @toggle-volume=${(e: CustomEvent) => this.toggleVolume(e)}
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
@@ -452,9 +462,9 @@ export class ChartContainer extends LitElement {
                 </div>`
               : ""}
           </div>
-          <div class="volume-chart" ?hidden=${!this.showVolume}>
+          <indicator-container ?hidden=${!this.showVolume}>
             <volume-chart></volume-chart>
-          </div>
+          </indicator-container>
 
           <live-decorators></live-decorators>
           ${!this.isTouchOnly && this.isActive
@@ -1230,6 +1240,21 @@ export class ChartContainer extends LitElement {
       position: absolute;
       bottom: ${TIMELINE_HEIGHT + 8}px;
       z-index: 7;
+    }
+
+    indicator-container {
+      position: absolute;
+      bottom: ${TIMELINE_HEIGHT}px;
+      left: 0;
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
+      height: 25%;
+      pointer-events: none;
+      z-index: 2;
+      background: none;
+    }
+
+    indicator-container[hidden] {
+      display: none;
     }
   `;
 
