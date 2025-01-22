@@ -25,6 +25,7 @@ import "./logo";
 import { MenuItem, ChartContextMenu } from "./context-menu";
 import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
+import "./indicators/market-indicator";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -445,6 +446,9 @@ export class ChartContainer extends LitElement {
         </div>
         <div class="chart-area">
           <div class="chart">
+            <indicator-container class="overlay-indicators">
+              <market-indicator></market-indicator>
+            </indicator-container>
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"
             ></candlestick-chart>
@@ -462,7 +466,10 @@ export class ChartContainer extends LitElement {
                 </div>`
               : ""}
           </div>
-          <indicator-container ?hidden=${!this.showVolume}>
+          <indicator-container
+            class="bottom-indicators"
+            ?hidden=${!this.showVolume}
+          >
             <volume-chart></volume-chart>
           </indicator-container>
 
@@ -1254,6 +1261,31 @@ export class ChartContainer extends LitElement {
     }
 
     indicator-container[hidden] {
+      display: none;
+    }
+
+    .overlay-indicators {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .bottom-indicators {
+      position: absolute;
+      bottom: ${TIMELINE_HEIGHT}px;
+      left: 0;
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
+      height: 25%;
+      pointer-events: none;
+      z-index: 2;
+      background: none;
+    }
+
+    .bottom-indicators[hidden] {
       display: none;
     }
   `;
