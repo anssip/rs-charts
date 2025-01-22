@@ -123,18 +123,7 @@ export class ChartContainer extends LitElement {
   private isActive = false;
 
   @state()
-  private indicators: Map<string, IndicatorState> = new Map([
-    [
-      "volume",
-      {
-        id: "volume",
-        visible: false,
-        display: "bottom",
-        class: VolumeChart,
-      },
-    ],
-    // Add other indicators here as needed
-  ]);
+  private indicators: Map<string, IndicatorState> = new Map();
 
   constructor() {
     super();
@@ -292,8 +281,6 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-fullscreen", ((e: Event) =>
       this.handleFullScreenToggle(e as CustomEvent)) as EventListener);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.addEventListener("toggle-volume", ((e: CustomEvent) =>
-      this.toggleVolume(e)) as EventListener);
     this.addEventListener("toggle-indicator", ((e: CustomEvent) =>
       this.toggleIndicator(e)) as EventListener);
   }
@@ -326,7 +313,9 @@ export class ChartContainer extends LitElement {
   }
 
   draw() {
+    if (!this.isConnected) return;
     if (!this.chart || !this.chart.canvas) return;
+
     const context: DrawingContext = {
       ctx: this.chart.ctx!,
       chartCanvas: this.chart.canvas!,
@@ -390,37 +379,46 @@ export class ChartContainer extends LitElement {
     );
   }
 
-  public toggleVolume(e: CustomEvent) {
-    this.showVolume = e.detail.show;
-    const volumeChart = this.renderRoot.querySelector(
-      "indicator-container"
-    ) as HTMLElement;
-    if (volumeChart) {
-      volumeChart.hidden = !this.showVolume;
-    }
-  }
+  // public toggleVolume(e: CustomEvent) {
+  //   this.showVolume = e.detail.show;
+  //   const volumeChart = this.renderRoot.querySelector(
+  //     "indicator-container"
+  //   ) as HTMLElement;
+  //   if (volumeChart) {
+  //     volumeChart.hidden = !this.showVolume;
+  //   }
+  // }
 
   public isIndicatorVisible(id: string): boolean {
     return this.indicators.get(id)?.visible || false;
   }
 
   public toggleIndicator(e: CustomEvent) {
-    const { id, show, params } = e.detail;
-    const indicator = this.indicators.get(id);
-    if (indicator) {
-      const indicatorUpdated = {
-        ...indicator,
-        visible: show,
-        params: params,
-      };
+    const indicator: IndicatorState = e.detail;
+    const newIndicators = new Map(this.indicators);
 
-      this.indicators.set(id, indicatorUpdated);
-      this.indicators = new Map(this.indicators); // Trigger update
+    console.log("Toggle indicator:", {
+      id: indicator.id,
+      visible: indicator.visible,
+      before: newIndicators.size,
+    });
 
-      requestAnimationFrame(() => {
-        this.draw();
-      });
+    if (indicator.visible) {
+      newIndicators.set(indicator.id, indicator);
+    } else {
+      newIndicators.delete(indicator.id);
     }
+
+    console.log("After toggle:", {
+      size: newIndicators.size,
+      has: newIndicators.has(indicator.id),
+    });
+
+    this.indicators = newIndicators;
+
+    requestAnimationFrame(() => {
+      this.draw();
+    });
   }
 
   render() {
@@ -466,16 +464,14 @@ export class ChartContainer extends LitElement {
     const bottomIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === "bottom"
     );
+    console.log("Bottom indicators:", bottomIndicators);
 
     const overlayIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === "fullchart"
     );
+    console.log("Overlay indicators:", overlayIndicators);
 
     return html`
-      <chart-context-menu
-        .position=${this.contextMenuPosition}
-        .items=${menuItems}
-      ></chart-context-menu>
       <div
         class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
           .isFullWindow
@@ -493,7 +489,6 @@ export class ChartContainer extends LitElement {
             .container=${this}
             @toggle-fullscreen=${this.handleFullScreenToggle}
             @toggle-fullwindow=${this.toggleFullWindow}
-            @toggle-volume=${(e: CustomEvent) => this.toggleVolume(e)}
             @toggle-indicator=${this.toggleIndicator}
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
@@ -502,15 +497,15 @@ export class ChartContainer extends LitElement {
           <div class="chart">
             <indicator-container class="overlay-indicators">
               ${overlayIndicators.map(
-                (indicator) => html`
-                  <indicator-container
-                    data-indicator=${indicator.id}
-                    class="overlay-indicators"
-                    ?hidden=${!indicator.visible}
-                  >
-                    ${new indicator.class()}
-                  </indicator-container>
-                `
+                (indicator) =>
+                  html`
+                    <indicator-container
+                      data-indicator=${indicator.id}
+                      class="overlay-indicators"
+                    >
+                      ${new indicator.class()}
+                    </indicator-container>
+                  `
               )}
               <market-indicator></market-indicator>
             </indicator-container>
@@ -532,15 +527,15 @@ export class ChartContainer extends LitElement {
               : ""}
           </div>
           ${bottomIndicators.map(
-            (indicator) => html`
-              <indicator-container
-                data-indicator=${indicator.id}
-                class="bottom-indicators"
-                ?hidden=${!indicator.visible}
-              >
-                ${new indicator.class()}
-              </indicator-container>
-            `
+            (indicator) =>
+              html`
+                <indicator-container
+                  data-indicator=${indicator.id}
+                  class="bottom-indicators"
+                >
+                  ${new indicator.class()}
+                </indicator-container>
+              `
           )}
           <live-decorators></live-decorators>
           ${!this.isTouchOnly && this.isActive

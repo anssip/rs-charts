@@ -19,9 +19,9 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "volume",
-            show: !chartContainer.isIndicatorVisible("volume"),
             display: "bottom",
             class: VolumeChart,
+            visible: !chartContainer.isIndicatorVisible("volume"),
           },
           bubbles: true,
           composed: true,
@@ -35,7 +35,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "moving-average",
-            show: !chartContainer.isIndicatorVisible("moving-average"),
+            visible: !chartContainer.isIndicatorVisible("moving-average"),
             params: { period: 200 },
             display: "fullchart",
             class: MarketIndicator,

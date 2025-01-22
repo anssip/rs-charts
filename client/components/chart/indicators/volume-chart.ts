@@ -25,20 +25,46 @@ export class VolumeChart extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
-    observe("state", () => {
-      this._state = xin["state"] as ChartState;
-      this.draw();
-    });
-    observe("state.liveCandle", () => {
-      // make sure we have the latest state with the live candle
-      this._state = xin["state"] as ChartState;
-      this.draw();
-    });
+
+    // Get initial state
+    this._state = xin["state"] as ChartState;
+
+    // Wait for canvas and state to be ready
+    if (this.canvas && this._state) {
+      requestAnimationFrame(() => {
+        this.draw();
+      });
+    }
+
+    // Only observe state changes when the component is actually in the DOM
+    if (this.isConnected) {
+      observe("state", () => {
+        this._state = xin["state"] as ChartState;
+        this.draw();
+      });
+      observe("state.liveCandle", () => {
+        this._state = xin["state"] as ChartState;
+        this.draw();
+      });
+    }
+  }
+
+  // Add connectedCallback to ensure we draw when added to DOM
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._state) {
+      requestAnimationFrame(() => {
+        this.draw();
+      });
+    }
   }
 
   draw() {
+    // Skip drawing if component is not connected to DOM
+    if (!this.isConnected) return;
     if (!this.canvas || !this.ctx || !this._state) return;
 
+    console.log("draw volume chart");
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -110,5 +136,11 @@ export class VolumeChart extends CanvasBase {
     if (changedProperties.has("visible") || changedProperties.has("params")) {
       this.draw();
     }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Clean up state observations when removed from DOM
+    // TODO: Add proper cleanup for xinjs observers
   }
 }

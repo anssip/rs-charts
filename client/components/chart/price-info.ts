@@ -304,13 +304,6 @@ export class PriceInfo extends LitElement {
                 })
               );
             }}
-            @toggle-volume=${() =>
-              this.dispatchEvent(
-                new CustomEvent("toggle-volume", {
-                  bubbles: true,
-                  composed: true,
-                })
-              )}
             @upgrade-click=${() =>
               this.dispatchEvent(
                 new CustomEvent("upgrade-click", {
