@@ -26,12 +26,23 @@ import { MenuItem, ChartContextMenu } from "./context-menu";
 import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
+import { config } from "../../config";
+import { VolumeChart } from "./indicators/volume-chart";
+import { MarketIndicator } from "./indicators/market-indicator";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
+
+interface IndicatorState {
+  id: string;
+  visible: boolean;
+  params?: Record<string, any>;
+  display: "fullchart" | "bottom";
+  class: typeof VolumeChart | typeof MarketIndicator;
+}
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -93,7 +104,7 @@ export class ChartContainer extends LitElement {
   private readonly ZOOM_FACTOR = 0.005;
 
   @state()
-  private showVolume = false;
+  public showVolume = false;
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
@@ -110,6 +121,20 @@ export class ChartContainer extends LitElement {
 
   @state()
   private isActive = false;
+
+  @state()
+  private indicators: Map<string, IndicatorState> = new Map([
+    [
+      "volume",
+      {
+        id: "volume",
+        visible: false,
+        display: "bottom",
+        class: VolumeChart,
+      },
+    ],
+    // Add other indicators here as needed
+  ]);
 
   constructor() {
     super();
@@ -267,9 +292,10 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-fullscreen", ((e: Event) =>
       this.handleFullScreenToggle(e as CustomEvent)) as EventListener);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.addEventListener("toggle-volume", (e: CustomEvent) =>
-      this.toggleVolume(e)
-    );
+    this.addEventListener("toggle-volume", ((e: CustomEvent) =>
+      this.toggleVolume(e)) as EventListener);
+    this.addEventListener("toggle-indicator", ((e: CustomEvent) =>
+      this.toggleIndicator(e)) as EventListener);
   }
 
   private handleMobileChange = (e?: MediaQueryListEvent) => {
@@ -342,9 +368,8 @@ export class ChartContainer extends LitElement {
     document.removeEventListener("touchstart", this.handleClickOutside);
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.removeEventListener("toggle-volume", (e: CustomEvent) =>
-      this.toggleVolume(e)
-    );
+    this.removeEventListener("toggle-indicator", ((e: CustomEvent) =>
+      this.toggleIndicator(e)) as EventListener);
     this.mobileMediaQuery.removeEventListener(
       "change",
       this.handleMobileChange
@@ -365,13 +390,36 @@ export class ChartContainer extends LitElement {
     );
   }
 
-  private toggleVolume(e: CustomEvent) {
+  public toggleVolume(e: CustomEvent) {
     this.showVolume = e.detail.show;
     const volumeChart = this.renderRoot.querySelector(
       "indicator-container"
     ) as HTMLElement;
     if (volumeChart) {
       volumeChart.hidden = !this.showVolume;
+    }
+  }
+
+  public isIndicatorVisible(id: string): boolean {
+    return this.indicators.get(id)?.visible || false;
+  }
+
+  public toggleIndicator(e: CustomEvent) {
+    const { id, show, params } = e.detail;
+    const indicator = this.indicators.get(id);
+    if (indicator) {
+      const indicatorUpdated = {
+        ...indicator,
+        visible: show,
+        params: params,
+      };
+
+      this.indicators.set(id, indicatorUpdated);
+      this.indicators = new Map(this.indicators); // Trigger update
+
+      requestAnimationFrame(() => {
+        this.draw();
+      });
     }
   }
 
@@ -400,15 +448,7 @@ export class ChartContainer extends LitElement {
         label: "Indicators",
         isHeader: true,
       },
-      {
-        label: "Volume",
-        action: () => {
-          const event = new CustomEvent("toggle-volume", {
-            detail: { show: !this.showVolume },
-          });
-          this.toggleVolume(event);
-        },
-      },
+      ...config.getBuiltInIndicators(this),
       {
         label: "separator",
         separator: true,
@@ -423,7 +463,19 @@ export class ChartContainer extends LitElement {
       },
     ];
 
+    const bottomIndicators = Array.from(this.indicators.values()).filter(
+      (indicator) => indicator.display === "bottom"
+    );
+
+    const overlayIndicators = Array.from(this.indicators.values()).filter(
+      (indicator) => indicator.display === "fullchart"
+    );
+
     return html`
+      <chart-context-menu
+        .position=${this.contextMenuPosition}
+        .items=${menuItems}
+      ></chart-context-menu>
       <div
         class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
           .isFullWindow
@@ -437,16 +489,29 @@ export class ChartContainer extends LitElement {
             .symbols=${this.products}
             .isFullscreen=${this.isFullscreen}
             .isFullWindow=${this.isFullWindow}
-            .showVolume=${this.showVolume}
+            .showVolume=${this.isIndicatorVisible("volume")}
+            .container=${this}
             @toggle-fullscreen=${this.handleFullScreenToggle}
             @toggle-fullwindow=${this.toggleFullWindow}
             @toggle-volume=${(e: CustomEvent) => this.toggleVolume(e)}
+            @toggle-indicator=${this.toggleIndicator}
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
         <div class="chart-area">
           <div class="chart">
             <indicator-container class="overlay-indicators">
+              ${overlayIndicators.map(
+                (indicator) => html`
+                  <indicator-container
+                    data-indicator=${indicator.id}
+                    class="overlay-indicators"
+                    ?hidden=${!indicator.visible}
+                  >
+                    ${new indicator.class()}
+                  </indicator-container>
+                `
+              )}
               <market-indicator></market-indicator>
             </indicator-container>
             <candlestick-chart
@@ -466,13 +531,17 @@ export class ChartContainer extends LitElement {
                 </div>`
               : ""}
           </div>
-          <indicator-container
-            class="bottom-indicators"
-            ?hidden=${!this.showVolume}
-          >
-            <volume-chart></volume-chart>
-          </indicator-container>
-
+          ${bottomIndicators.map(
+            (indicator) => html`
+              <indicator-container
+                data-indicator=${indicator.id}
+                class="bottom-indicators"
+                ?hidden=${!indicator.visible}
+              >
+                ${new indicator.class()}
+              </indicator-container>
+            `
+          )}
           <live-decorators></live-decorators>
           ${!this.isTouchOnly && this.isActive
             ? html`<chart-crosshairs></chart-crosshairs>`
@@ -485,7 +554,6 @@ export class ChartContainer extends LitElement {
           </div>
           <chart-logo></chart-logo>
         </div>
-
         <chart-context-menu
           .position=${this.contextMenuPosition}
           .items=${menuItems}
@@ -1043,6 +1111,8 @@ export class ChartContainer extends LitElement {
       box-sizing: border-box;
       position: relative;
       overflow: hidden;
+      z-index: 1;
+      isolation: isolate;
     }
 
     .chart-area {
@@ -1056,6 +1126,7 @@ export class ChartContainer extends LitElement {
       border: 1px solid rgba(143, 143, 143, 0.2);
       height: calc(100% - 120px);
       transition: box-shadow 0.2s ease-in-out;
+      z-index: 1;
     }
 
     .chart-area:has(candlestick-chart.active) {
@@ -1066,10 +1137,6 @@ export class ChartContainer extends LitElement {
     :host(:fullscreen) .chart-area,
     :host(.full-window) .chart-area {
       height: calc(100vh - 200px);
-    }
-
-    .volume-chart[hidden] {
-      display: none;
     }
 
     .container.fullscreen,
@@ -1104,6 +1171,7 @@ export class ChartContainer extends LitElement {
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
+      z-index: 1;
     }
 
     .activate-label {
@@ -1130,10 +1198,6 @@ export class ChartContainer extends LitElement {
     }
 
     .activate-label.hidden {
-      display: none;
-    }
-
-    .volume-chart[hidden] {
       display: none;
     }
 
@@ -1199,7 +1263,7 @@ export class ChartContainer extends LitElement {
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: calc(100% - ${TIMELINE_HEIGHT}px);
       pointer-events: auto;
-      z-index: 1;
+      z-index: 2;
       cursor: default;
     }
 
@@ -1268,10 +1332,10 @@ export class ChartContainer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
+      width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: 100%;
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
     }
 
     .bottom-indicators {
@@ -1281,11 +1345,11 @@ export class ChartContainer extends LitElement {
       width: calc(100% - var(--price-axis-width, ${PRICEAXIS_WIDTH}px));
       height: 25%;
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
       background: none;
     }
 
-    .bottom-indicators[hidden] {
+    indicator-container[hidden] {
       display: none;
     }
   `;

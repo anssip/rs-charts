@@ -1,11 +1,15 @@
-import { customElement } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
 import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline } from "../../../util/chart-util";
+import { PropertyValues } from "lit";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {
+  @property({ type: Object })
+  params?: Record<string, any>;
+
   private readonly FIXED_GAP_WIDTH = 2; // pixels
   private readonly MIN_BAR_WIDTH = 1; // pixels
   private readonly MAX_BAR_WIDTH = 500; // pixels
@@ -32,22 +36,8 @@ export class VolumeChart extends CanvasBase {
     });
   }
 
-  private isVisible(): boolean {
-    // Check if element is hidden via attribute or style
-    if (this.hidden || this.style.display === "none") return false;
-
-    // Check if element has zero dimensions
-    const rect = this.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return false;
-
-    return true;
-  }
-
   draw() {
     if (!this.canvas || !this.ctx || !this._state) return;
-
-    // Skip drawing if the element is not visible
-    if (!this.isVisible()) return;
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
@@ -113,5 +103,12 @@ export class VolumeChart extends CanvasBase {
       interval: this._state.priceHistory.granularityMs,
       alignToLocalTime: false,
     });
+  }
+
+  protected updated(changedProperties: PropertyValues) {
+    super.updated(changedProperties);
+    if (changedProperties.has("visible") || changedProperties.has("params")) {
+      this.draw();
+    }
   }
 }

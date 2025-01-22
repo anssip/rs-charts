@@ -3,7 +3,7 @@ import {
   CandleDataByTimestamp,
   Granularity,
   TimeRange,
-} from "../server/services/price-data/price-history-model";
+} from "../../server/services/price-data/price-history-model";
 
 export interface FetchCandlesOptions {
   symbol: string;

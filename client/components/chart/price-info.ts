@@ -17,6 +17,7 @@ import { ChartState } from "../..";
 import "../common/button";
 import "../chart/context-menu";
 import "./toolbar/chart-toolbar";
+import { ChartContainer } from "./chart-container";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -53,6 +54,9 @@ export class PriceInfo extends LitElement {
 
   @state()
   private isMobile = false;
+
+  @property({ type: Object })
+  container?: ChartContainer;
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
@@ -275,6 +279,7 @@ export class PriceInfo extends LitElement {
             .isFullscreen=${this.isFullscreen}
             .isFullWindow=${this.isFullWindow}
             .showVolume=${this.showVolume}
+            .container=${this.container}
             @toggle-fullscreen=${(e: CustomEvent) => {
               if (e.defaultPrevented) return;
               e.preventDefault();

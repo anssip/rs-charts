@@ -1,5 +1,4 @@
 import { ChartContainer } from "./components/chart/chart-container";
-import { CandleRepository } from "./candle-repository";
 import {
   LiveCandleSubscription,
   LiveCandle,
@@ -18,6 +17,7 @@ import { FirestoreClient } from "./api/firestore-client";
 import { observe, xin } from "xinjs";
 import { getCandleInterval } from "./util/chart-util";
 import { config } from "./config";
+import { CandleRepository } from "./api/candle-repository";
 
 export class App {
   private chartContainer: ChartContainer | null = null;

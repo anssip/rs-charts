@@ -2,6 +2,8 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "../context-menu";
 import { MenuItem } from "../context-menu";
+import { config } from "../../../config";
+import { ChartContainer } from "../chart-container";
 
 @customElement("chart-toolbar")
 export class ChartToolbar extends LitElement {
@@ -13,6 +15,9 @@ export class ChartToolbar extends LitElement {
 
   @property({ type: Boolean })
   showVolume = false;
+
+  @property({ type: Object })
+  container?: ChartContainer;
 
   @state()
   private showIndicatorsMenu = false;
@@ -99,16 +104,6 @@ export class ChartToolbar extends LitElement {
     }, 0);
   }
 
-  private toggleVolume() {
-    this.dispatchEvent(
-      new CustomEvent("toggle-volume", {
-        bubbles: true,
-        composed: true,
-        detail: { show: !this.showVolume },
-      })
-    );
-  }
-
   private hideTooltips() {
     const tooltips = this.renderRoot.querySelectorAll(".tooltip");
     tooltips.forEach((tooltip) => {
@@ -117,15 +112,17 @@ export class ChartToolbar extends LitElement {
   }
 
   render() {
+    if (!this.container) {
+      console.warn("ChartToolbar: No container provided");
+      return html``;
+    }
+
     const indicatorMenuItems: MenuItem[] = [
       {
         isHeader: true,
         label: "Indicators",
       },
-      {
-        label: "Volume",
-        action: () => this.toggleVolume(),
-      },
+      ...config.getBuiltInIndicators(this.container),
       {
         label: "separator",
         separator: true,
