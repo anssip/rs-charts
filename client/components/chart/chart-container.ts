@@ -19,16 +19,17 @@ import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
-import { touch } from "xinjs";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import "./logo";
-import { MenuItem, ChartContextMenu } from "./context-menu";
+import { MenuItem } from "./context-menu";
 import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
 import { config } from "../../config";
 import { VolumeChart } from "./indicators/volume-chart";
 import { MarketIndicator } from "./indicators/market-indicator";
+import { ChartInteractionController } from "./interaction/chart-interaction-controller";
+import { touch } from "xinjs";
 
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
@@ -68,6 +69,9 @@ export class ChartContainer extends LitElement {
   private isFullWindow = false;
 
   @state()
+  private showContextMenu = false;
+
+  @state()
   private contextMenuPosition = { x: 0, y: 0 };
 
   @property({ type: Array })
@@ -76,12 +80,7 @@ export class ChartContainer extends LitElement {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
 
-  private isDragging = false;
-  private lastX = 0;
-  private lastY = 0;
   private resizeObserver!: ResizeObserver;
-  private lastTouchDistance = 0;
-  private isZooming = false;
 
   private chart: CandlestickChart | null = null;
 
@@ -113,7 +112,6 @@ export class ChartContainer extends LitElement {
   @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
 
-  private lastTapTime = 0;
   private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
 
   @property({ type: Boolean, reflect: true, attribute: "require-activation" })
@@ -124,6 +122,8 @@ export class ChartContainer extends LitElement {
 
   @state()
   private indicators: Map<string, IndicatorState> = new Map();
+
+  private interactionController?: ChartInteractionController;
 
   constructor() {
     super();
@@ -197,50 +197,6 @@ export class ChartContainer extends LitElement {
     this.chart = chartElement as CandlestickChart;
 
     if (chartElement) {
-      // Mouse events
-      chartElement.addEventListener(
-        "mousedown",
-        this.handleDragStart as EventListener
-      );
-      chartElement.addEventListener(
-        "mousemove",
-        this.handleDragMove as EventListener
-      );
-      chartElement.addEventListener(
-        "mouseup",
-        this.handleDragEnd as EventListener
-      );
-      chartElement.addEventListener(
-        "mouseleave",
-        this.handleDragEnd as EventListener
-      );
-      chartElement.addEventListener("wheel", this.handleWheel as EventListener);
-      chartElement.addEventListener(
-        "dblclick",
-        this.handleFullScreenToggle as EventListener
-      );
-      chartElement.addEventListener(
-        "contextmenu",
-        this.handleContextMenu as EventListener
-      );
-
-      // Touch events
-      chartElement.addEventListener(
-        "touchstart",
-        this.handleTouchStart as EventListener
-      );
-      chartElement.addEventListener(
-        "touchmove",
-        this.handleTouchMove as EventListener
-      );
-      chartElement.addEventListener(
-        "touchend",
-        this.handleTouchEnd as EventListener
-      );
-      chartElement.addEventListener(
-        "touchcancel",
-        this.handleTouchEnd as EventListener
-      );
       document.addEventListener(
         "fullscreenchange",
         this.handleFullscreenChange
@@ -264,33 +220,68 @@ export class ChartContainer extends LitElement {
       });
     }
 
-    window.addEventListener(
-      "timeline-zoom",
-      this.handleTimelineZoom as EventListener
-    );
-
-    window.addEventListener(
-      "price-axis-zoom",
-      this.handlePriceAxisZoom as EventListener
-    );
     window.addEventListener("spotcanvas-upgrade", this.handleUpgrade);
 
     this.setupFocusHandler();
 
     // Add event listeners for toolbar actions
-    this.addEventListener("toggle-fullscreen", ((e: Event) =>
-      this.handleFullScreenToggle(e as CustomEvent)) as EventListener);
+    this.addEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.addEventListener("toggle-indicator", ((e: CustomEvent) =>
-      this.toggleIndicator(e)) as EventListener);
+    this.addEventListener(
+      "toggle-indicator",
+      this.toggleIndicator as EventListener
+    );
+
+    // Initialize mobile state and add listener
+    this.handleMobileChange();
+    this.mobileMediaQuery.addEventListener("change", () =>
+      this.handleMobileChange()
+    );
+
+    if (this.chart) {
+      this.interactionController = new ChartInteractionController({
+        chart: this.chart,
+        state: this._state,
+        onStateChange: (updates) => {
+          this._state = Object.assign(this._state, updates);
+          Object.keys(updates).forEach((key) => {
+            touch(`state.${key}`);
+          });
+          this.draw();
+        },
+        onNeedMoreData: (direction) => {
+          this.dispatchRefetch(direction);
+        },
+        onActivate: () => {
+          if (this.requireActivation && !this.isActive) {
+            this.isActive = true;
+            if (this.isMobile) {
+              this.toggleFullWindow();
+            }
+          }
+        },
+        onFullWindowToggle: () => {
+          if (this.isMobile) {
+            this.toggleFullWindow();
+          }
+        },
+        onContextMenu: (position) => {
+          this.showContextMenu = true;
+          this.contextMenuPosition = position;
+        },
+        bufferMultiplier: BUFFER_MULTIPLIER,
+        zoomFactor: this.ZOOM_FACTOR,
+        doubleTapDelay: this.DOUBLE_TAP_DELAY,
+      });
+      this.interactionController.attach();
+    }
   }
 
-  private handleMobileChange = (e?: MediaQueryListEvent) => {
-    this.isMobile = e?.matches ?? this.mobileMediaQuery.matches;
+  private handleMobileChange = () => {
+    this.isMobile = this.mobileMediaQuery.matches;
     this.priceAxisWidth = this.isMobile
       ? PRICEAXIS_MOBILE_WIDTH
       : PRICEAXIS_WIDTH;
-    this.draw();
   };
 
   private handleUpgrade = async () => {
@@ -344,10 +335,6 @@ export class ChartContainer extends LitElement {
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
     }
-    window.removeEventListener(
-      "timeline-zoom",
-      this.handleTimelineZoom as EventListener
-    );
     window.removeEventListener("focus", this.handleWindowFocus);
     document.removeEventListener(
       "fullscreenchange",
@@ -357,12 +344,14 @@ export class ChartContainer extends LitElement {
     document.removeEventListener("touchstart", this.handleClickOutside);
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
-    this.removeEventListener("toggle-indicator", ((e: CustomEvent) =>
-      this.toggleIndicator(e)) as EventListener);
-    this.mobileMediaQuery.removeEventListener(
-      "change",
-      this.handleMobileChange
+    this.removeEventListener(
+      "toggle-indicator",
+      this.toggleIndicator as EventListener
     );
+    this.mobileMediaQuery.removeEventListener("change", () =>
+      this.handleMobileChange()
+    );
+    this.interactionController?.detach();
   }
 
   @property({ type: Object })
@@ -379,16 +368,6 @@ export class ChartContainer extends LitElement {
     );
   }
 
-  // public toggleVolume(e: CustomEvent) {
-  //   this.showVolume = e.detail.show;
-  //   const volumeChart = this.renderRoot.querySelector(
-  //     "indicator-container"
-  //   ) as HTMLElement;
-  //   if (volumeChart) {
-  //     volumeChart.hidden = !this.showVolume;
-  //   }
-  // }
-
   public isIndicatorVisible(id: string): boolean {
     return this.indicators.get(id)?.visible || false;
   }
@@ -397,25 +376,12 @@ export class ChartContainer extends LitElement {
     const indicator: IndicatorState = e.detail;
     const newIndicators = new Map(this.indicators);
 
-    console.log("Toggle indicator:", {
-      id: indicator.id,
-      visible: indicator.visible,
-      before: newIndicators.size,
-    });
-
     if (indicator.visible) {
       newIndicators.set(indicator.id, indicator);
     } else {
       newIndicators.delete(indicator.id);
     }
-
-    console.log("After toggle:", {
-      size: newIndicators.size,
-      has: newIndicators.has(indicator.id),
-    });
-
     this.indicators = newIndicators;
-
     requestAnimationFrame(() => {
       this.draw();
     });
@@ -464,12 +430,9 @@ export class ChartContainer extends LitElement {
     const bottomIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === "bottom"
     );
-    console.log("Bottom indicators:", bottomIndicators);
-
     const overlayIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === "fullchart"
     );
-    console.log("Overlay indicators:", overlayIndicators);
 
     return html`
       <div
@@ -550,6 +513,7 @@ export class ChartContainer extends LitElement {
           <chart-logo></chart-logo>
         </div>
         <chart-context-menu
+          .show=${this.showContextMenu}
           .position=${this.contextMenuPosition}
           .items=${menuItems}
         ></chart-context-menu>
@@ -585,100 +549,6 @@ export class ChartContainer extends LitElement {
       };
       this.draw();
     }
-  }
-
-  private handleDragStart = (e: MouseEvent) => {
-    if (this.requireActivation && !this.isActive) {
-      this.isActive = true;
-      if (this.isMobile) {
-        this.toggleFullWindow();
-      }
-      return;
-    }
-    this.isDragging = true;
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-  };
-
-  private handleDragMove = (e: MouseEvent) => {
-    if ((this.requireActivation && !this.isActive) || !this.isDragging) return;
-
-    const deltaX = e.clientX - this.lastX;
-    const deltaY = e.clientY - this.lastY;
-
-    this.handlePan(deltaX);
-    this.handleVerticalPan(deltaY);
-
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-  };
-
-  private handleDragEnd = () => {
-    this.isDragging = false;
-  };
-
-  private handleWheel = (e: WheelEvent) => {
-    if (this.requireActivation && !this.isActive) return;
-    e.preventDefault();
-    const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
-
-    this.handlePan(e.deltaX, isTrackpad);
-    this.handleVerticalPan(e.deltaY, isTrackpad);
-  };
-
-  private handlePan(deltaX: number, isTrackpad = false) {
-    if (!this.chart) return;
-
-    const timeRange = this._state.timeRange.end - this._state.timeRange.start;
-
-    const viewportWidth =
-      this.chart.canvas!.width / (window.devicePixelRatio ?? 1);
-    const timePerPixel = timeRange / viewportWidth;
-
-    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
-    const timeShift = Math.round(adjustedDelta * timePerPixel);
-
-    if (timeShift === 0) return;
-
-    const newStart = this._state.timeRange.start - timeShift;
-    const newEnd = newStart + timeRange;
-
-    this._state.timeRange = { start: newStart, end: newEnd };
-    this.draw();
-
-    const visibleTimeRange = timeRange;
-    const bufferZone = visibleTimeRange * BUFFER_MULTIPLIER;
-
-    const direction = timeShift > 0 ? "backward" : "forward";
-    const needMoreData =
-      (direction === "backward" &&
-        newStart <
-          Number(this._state.priceHistory.startTimestamp) + bufferZone) ||
-      (direction === "forward" &&
-        newEnd > Number(this._state.priceHistory.endTimestamp) - bufferZone);
-
-    if (needMoreData) {
-      this.dispatchRefetch(timeShift > 0 ? "backward" : "forward");
-    }
-  }
-
-  private handleVerticalPan(deltaY: number, isTrackpad = false) {
-    if (!this.chart || !this._state.priceRange) return;
-
-    const availableHeight =
-      this.chart.canvas!.height / (window.devicePixelRatio ?? 1);
-    const pricePerPixel = this._state.priceRange.range / availableHeight;
-
-    const sensitivity = 1.5;
-    const adjustedDelta = (isTrackpad ? -deltaY : deltaY) * sensitivity;
-    const priceShift = adjustedDelta * pricePerPixel;
-
-    if (priceShift === 0) return;
-
-    this._state.priceRange.shift(priceShift);
-    touch("state.priceRange"); // trigger observers as shift() call does not cause it to happen
-
-    this.draw();
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {
@@ -722,50 +592,6 @@ export class ChartContainer extends LitElement {
     );
   }
 
-  private handleTimelineZoom = (event: CustomEvent) => {
-    const { deltaX, clientX, rect, isTrackpad } = event.detail;
-
-    const zoomMultiplier = isTrackpad ? 1 : 0.1;
-    const timeRange = this._state.timeRange.end - this._state.timeRange.start;
-    const zoomCenter = (clientX - rect.left) / rect.width;
-    const timeAdjustment =
-      timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
-    const newTimeRange = Math.max(
-      timeRange - timeAdjustment,
-      getCandleInterval(this._state.granularity) * 10
-    );
-    const rangeDifference = timeRange - newTimeRange;
-
-    const newStart = this._state.timeRange.start + rangeDifference * zoomCenter;
-    const newEnd =
-      this._state.timeRange.end - rangeDifference * (1 - zoomCenter);
-
-    if (newEnd - newStart < getCandleInterval(this._state.granularity) * 10) {
-      const center = (newStart + newEnd) / 2;
-      const minHalfRange = getCandleInterval(this._state.granularity) * 5;
-      this._state.timeRange = {
-        start: center - minHalfRange,
-        end: center + minHalfRange,
-      };
-    } else {
-      this._state.timeRange = { start: newStart, end: newEnd };
-    }
-
-    this.draw();
-
-    // Check if we need more data
-    const bufferTimeRange = newTimeRange * BUFFER_MULTIPLIER;
-    const needMoreData =
-      this._state.timeRange.start <
-        this._state.priceHistory.startTimestamp + bufferTimeRange ||
-      this._state.timeRange.end >
-        this._state.priceHistory.endTimestamp - bufferTimeRange;
-
-    if (needMoreData) {
-      this.dispatchRefetch(deltaX > 0 ? "backward" : "forward");
-    }
-  };
-
   private calculateCandleOptions(): ChartOptions {
     if (!this.chart) return this.options;
     if (!this.chart.canvas) {
@@ -801,18 +627,6 @@ export class ChartContainer extends LitElement {
     };
   }
 
-  private handlePriceAxisZoom = (event: CustomEvent) => {
-    const { deltaY, isTrackpad } = event.detail;
-    const zoomCenter = 0.5; // Always zoom from the center
-    const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
-    (this._state.priceRange as PriceRangeImpl).adjust(
-      deltaY * zoomMultiplier,
-      zoomCenter
-    );
-    touch("state.priceRange");
-    this.draw();
-  };
-
   public updateLiveCandle(liveCandle: LiveCandle): boolean {
     const isSuccess = this._state.priceHistory.setLiveCandle({
       timestamp: liveCandle.timestamp * 1000,
@@ -830,163 +644,16 @@ export class ChartContainer extends LitElement {
     return isSuccess;
   }
 
-  // TODO: This kind of stuff should be moved to a public API
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
-    if (!this.chart) return;
-
-    const durationMs = durationSeconds * 1000;
-    const FRAMES_PER_SECOND = 60;
-    const totalFrames = (durationMs / 1000) * FRAMES_PER_SECOND;
-    let currentFrame = 0;
-
-    const startRange = { ...this._state.timeRange };
-    const candleInterval = getCandleInterval(this._state.granularity);
-    const numCandles = Math.abs(movementSeconds / (candleInterval / 1000)); // Convert movement to number of candles
-    const movementMs = numCandles * candleInterval; // Total movement in ms based on candle intervals
-    const targetRange = {
-      start:
-        startRange.start - (movementSeconds > 0 ? movementMs : -movementMs),
-      end: startRange.end - (movementSeconds > 0 ? movementMs : -movementMs),
-    };
-
-    const animate = () => {
-      currentFrame++;
-      const progress = currentFrame / totalFrames;
-      const easeProgress = this.easeInOutCubic(progress);
-
-      // Interpolate between start and target ranges
-      const newTimeRange = {
-        start:
-          startRange.start +
-          (targetRange.start - startRange.start) * easeProgress,
-        end: startRange.end + (targetRange.end - startRange.end) * easeProgress,
-      };
-
-      this._state.timeRange = newTimeRange;
-
-      touch("state.timeRange");
-      // TODO: Make the drawingStrategy listen to state.timeRange
-      this.draw();
-
-      if (currentFrame < totalFrames) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }
-
-  // Cubic easing function for smooth animation
-  private easeInOutCubic(x: number): number {
-    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    this.interactionController?.panTimeline(movementSeconds, durationSeconds);
   }
 
   private setupFocusHandler() {
     window.addEventListener("focus", this.handleWindowFocus);
-    document.addEventListener(
-      "visibilitychange",
-      this.handleVisibilityChange.bind(this)
-    );
   }
 
   private handleWindowFocus = () => {
     this.draw();
-  };
-
-  private handleVisibilityChange(): void {
-    if (document.visibilityState === "visible") {
-      this.draw();
-    }
-  }
-
-  private handleTouchStart = (e: TouchEvent) => {
-    if (this.requireActivation && !this.isActive) {
-      this.isActive = true;
-      if (this.isMobile) {
-        this.toggleFullWindow();
-      }
-      return;
-    }
-    e.preventDefault(); // Prevent scrolling while touching the chart
-
-    // Handle double tap
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - this.lastTapTime;
-    if (tapLength < this.DOUBLE_TAP_DELAY && tapLength > 0) {
-      // Double tap detected
-      this.toggleFullWindow();
-      return;
-    }
-    this.lastTapTime = currentTime;
-
-    this.isDragging = true;
-
-    if (e.touches.length === 2) {
-      // Initialize pinch-to-zoom
-      this.isZooming = true;
-      this.lastTouchDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-    } else if (e.touches.length === 1) {
-      // Single touch for panning
-      this.lastX = e.touches[0].clientX;
-      this.lastY = e.touches[0].clientY;
-    }
-  };
-
-  private handleTouchMove = (e: TouchEvent) => {
-    if ((this.requireActivation && !this.isActive) || !this.isDragging) return;
-    e.preventDefault();
-
-    if (e.touches.length === 2 && this.isZooming) {
-      // Handle pinch-to-zoom
-      const currentDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-
-      const deltaDistance = currentDistance - this.lastTouchDistance;
-      const zoomSensitivity = 0.5;
-
-      // Use the midpoint of the two touches as the zoom center
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-
-      // Apply zoom sensitivity to the delta and invert for natural pinch behavior
-      const adjustedDelta = deltaDistance * zoomSensitivity;
-
-      // Dispatch zoom event similar to mouse wheel zoom
-      this.dispatchEvent(
-        new CustomEvent("timeline-zoom", {
-          detail: {
-            deltaX: adjustedDelta,
-            clientX: centerX,
-            rect,
-            isTrackpad: true,
-          },
-          bubbles: true,
-          composed: true,
-        })
-      );
-
-      this.lastTouchDistance = currentDistance;
-    } else if (e.touches.length === 1) {
-      // Handle panning
-      const deltaX = e.touches[0].clientX - this.lastX;
-      const deltaY = e.touches[0].clientY - this.lastY;
-
-      this.handlePan(deltaX);
-      this.handleVerticalPan(deltaY);
-
-      this.lastX = e.touches[0].clientX;
-      this.lastY = e.touches[0].clientY;
-    }
-  };
-
-  private handleTouchEnd = () => {
-    this.isDragging = false;
-    this.isZooming = false;
   };
 
   private handleFullScreenToggle = async (e: Event) => {
@@ -1014,31 +681,12 @@ export class ChartContainer extends LitElement {
     }
   };
 
-  private handleContextMenu = (e: MouseEvent) => {
-    e.preventDefault();
-    this.contextMenuPosition = { x: e.clientX, y: e.clientY };
-
-    // Add one-time click listener to close menu
-    setTimeout(() => {
-      const contextMenu = this.renderRoot.querySelector(
-        "chart-context-menu"
-      ) as ChartContextMenu;
-      if (contextMenu) {
-        contextMenu.show = true;
-      }
-      document.addEventListener(
-        "click",
-        () => {
-          const contextMenu = this.renderRoot.querySelector(
-            "chart-context-menu"
-          ) as ChartContextMenu;
-          if (contextMenu) {
-            contextMenu.show = false;
-          }
-        },
-        { once: true }
-      );
-    }, 0);
+  private handleClickOutside = (e: MouseEvent | TouchEvent) => {
+    const target = e.target as HTMLElement;
+    const contextMenu = this.renderRoot.querySelector("chart-context-menu");
+    if (contextMenu && !contextMenu.contains(target)) {
+      this.showContextMenu = false;
+    }
   };
 
   private toggleFullWindow = (e?: Event) => {
@@ -1057,15 +705,6 @@ export class ChartContainer extends LitElement {
     requestAnimationFrame(() => {
       this.handleResize(this.clientWidth, this.clientHeight);
     });
-  };
-
-  private handleClickOutside = (e: MouseEvent | TouchEvent) => {
-    const path = e.composedPath();
-    if (!path.includes(this)) {
-      this.isActive = false;
-      this.isDragging = false;
-      this.isZooming = false;
-    }
   };
 
   static styles = css`
