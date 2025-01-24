@@ -31,7 +31,6 @@ import { MarketIndicator } from "./indicators/market-indicator";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { touch } from "xinjs";
 
-// We store data 5 times the visible range to allow for zooming and panning without fetching more data
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
