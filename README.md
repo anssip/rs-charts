@@ -20,8 +20,8 @@ bun run dev
 
 ## TODO
 
-- [ ] Fix granularity changing. Now causes an error in InteractionController.
 - [ ] Add indicator data loading.
+- [ ] Add ChartGrid for multichart layouts
 
 - [x] Require a click on the chart to enabe mouse/wheel/touch events
 - [x] Gaps loading should widen the gaps to ensure partial candles are loaded. Also the loading should bypass the caches in candleRepository.

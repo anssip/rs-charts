@@ -4,6 +4,7 @@ import {
   Granularity,
   TimeRange,
 } from "../../server/services/price-data/price-history-model";
+import { ApiCache, CacheKey } from "./api-cache";
 
 export interface FetchCandlesOptions {
   symbol: string;
@@ -13,94 +14,58 @@ export interface FetchCandlesOptions {
   skipCache?: boolean;
 }
 
+class CandleKey implements CacheKey {
+  constructor(private symbol: string, private granularity: Granularity) {}
+
+  toString(): string {
+    return `${this.symbol}:${this.granularity}`;
+  }
+}
+
 export class CandleRepository {
-  private candles: Map<string, CandleDataByTimestamp> = new Map();
+  private cache: ApiCache<number, CandleData>;
   private readonly API_BASE_URL: string;
-  private bufferedRanges: Map<string, TimeRange> = new Map();
-  private pendingFetches: Set<string> = new Set();
 
   constructor(apiBaseUrl: string) {
     this.API_BASE_URL = apiBaseUrl;
-  }
-
-  private getKey(symbol: string, granularity: Granularity): string {
-    return `${symbol}:${granularity}`;
-  }
-
-  private getRangeKey(
-    symbol: string,
-    granularity: Granularity,
-    timeRange: TimeRange
-  ): string {
-    return `${symbol}:${granularity}:${Math.floor(
-      Number(timeRange.start)
-    )}:${Math.ceil(Number(timeRange.end))}`;
+    this.cache = new ApiCache();
   }
 
   async fetchCandles(
     options: FetchCandlesOptions
   ): Promise<CandleDataByTimestamp> {
     const { symbol, granularity, timeRange, skipCache } = options;
-    const key = this.getKey(symbol, granularity);
-    const rangeKey = this.getRangeKey(symbol, granularity, timeRange);
+    const key = new CandleKey(symbol, granularity);
 
-    if (!this.candles.has(key)) {
-      this.candles.set(key, new Map());
+    if (!skipCache && this.cache.isWithinBufferedRange(key, timeRange)) {
+      return this.cache.get(key.toString()) || new Map();
     }
 
-    const symbolBufferedRange = this.bufferedRanges.get(key);
-
-    if (symbolBufferedRange && !skipCache) {
-      const isWithinBuffer =
-        Math.floor(Number(timeRange.start)) >=
-          Math.floor(Number(symbolBufferedRange.start)) &&
-        Math.ceil(Number(timeRange.end)) <=
-          Math.ceil(Number(symbolBufferedRange.end));
-
-      if (isWithinBuffer) {
-        return this.candles.get(key)!;
-      }
-    }
-
-    if (this.pendingFetches.has(rangeKey)) {
-      return this.candles.get(key)!;
+    if (this.cache.isPendingFetch(key, timeRange)) {
+      return this.cache.get(key.toString()) || new Map();
     }
 
     try {
-      this.pendingFetches.add(rangeKey);
+      this.cache.markFetchPending(key, timeRange);
 
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
         timeRange
       );
-      const minStartInResult = Math.min(...rangeCandles.keys());
-      const maxEndInResult = Math.max(...rangeCandles.keys());
 
-      const updatedBufferRange = symbolBufferedRange
-        ? {
-            start: Math.min(
-              minStartInResult,
-              Number(symbolBufferedRange.start)
-            ),
-            end: Math.max(maxEndInResult, Number(symbolBufferedRange.end)),
-          }
-        : timeRange;
-
-      this.bufferedRanges.set(key, updatedBufferRange);
-
-      const existingCandles = this.candles.get(key)!;
-      this.candles.set(key, new Map([...existingCandles, ...rangeCandles]));
-
-      return this.candles.get(key)!;
+      return this.cache.updateCache(key, timeRange, rangeCandles, (data) => ({
+        min: Math.min(...Array.from(data.keys())),
+        max: Math.max(...Array.from(data.keys())),
+      }));
     } finally {
-      this.pendingFetches.delete(rangeKey);
+      this.cache.markFetchComplete(key, timeRange);
     }
   }
 
   getCandles(symbol: string, granularity: Granularity): CandleDataByTimestamp {
-    const key = this.getKey(symbol, granularity);
-    return this.candles.get(key) || new Map();
+    const key = new CandleKey(symbol, granularity);
+    return this.cache.get(key.toString()) || new Map();
   }
 
   private async fetchRange(
