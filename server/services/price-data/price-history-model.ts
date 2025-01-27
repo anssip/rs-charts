@@ -51,6 +51,7 @@ export interface CandleData {
   close: number;
   volume: number;
   live: boolean;
+  evaluations: any; // TODO: define type
 }
 export type CandleDataByTimestamp = Map<number, CandleData>;
 

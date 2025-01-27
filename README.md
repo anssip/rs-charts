@@ -20,6 +20,8 @@ bun run dev
 
 ## TODO
 
+- Should the candles query also return the indicators data?
+
 - [ ] Add indicator data loading.
 - [ ] Add ChartGrid for multichart layouts
 

@@ -2,7 +2,6 @@ import { ChartState } from "../../..";
 import { getCandleInterval } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
-import { ChartContextMenu } from "../context-menu";
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -167,6 +166,13 @@ export class ChartInteractionController {
     const { state } = this.options;
     const bufferZone = visibleTimeRange * this.BUFFER_MULTIPLIER;
 
+    // First check if the requested time range is valid (not in the future)
+    const now = Date.now();
+    if (newEnd > now) {
+      // Don't request future data
+      return;
+    }
+
     const needMoreDataBackward =
       newStart < Number(state.priceHistory.startTimestamp) + bufferZone;
     const needMoreDataForward =
@@ -174,7 +180,8 @@ export class ChartInteractionController {
 
     if (needMoreDataBackward) {
       this.options.onNeedMoreData("backward");
-    } else if (needMoreDataForward) {
+    } else if (needMoreDataForward && newEnd <= now) {
+      // Double check we're not requesting future data
       this.options.onNeedMoreData("forward");
     }
   }

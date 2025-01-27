@@ -24,11 +24,12 @@ export class ApiCache<K, V> {
     const bufferedRange = this.bufferedRanges.get(key.toString());
     if (!bufferedRange) return false;
 
-    return (
-      Math.floor(Number(timeRange.start)) >=
-        Math.floor(Number(bufferedRange.start)) &&
-      Math.ceil(Number(timeRange.end)) <= Math.ceil(Number(bufferedRange.end))
-    );
+    const requestStart = Math.floor(Number(timeRange.start));
+    const requestEnd = Math.ceil(Number(timeRange.end));
+    const bufferedStart = Math.floor(Number(bufferedRange.start));
+    const bufferedEnd = Math.ceil(Number(bufferedRange.end));
+
+    return requestStart >= bufferedStart && requestEnd <= bufferedEnd;
   }
 
   isPendingFetch(key: CacheKey, timeRange: TimeRange): boolean {
@@ -50,12 +51,12 @@ export class ApiCache<K, V> {
     maxEnd: number
   ): void {
     const existingRange = this.bufferedRanges.get(key.toString());
-    const updatedRange = existingRange
-      ? {
-          start: Math.min(minStart, Number(existingRange.start)),
-          end: Math.max(maxEnd, Number(existingRange.end)),
-        }
-      : timeRange;
+    const updatedRange = {
+      start: existingRange
+        ? Math.min(minStart, Number(existingRange.start))
+        : minStart,
+      end: existingRange ? Math.max(maxEnd, Number(existingRange.end)) : maxEnd,
+    };
 
     this.bufferedRanges.set(key.toString(), updatedRange);
   }
@@ -68,11 +69,11 @@ export class ApiCache<K, V> {
   ): Map<K, V> {
     const { min: minStartInResult, max: maxEndInResult } =
       getBufferedRangeMinMax(newData);
-    console.log("Updating buffered range:", {
-      minStartInResult,
-      maxEndInResult,
-    });
-    this.updateBufferedRange(key, timeRange, minStartInResult, maxEndInResult);
+
+    const effectiveStart = Math.min(timeRange.start, minStartInResult);
+    const effectiveEnd = Math.max(timeRange.end, maxEndInResult);
+
+    this.updateBufferedRange(key, timeRange, effectiveStart, effectiveEnd);
 
     const existingData = this.get(key.toString()) || new Map<K, V>();
     const mergedData = new Map([...existingData, ...newData]);

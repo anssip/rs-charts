@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"http://localhost:8080\"}' --watch",
+    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"https://market.spotcanvas.com\"}' --watch",
     "dev:server": "bun build ./server/index.ts --outdir ./dist/server --target bun --watch",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run ./dist/server/index.js\"",
     "predev": "bun run build",

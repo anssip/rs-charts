@@ -37,7 +37,18 @@ export class CandleRepository {
     const { symbol, granularity, timeRange, skipCache } = options;
     const key = new CandleKey(symbol, granularity);
 
+    console.log("Fetch request:", {
+      symbol,
+      granularity,
+      timeRange: {
+        start: new Date(timeRange.start),
+        end: new Date(timeRange.end),
+      },
+      skipCache,
+    });
+
     if (!skipCache && this.cache.isWithinBufferedRange(key, timeRange)) {
+      console.log("Cache hit");
       return this.cache.get(key.toString()) || new Map();
     }
 
@@ -83,22 +94,23 @@ export class CandleRepository {
         return new Map();
       }
       const response = await fetch(
-        `${this.API_BASE_URL}/api/candles?` +
+        `${this.API_BASE_URL}/history?` +
           new URLSearchParams({
             symbol,
             granularity: granularity ?? "ONE_HOUR",
-            start: range.start.toString(),
-            end: range.end.toString(),
+            start_time: range.start.toString(),
+            end_time: range.end.toString(),
+            exchange: "coinbase",
           })
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
+      const result: { candles: CandleData[] } = await response.json();
       return new Map(
-        Object.entries(data).map(([timestamp, value]) => [
-          Number(timestamp),
-          value as CandleData,
+        result.candles.map((candle: CandleData) => [
+          Number(candle.timestamp),
+          { ...candle, granularity },
         ])
       );
     } catch (error) {
