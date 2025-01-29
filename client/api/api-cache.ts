@@ -14,14 +14,30 @@ export class ApiCache<K, V> {
 
   constructor() {}
 
-  private getRangeKey(key: CacheKey, timeRange: TimeRange): string {
+  private getRangeKey(
+    key: CacheKey,
+    timeRange: TimeRange,
+    indicators: string[] = []
+  ): string {
+    const sortedIndicators = [...indicators].sort().join(",");
     return `${key}:${Math.floor(Number(timeRange.start))}:${Math.ceil(
       Number(timeRange.end)
-    )}`;
+    )}:${sortedIndicators}`;
   }
 
-  isWithinBufferedRange(key: CacheKey, timeRange: TimeRange): boolean {
-    const bufferedRange = this.bufferedRanges.get(key.toString());
+  private getBaseKey(key: CacheKey, indicators: string[] = []): string {
+    const sortedIndicators = [...indicators].sort().join(",");
+    return `${key}:${sortedIndicators}`;
+  }
+
+  isWithinBufferedRange(
+    key: CacheKey,
+    timeRange: TimeRange,
+    indicators: string[] = []
+  ): boolean {
+    const bufferedRange = this.bufferedRanges.get(
+      this.getBaseKey(key, indicators)
+    );
     if (!bufferedRange) return false;
 
     const requestStart = Math.floor(Number(timeRange.start));
@@ -32,25 +48,41 @@ export class ApiCache<K, V> {
     return requestStart >= bufferedStart && requestEnd <= bufferedEnd;
   }
 
-  isPendingFetch(key: CacheKey, timeRange: TimeRange): boolean {
-    return this.pendingFetches.has(this.getRangeKey(key, timeRange));
+  isPendingFetch(
+    key: CacheKey,
+    timeRange: TimeRange,
+    indicators: string[] = []
+  ): boolean {
+    return this.pendingFetches.has(
+      this.getRangeKey(key, timeRange, indicators)
+    );
   }
 
-  markFetchPending(key: CacheKey, timeRange: TimeRange): void {
-    this.pendingFetches.add(this.getRangeKey(key, timeRange));
+  markFetchPending(
+    key: CacheKey,
+    timeRange: TimeRange,
+    indicators: string[] = []
+  ): void {
+    this.pendingFetches.add(this.getRangeKey(key, timeRange, indicators));
   }
 
-  markFetchComplete(key: CacheKey, timeRange: TimeRange): void {
-    this.pendingFetches.delete(this.getRangeKey(key, timeRange));
+  markFetchComplete(
+    key: CacheKey,
+    timeRange: TimeRange,
+    indicators: string[] = []
+  ): void {
+    this.pendingFetches.delete(this.getRangeKey(key, timeRange, indicators));
   }
 
   updateBufferedRange(
     key: CacheKey,
     timeRange: TimeRange,
     minStart: number,
-    maxEnd: number
+    maxEnd: number,
+    indicators: string[] = []
   ): void {
-    const existingRange = this.bufferedRanges.get(key.toString());
+    const baseKey = this.getBaseKey(key, indicators);
+    const existingRange = this.bufferedRanges.get(baseKey);
     const updatedRange = {
       start: existingRange
         ? Math.min(minStart, Number(existingRange.start))
@@ -58,14 +90,15 @@ export class ApiCache<K, V> {
       end: existingRange ? Math.max(maxEnd, Number(existingRange.end)) : maxEnd,
     };
 
-    this.bufferedRanges.set(key.toString(), updatedRange);
+    this.bufferedRanges.set(baseKey, updatedRange);
   }
 
   updateCache(
     key: CacheKey,
     timeRange: TimeRange,
     newData: Map<K, V>,
-    getBufferedRangeMinMax: (data: Map<K, V>) => { min: number; max: number }
+    getBufferedRangeMinMax: (data: Map<K, V>) => { min: number; max: number },
+    indicators: string[] = []
   ): Map<K, V> {
     const { min: minStartInResult, max: maxEndInResult } =
       getBufferedRangeMinMax(newData);
@@ -73,13 +106,20 @@ export class ApiCache<K, V> {
     const effectiveStart = Math.min(timeRange.start, minStartInResult);
     const effectiveEnd = Math.max(timeRange.end, maxEndInResult);
 
-    this.updateBufferedRange(key, timeRange, effectiveStart, effectiveEnd);
+    this.updateBufferedRange(
+      key,
+      timeRange,
+      effectiveStart,
+      effectiveEnd,
+      indicators
+    );
 
-    const existingData = this.get(key.toString()) || new Map<K, V>();
+    const baseKey = this.getBaseKey(key, indicators);
+    const existingData = this.get(baseKey) || new Map<K, V>();
     const mergedData = new Map([...existingData, ...newData]);
-    this.set(key.toString(), mergedData);
+    this.set(baseKey, mergedData);
 
-    return this.get(key.toString()) || new Map<K, V>();
+    return this.get(baseKey) || new Map<K, V>();
   }
 
   get(key: string): Map<K, V> | undefined {

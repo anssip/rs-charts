@@ -34,7 +34,7 @@ export const config: Config = {
       action: () => {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
-            id: "moving-average",
+            id: "moving-averages",
             visible: !chartContainer.isIndicatorVisible("moving-average"),
             params: { period: 200 },
             display: "fullchart",

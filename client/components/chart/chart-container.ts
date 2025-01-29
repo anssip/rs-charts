@@ -229,7 +229,7 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.addEventListener(
       "toggle-indicator",
-      this.toggleIndicator as EventListener
+      this.handleIndicatorToggle as EventListener
     );
 
     // Initialize mobile state and add listener
@@ -346,7 +346,7 @@ export class ChartContainer extends LitElement {
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener(
       "toggle-indicator",
-      this.toggleIndicator as EventListener
+      this.handleIndicatorToggle as EventListener
     );
     this.mobileMediaQuery.removeEventListener("change", () =>
       this.handleMobileChange()
@@ -372,19 +372,30 @@ export class ChartContainer extends LitElement {
     return this.indicators.get(id)?.visible || false;
   }
 
-  public toggleIndicator(e: CustomEvent) {
-    const indicator: IndicatorState = e.detail;
-    const newIndicators = new Map(this.indicators);
+  public handleIndicatorToggle(e: CustomEvent) {
+    const { id, visible, params, display, class: indicatorClass } = e.detail;
 
-    if (indicator.visible) {
-      newIndicators.set(indicator.id, indicator);
+    if (visible) {
+      this.indicators.set(id, {
+        id,
+        visible,
+        params,
+        display,
+        class: indicatorClass,
+      });
+      // Update state.indicators
+      this._state.indicators = Array.from(this.indicators.values())
+        .filter((ind) => ind.visible)
+        .map((ind) => ind.id);
     } else {
-      newIndicators.delete(indicator.id);
+      this.indicators.delete(id);
+      // Update state.indicators
+      this._state.indicators = Array.from(this.indicators.values())
+        .filter((ind) => ind.visible)
+        .map((ind) => ind.id);
     }
-    this.indicators = newIndicators;
-    requestAnimationFrame(() => {
-      this.draw();
-    });
+
+    this.requestUpdate();
   }
 
   render() {
@@ -452,7 +463,7 @@ export class ChartContainer extends LitElement {
             .container=${this}
             @toggle-fullscreen=${this.handleFullScreenToggle}
             @toggle-fullwindow=${this.toggleFullWindow}
-            @toggle-indicator=${this.toggleIndicator}
+            @toggle-indicator=${this.handleIndicatorToggle}
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
@@ -466,11 +477,12 @@ export class ChartContainer extends LitElement {
                       data-indicator=${indicator.id}
                       class="overlay-indicators"
                     >
-                      ${new indicator.class()}
+                      ${new indicator.class({
+                        indicatorId: indicator.id,
+                      })}
                     </indicator-container>
                   `
               )}
-              <market-indicator></market-indicator>
             </indicator-container>
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"

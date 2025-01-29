@@ -20,9 +20,9 @@ bun run dev
 
 ## TODO
 
-- Should the candles query also return the indicators data?
+- [ ] Fix initial data loading to not repeat the same requests
 
-- [ ] Add indicator data loading.
+- [x] Add indicator data loading.
 - [ ] Add ChartGrid for multichart layouts
 
 - [x] Require a click on the chart to enabe mouse/wheel/touch events

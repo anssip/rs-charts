@@ -80,20 +80,24 @@ export class IndicatorContainer extends LitElement {
       width: 100%;
       height: 100%;
       position: relative;
+      overflow: visible; /* Allow content to overflow */
     }
 
     .indicator-container {
       width: 100%;
       height: 100%;
       position: relative;
+      overflow: visible; /* Allow content to overflow */
     }
 
     ::slotted(*) {
       position: absolute;
       top: 0;
       left: 0;
+      right: 0; /* Add right: 0 to ensure full width */
       width: 100%;
       height: 100%;
+      overflow: visible; /* Allow content to overflow */
     }
   `;
 }

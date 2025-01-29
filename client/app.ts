@@ -14,7 +14,7 @@ import {
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
 import { FirestoreClient } from "./api/firestore-client";
-import { observe, xin } from "xinjs";
+import { observe, xin, xinValue } from "xinjs";
 import { getCandleInterval } from "./util/chart-util";
 import { config } from "./config";
 import { CandleRepository } from "./api/candle-repository";
@@ -89,13 +89,14 @@ export class App {
   ) => {
     const timeRange = this.getInitialTimeRange();
     const candles = await this.candleRepository.fetchCandles({
-      symbol: xin["state.symbol"] as string,
-      granularity: xin["state.granularity"] as Granularity,
+      symbol: xinValue(this.state.symbol),
+      granularity: xinValue(this.state.granularity),
       timeRange,
+      indicators: xinValue(this.state.indicators),
     });
     if (candles.size > 0) {
       this.state.priceHistory = new SimplePriceHistory(
-        xin["state.granularity"] as Granularity,
+        xinValue(this.state.granularity),
         new Map(candles.entries())
       );
 
@@ -136,6 +137,9 @@ export class App {
       // TODO: combine these in the state
       this.refetchData();
     });
+    observe("state.indicators", (_) => {
+      this.refetchData();
+    });
     setTimeout(() => {
       // Pan back by 1 candle
       const candleInterval = getCandleInterval(this.state.granularity);
@@ -155,8 +159,8 @@ export class App {
         newCandles
       );
       this.state.priceRange = this.state.priceHistory.getPriceRange(
-        this.state.timeRange.start,
-        this.state.timeRange.end
+        xinValue(this.state.timeRange.start),
+        xinValue(this.state.timeRange.end)
       );
       this.chartContainer!.state = this.state;
       this.chartContainer!.draw();
@@ -242,6 +246,7 @@ export class App {
         symbol,
         granularity,
         timeRange: adjustedTimeRange,
+        indicators: this.state.indicators,
         skipCache,
       });
       this.state.loading = false;

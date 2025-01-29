@@ -1,6 +1,6 @@
 import { CBAdvancedTradeClient } from "coinbase-api";
 import {
-  CandleData,
+  Candle,
   CandleDataByTimestamp,
   Granularity,
   PriceDataOptions,
@@ -67,6 +67,6 @@ export class CoinbasePriceDataService {
         granularity: granularity,
       });
       return data;
-    }, new Map<number, CandleData>());
+    }, new Map<number, Candle>());
   }
 }

@@ -26,6 +26,7 @@ export type ChartState = {
   symbol: string;
   granularity: Granularity;
   loading?: boolean;
+  indicators?: string[];
 };
 
 const chartState: ChartState = {
@@ -38,6 +39,7 @@ const chartState: ChartState = {
   symbol: "BTC-USD",
   granularity: "ONE_HOUR",
   loading: false,
+  indicators: [],
 };
 
 const { state } = xinProxy(

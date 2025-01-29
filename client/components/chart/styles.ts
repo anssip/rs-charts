@@ -262,7 +262,7 @@ export const getStyles = (
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
+    width: 100%;
     height: 100%;
     pointer-events: none;
     z-index: 3;
