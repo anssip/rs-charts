@@ -10,7 +10,10 @@ export interface TimeRange {
 export class ApiCache<K, V> {
   private cache: Map<string, Map<K, V>> = new Map();
   private bufferedRanges: Map<string, TimeRange> = new Map();
-  private pendingFetches: Set<string> = new Set();
+  private pendingFetches: Map<
+    string,
+    { promise: Promise<void>; resolve: (value: void) => void }
+  > = new Map();
 
   constructor() {}
 
@@ -25,7 +28,7 @@ export class ApiCache<K, V> {
     )}:${sortedIndicators}`;
   }
 
-  private getBaseKey(key: CacheKey, indicators: string[] = []): string {
+  public getBaseKey(key: CacheKey, indicators: string[] = []): string {
     const sortedIndicators = [...indicators].sort().join(",");
     return `${key}:${sortedIndicators}`;
   }
@@ -52,18 +55,23 @@ export class ApiCache<K, V> {
     key: CacheKey,
     timeRange: TimeRange,
     indicators: string[] = []
-  ): boolean {
-    return this.pendingFetches.has(
-      this.getRangeKey(key, timeRange, indicators)
-    );
+  ): Promise<void> | null {
+    const rangeKey = this.getRangeKey(key, timeRange, indicators);
+    return this.pendingFetches.get(rangeKey)?.promise || null;
   }
 
   markFetchPending(
     key: CacheKey,
     timeRange: TimeRange,
     indicators: string[] = []
-  ): void {
-    this.pendingFetches.add(this.getRangeKey(key, timeRange, indicators));
+  ): Promise<void> {
+    const rangeKey = this.getRangeKey(key, timeRange, indicators);
+    let resolvePromise: (value: void) => void;
+    const promise = new Promise<void>((resolve) => {
+      resolvePromise = resolve;
+    });
+    this.pendingFetches.set(rangeKey, { promise, resolve: resolvePromise! });
+    return promise;
   }
 
   markFetchComplete(
@@ -71,7 +79,12 @@ export class ApiCache<K, V> {
     timeRange: TimeRange,
     indicators: string[] = []
   ): void {
-    this.pendingFetches.delete(this.getRangeKey(key, timeRange, indicators));
+    const rangeKey = this.getRangeKey(key, timeRange, indicators);
+    const pending = this.pendingFetches.get(rangeKey);
+    if (pending?.resolve) {
+      pending.resolve();
+    }
+    this.pendingFetches.delete(rangeKey);
   }
 
   updateBufferedRange(

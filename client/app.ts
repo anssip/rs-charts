@@ -23,20 +23,37 @@ export class App {
   private chartContainer: ChartContainer | null = null;
   private readonly API_BASE_URL = config.apiBaseUrl;
   private candleRepository: CandleRepository;
-  private pendingFetches: Set<string> = new Set();
   private liveCandleSubscription: LiveCandleSubscription;
   private state: ChartState;
   private firestoreClient: FirestoreClient;
+  private isInitializing = true;
+  private observersInitialized = false;
+  private chartReadyHandled = false;
+
   constructor(private firestore: Firestore, state: ChartState) {
     this.state = state;
-
     this.chartContainer = document.querySelector("chart-container");
-
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
-
     this.firestoreClient = new FirestoreClient(this.firestore);
     this.initialize();
+    this.setupObservers();
+  }
+
+  private setupObservers() {
+    if (this.observersInitialized) return;
+
+    observe("state.symbol", (_) => {
+      if (!this.isInitializing) this.refetchData();
+    });
+    observe("state.granularity", (_) => {
+      if (!this.isInitializing) this.refetchData();
+    });
+    observe("state.indicators", (_) => {
+      if (!this.isInitializing) this.refetchData();
+    });
+
+    this.observersInitialized = true;
   }
 
   async initialize() {
@@ -69,9 +86,6 @@ export class App {
       this.handleFetchNextCandle as unknown as EventListener
     );
     this.startLiveCandleSubscription("BTC-USD", "ONE_HOUR");
-
-    // Trigger initial data fetch
-    await this.handleChartReady(new CustomEvent("chart-ready"));
   }
 
   getInitialTimeRange(): TimeRange {
@@ -83,17 +97,39 @@ export class App {
     };
   }
 
-  // TODO: Make this monitor the subscription state and reconnect if it's lost
   private handleChartReady = async (
     _: CustomEvent<{ visibleCandles: number }>
   ) => {
+    if (this.chartReadyHandled) {
+      return;
+    }
+    this.chartReadyHandled = true;
+
+    this.isInitializing = true;
     const timeRange = this.getInitialTimeRange();
+
+    // Calculate buffer size to keep total candles under MAX_CANDLES
+    // const MAX_CANDLES = 200;
+    // const intervalMs = granularityToMs(this.state.granularity);
+    // const baseCandles = Math.floor(
+    //   (timeRange.end - timeRange.start) / intervalMs
+    // );
+    // const maxBufferCandles = Math.floor((MAX_CANDLES - baseCandles) / 2);
+    // const BUFFER_CANDLES = Math.min(50, maxBufferCandles); // Use smaller of 50 or available space
+
+    // const bufferedTimeRange = {
+    //   start: timeRange.start - BUFFER_CANDLES * intervalMs,
+    //   end: timeRange.end + BUFFER_CANDLES * intervalMs,
+    // };
+
     const candles = await this.candleRepository.fetchCandles({
       symbol: xinValue(this.state.symbol),
       granularity: xinValue(this.state.granularity),
       timeRange,
       indicators: xinValue(this.state.indicators),
+      source: "initial-load",
     });
+
     if (candles.size > 0) {
       this.state.priceHistory = new SimplePriceHistory(
         xinValue(this.state.granularity),
@@ -110,6 +146,7 @@ export class App {
       this.chartContainer!.endTimestamp = viewportEndTimestamp;
       this.chartContainer!.startTimestamp = viewportStartTimestamp;
 
+      // Remove the separate buffer fetch since we included it in initial fetch
       this.state.timeRange = {
         start: viewportStartTimestamp,
         end: viewportEndTimestamp,
@@ -140,8 +177,8 @@ export class App {
     observe("state.indicators", (_) => {
       this.refetchData();
     });
+    this.isInitializing = false;
     setTimeout(() => {
-      // Pan back by 1 candle
       const candleInterval = getCandleInterval(this.state.granularity);
       this.chartContainer!.panTimeline(-1 * (candleInterval / 1000), 0.5);
     }, 1000);
@@ -151,7 +188,9 @@ export class App {
     const newCandles = await this.fetchData(
       this.state.symbol,
       this.state.granularity,
-      this.state.timeRange
+      this.state.timeRange,
+      false,
+      "refetch-data"
     );
     if (newCandles) {
       this.state.priceHistory = new SimplePriceHistory(
@@ -178,15 +217,12 @@ export class App {
     const { timeRange, needMoreData } = event.detail;
 
     if (needMoreData && timeRange) {
-      const rangeKey = `${timeRange.start}-${timeRange.end}`;
-
-      if (this.pendingFetches.has(rangeKey)) {
-        return;
-      }
       const newCandles = await this.fetchData(
         this.state.symbol,
         this.state.granularity,
-        timeRange
+        timeRange,
+        false,
+        "handle-pan"
       );
       if (newCandles) {
         this.state.priceHistory = new SimplePriceHistory(
@@ -203,7 +239,9 @@ export class App {
     const newCandles = await this.fetchData(
       this.state.symbol,
       granularity,
-      timeRange
+      timeRange,
+      false,
+      "fetch-next-candle"
     );
     if (newCandles) {
       this.state.priceHistory = new SimplePriceHistory(granularity, newCandles);
@@ -214,11 +252,9 @@ export class App {
   private async fetchData(
     symbol: string,
     granularity: Granularity,
-    timeRange: {
-      start: number;
-      end: number;
-    },
-    skipCache: boolean = false
+    timeRange: TimeRange,
+    skipCache: boolean = false,
+    source: string = "unknown"
   ): Promise<CandleDataByTimestamp | null> {
     const candleCount = numCandlesInRange(
       granularity,
@@ -234,25 +270,19 @@ export class App {
           }
         : timeRange;
 
-    const rangeKey = `${symbol}-${granularity}-${adjustedTimeRange.start}-${adjustedTimeRange.end}`;
-
-    if (this.pendingFetches.has(rangeKey)) {
-      return Promise.resolve(null);
-    }
+    this.state.loading = true;
     try {
-      this.pendingFetches.add(rangeKey);
-      this.state.loading = true;
       const candles = await this.candleRepository.fetchCandles({
         symbol,
         granularity,
         timeRange: adjustedTimeRange,
         indicators: this.state.indicators,
         skipCache,
+        source,
       });
-      this.state.loading = false;
       return candles;
     } finally {
-      this.pendingFetches.delete(rangeKey);
+      this.state.loading = false;
     }
   }
 
@@ -290,7 +320,8 @@ export class App {
           this.state.symbol,
           this.state.granularity,
           widenGap(gap),
-          true // skip cache to make sure we get also partially filled live candles
+          true, // skip cache to make sure we get also partially filled live candles
+          "fetch-gaps"
         )
       )
     );

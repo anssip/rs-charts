@@ -14,6 +14,7 @@ export interface FetchCandlesOptions {
   timeRange: TimeRange;
   indicators?: string[];
   skipCache?: boolean;
+  source: string;
 }
 
 class CandleKey implements CacheKey {
@@ -45,34 +46,50 @@ export class CandleRepository {
     } = options;
     const key = new CandleKey(symbol, granularity);
 
-    if (
-      !skipCache &&
-      this.cache.isWithinBufferedRange(key, timeRange, indicators)
-    ) {
-      return (
-        this.cache.get(this.cache.getBaseKey(key, indicators)) || new Map()
-      );
+    // Align timestamps to granularity intervals
+    const intervalMs = granularityToMs(granularity);
+    const alignedStart = Math.floor(timeRange.start / intervalMs) * intervalMs;
+    const alignedEnd = Math.ceil(timeRange.end / intervalMs) * intervalMs;
+    const alignedTimeRange = { start: alignedStart, end: alignedEnd };
+
+    // Check if this exact request is pending
+    const pendingPromise = this.cache.isPendingFetch(
+      key,
+      alignedTimeRange,
+      indicators
+    );
+    if (pendingPromise) {
+      await pendingPromise;
+      const cachedData = this.cache.get(this.cache.getBaseKey(key, indicators));
+      return cachedData || new Map();
     }
 
-    if (this.cache.isPendingFetch(key, timeRange, indicators)) {
-      return (
-        this.cache.get(this.cache.getBaseKey(key, indicators)) || new Map()
-      );
+    // Check if data is in cache
+    if (
+      !skipCache &&
+      this.cache.isWithinBufferedRange(key, alignedTimeRange, indicators)
+    ) {
+      const cachedData = this.cache.get(this.cache.getBaseKey(key, indicators));
+      return cachedData || new Map();
     }
 
     try {
-      this.cache.markFetchPending(key, timeRange, indicators);
+      const pendingPromise = this.cache.markFetchPending(
+        key,
+        alignedTimeRange,
+        indicators
+      );
 
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
-        timeRange,
+        alignedTimeRange,
         indicators
       );
 
-      return this.cache.updateCache(
+      const result = this.cache.updateCache(
         key,
-        timeRange,
+        alignedTimeRange,
         rangeCandles,
         (data) => ({
           min: Math.min(...Array.from(data.keys())),
@@ -80,8 +97,14 @@ export class CandleRepository {
         }),
         indicators
       );
-    } finally {
-      this.cache.markFetchComplete(key, timeRange, indicators);
+
+      this.cache.markFetchComplete(key, alignedTimeRange, indicators);
+      await pendingPromise;
+
+      return result;
+    } catch (error) {
+      this.cache.markFetchComplete(key, alignedTimeRange, indicators);
+      throw error;
     }
   }
 
@@ -106,12 +129,14 @@ export class CandleRepository {
     // Always split into smaller batches
     const results = new Map<number, Candle>();
     let currentStart = alignedStart;
-    let batchCount = 0;
 
     while (currentStart < alignedEnd) {
-      batchCount++;
+      // Calculate remaining candles to fetch
+      const remainingTime = alignedEnd - currentStart;
+      const remainingCandles = Math.floor(remainingTime / intervalMs) + 1;
+      const batchCandles = Math.min(remainingCandles, MAX_CANDLES);
       const batchEnd = Math.min(
-        currentStart + (MAX_CANDLES - 1) * intervalMs,
+        currentStart + (batchCandles - 1) * intervalMs,
         alignedEnd
       );
 
@@ -127,7 +152,7 @@ export class CandleRepository {
         results.set(timestamp, candle);
       });
 
-      currentStart = batchEnd + intervalMs; // Move to next interval after batch end
+      currentStart = batchEnd + intervalMs;
     }
 
     return results;
@@ -141,12 +166,12 @@ export class CandleRepository {
   ): Promise<CandleDataByTimestamp> {
     try {
       if (Number(range.end) <= Number(range.start)) {
-        console.error("Invalid time range:", {
-          start: new Date(range.start),
-          end: new Date(range.end),
-        });
         return new Map();
       }
+      // has indicators if there
+      const effectiveIndicators = indicators?.length
+        ? indicators.filter((i) => i.length > 0)
+        : null;
 
       const response = await fetch(
         `${this.API_BASE_URL}/history?` +
@@ -156,7 +181,9 @@ export class CandleRepository {
             start_time: range.start.toString(),
             end_time: range.end.toString(),
             exchange: "coinbase",
-            ...(indicators?.length ? { evaluators: indicators.join(",") } : {}),
+            ...(effectiveIndicators?.length && {
+              evaluators: effectiveIndicators.join(","),
+            }),
           })
       );
 
