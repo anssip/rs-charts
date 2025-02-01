@@ -31,12 +31,12 @@ export const config: Config = {
       },
     },
     {
-      label: "Moving Average 200",
+      label: "Moving Averages 200 & 50",
       action: () => {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "moving-averages",
-            visible: !chartContainer.isIndicatorVisible("moving-average"),
+            visible: !chartContainer.isIndicatorVisible("moving-averages"),
             params: { period: 200 },
             display: "fullchart",
             class: MarketIndicator,

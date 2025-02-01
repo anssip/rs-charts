@@ -393,17 +393,15 @@ export class ChartContainer extends LitElement {
         skipFetch,
       });
       // Update state.indicators
-
-      this._state.indicators = Array.from(this.indicators.values()).filter(
-        (ind) => ind.visible
-      );
+      this._state.indicators = Array.from(this.indicators.values())
+        .filter((ind) => ind.visible)
+        .map((ind) => ind);
     } else {
       this.indicators.delete(id);
       // Update state.indicators
-      this._state.indicators = Array.from(this.indicators.values())
-        .filter((ind) => ind.visible)
-        .map((ind) => ind.id);
+      this._state.indicators = Array.from(this.indicators.values());
     }
+    console.log("state.indicators", this._state.indicators);
 
     this.requestUpdate();
   }

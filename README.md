@@ -20,13 +20,14 @@ bun run dev
 
 ## TODO
 
-- [ ] rsi
+- [x] rsi
 - [x] moving-average
 - [x] bollinger-bands
 - [ ] atr
 - [ ] macd
 - [ ] stochastic
 
+- [ ] Make menu show the active indicators with a checkmark
 - [ ] Add possibility to supply params to market evaluators
 - [ ] Load indicators from `market.spotcanvas.com/evaluators`
 - [x] Fix initial data loading to not repeat the same requests
