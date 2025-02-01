@@ -518,7 +518,9 @@ export class ChartContainer extends LitElement {
                   data-indicator=${indicator.id}
                   class="bottom-indicators"
                 >
-                  ${new indicator.class()}
+                  ${new indicator.class({
+                    indicatorId: indicator.id,
+                  })}
                 </indicator-container>
               `
           )}
