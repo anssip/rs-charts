@@ -40,6 +40,24 @@ export class App {
     this.setupObservers();
   }
 
+  private hasIndicatorData() {
+    const activeIndicators = xinValue(this.state.indicators) || [];
+    const visibleCandles = this.state.priceHistory.getCandlesInRange(
+      this.state.timeRange.start,
+      this.state.timeRange.end
+    );
+
+    // Get the first candle to check for evaluations
+    const firstCandle = visibleCandles[0]?.[1];
+    if (!firstCandle) return false;
+
+    // Filter out indicators that have skipFetch set to true
+    const indicatorsRequiringData = activeIndicators.filter(
+      (indicator) => !indicator.skipFetch
+    );
+    return indicatorsRequiringData.length === 0;
+  }
+
   private setupObservers() {
     if (this.observersInitialized) return;
 
@@ -50,7 +68,16 @@ export class App {
       if (!this.isInitializing) this.refetchData();
     });
     observe("state.indicators", (_) => {
-      if (!this.isInitializing) this.refetchData();
+      console.log("indicators", xinValue(this.state.indicators));
+
+      if (!this.isInitializing) {
+        if (!this.hasIndicatorData()) {
+          console.log("refetching data");
+          this.refetchData();
+        } else {
+          console.log("no need to refetch data");
+        }
+      }
     });
 
     this.observersInitialized = true;
@@ -126,7 +153,7 @@ export class App {
       symbol: xinValue(this.state.symbol),
       granularity: xinValue(this.state.granularity),
       timeRange,
-      indicators: xinValue(this.state.indicators),
+      indicators: xinValue(this.state.indicators)?.map((i) => i.id),
       source: "initial-load",
     });
 
@@ -175,7 +202,24 @@ export class App {
       this.refetchData();
     });
     observe("state.indicators", (_) => {
-      this.refetchData();
+      // Check if we need to refetch by checking if all active indicators have evaluations
+      const activeIndicators = xinValue(this.state.indicators) || [];
+      const visibleCandles = this.state.priceHistory.getCandlesInRange(
+        this.state.timeRange.start,
+        this.state.timeRange.end
+      );
+
+      // Check if any visible candle is missing evaluations for any active indicator
+      const needsRefetch = visibleCandles.some(([_, candle]) => {
+        if (!candle.evaluations) return true;
+        return activeIndicators.some(
+          (indicator) => !candle.evaluations.find((e) => e.id === indicator.id)
+        );
+      });
+
+      if (needsRefetch) {
+        this.refetchData();
+      }
     });
     this.isInitializing = false;
     setTimeout(() => {
@@ -276,7 +320,9 @@ export class App {
         symbol,
         granularity,
         timeRange: adjustedTimeRange,
-        indicators: this.state.indicators,
+        indicators: xinValue(this.state.indicators)
+          ?.filter((i) => !i.skipFetch)
+          .map((i) => i.id),
         skipCache,
         source,
       });

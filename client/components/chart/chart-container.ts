@@ -37,12 +37,13 @@ export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
 
-interface IndicatorState {
+export interface IndicatorState {
   id: string;
   visible: boolean;
   params?: Record<string, any>;
   display: "fullchart" | "bottom";
   class: typeof VolumeChart | typeof MarketIndicator;
+  skipFetch?: boolean;
 }
 
 @customElement("chart-container")
@@ -373,7 +374,14 @@ export class ChartContainer extends LitElement {
   }
 
   public handleIndicatorToggle(e: CustomEvent) {
-    const { id, visible, params, display, class: indicatorClass } = e.detail;
+    const {
+      id,
+      visible,
+      params,
+      display,
+      class: indicatorClass,
+      skipFetch,
+    } = e.detail;
 
     if (visible) {
       this.indicators.set(id, {
@@ -382,12 +390,13 @@ export class ChartContainer extends LitElement {
         params,
         display,
         class: indicatorClass,
+        skipFetch,
       });
       // Update state.indicators
 
-      this._state.indicators = Array.from(this.indicators.values())
-        .filter((ind) => ind.visible)
-        .map((ind) => ind.id);
+      this._state.indicators = Array.from(this.indicators.values()).filter(
+        (ind) => ind.visible
+      );
     } else {
       this.indicators.delete(id);
       // Update state.indicators

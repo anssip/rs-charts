@@ -70,6 +70,7 @@ export interface Evaluation {
   plot_styles: {
     [key: string]: PlotStyle;
   };
+  skipFetch?: boolean;
 }
 
 export interface Candle {

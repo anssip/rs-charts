@@ -132,11 +132,6 @@ export class MarketIndicator extends CanvasBase {
     const dpr = window.devicePixelRatio ?? 1;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw border for debugging
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
-
     // Get visible candles
     const candles = this._state.priceHistory.getCandlesInRange(
       this._state.timeRange.start,

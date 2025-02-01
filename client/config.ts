@@ -22,6 +22,7 @@ export const config: Config = {
             display: "bottom",
             class: VolumeChart,
             visible: !chartContainer.isIndicatorVisible("volume"),
+            skipFetch: true,
           },
           bubbles: true,
           composed: true,
