@@ -46,5 +46,22 @@ export const config: Config = {
         chartContainer.dispatchEvent(event);
       },
     },
+    {
+      label: "Bollinger Bands",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "bollinger-bands",
+            visible: !chartContainer.isIndicatorVisible("bollinger-bands"),
+            params: { period: 20, stdDev: 2 },
+            display: "fullchart",
+            class: MarketIndicator,
+          },
+          bubbles: true,
+          composed: true,
+        });
+        chartContainer.dispatchEvent(event);
+      },
+    },
   ],
 };

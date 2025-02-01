@@ -20,7 +20,16 @@ bun run dev
 
 ## TODO
 
-- [ ] Fix initial data loading to not repeat the same requests
+- [ ] rsi
+- [x] moving-average
+- [x] bollinger-bands
+- [ ] atr
+- [ ] macd
+- [ ] stochastic
+
+- [ ] Add possibility to supply params to market evaluators
+- [ ] Load indicators from `market.spotcanvas.com/evaluators`
+- [x] Fix initial data loading to not repeat the same requests
 
 - [x] Add indicator data loading.
 - [ ] Add ChartGrid for multichart layouts

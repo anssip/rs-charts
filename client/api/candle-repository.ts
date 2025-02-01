@@ -172,20 +172,24 @@ export class CandleRepository {
       const effectiveIndicators = indicators?.length
         ? indicators.filter((i) => i.length > 0)
         : null;
+      console.log("effectiveIndicators", effectiveIndicators);
 
-      const response = await fetch(
-        `${this.API_BASE_URL}/history?` +
-          new URLSearchParams({
-            symbol,
-            granularity: granularity ?? "ONE_HOUR",
-            start_time: range.start.toString(),
-            end_time: range.end.toString(),
-            exchange: "coinbase",
-            ...(effectiveIndicators?.length && {
-              evaluators: effectiveIndicators.join(","),
-            }),
-          })
-      );
+      const params = new URLSearchParams({
+        symbol,
+        granularity: granularity ?? "ONE_HOUR",
+        start_time: range.start.toString(),
+        end_time: range.end.toString(),
+        exchange: "coinbase",
+      });
+
+      // Append each evaluator as a separate evaluators parameter
+      if (effectiveIndicators?.length) {
+        effectiveIndicators.forEach((evaluator) => {
+          params.append("evaluators", evaluator);
+        });
+      }
+
+      const response = await fetch(`${this.API_BASE_URL}/history?${params}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

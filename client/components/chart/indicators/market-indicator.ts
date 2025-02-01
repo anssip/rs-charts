@@ -71,6 +71,52 @@ export class MarketIndicator extends CanvasBase {
     ctx.globalAlpha = 1; // Reset opacity
   }
 
+  private drawBand(
+    ctx: CanvasRenderingContext2D,
+    upperPoints: { x: number; y: number }[],
+    lowerPoints: { x: number; y: number }[],
+    style: {
+      color?: string;
+      lineWidth?: number;
+      opacity?: number;
+      fillColor?: string;
+      fillOpacity?: number;
+    }
+  ) {
+    if (upperPoints.length < 2 || lowerPoints.length < 2) return;
+
+    // Draw the filled area between bands
+    ctx.beginPath();
+    ctx.moveTo(upperPoints[0].x, upperPoints[0].y);
+
+    // Draw upper band
+    for (let i = 1; i < upperPoints.length; i++) {
+      ctx.lineTo(upperPoints[i].x, upperPoints[i].y);
+    }
+
+    // Draw lower band in reverse
+    for (let i = lowerPoints.length - 1; i >= 0; i--) {
+      ctx.lineTo(lowerPoints[i].x, lowerPoints[i].y);
+    }
+
+    ctx.closePath();
+
+    // Fill the area
+    if (style.fillColor) {
+      ctx.fillStyle = style.fillColor;
+      ctx.globalAlpha = style.fillOpacity || 0.1;
+      ctx.fill();
+    }
+
+    // Draw the band borders
+    ctx.strokeStyle = style.color || "#ffffff";
+    ctx.lineWidth = style.lineWidth || 1;
+    ctx.globalAlpha = style.opacity || 1;
+    ctx.stroke();
+
+    ctx.globalAlpha = 1; // Reset opacity
+  }
+
   draw() {
     if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) return;
 
@@ -136,12 +182,25 @@ export class MarketIndicator extends CanvasBase {
     });
 
     // Draw each plot using its style from plot_styles
-    Object.entries(plotPoints).forEach(([plotRef, points]) => {
-      const style = evaluation.plot_styles[plotRef];
-      if (style.type === "line") {
-        this.drawLine(ctx, points, style.style);
+    Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
+      if (plotStyle.type === "line") {
+        this.drawLine(ctx, plotPoints[plotRef], plotStyle.style);
+      } else if (plotStyle.type === "band") {
+        // For bands (like Bollinger Bands), we need both upper and lower points
+        const upperPoints: { x: number; y: number }[] = [];
+        const lowerPoints: { x: number; y: number }[] = [];
+
+        // Sort points into upper and lower bands
+        plotPoints[plotRef].forEach((point, index) => {
+          if (index % 2 === 0) {
+            upperPoints.push(point);
+          } else {
+            lowerPoints.push(point);
+          }
+        });
+
+        this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
       }
-      // Add support for other plot types here (bar, scatter, etc.)
     });
   }
 }
