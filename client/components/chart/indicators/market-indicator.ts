@@ -118,7 +118,15 @@ export class MarketIndicator extends CanvasBase {
   }
 
   draw() {
-    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) return;
+    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
+      console.log("MarketIndicator: Missing required properties", {
+        canvas: !!this.canvas,
+        ctx: !!this.ctx,
+        state: !!this._state,
+        indicatorId: this.indicatorId,
+      });
+      return;
+    }
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
@@ -135,20 +143,38 @@ export class MarketIndicator extends CanvasBase {
       this._state.timeRange.end
     );
 
+    console.log("MarketIndicator: Drawing with data", {
+      indicatorId: this.indicatorId,
+      candlesCount: candles.length,
+      timeRange: this._state.timeRange,
+      firstCandle: candles[0]?.[1],
+    });
+
     // Find the indicator data
     const evaluation = candles[0]?.[1]?.evaluations?.find(
       (e) => e.id === this.indicatorId
     );
-    if (!evaluation) return;
+    if (!evaluation) {
+      console.log("MarketIndicator: No evaluation found for", this.indicatorId);
+      return;
+    }
 
     // Create a map to store points for each plot
     const plotPoints: { [key: string]: { x: number; y: number }[] } = {};
     const candleWidth = this.canvas.width / dpr / candles.length;
 
-    const getY = priceToY(this.canvas.height, {
-      start: this._state.priceRange.min,
-      end: this._state.priceRange.max,
-    });
+    // For RSI, use a fixed scale of 0-100
+    const getY =
+      this.indicatorId === "rsi" // TODO: add a config prop for this
+        ? (value: number) => {
+            const height = (this.canvas?.height ?? 0) / dpr;
+            // Invert the Y coordinate since canvas coordinates go from top to bottom
+            return height - (value / 100) * height;
+          }
+        : priceToY(this.canvas.height, {
+            start: this._state.priceRange.min,
+            end: this._state.priceRange.max,
+          });
 
     // Collect points for each plot
     iterateTimeline({
@@ -179,6 +205,11 @@ export class MarketIndicator extends CanvasBase {
       canvasWidth: this.canvas.width / dpr,
       interval: this._state.priceHistory.granularityMs,
       alignToLocalTime: false,
+    });
+
+    console.log("MarketIndicator: Collected points", {
+      plotPoints,
+      plotStyles: evaluation.plot_styles,
     });
 
     // Draw each plot using its style from plot_styles

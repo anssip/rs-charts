@@ -63,5 +63,22 @@ export const config: Config = {
         chartContainer.dispatchEvent(event);
       },
     },
+    {
+      label: "RSI",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "rsi",
+            visible: !chartContainer.isIndicatorVisible("rsi"),
+            params: { period: 14 }, // Standard RSI period is 14
+            display: "bottom",
+            class: MarketIndicator,
+          },
+          bubbles: true,
+          composed: true,
+        });
+        chartContainer.dispatchEvent(event);
+      },
+    },
   ],
 };

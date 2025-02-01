@@ -384,6 +384,7 @@ export class ChartContainer extends LitElement {
         class: indicatorClass,
       });
       // Update state.indicators
+
       this._state.indicators = Array.from(this.indicators.values())
         .filter((ind) => ind.visible)
         .map((ind) => ind.id);
