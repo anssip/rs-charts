@@ -27,6 +27,8 @@ bun run dev
 - [ ] macd
 - [ ] stochastic
 
+- [ ] Refactor the price-axis to be contained inside the chart component
+- [ ] Add Y-axis view to the market-indicator component
 - [ ] Make menu show the active indicators with a checkmark
 - [ ] Add possibility to supply params to market evaluators
 - [ ] Load indicators from `market.spotcanvas.com/evaluators`

@@ -482,12 +482,12 @@ export class ChartContainer extends LitElement {
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
+        ${stackTopIndicators.length > 0
+          ? html`<indicator-stack
+              .indicators=${stackTopIndicators}
+            ></indicator-stack>`
+          : ""}
         <div class="chart-area">
-          ${stackTopIndicators.length > 0
-            ? html`<indicator-stack
-                .indicators=${stackTopIndicators}
-              ></indicator-stack>`
-            : ""}
           <div class="chart">
             <indicator-container class="overlay-indicators">
               ${overlayIndicators.map(
@@ -507,21 +507,18 @@ export class ChartContainer extends LitElement {
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"
             ></candlestick-chart>
-            <indicator-container class="bottom-indicators">
-              ${bottomIndicators.map(
-                (indicator) =>
-                  html`
-                    <indicator-container
-                      data-indicator=${indicator.id}
-                      class="bottom-indicators"
-                    >
-                      ${new indicator.class({
-                        indicatorId: indicator.id,
-                      })}
-                    </indicator-container>
-                  `
-              )}
-            </indicator-container>
+            ${bottomIndicators.map(
+              (indicator) => html`
+                <indicator-container
+                  data-indicator=${indicator.id}
+                  class="bottom-indicators"
+                >
+                  ${new indicator.class({
+                    indicatorId: indicator.id,
+                  })}
+                </indicator-container>
+              `
+            )}
             ${this.requireActivation
               ? html`<div
                   class="activate-label ${this.isActive ? "hidden" : ""}"
@@ -536,11 +533,6 @@ export class ChartContainer extends LitElement {
                 </div>`
               : ""}
           </div>
-          ${stackBottomIndicators.length > 0
-            ? html`<indicator-stack
-                .indicators=${stackBottomIndicators}
-              ></indicator-stack>`
-            : ""}
           <live-decorators></live-decorators>
           ${!this.isTouchOnly && this.isActive
             ? html`<chart-crosshairs></chart-crosshairs>`
@@ -548,11 +540,16 @@ export class ChartContainer extends LitElement {
           <div class="price-axis-container">
             <price-axis></price-axis>
           </div>
-          <div class="timeline-container">
-            <chart-timeline></chart-timeline>
-          </div>
-          <chart-logo></chart-logo>
         </div>
+        ${stackBottomIndicators.length > 0
+          ? html`<indicator-stack
+              .indicators=${stackBottomIndicators}
+            ></indicator-stack>`
+          : ""}
+        <div class="timeline-container">
+          <chart-timeline></chart-timeline>
+        </div>
+        <chart-logo></chart-logo>
         <chart-context-menu
           .show=${this.showContextMenu}
           .position=${this.contextMenuPosition}

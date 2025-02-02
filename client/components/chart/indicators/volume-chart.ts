@@ -4,9 +4,24 @@ import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline } from "../../../util/chart-util";
 import { PropertyValues } from "lit";
+import { css } from "lit";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  `;
+
   @property({ type: Object })
   params?: Record<string, any>;
 

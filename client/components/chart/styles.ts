@@ -53,11 +53,6 @@ export const getStyles = (
     overflow: hidden;
   }
 
-  .chart-area:has(candlestick-chart.active) {
-    box-shadow: 0 4px 12px
-      color-mix(in srgb, var(--color-accent-1) 30%, transparent);
-  }
-
   :host(:fullscreen) .chart-area,
   :host(.full-window) .chart-area {
     height: calc(100vh - 200px);
@@ -123,27 +118,6 @@ export const getStyles = (
     display: none;
   }
 
-  .volume-chart {
-    position: absolute;
-    bottom: ${timelineHeight}px;
-    left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
-    height: 25%;
-    pointer-events: none;
-    z-index: 2;
-    background: none;
-  }
-
-  volume-chart {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    background: none;
-  }
-
   .price-axis-container,
   .timeline-container {
     position: absolute;
@@ -171,22 +145,17 @@ export const getStyles = (
   }
 
   .timeline-container {
-    bottom: 0;
-    left: 0px;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
     height: ${timelineHeight}px;
-    pointer-events: auto;
+    position: relative;
   }
 
   candlestick-chart {
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
-    height: calc(100% - ${timelineHeight}px);
-    pointer-events: auto;
-    z-index: 2;
-    cursor: default;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
   }
 
   candlestick-chart.active {
@@ -239,7 +208,7 @@ export const getStyles = (
     position: absolute;
     bottom: ${timelineHeight}px;
     left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
+    width: 100%;
     height: 25%;
     pointer-events: none;
     z-index: 2;
@@ -252,30 +221,45 @@ export const getStyles = (
 
   .overlay-indicators {
     position: absolute;
+    height: 100%;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     pointer-events: none;
+    z-index: 2;
   }
 
   .bottom-indicators {
     position: absolute;
     left: 0;
     width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
-    height: 200px;
+    height: 20%;
     pointer-events: none;
-    bottom: 30px;
+    bottom: 0;
+    z-index: 5;
+    background: none;
   }
 
-  .chart-area:has(indicator-stack) .bottom-indicators {
-    bottom: -150px;
-  }
-
-  indicator-stack {
+  indicator-container.bottom-indicators {
+    position: absolute;
     width: 100%;
-    min-height: 150px;
+    height: 20%;
+  }
+
+  /* Stack positioning - outside chart-area */
+  indicator-stack {
+    position: relative;
+    width: 100%;
+    height: 80px;
     border-top: 1px solid var(--chart-grid-line-color, #363c4e);
-    margin-top: 150px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  indicator-stack indicator-container {
+    position: relative;
+    flex: 1;
+    width: 100%;
   }
 `;
