@@ -31,6 +31,7 @@ import { MarketIndicator } from "./indicators/market-indicator";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
+import "./indicators/indicator-stack";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -41,7 +42,7 @@ export interface IndicatorState {
   id: string;
   visible: boolean;
   params?: Record<string, any>;
-  display: "fullchart" | "bottom";
+  display: "overlay" | "bottom" | "stack-bottom" | "stack-top";
   class: typeof VolumeChart | typeof MarketIndicator;
   skipFetch?: boolean;
 }
@@ -446,11 +447,17 @@ export class ChartContainer extends LitElement {
       },
     ];
 
+    const overlayIndicators = Array.from(this.indicators.values()).filter(
+      (indicator) => indicator.display === "overlay"
+    );
     const bottomIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === "bottom"
     );
-    const overlayIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === "fullchart"
+    const stackTopIndicators = Array.from(this.indicators.values()).filter(
+      (indicator) => indicator.display === "stack-top"
+    );
+    const stackBottomIndicators = Array.from(this.indicators.values()).filter(
+      (indicator) => indicator.display === "stack-bottom"
     );
 
     return html`
@@ -476,6 +483,11 @@ export class ChartContainer extends LitElement {
           ></price-info>
         </div>
         <div class="chart-area">
+          ${stackTopIndicators.length > 0
+            ? html`<indicator-stack
+                .indicators=${stackTopIndicators}
+              ></indicator-stack>`
+            : ""}
           <div class="chart">
             <indicator-container class="overlay-indicators">
               ${overlayIndicators.map(
@@ -495,6 +507,21 @@ export class ChartContainer extends LitElement {
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"
             ></candlestick-chart>
+            <indicator-container class="bottom-indicators">
+              ${bottomIndicators.map(
+                (indicator) =>
+                  html`
+                    <indicator-container
+                      data-indicator=${indicator.id}
+                      class="bottom-indicators"
+                    >
+                      ${new indicator.class({
+                        indicatorId: indicator.id,
+                      })}
+                    </indicator-container>
+                  `
+              )}
+            </indicator-container>
             ${this.requireActivation
               ? html`<div
                   class="activate-label ${this.isActive ? "hidden" : ""}"
@@ -509,19 +536,11 @@ export class ChartContainer extends LitElement {
                 </div>`
               : ""}
           </div>
-          ${bottomIndicators.map(
-            (indicator) =>
-              html`
-                <indicator-container
-                  data-indicator=${indicator.id}
-                  class="bottom-indicators"
-                >
-                  ${new indicator.class({
-                    indicatorId: indicator.id,
-                  })}
-                </indicator-container>
-              `
-          )}
+          ${stackBottomIndicators.length > 0
+            ? html`<indicator-stack
+                .indicators=${stackBottomIndicators}
+              ></indicator-stack>`
+            : ""}
           <live-decorators></live-decorators>
           ${!this.isTouchOnly && this.isActive
             ? html`<chart-crosshairs></chart-crosshairs>`

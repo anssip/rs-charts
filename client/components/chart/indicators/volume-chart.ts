@@ -106,7 +106,7 @@ export class VolumeChart extends CanvasBase {
         }
 
         const volumeHeight = (candle.volume || 0) * volumeScale;
-        if (volumeHeight <= 0) return; // Skip if no volume
+        // if (volumeHeight <= 0) return; // Skip if no volume
 
         const y = this.canvas!.height / dpr - volumeHeight;
 

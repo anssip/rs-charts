@@ -90,9 +90,3 @@ h1.app-header {
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-.bottom-indicators {
-    height: 150px;  /* Fixed height for bottom indicators like RSI */
-    position: relative;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-background);
-}

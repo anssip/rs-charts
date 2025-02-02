@@ -46,17 +46,11 @@ export const getStyles = (
   }
 
   .chart-area {
-    flex: 1;
     position: relative;
-    background: var(--color-primary-dark);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
-    pointer-events: auto;
-    border-radius: 12px;
-    margin: 0;
-    border: 1px solid rgba(143, 143, 143, 0.2);
-    height: calc(100% - 120px);
-    transition: box-shadow 0.2s ease-in-out;
-    z-index: 1;
   }
 
   .chart-area:has(candlestick-chart.active) {
@@ -98,10 +92,8 @@ export const getStyles = (
 
   .chart {
     position: relative;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
-    height: calc(100% - ${timelineHeight}px);
-    pointer-events: auto;
-    z-index: 1;
+    flex: 1;
+    min-height: 0;
   }
 
   .activate-label {
@@ -262,24 +254,28 @@ export const getStyles = (
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
-    z-index: 3;
   }
 
   .bottom-indicators {
     position: absolute;
-    bottom: ${timelineHeight}px;
     left: 0;
     width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
-    height: 25%;
+    height: 200px;
     pointer-events: none;
-    z-index: 3;
-    background: none;
+    bottom: 30px;
   }
 
-  indicator-container[hidden] {
-    display: none;
+  .chart-area:has(indicator-stack) .bottom-indicators {
+    bottom: -150px;
+  }
+
+  indicator-stack {
+    width: 100%;
+    min-height: 150px;
+    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+    margin-top: 150px;
   }
 `;

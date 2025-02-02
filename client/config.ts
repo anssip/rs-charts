@@ -31,14 +31,14 @@ export const config: Config = {
       },
     },
     {
-      label: "Moving Averages 200 & 50",
+      label: "Moving Averages",
       action: () => {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "moving-averages",
             visible: !chartContainer.isIndicatorVisible("moving-averages"),
             params: { period: 200 },
-            display: "fullchart",
+            display: "overlay",
             class: MarketIndicator,
           },
           bubbles: true,
@@ -55,7 +55,7 @@ export const config: Config = {
             id: "bollinger-bands",
             visible: !chartContainer.isIndicatorVisible("bollinger-bands"),
             params: { period: 20, stdDev: 2 },
-            display: "fullchart",
+            display: "overlay",
             class: MarketIndicator,
           },
           bubbles: true,
@@ -71,8 +71,8 @@ export const config: Config = {
           detail: {
             id: "rsi",
             visible: !chartContainer.isIndicatorVisible("rsi"),
-            params: { period: 14 }, // Standard RSI period is 14
-            display: "bottom",
+            params: { period: 14 },
+            display: "stack-bottom",
             class: MarketIndicator,
           },
           bubbles: true,
