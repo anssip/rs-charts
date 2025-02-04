@@ -1,13 +1,15 @@
+import { html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { CanvasBase } from "./canvas-base";
 import {
   Drawable,
   CandlestickStrategy,
   DrawingContext,
 } from "./drawing-strategy";
-import { CanvasBase } from "./canvas-base";
 import { xin } from "xinjs";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
+import "./price-axis";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
 
@@ -28,6 +30,12 @@ export interface ChartOptions {
 
 @customElement("candlestick-chart")
 export class CandlestickChart extends CanvasBase implements Drawable {
+  @property({ type: Number })
+  priceAxisWidth = 70;
+
+  @property({ type: Number })
+  priceAxisMobileWidth = 45;
+
   private _state: ChartState | null = null;
   private _padding: {
     top: number;
@@ -45,9 +53,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   };
 
   private drawingStrategy: Drawable = new CandlestickStrategy();
-  override getId(): string {
-    return "candlestick-chart";
-  }
 
   @property({ type: Object })
   public set options(options: ChartOptions) {
@@ -69,8 +74,17 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     this._state = state;
   }
 
-  async firstUpdated() {
-    super.firstUpdated();
+  override getId(): string {
+    return "candlestick-chart";
+  }
+
+  override async firstUpdated() {
+    this.canvas = this.renderRoot.querySelector("canvas");
+    const ctx = this.canvas?.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
+    this.ctx = ctx;
+
+    await super.firstUpdated();
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
@@ -110,7 +124,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     this.drawWithContext(context);
   }
 
-  override resize(width: number, height: number) {
+  useResizeObserver(): boolean {
+    return true;
+  }
+
+  resize(width: number, height: number) {
     super.resize(width, height);
 
     xin["state.canvasWidth"] = width;
@@ -128,4 +146,70 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       availableWidth / (totalCandleWidth * window.devicePixelRatio)
     );
   }
+
+  render() {
+    console.log("CandlestickChart render");
+    return html`
+      <div class="chart-container">
+        <canvas></canvas>
+      </div>
+      <div class="price-axis-container">
+        <price-axis></price-axis>
+      </div>
+    `;
+  }
+
+  updated() {
+    console.log("CandlestickChart updated:", {
+      priceAxisWidth: this.priceAxisWidth,
+      priceAxisMobileWidth: this.priceAxisMobileWidth,
+      computedStyle:
+        getComputedStyle(this).getPropertyValue("--price-axis-width"),
+    });
+
+    this.style.setProperty("--price-axis-width", `${this.priceAxisWidth}px`);
+    this.style.setProperty(
+      "--price-axis-mobile-width",
+      `${this.priceAxisMobileWidth}px`
+    );
+  }
+
+  static styles = css`
+    :host {
+      position: relative;
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .chart-container {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .price-axis-container {
+      position: relative;
+      flex: none;
+      width: var(--price-axis-width);
+      height: 100%;
+      background: var(--color-primary-dark);
+    }
+
+    @media (max-width: 767px) {
+      .price-axis-container {
+        width: var(--price-axis-mobile-width);
+      }
+    }
+  `;
 }

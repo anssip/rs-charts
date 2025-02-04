@@ -1,4 +1,4 @@
-import { LitElement, html, css, PropertyValues } from "lit";
+import { LitElement, html, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
   granularityToMs,
@@ -7,7 +7,6 @@ import {
 } from "../../../server/services/price-data/price-history-model";
 import "./chart";
 import "./timeline";
-import "./price-axis";
 import "./live-decorators";
 import "./crosshairs";
 import "./price-info";
@@ -482,11 +481,13 @@ export class ChartContainer extends LitElement {
             @upgrade-click=${this.dispatchUpgrade}
           ></price-info>
         </div>
+
         ${stackTopIndicators.length > 0
           ? html`<indicator-stack
               .indicators=${stackTopIndicators}
             ></indicator-stack>`
           : ""}
+
         <div class="chart-area">
           <div class="chart">
             <indicator-container class="overlay-indicators">
@@ -504,8 +505,11 @@ export class ChartContainer extends LitElement {
                   `
               )}
             </indicator-container>
+
             <candlestick-chart
               class="${this.isActive ? "active" : ""}"
+              .priceAxisWidth=${PRICEAXIS_WIDTH}
+              .priceAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
             ></candlestick-chart>
             ${bottomIndicators.map(
               (indicator) => html`
@@ -537,15 +541,14 @@ export class ChartContainer extends LitElement {
           ${!this.isTouchOnly && this.isActive
             ? html`<chart-crosshairs></chart-crosshairs>`
             : ""}
-          <div class="price-axis-container">
-            <price-axis></price-axis>
-          </div>
         </div>
+
         ${stackBottomIndicators.length > 0
           ? html`<indicator-stack
               .indicators=${stackBottomIndicators}
             ></indicator-stack>`
           : ""}
+
         <div class="timeline-container">
           <chart-timeline></chart-timeline>
         </div>
@@ -675,6 +678,7 @@ export class ChartContainer extends LitElement {
       granularity: this._state.granularity,
       volume: liveCandle.volume,
       live: true,
+      evaluations: [],
     });
     if (isSuccess) {
       this.draw();

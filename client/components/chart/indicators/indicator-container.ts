@@ -16,17 +16,6 @@ export class IndicatorContainer extends LitElement {
       this.updateChildComponents();
     });
 
-    // Set up resize observer
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        if (entry.target === this) {
-          const { width, height } = entry.contentRect;
-          this.handleResize(width, height);
-        }
-      }
-    });
-    this.resizeObserver.observe(this);
-
     // Initial update of child components
     this.updateChildComponents();
   }
@@ -38,18 +27,18 @@ export class IndicatorContainer extends LitElement {
     }
   }
 
-  private handleResize(width: number, height: number) {
-    // Get all slotted canvas-based components
-    const slot = this.renderRoot.querySelector("slot");
-    if (!slot) return;
+  // private handleResize(width: number, height: number) {
+  //   // Get all slotted canvas-based components
+  //   const slot = this.renderRoot.querySelector("slot");
+  //   if (!slot) return;
 
-    const elements = slot.assignedElements();
-    for (const element of elements) {
-      if (element instanceof CanvasBase) {
-        element.resize(width, height);
-      }
-    }
-  }
+  //   const elements = slot.assignedElements();
+  //   for (const element of elements) {
+  //     if (element instanceof CanvasBase) {
+  //       element.resize(width, height);
+  //     }
+  //   }
+  // }
 
   private updateChildComponents() {
     if (!this._state) return;

@@ -89,6 +89,7 @@ export const getStyles = (
     position: relative;
     flex: 1;
     min-height: 0;
+    width: 100%;
   }
 
   .activate-label {
@@ -116,25 +117,6 @@ export const getStyles = (
 
   .activate-label.hidden {
     display: none;
-  }
-
-  .price-axis-container,
-  .timeline-container {
-    position: absolute;
-    background: var(--color-primary-dark);
-    z-index: 4;
-  }
-
-  .price-axis-container {
-    right: 0;
-    top: 0;
-    width: var(--price-axis-width, ${priceAxisWidth}px);
-    height: calc(100% - ${timelineHeight}px);
-  }
-
-  :host(:fullscreen) .price-axis-container,
-  :host(.full-window) .price-axis-container {
-    height: calc(100% - ${timelineHeight}px);
   }
 
   chart-timeline {
@@ -171,7 +153,7 @@ export const getStyles = (
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
+    width: 100%;
     height: calc(100% - ${timelineHeight}px);
     pointer-events: none;
     z-index: 6;
@@ -224,8 +206,7 @@ export const getStyles = (
     height: 100%;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
     pointer-events: none;
     z-index: 2;
   }
@@ -233,7 +214,7 @@ export const getStyles = (
   .bottom-indicators {
     position: absolute;
     left: 0;
-    width: calc(100% - var(--price-axis-width, ${priceAxisWidth}px));
+    width: 100%;
     height: 20%;
     pointer-events: none;
     bottom: 0;
