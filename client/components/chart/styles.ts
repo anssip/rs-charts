@@ -153,8 +153,8 @@ export const getStyles = (
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: calc(100% - ${timelineHeight}px);
+    width: calc(100% - ${priceAxisWidth}px);
+    height: 100%;
     pointer-events: none;
     z-index: 6;
   }

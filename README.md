@@ -27,7 +27,8 @@ bun run dev
 - [ ] macd
 - [ ] stochastic
 
-- [ ] Refactor the price-axis to be contained inside the chart component
+- [x] Refactor the price-axis to be contained inside the chart component
+- [ ] Live indicator is a bit off
 - [ ] Add Y-axis view to the market-indicator component
 - [ ] Make menu show the active indicators with a checkmark
 - [ ] Add possibility to supply params to market evaluators
