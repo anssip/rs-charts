@@ -539,14 +539,13 @@ export class ChartContainer extends LitElement {
           </div>
           <live-decorators></live-decorators>
         </div>
-
+        ${!this.isTouchOnly && this.isActive
+          ? html`<chart-crosshairs></chart-crosshairs>`
+          : ""}
         ${stackBottomIndicators.length > 0
           ? html`<indicator-stack
               .indicators=${stackBottomIndicators}
             ></indicator-stack>`
-          : ""}
-        ${!this.isTouchOnly && this.isActive
-          ? html`<chart-crosshairs></chart-crosshairs>`
           : ""}
         <div class="timeline-container">
           <chart-timeline></chart-timeline>

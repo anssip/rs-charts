@@ -6,6 +6,7 @@ import {
   canvasYToPrice,
   drawTimeLabel,
   getLocalAlignedTimestamp,
+  yToPrice,
 } from "../../util/chart-util";
 import { CandlestickChart } from "./chart";
 import { ChartState } from "../..";
@@ -35,19 +36,22 @@ export class Crosshairs extends CanvasBase {
     observe("state.priceRange", () => this.draw());
   }
 
-  private handleMouseMove = (event: MouseEvent) => {
-    if (!this.canvas) return;
-
+  private getChartRect(): DOMRect {
     const chartArea = this.parentElement;
     const chart = chartArea?.querySelector(
       "candlestick-chart"
-    ) as CandlestickChart;
-    const rect = chart?.getBoundingClientRect();
+    ) as HTMLCanvasElement;
+    return chart?.getBoundingClientRect() as DOMRect;
+  }
+
+  private handleMouseMove = (event: MouseEvent) => {
+    if (!this.canvas) return;
+
+    const rect = this.getChartRect();
     if (!rect) {
       return;
     }
 
-    const chartWidth = xin["state.canvasWidth"] as number;
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
     const priceRange = state.priceRange;
@@ -58,7 +62,7 @@ export class Crosshairs extends CanvasBase {
 
     // Calculate time at mouse position
     const timeSpan = timeRange.end - timeRange.start;
-    const mouseTime = timeRange.start + (this.mouseX / chartWidth) * timeSpan;
+    const mouseTime = timeRange.start + (this.mouseX / rect.width) * timeSpan;
 
     // Get the interval and snap to it
     const interval = granularityToMs(state.granularity);
@@ -78,9 +82,9 @@ export class Crosshairs extends CanvasBase {
 
     // Calculate X position from snapped time
     const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
-    this.snappedX = timePosition * chartWidth;
+    this.snappedX = timePosition * rect.width;
 
-    this.cursorPrice = canvasYToPrice(this.mouseY, chart.canvas!, priceRange);
+    this.cursorPrice = yToPrice(this.mouseY, rect.height, priceRange);
 
     this.draw();
   };
@@ -106,6 +110,10 @@ export class Crosshairs extends CanvasBase {
       );
       return;
     }
+    const rect = this.getChartRect();
+    if (!rect) {
+      return;
+    }
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
@@ -113,26 +121,23 @@ export class Crosshairs extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Draw horizontal line at mouse Y
-    if (this.mouseY < this.canvas.height / dpr - TIMELINE_HEIGHT) {
+    if (this.mouseY < rect.height) {
       ctx.beginPath();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = getComputedStyle(document.documentElement)
         .getPropertyValue("--color-primary")
         .trim();
       ctx.lineWidth = 1;
-      ctx.moveTo(0, this.mouseY);
-      ctx.lineTo(this.canvas.width, this.mouseY);
+      ctx.moveTo(0, this.mouseY + rect.top);
+      ctx.lineTo(this.canvas.width, this.mouseY + rect.top);
       ctx.stroke();
     }
 
     // Draw vertical line at snapped X
-    if (
-      this.snappedX >= 0 &&
-      this.snappedX <= this.canvas.width / dpr - PRICEAXIS_WIDTH
-    ) {
+    if (this.snappedX >= 0 && this.snappedX <= rect.width) {
       ctx.beginPath();
-      ctx.moveTo(this.snappedX, 0);
-      ctx.lineTo(this.snappedX, this.canvas.height);
+      ctx.moveTo(this.snappedX + rect.left, 0);
+      ctx.lineTo(this.snappedX + rect.left, this.canvas.height);
       ctx.stroke();
     }
 
@@ -193,7 +198,7 @@ export class Crosshairs extends CanvasBase {
     drawTimeLabel(
       ctx,
       this.cursorTime,
-      this.snappedX,
+      this.snappedX + rect.left,
       this.canvas.height / dpr - 5 * dpr,
       getComputedStyle(document.documentElement)
         .getPropertyValue("--color-background-secondary")

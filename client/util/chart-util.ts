@@ -153,6 +153,18 @@ export function canvasYToPrice(
   return priceRange.min + percentage * (priceRange.max - priceRange.min);
 }
 
+export function yToPrice(
+  y: number,
+  height: number,
+  priceRange: PriceRange
+): number {
+  const availableHeight = height / dpr;
+  // Invert the percentage calculation
+  const percentage = 1 - y / availableHeight;
+  // Convert percentage to price
+  return priceRange.min + percentage * (priceRange.max - priceRange.min);
+}
+
 export type PriceLabelOptions = {
   price: number;
   backgroundColor: string;

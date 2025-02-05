@@ -128,13 +128,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     return true;
   }
 
-  resize(width: number, height: number) {
-    super.resize(width, height);
-
-    xin["state.canvasWidth"] = width;
-    xin["state.canvasHeight"] = height;
-  }
-
   public calculateVisibleCandles(): number {
     if (!this.canvas) return 0;
     const availableWidth =
@@ -193,7 +186,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
+      width: calc(100% - var(--price-axis-width));
       height: 100%;
       display: block;
     }
@@ -209,6 +202,10 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     @media (max-width: 767px) {
       .price-axis-container {
         width: var(--price-axis-mobile-width);
+      }
+
+      canvas {
+        width: calc(100% - var(--price-axis-mobile-width));
       }
     }
   `;
