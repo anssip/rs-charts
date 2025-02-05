@@ -27,6 +27,9 @@ bun run dev
 - [ ] macd
 - [ ] stochastic
 
+- [ ] Enhance value-axis to highlight the value on mouse Y
+- [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming
+- [ ] Refactor crosshairs to no include the value drawing in the right edge
 - [x] Refactor the price-axis to be contained inside the chart component
 - [ ] Add Y-axis view to the market-indicator component
 - [ ] Make menu show the active indicators with a checkmark

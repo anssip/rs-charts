@@ -4,9 +4,8 @@ import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline, priceToY } from "../../../util/chart-util";
 import { ScaleType } from "./indicator-types";
-import { ValueAxis } from "../value-axis";
 import "../value-axis";
-import { html, css } from "lit";
+import { html, css, PropertyValues } from "lit";
 
 @customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
@@ -22,6 +21,9 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: Number })
   valueAxisMobileWidth = 45;
 
+  @property({ type: Boolean })
+  showAxis = true;
+
   private _state: ChartState | null = null;
 
   constructor(props?: {
@@ -29,6 +31,7 @@ export class MarketIndicator extends CanvasBase {
     scale?: ScaleType;
     valueAxisWidth?: number;
     valueAxisMobileWidth?: number;
+    showAxis?: boolean;
   }) {
     super();
     if (props?.indicatorId) {
@@ -42,6 +45,9 @@ export class MarketIndicator extends CanvasBase {
     }
     if (props?.valueAxisMobileWidth) {
       this.valueAxisMobileWidth = props?.valueAxisMobileWidth;
+    }
+    if (props?.showAxis !== undefined) {
+      this.showAxis = props.showAxis;
     }
   }
 
@@ -63,12 +69,23 @@ export class MarketIndicator extends CanvasBase {
     });
   }
 
-  updated() {
-    this.style.setProperty("--value-axis-width", `${this.valueAxisWidth}px`);
-    this.style.setProperty(
-      "--value-axis-mobile-width",
-      `${this.valueAxisMobileWidth}px`
-    );
+  updated(changedProperties: PropertyValues) {
+    super.updated(changedProperties);
+    if (changedProperties.has("showAxis")) {
+      this.style.setProperty(
+        "--indicator-show-axis",
+        this.showAxis ? "1" : "0"
+      );
+    }
+    if (changedProperties.has("valueAxisWidth")) {
+      this.style.setProperty("--value-axis-width", `${this.valueAxisWidth}px`);
+    }
+    if (changedProperties.has("valueAxisMobileWidth")) {
+      this.style.setProperty(
+        "--value-axis-mobile-width",
+        `${this.valueAxisMobileWidth}px`
+      );
+    }
   }
 
   useResizeObserver(): boolean {
@@ -280,13 +297,16 @@ export class MarketIndicator extends CanvasBase {
         <div class="chart-area">
           <canvas></canvas>
         </div>
-        <value-axis
-          .valueRange=${this.scale === ScaleType.Percentage
-            ? { min: 0, max: 100, range: 100 }
-            : this._state?.priceRange}
-          .scale=${this.scale ?? "price"}
-          .width=${this.valueAxisWidth}
-        ></value-axis>
+        ${this.showAxis
+          ? html`<value-axis
+              .valueRange=${this.scale === ScaleType.Percentage
+                ? { min: 0, max: 100, range: 100 }
+                : this._state?.priceRange}
+              .scale=${this.scale ?? "price"}
+              .width=${this.valueAxisWidth}
+              .showAxis=${this.showAxis}
+            ></value-axis>`
+          : ""}
       </div>
     `;
   }
@@ -296,6 +316,7 @@ export class MarketIndicator extends CanvasBase {
       display: block;
       width: 100%;
       height: 100%;
+      --show-axis: var(--indicator-show-axis, 1);
     }
 
     .indicator-container {
@@ -309,14 +330,14 @@ export class MarketIndicator extends CanvasBase {
       flex: 1;
       position: relative;
       height: 100%;
-      width: calc(100% - var(--value-axis-width, 70px));
+      width: calc(100% - (var(--show-axis) * var(--value-axis-width, 70px)));
     }
 
     canvas {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - var(--value-axis-width, 70px));
+      width: calc(100% - (var(--show-axis) * var(--value-axis-width, 70px)));
       height: 100%;
     }
 

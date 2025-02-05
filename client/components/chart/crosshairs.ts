@@ -121,7 +121,10 @@ export class Crosshairs extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Draw horizontal line at mouse Y
-    if (this.mouseY < rect.height) {
+    if (
+      (rect.top + this.mouseY) * dpr <
+      this.canvas.height - TIMELINE_HEIGHT * dpr
+    ) {
       ctx.beginPath();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = getComputedStyle(document.documentElement)

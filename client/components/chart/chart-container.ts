@@ -496,6 +496,7 @@ export class ChartContainer extends LitElement {
                       ${new indicator.class({
                         indicatorId: indicator.id,
                         scale: indicator.scale,
+                        showAxis: false,
                       })}
                     </indicator-container>
                   `
