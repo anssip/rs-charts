@@ -1,12 +1,18 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { IndicatorState } from "../chart-container";
 import "../indicators/indicator-container";
+import { IndicatorConfig } from "./indicator-types";
 
 @customElement("indicator-stack")
 export class IndicatorStack extends LitElement {
   @property({ type: Array })
-  indicators: IndicatorState[] = [];
+  indicators: IndicatorConfig[] = [];
+
+  @property({ type: Number })
+  valueAxisWidth = 70;
+
+  @property({ type: Number })
+  valueAxisMobileWidth = 45;
 
   static styles = css`
     :host {
@@ -44,6 +50,8 @@ export class IndicatorStack extends LitElement {
               ${new indicator.class({
                 indicatorId: indicator.id,
                 scale: indicator.scale,
+                valueAxisWidth: this.valueAxisWidth,
+                valueAxisMobileWidth: this.valueAxisMobileWidth,
               })}
             </indicator-container>
           </div>

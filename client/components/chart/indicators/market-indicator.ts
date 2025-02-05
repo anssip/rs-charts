@@ -4,6 +4,9 @@ import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline, priceToY } from "../../../util/chart-util";
 import { ScaleType } from "./indicator-types";
+import { ValueAxis } from "../value-axis";
+import "../value-axis";
+import { html, css } from "lit";
 
 @customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
@@ -13,15 +16,32 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: String })
   scale?: ScaleType;
 
+  @property({ type: Number })
+  valueAxisWidth = 70;
+
+  @property({ type: Number })
+  valueAxisMobileWidth = 45;
+
   private _state: ChartState | null = null;
 
-  constructor(props?: { indicatorId?: string; scale?: ScaleType }) {
+  constructor(props?: {
+    indicatorId?: string;
+    scale?: ScaleType;
+    valueAxisWidth?: number;
+    valueAxisMobileWidth?: number;
+  }) {
     super();
     if (props?.indicatorId) {
       this.indicatorId = props.indicatorId;
     }
     if (props?.scale) {
       this.scale = props.scale;
+    }
+    if (props?.valueAxisWidth) {
+      this.valueAxisWidth = props?.valueAxisWidth;
+    }
+    if (props?.valueAxisMobileWidth) {
+      this.valueAxisMobileWidth = props?.valueAxisMobileWidth;
     }
   }
 
@@ -41,6 +61,14 @@ export class MarketIndicator extends CanvasBase {
     observe("state.priceRange", () => {
       this.draw();
     });
+  }
+
+  updated() {
+    this.style.setProperty("--value-axis-width", `${this.valueAxisWidth}px`);
+    this.style.setProperty(
+      "--value-axis-mobile-width",
+      `${this.valueAxisMobileWidth}px`
+    );
   }
 
   useResizeObserver(): boolean {
@@ -236,4 +264,67 @@ export class MarketIndicator extends CanvasBase {
       }
     });
   }
+
+  render() {
+    console.log("MarketIndicator render", {
+      scale: this.scale,
+      valueRange:
+        this.scale === ScaleType.Percentage
+          ? { min: 0, max: 100, range: 100 }
+          : this._state?.priceRange,
+      state: this._state,
+    });
+
+    return html`
+      <div class="indicator-container">
+        <div class="chart-area">
+          <canvas></canvas>
+        </div>
+        <value-axis
+          .valueRange=${this.scale === ScaleType.Percentage
+            ? { min: 0, max: 100, range: 100 }
+            : this._state?.priceRange}
+          .scale=${this.scale ?? "price"}
+          .width=${this.valueAxisWidth}
+        ></value-axis>
+      </div>
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .indicator-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      min-height: 150px;
+    }
+
+    .chart-area {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      width: calc(100% - var(--value-axis-width, 70px));
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: calc(100% - var(--value-axis-width, 70px));
+      height: 100%;
+    }
+
+    value-axis {
+      flex: none;
+      width: var(--value-axis-width, 70px);
+      height: 100%;
+      z-index: 2;
+    }
+  `;
 }

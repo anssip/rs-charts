@@ -478,6 +478,8 @@ export class ChartContainer extends LitElement {
         ${stackTopIndicators.length > 0
           ? html`<indicator-stack
               .indicators=${stackTopIndicators}
+              .valueAxisWidth=${PRICEAXIS_WIDTH}
+              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
             ></indicator-stack>`
           : ""}
 
@@ -540,6 +542,8 @@ export class ChartContainer extends LitElement {
         ${stackBottomIndicators.length > 0
           ? html`<indicator-stack
               .indicators=${stackBottomIndicators}
+              .valueAxisWidth=${PRICEAXIS_WIDTH}
+              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
             ></indicator-stack>`
           : ""}
         <div class="timeline-container">

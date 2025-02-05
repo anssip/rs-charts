@@ -153,13 +153,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   updated() {
-    console.log("CandlestickChart updated:", {
-      priceAxisWidth: this.priceAxisWidth,
-      priceAxisMobileWidth: this.priceAxisMobileWidth,
-      computedStyle:
-        getComputedStyle(this).getPropertyValue("--price-axis-width"),
-    });
-
     this.style.setProperty("--price-axis-width", `${this.priceAxisWidth}px`);
     this.style.setProperty(
       "--price-axis-mobile-width",
