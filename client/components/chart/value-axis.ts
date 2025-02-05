@@ -1,4 +1,4 @@
-import { css } from "lit";
+import { css, PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { formatPrice } from "../../util/price-util";
@@ -11,23 +11,16 @@ export interface ValueRange {
 
 @customElement("value-axis")
 export class ValueAxis extends CanvasBase {
-  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
-  private isMobile = this.mobileMediaQuery.matches;
-
   constructor() {
     super();
-    this.isMobile = this.mobileMediaQuery.matches;
-    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
-
-  private handleMobileChange = (e: MediaQueryListEvent) => {
-    this.isMobile = e.matches;
-    this.draw();
-  };
 
   override getId(): string {
     return "value-axis";
   }
+
+  @property({ type: Boolean })
+  isMobile = false;
 
   @property({ type: Object })
   valueRange: ValueRange = { min: 0, max: 100, range: 100 };
@@ -40,6 +33,13 @@ export class ValueAxis extends CanvasBase {
 
   useResizeObserver(): boolean {
     return true;
+  }
+
+  updated(changedProperties: PropertyValues) {
+    super.updated(changedProperties);
+    if (changedProperties.has("width")) {
+      this.style.setProperty("--value-axis-width", `${this.width}px`);
+    }
   }
 
   valueToY(value: number): number {

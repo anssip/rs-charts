@@ -9,6 +9,9 @@ import { html, css, PropertyValues } from "lit";
 
 @customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
+
   @property({ type: String })
   indicatorId?: string;
 
@@ -49,6 +52,10 @@ export class MarketIndicator extends CanvasBase {
     if (props?.showAxis !== undefined) {
       this.showAxis = props.showAxis;
     }
+    this.mobileMediaQuery.addEventListener("change", () => {
+      this.isMobile = this.mobileMediaQuery.matches;
+      this.draw();
+    });
   }
 
   override getId(): string {
@@ -303,8 +310,11 @@ export class MarketIndicator extends CanvasBase {
                 ? { min: 0, max: 100, range: 100 }
                 : this._state?.priceRange}
               .scale=${this.scale ?? "price"}
-              .width=${this.valueAxisWidth}
+              .width=${this.isMobile
+                ? this.valueAxisMobileWidth
+                : this.valueAxisWidth}
               .showAxis=${this.showAxis}
+              .isMobile=${this.isMobile}
             ></value-axis>`
           : ""}
       </div>
