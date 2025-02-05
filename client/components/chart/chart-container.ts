@@ -25,26 +25,16 @@ import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
 import { config } from "../../config";
-import { VolumeChart } from "./indicators/volume-chart";
-import { MarketIndicator } from "./indicators/market-indicator";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
+import { DisplayType, IndicatorConfig } from "./indicators/indicator-types";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
-
-export interface IndicatorState {
-  id: string;
-  visible: boolean;
-  params?: Record<string, any>;
-  display: "overlay" | "bottom" | "stack-bottom" | "stack-top";
-  class: typeof VolumeChart | typeof MarketIndicator;
-  skipFetch?: boolean;
-}
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -122,7 +112,7 @@ export class ChartContainer extends LitElement {
   private isActive = false;
 
   @state()
-  private indicators: Map<string, IndicatorState> = new Map();
+  private indicators: Map<string, IndicatorConfig> = new Map();
 
   private interactionController?: ChartInteractionController;
 
@@ -377,20 +367,22 @@ export class ChartContainer extends LitElement {
     const {
       id,
       visible,
-      params,
       display,
       class: indicatorClass,
+      params,
       skipFetch,
+      scale,
     } = e.detail;
 
     if (visible) {
       this.indicators.set(id, {
         id,
         visible,
-        params,
         display,
         class: indicatorClass,
+        params,
         skipFetch,
+        scale,
       });
       // Update state.indicators
       this._state.indicators = Array.from(this.indicators.values())
@@ -401,7 +393,6 @@ export class ChartContainer extends LitElement {
       // Update state.indicators
       this._state.indicators = Array.from(this.indicators.values());
     }
-    console.log("state.indicators", this._state.indicators);
 
     this.requestUpdate();
   }
@@ -447,17 +438,19 @@ export class ChartContainer extends LitElement {
     ];
 
     const overlayIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === "overlay"
+      (indicator) => indicator.display === DisplayType.Overlay
     );
     const bottomIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === "bottom"
+      (indicator) => indicator.display === DisplayType.Bottom
     );
     const stackTopIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === "stack-top"
+      (indicator) => indicator.display === DisplayType.StackTop
     );
     const stackBottomIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === "stack-bottom"
+      (indicator) => indicator.display === DisplayType.StackBottom
     );
+
+    console.log("stackBottomIndicators", stackBottomIndicators);
 
     return html`
       <div
@@ -500,6 +493,7 @@ export class ChartContainer extends LitElement {
                     >
                       ${new indicator.class({
                         indicatorId: indicator.id,
+                        scale: indicator.scale,
                       })}
                     </indicator-container>
                   `
@@ -519,6 +513,7 @@ export class ChartContainer extends LitElement {
                 >
                   ${new indicator.class({
                     indicatorId: indicator.id,
+                    scale: indicator.scale,
                   })}
                 </indicator-container>
               `

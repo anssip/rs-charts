@@ -14,7 +14,7 @@ import {
 } from "../server/services/price-data/price-history-model";
 import { ChartState } from ".";
 import { FirestoreClient } from "./api/firestore-client";
-import { observe, xin, xinValue } from "xinjs";
+import { observe, xinValue } from "xinjs";
 import { getCandleInterval } from "./util/chart-util";
 import { config } from "./config";
 import { CandleRepository } from "./api/candle-repository";

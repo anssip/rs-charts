@@ -3,18 +3,25 @@ import { CanvasBase } from "../canvas-base";
 import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline, priceToY } from "../../../util/chart-util";
+import { ScaleType } from "./indicator-types";
 
 @customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
   @property({ type: String })
   indicatorId?: string;
 
+  @property({ type: String })
+  scale?: ScaleType;
+
   private _state: ChartState | null = null;
 
-  constructor(props?: { indicatorId?: string }) {
+  constructor(props?: { indicatorId?: string; scale?: ScaleType }) {
     super();
     if (props?.indicatorId) {
       this.indicatorId = props.indicatorId;
+    }
+    if (props?.scale) {
+      this.scale = props.scale;
     }
   }
 
@@ -160,7 +167,7 @@ export class MarketIndicator extends CanvasBase {
 
     // For RSI, use a fixed scale of 0-100
     const getY =
-      this.indicatorId === "rsi" // TODO: add a config prop for this
+      this.scale === ScaleType.Percentage
         ? (value: number) => {
             const height = (this.canvas?.height ?? 0) / dpr;
             // Invert the Y coordinate since canvas coordinates go from top to bottom

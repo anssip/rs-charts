@@ -43,6 +43,7 @@ export class IndicatorStack extends LitElement {
             <indicator-container>
               ${new indicator.class({
                 indicatorId: indicator.id,
+                scale: indicator.scale,
               })}
             </indicator-container>
           </div>
