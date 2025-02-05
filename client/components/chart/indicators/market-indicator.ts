@@ -6,6 +6,7 @@ import { iterateTimeline, priceToY } from "../../../util/chart-util";
 import { ScaleType } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
+import { ValueRange } from "../value-axis";
 
 @customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
@@ -28,6 +29,13 @@ export class MarketIndicator extends CanvasBase {
   showAxis = true;
 
   private _state: ChartState | null = null;
+
+  @property({ type: Object })
+  private localValueRange: ValueRange = {
+    min: 0,
+    max: 100,
+    range: 100,
+  };
 
   constructor(props?: {
     indicatorId?: string;
@@ -64,6 +72,26 @@ export class MarketIndicator extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
+    console.log("MarketIndicator: First updated", {
+      scale: this.scale,
+      valueRange: this.localValueRange,
+    });
+    if (this.scale === ScaleType.Price) {
+      observe("state.priceRange", () => {
+        console.log(
+          "MarketIndicator: Price range changed",
+          this._state?.priceRange
+        );
+        this.localValueRange = {
+          min: this._state?.priceRange.min ?? 0,
+          max: this._state?.priceRange.max ?? 100,
+          range:
+            (this._state?.priceRange.max ?? 100) -
+            (this._state?.priceRange.min ?? 0),
+        };
+        this.draw();
+      });
+    }
     observe("state", () => {
       this._state = xin["state"] as ChartState;
       this.draw();
@@ -71,9 +99,13 @@ export class MarketIndicator extends CanvasBase {
     observe("state.timeRange", () => {
       this.draw();
     });
-    observe("state.priceRange", () => {
+
+    this.addEventListener("value-range-change", ((
+      e: CustomEvent<ValueRange>
+    ) => {
+      this.localValueRange = e.detail;
       this.draw();
-    });
+    }) as EventListener);
   }
 
   updated(changedProperties: PropertyValues) {
@@ -217,18 +249,16 @@ export class MarketIndicator extends CanvasBase {
     const plotPoints: { [key: string]: { x: number; y: number }[] } = {};
     const candleWidth = this.canvas.width / dpr / candles.length;
 
-    // For RSI, use a fixed scale of 0-100
-    const getY =
-      this.scale === ScaleType.Percentage
-        ? (value: number) => {
-            const height = (this.canvas?.height ?? 0) / dpr;
-            // Invert the Y coordinate since canvas coordinates go from top to bottom
-            return height - (value / 100) * height;
-          }
-        : priceToY(this.canvas.height, {
-            start: this._state.priceRange.min,
-            end: this._state.priceRange.max,
-          });
+    // Use localValueRange for both percentage and price scales
+    const getY = (value: number) => {
+      const height = (this.canvas?.height ?? 0) / dpr;
+      // Invert the Y coordinate since canvas coordinates go from top to bottom
+      return (
+        height -
+        ((value - this.localValueRange.min) / this.localValueRange.range) *
+          height
+      );
+    };
 
     // Collect points for each plot
     iterateTimeline({
@@ -306,9 +336,7 @@ export class MarketIndicator extends CanvasBase {
         </div>
         ${this.showAxis
           ? html`<value-axis
-              .valueRange=${this.scale === ScaleType.Percentage
-                ? { min: 0, max: 100, range: 100 }
-                : this._state?.priceRange}
+              .valueRange=${this.localValueRange}
               .scale=${this.scale ?? "price"}
               .width=${this.isMobile
                 ? this.valueAxisMobileWidth

@@ -29,7 +29,11 @@ import { ChartInteractionController } from "./interaction/chart-interaction-cont
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
-import { DisplayType, IndicatorConfig } from "./indicators/indicator-types";
+import {
+  DisplayType,
+  IndicatorConfig,
+  ScaleType,
+} from "./indicators/indicator-types";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -495,7 +499,7 @@ export class ChartContainer extends LitElement {
                     >
                       ${new indicator.class({
                         indicatorId: indicator.id,
-                        scale: indicator.scale,
+                        scale: ScaleType.Price,
                         showAxis: false,
                       })}
                     </indicator-container>
