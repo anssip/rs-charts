@@ -27,6 +27,17 @@ bun run dev
 - [ ] macd
 - [ ] stochastic
 
+### ideas
+
+- Introduce new interactive-pane superclass with:
+
+  - panning
+  - zooming
+  - RESIZING with the mouse
+  - mouse, touch, wheel events
+
+  * this can be then used for the indicator panes and value-axis
+
 - [ ] Enhance value-axis to highlight the value on mouse Y
 - [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming
 - [ ] Refactor crosshairs to no include the value drawing in the right edge
