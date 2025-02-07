@@ -237,6 +237,8 @@ export class ChartContainer extends LitElement {
       this.interactionController = new ChartInteractionController({
         chart: this.chart,
         state: this._state,
+        requireActivation: this.requireActivation,
+        isActive: () => this.isActive,
         onStateChange: (updates) => {
           this._state = Object.assign(this._state, updates);
           Object.keys(updates).forEach((key) => {
@@ -248,11 +250,17 @@ export class ChartContainer extends LitElement {
           this.dispatchRefetch(direction);
         },
         onActivate: () => {
-          if (this.requireActivation && !this.isActive) {
-            this.isActive = true;
-            if (this.isMobile) {
-              this.toggleFullWindow();
-            }
+          console.log("onActivate");
+          this.isActive = true;
+          if (this.isMobile) {
+            this.toggleFullWindow();
+          }
+        },
+        onDeactivate: () => {
+          console.log("onDeactivate");
+          this.isActive = false;
+          if (this.isMobile) {
+            this.toggleFullWindow();
           }
         },
         onFullWindowToggle: () => {
@@ -268,7 +276,9 @@ export class ChartContainer extends LitElement {
         zoomFactor: this.ZOOM_FACTOR,
         doubleTapDelay: this.DOUBLE_TAP_DELAY,
       });
-      this.interactionController.attach();
+      if (this.requireActivation && !this.isActive) {
+        this.interactionController.attach();
+      }
     }
   }
 

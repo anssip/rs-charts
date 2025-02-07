@@ -11,9 +11,12 @@ interface ChartInteractionOptions {
   onContextMenu?: (position: { x: number; y: number }) => void;
   bufferMultiplier?: number;
   zoomFactor?: number;
-  onActivate?: () => void;
+  onActivate: () => void;
   onFullWindowToggle?: () => void;
   doubleTapDelay?: number;
+  isActive?: () => boolean;
+  requireActivation?: boolean;
+  onDeactivate?: () => void;
 }
 
 export class ChartInteractionController {
@@ -39,6 +42,12 @@ export class ChartInteractionController {
   attach() {
     const chart = this.options.chart;
     if (!chart) {
+      return;
+    }
+    chart.addEventListener("click", this.handleClick);
+    document.addEventListener("click", this.handleDocumentClick);
+
+    if (this.options.requireActivation && !this.options.isActive?.()) {
       return;
     }
 
@@ -70,6 +79,25 @@ export class ChartInteractionController {
     );
   }
 
+  private handleClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!this.options.isActive?.() && this.options.requireActivation) {
+      this.options.onActivate?.();
+      this.attach();
+    }
+  };
+
+  private handleDocumentClick = (e: MouseEvent) => {
+    const chart = this.options.chart;
+    if (!chart) return;
+    if (!chart.contains(e.target as Node)) {
+      this.options.onDeactivate?.();
+      this.detach();
+      chart.addEventListener("click", this.handleClick);
+    }
+  };
+
   detach() {
     const chart = this.options.chart;
     if (!chart) return;
@@ -85,7 +113,11 @@ export class ChartInteractionController {
     chart.removeEventListener("touchend", this.handleTouchEnd);
     chart.removeEventListener("touchcancel", this.handleTouchEnd);
 
-    // Remove timeline and price axis zoom listeners
+    chart.removeEventListener("click", this.handleClick);
+    chart.removeEventListener(
+      "contextmenu",
+      this.handleContextMenu as EventListener
+    );
     window.removeEventListener(
       "timeline-zoom",
       this.handleTimelineZoom as EventListener
@@ -94,17 +126,10 @@ export class ChartInteractionController {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
-    chart.removeEventListener(
-      "contextmenu",
-      this.handleContextMenu as EventListener
-    );
+    document.removeEventListener("click", this.handleDocumentClick);
   }
 
   private handleDragStart = (e: MouseEvent) => {
-    if (this.options.onActivate) {
-      this.options.onActivate();
-      return;
-    }
     this.isDragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
@@ -166,10 +191,8 @@ export class ChartInteractionController {
     const { state } = this.options;
     const bufferZone = visibleTimeRange * this.BUFFER_MULTIPLIER;
 
-    // First check if the requested time range is valid (not in the future)
     const now = Date.now();
     if (newEnd > now) {
-      // Don't request future data
       return;
     }
 
@@ -181,7 +204,6 @@ export class ChartInteractionController {
     if (needMoreDataBackward) {
       this.options.onNeedMoreData("backward");
     } else if (needMoreDataForward && newEnd <= now) {
-      // Double check we're not requesting future data
       this.options.onNeedMoreData("forward");
     }
   }
@@ -208,17 +230,15 @@ export class ChartInteractionController {
   }
 
   private handleTouchStart = (e: TouchEvent) => {
-    if (this.options.onActivate) {
-      this.options.onActivate();
+    if (this.options.isActive && !this.options.isActive()) {
+      this.options.onActivate?.();
       return;
     }
-    e.preventDefault(); // Prevent scrolling while touching the chart
+    e.preventDefault();
 
-    // Handle double tap
     const currentTime = new Date().getTime();
     const tapLength = currentTime - this.lastTapTime;
     if (tapLength < this.DOUBLE_TAP_DELAY && tapLength > 0) {
-      // Double tap detected
       this.options.onFullWindowToggle?.();
       return;
     }
@@ -227,14 +247,12 @@ export class ChartInteractionController {
     this.isDragging = true;
 
     if (e.touches.length === 2) {
-      // Initialize pinch-to-zoom
       this.isZooming = true;
       this.lastTouchDistance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
     } else if (e.touches.length === 1) {
-      // Single touch for panning
       this.lastX = e.touches[0].clientX;
       this.lastY = e.touches[0].clientY;
     }
@@ -245,7 +263,6 @@ export class ChartInteractionController {
     e.preventDefault();
 
     if (e.touches.length === 2 && this.isZooming) {
-      // Handle pinch-to-zoom
       const currentDistance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -254,14 +271,11 @@ export class ChartInteractionController {
       const deltaDistance = currentDistance - this.lastTouchDistance;
       const zoomSensitivity = 0.5;
 
-      // Use the midpoint of the two touches as the zoom center
       const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const rect = (e.target as HTMLElement).getBoundingClientRect();
 
-      // Apply zoom sensitivity to the delta and invert for natural pinch behavior
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
-      // Dispatch zoom event similar to mouse wheel zoom
       this.options.chart.dispatchEvent(
         new CustomEvent("timeline-zoom", {
           detail: {
@@ -277,7 +291,6 @@ export class ChartInteractionController {
 
       this.lastTouchDistance = currentDistance;
     } else if (e.touches.length === 1) {
-      // Handle panning
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
 
@@ -372,7 +385,6 @@ export class ChartInteractionController {
       });
     }
 
-    // Check if we need more data
     const bufferTimeRange = newTimeRange * this.BUFFER_MULTIPLIER;
     const needMoreData =
       state.timeRange.start <
@@ -387,7 +399,7 @@ export class ChartInteractionController {
   private handlePriceAxisZoom = (event: CustomEvent) => {
     const { deltaY, isTrackpad } = event.detail;
     const { state } = this.options;
-    const zoomCenter = 0.5; // Always zoom from the center
+    const zoomCenter = 0.5;
     const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
     (state.priceRange as PriceRangeImpl).adjust(
       deltaY * zoomMultiplier,
