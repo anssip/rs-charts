@@ -31,8 +31,14 @@ export const getStyles = (
   }
 
   .container {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-areas:
+      "price-info"
+      "indicators-top"
+      "chart"
+      "indicators-bottom"
+      "timeline";
+    grid-template-rows: auto auto 1fr auto auto;
     width: 100%;
     height: 100%;
     background-color: var(--color-primary-dark);
@@ -82,7 +88,7 @@ export const getStyles = (
     padding: 12px 16px;
     border: 1px solid rgba(143, 143, 143, 0.2);
     position: relative;
-    z-index: 8;
+    z-index: 10;
   }
 
   .chart {
@@ -161,7 +167,6 @@ export const getStyles = (
 
   chart-crosshairs {
     position: absolute;
-    top: 0;
     left: 0;
     width: 100%;
     height: 100%;
@@ -242,5 +247,18 @@ export const getStyles = (
     position: relative;
     flex: 1;
     width: 100%;
+  }
+
+  /* Add grid-crosshairs styling to extend crosshairs over the entire container */
+  chart-crosshairs.grid-crosshairs {
+    grid-area: 1 / 1 / -1 / -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9; /* higher than bottom indicators */
+    pointer-events: none;
+    cursor: crosshair;
   }
 `;

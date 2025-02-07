@@ -454,8 +454,6 @@ export class ChartContainer extends LitElement {
       (indicator) => indicator.display === DisplayType.StackBottom
     );
 
-    console.log("stackBottomIndicators", stackBottomIndicators);
-
     return html`
       <div
         class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
@@ -464,7 +462,7 @@ export class ChartContainer extends LitElement {
           : ""}"
         style="--price-axis-width: ${this.priceAxisWidth}px;"
       >
-        <div class="price-info">
+        <div class="price-info" style="grid-area: price-info;">
           <price-info
             .product=${this._state.liveCandle?.productId}
             .symbols=${this.products}
@@ -480,30 +478,32 @@ export class ChartContainer extends LitElement {
         </div>
 
         ${stackTopIndicators.length > 0
-          ? html`<indicator-stack
-              .indicators=${stackTopIndicators}
-              .valueAxisWidth=${PRICEAXIS_WIDTH}
-              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
-            ></indicator-stack>`
+          ? html`
+              <indicator-stack
+                style="grid-area: indicators-top;"
+                .indicators=${stackTopIndicators}
+                .valueAxisWidth=${PRICEAXIS_WIDTH}
+                .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+              ></indicator-stack>
+            `
           : ""}
 
-        <div class="chart-area">
-          <div class="chart">
+        <div class="chart-area" style="grid-area: chart;">
+          <div class="chart" style="position: relative;">
             <indicator-container class="overlay-indicators">
               ${overlayIndicators.map(
-                (indicator) =>
-                  html`
-                    <indicator-container
-                      data-indicator=${indicator.id}
-                      class="overlay-indicators"
-                    >
-                      ${new indicator.class({
-                        indicatorId: indicator.id,
-                        scale: ScaleType.Price,
-                        showAxis: false,
-                      })}
-                    </indicator-container>
-                  `
+                (indicator) => html`
+                  <indicator-container
+                    data-indicator=${indicator.id}
+                    class="overlay-indicators"
+                  >
+                    ${new indicator.class({
+                      indicatorId: indicator.id,
+                      scale: ScaleType.Price,
+                      showAxis: false,
+                    })}
+                  </indicator-container>
+                `
               )}
             </indicator-container>
 
@@ -512,6 +512,7 @@ export class ChartContainer extends LitElement {
               .priceAxisWidth=${PRICEAXIS_WIDTH}
               .priceAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
             ></candlestick-chart>
+
             ${bottomIndicators.map(
               (indicator) => html`
                 <indicator-container
@@ -526,40 +527,49 @@ export class ChartContainer extends LitElement {
               `
             )}
             ${this.requireActivation
-              ? html`<div
-                  class="activate-label ${this.isActive ? "hidden" : ""}"
-                  @click=${() => {
-                    this.isActive = true;
-                    if (this.isMobile) {
-                      this.toggleFullWindow();
-                    }
-                  }}
-                >
-                  Click to activate
-                </div>`
+              ? html`
+                  <div
+                    class="activate-label ${this.isActive ? "hidden" : ""}"
+                    @click=${() => {
+                      this.isActive = true;
+                      if (this.isMobile) {
+                        this.toggleFullWindow();
+                      }
+                    }}
+                  >
+                    Click to activate
+                  </div>
+                `
               : ""}
           </div>
           <live-decorators></live-decorators>
         </div>
-        ${!this.isTouchOnly && this.isActive
-          ? html`<chart-crosshairs></chart-crosshairs>`
-          : ""}
+
         ${stackBottomIndicators.length > 0
-          ? html`<indicator-stack
-              .indicators=${stackBottomIndicators}
-              .valueAxisWidth=${PRICEAXIS_WIDTH}
-              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
-            ></indicator-stack>`
+          ? html`
+              <indicator-stack
+                style="grid-area: indicators-bottom;"
+                .indicators=${stackBottomIndicators}
+                .valueAxisWidth=${PRICEAXIS_WIDTH}
+                .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+              ></indicator-stack>
+            `
           : ""}
-        <div class="timeline-container">
+
+        <div class="timeline-container" style="grid-area: timeline;">
           <chart-timeline></chart-timeline>
         </div>
+
         <chart-logo></chart-logo>
         <chart-context-menu
           .show=${this.showContextMenu}
           .position=${this.contextMenuPosition}
           .items=${menuItems}
         ></chart-context-menu>
+
+        ${!this.isTouchOnly && this.isActive
+          ? html`<chart-crosshairs class="grid-crosshairs"></chart-crosshairs>`
+          : ""}
       </div>
     `;
   }

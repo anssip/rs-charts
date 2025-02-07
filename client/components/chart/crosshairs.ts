@@ -36,51 +36,34 @@ export class Crosshairs extends CanvasBase {
     observe("state.priceRange", () => this.draw());
   }
 
-  private getChartRect(): DOMRect {
-    const chartArea = this.parentElement;
-    const chart = chartArea?.querySelector(
-      "candlestick-chart"
-    ) as HTMLCanvasElement;
-    return chart?.getBoundingClientRect() as DOMRect;
-  }
-
   private handleMouseMove = (event: MouseEvent) => {
     if (!this.canvas) return;
 
-    const rect = this.getChartRect();
-    if (!rect) {
-      return;
-    }
+    const rect = this.canvas.getBoundingClientRect();
 
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
     const priceRange = state.priceRange;
 
-    // Scale mouse coordinates for DPI
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
 
-    // Calculate time at mouse position
     const timeSpan = timeRange.end - timeRange.start;
     const mouseTime = timeRange.start + (this.mouseX / rect.width) * timeSpan;
 
-    // Get the interval and snap to it
     const interval = granularityToMs(state.granularity);
     const firstTimestamp = Math.floor(timeRange.start / interval) * interval;
 
-    // Find the nearest interval timestamp
     const intervalsSinceMidnight = Math.round(
       (mouseTime - firstTimestamp) / interval
     );
     const snappedTime = firstTimestamp + intervalsSinceMidnight * interval;
 
-    // For SIX_HOUR, align to local time boundaries
     this.cursorTime =
       state.granularity === "SIX_HOUR"
         ? getLocalAlignedTimestamp(snappedTime, 6)
         : snappedTime;
 
-    // Calculate X position from snapped time
     const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
     this.snappedX = timePosition * rect.width;
 
@@ -110,47 +93,38 @@ export class Crosshairs extends CanvasBase {
       );
       return;
     }
-    const rect = this.getChartRect();
-    if (!rect) {
-      return;
-    }
-
+    const rect = this.canvas.getBoundingClientRect();
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw horizontal line at mouse Y
-    if (
-      (rect.top + this.mouseY) * dpr <
-      this.canvas.height - TIMELINE_HEIGHT * dpr
-    ) {
+    if (this.mouseY * dpr < this.canvas.height - TIMELINE_HEIGHT * dpr) {
       ctx.beginPath();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = getComputedStyle(document.documentElement)
         .getPropertyValue("--color-primary")
         .trim();
       ctx.lineWidth = 1;
-      ctx.moveTo(0, this.mouseY + rect.top);
-      ctx.lineTo(this.canvas.width, this.mouseY + rect.top);
+
+      ctx.moveTo(0, this.mouseY);
+      ctx.lineTo(this.canvas.width, this.mouseY);
       ctx.stroke();
     }
 
-    // Draw vertical line at snapped X
     if (this.snappedX >= 0 && this.snappedX <= rect.width) {
       ctx.beginPath();
-      ctx.moveTo(this.snappedX + rect.left, 0);
-      ctx.lineTo(this.snappedX + rect.left, this.canvas.height);
+      ctx.moveTo(this.snappedX, 0);
+      ctx.lineTo(this.snappedX, this.canvas.height);
       ctx.stroke();
     }
 
     ctx.setLineDash([]);
 
-    // Draw time label
     drawTimeLabel(
       ctx,
       this.cursorTime,
-      this.snappedX + rect.left,
+      this.snappedX,
       this.canvas.height / dpr - 5 * dpr,
       getComputedStyle(document.documentElement)
         .getPropertyValue("--color-background-secondary")
