@@ -146,57 +146,6 @@ export class Crosshairs extends CanvasBase {
 
     ctx.setLineDash([]);
 
-    // Draw price label
-    const textColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
-      .trim();
-    const backgroundColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary-dark")
-      .trim();
-    const borderColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary")
-      .trim();
-
-    // Set font
-    const fontFamily = getComputedStyle(document.documentElement)
-      .getPropertyValue("--font-primary")
-      .trim();
-    ctx.font = `${10}px ${fontFamily}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Draw price label
-    const labelWidth = PRICEAXIS_WIDTH;
-    const labelHeight = 20;
-    const labelX = this.canvas.width / dpr - labelWidth;
-    const labelY = this.mouseY;
-
-    // Draw background
-    const cornerRadius = 4;
-    ctx.beginPath();
-    ctx.roundRect(
-      labelX,
-      labelY - labelHeight / 2,
-      labelWidth,
-      labelHeight,
-      cornerRadius
-    );
-    ctx.fillStyle = backgroundColor;
-    ctx.fill();
-
-    // Draw border
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Draw text
-    ctx.fillStyle = textColor;
-    ctx.fillText(
-      formatPrice(this.cursorPrice),
-      labelX + labelWidth / 2,
-      labelY
-    );
-
     // Draw time label
     drawTimeLabel(
       ctx,
