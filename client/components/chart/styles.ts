@@ -11,7 +11,6 @@ export const getStyles = (
     min-height: 400px;
   }
 
-  :host(:fullscreen),
   :host(.full-window) {
     background: var(--color-primary-dark);
     padding: 16px;
@@ -24,7 +23,6 @@ export const getStyles = (
     z-index: 1000;
   }
 
-  :host(:fullscreen) .container,
   :host(.full-window) .container {
     height: 100%;
     overflow: hidden;
@@ -39,7 +37,6 @@ export const getStyles = (
       "indicators-bottom"
       "timeline";
     grid-template-rows: auto auto 1fr auto auto;
-    width: 100%;
     height: 100%;
     background-color: var(--color-primary-dark);
     gap: 8px;
@@ -58,30 +55,7 @@ export const getStyles = (
     flex-direction: column;
     overflow: hidden;
   }
-
-  :host(:fullscreen) .chart-area,
-  :host(.full-window) .chart-area {
-    height: calc(100vh - 200px);
-  }
-
-  .container.fullscreen,
-  .container.full-window {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    padding: 16px;
-  }
-
-  .container.fullscreen .chart-area,
-  .container.full-window .chart-area {
-    height: calc(100vh - 120px);
-  }
-
   .price-info {
-    flex: 0 0 auto;
     background: var(--color-primary-dark);
     border-radius: 12px;
     margin: 8px 0;

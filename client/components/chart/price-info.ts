@@ -80,6 +80,7 @@ export class PriceInfo extends LitElement {
 
     document.addEventListener("click", this.handleClickOutside);
     window.addEventListener("keydown", this.handleKeyPress);
+    document.addEventListener("fullscreenchange", this.handleFullscreenChange);
   }
 
   disconnectedCallback() {
@@ -186,6 +187,14 @@ export class PriceInfo extends LitElement {
 
     this.isGranularityDropdownOpen = !this.isGranularityDropdownOpen;
   }
+
+  private handleFullscreenChange = () => {
+    this.isFullscreen = document.fullscreenElement === this;
+    // Delay reflow recalculation
+    setTimeout(() => {
+      this.requestUpdate();
+    }, 100);
+  };
 
   render() {
     const isBearish = this.liveCandle

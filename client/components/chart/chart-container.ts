@@ -236,6 +236,7 @@ export class ChartContainer extends LitElement {
     if (this.chart) {
       this.interactionController = new ChartInteractionController({
         chart: this.chart,
+        container: this,
         state: this._state,
         requireActivation: this.requireActivation,
         isActive: () => this.isActive,

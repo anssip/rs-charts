@@ -17,6 +17,7 @@ interface ChartInteractionOptions {
   isActive?: () => boolean;
   requireActivation?: boolean;
   onDeactivate?: () => void;
+  container?: HTMLElement;
 }
 
 export class ChartInteractionController {
@@ -89,13 +90,13 @@ export class ChartInteractionController {
   };
 
   private handleDocumentClick = (e: MouseEvent) => {
-    const chart = this.options.chart;
-    if (!chart) return;
-    if (!chart.contains(e.target as Node)) {
-      this.options.onDeactivate?.();
-      this.detach();
-      chart.addEventListener("click", this.handleClick);
+    const container = this.options.container;
+    if (container && container.contains(e.target as Node)) {
+      return;
     }
+    this.options.onDeactivate?.();
+    this.detach();
+    this.options.chart?.addEventListener("click", this.handleClick);
   };
 
   detach() {
