@@ -37,6 +37,7 @@ export const getStyles = (
       "indicators-bottom"
       "timeline";
     grid-template-rows: auto auto 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr);
     height: 100%;
     background-color: var(--color-primary-dark);
     gap: 8px;
@@ -44,8 +45,7 @@ export const getStyles = (
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
-    z-index: 1;
-    isolation: isolate;
+    min-width: 0;
   }
 
   .chart-area {
@@ -54,6 +54,8 @@ export const getStyles = (
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
+    min-height: 0;
   }
   .price-info {
     background: var(--color-primary-dark);
@@ -63,6 +65,9 @@ export const getStyles = (
     border: 1px solid rgba(143, 143, 143, 0.2);
     position: relative;
     z-index: 10;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
   }
 
   .chart {
