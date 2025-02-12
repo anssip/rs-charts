@@ -84,6 +84,21 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     if (!ctx) throw new Error("Could not get canvas context");
     this.ctx = ctx;
 
+    // Get the actual available width (container width minus price axis)
+    const containerWidth = this.clientWidth;
+    const chartWidth = containerWidth - this.priceAxisWidth;
+
+    // Set canvas size accounting for device pixel ratio
+    const dpr = window.devicePixelRatio ?? 1;
+    if (this.canvas) {
+      this.canvas.width = chartWidth * dpr;
+      this.canvas.height = this.clientHeight * dpr;
+
+      // Set display size through CSS
+      this.canvas.style.width = `${chartWidth}px`;
+      this.canvas.style.height = `${this.clientHeight}px`;
+    }
+
     await super.firstUpdated();
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.dispatchEvent(
@@ -158,12 +173,17 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       "--price-axis-mobile-width",
       `${this.priceAxisMobileWidth}px`
     );
+    console.log(
+      "CandlestickChart updated with priceAxisWidth",
+      this.priceAxisWidth
+    );
   }
 
   static styles = css`
     :host {
       position: relative;
       display: flex;
+      flex-direction: row;
       width: 100%;
       height: 100%;
     }
@@ -176,10 +196,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     }
 
     canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: calc(100% - var(--price-axis-width));
+      width: 100%;
       height: 100%;
       display: block;
     }
@@ -196,10 +213,23 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       .price-axis-container {
         width: var(--price-axis-mobile-width);
       }
-
-      canvas {
-        width: calc(100% - var(--price-axis-mobile-width));
-      }
     }
   `;
+
+  public resize(width: number, height: number) {
+    if (!this.canvas) return;
+
+    // Calculate actual chart width (minus price axis)
+    const chartWidth = width - this.priceAxisWidth;
+
+    const dpr = window.devicePixelRatio ?? 1;
+    this.canvas.width = chartWidth * dpr;
+    this.canvas.height = height * dpr;
+
+    // Set display size through CSS
+    this.canvas.style.width = `${chartWidth}px`;
+    this.canvas.style.height = `${height}px`;
+
+    this.draw();
+  }
 }

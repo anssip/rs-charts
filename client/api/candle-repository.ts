@@ -46,16 +46,10 @@ export class CandleRepository {
     } = options;
     const key = new CandleKey(symbol, granularity);
 
-    // Align timestamps to granularity intervals
-    const intervalMs = granularityToMs(granularity);
-    const alignedStart = Math.floor(timeRange.start / intervalMs) * intervalMs;
-    const alignedEnd = Math.ceil(timeRange.end / intervalMs) * intervalMs;
-    const alignedTimeRange = { start: alignedStart, end: alignedEnd };
-
     // Check if this exact request is pending
     const pendingPromise = this.cache.isPendingFetch(
       key,
-      alignedTimeRange,
+      timeRange,
       indicators
     );
     if (pendingPromise) {
@@ -67,7 +61,7 @@ export class CandleRepository {
     // Check if data is in cache
     if (
       !skipCache &&
-      this.cache.isWithinBufferedRange(key, alignedTimeRange, indicators)
+      this.cache.isWithinBufferedRange(key, timeRange, indicators)
     ) {
       const cachedData = this.cache.get(this.cache.getBaseKey(key, indicators));
       return cachedData || new Map();
@@ -76,20 +70,20 @@ export class CandleRepository {
     try {
       const pendingPromise = this.cache.markFetchPending(
         key,
-        alignedTimeRange,
+        timeRange,
         indicators
       );
 
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
-        alignedTimeRange,
+        timeRange,
         indicators
       );
 
       const result = this.cache.updateCache(
         key,
-        alignedTimeRange,
+        timeRange,
         rangeCandles,
         (data) => ({
           min: Math.min(...Array.from(data.keys())),
@@ -98,12 +92,12 @@ export class CandleRepository {
         indicators
       );
 
-      this.cache.markFetchComplete(key, alignedTimeRange, indicators);
+      this.cache.markFetchComplete(key, timeRange, indicators);
       await pendingPromise;
 
       return result;
     } catch (error) {
-      this.cache.markFetchComplete(key, alignedTimeRange, indicators);
+      this.cache.markFetchComplete(key, timeRange, indicators);
       throw error;
     }
   }

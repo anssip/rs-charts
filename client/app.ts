@@ -224,7 +224,7 @@ export class App {
     this.isInitializing = false;
     setTimeout(() => {
       const candleInterval = getCandleInterval(this.state.granularity);
-      this.chartContainer!.panTimeline(-1 * (candleInterval / 1000), 0.5);
+      this.chartContainer!.panTimeline(-3 * (candleInterval / 1000), 0.5);
     }, 1000);
   };
 

@@ -89,7 +89,7 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   options: ChartOptions = {
-    candleWidth: 7,
+    candleWidth: 15,
     candleGap: 2,
     minCandleWidth: 2,
     maxCandleWidth: 100,
@@ -506,14 +506,15 @@ export class ChartContainer extends LitElement {
           .isFullWindow
           ? "full-window"
           : ""}"
-        style="--price-axis-width: ${this.priceAxisWidth}px; ${Object.entries(
-          gridStyle
-        )
+        style="
+          --price-axis-width: ${this.priceAxisWidth}px;
+          ${Object.entries(gridStyle)
           .map(
             ([key, value]) =>
               `${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}:${value}`
           )
-          .join(";")}"
+          .join(";")}
+        "
       >
         <div class="price-info" style="grid-area: price-info;">
           <price-info
@@ -585,6 +586,7 @@ export class ChartContainer extends LitElement {
                     class="activate-label ${this.isActive ? "hidden" : ""}"
                     @click=${() => {
                       this.isActive = true;
+                      this.interactionController?.attach(true);
                       if (this.isMobile) {
                         this.toggleFullWindow();
                       }
