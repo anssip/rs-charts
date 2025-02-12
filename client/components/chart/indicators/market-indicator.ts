@@ -208,6 +208,39 @@ export class MarketIndicator extends CanvasBase {
     ctx.globalAlpha = 1; // Reset opacity
   }
 
+  private drawHistogram(
+    ctx: CanvasRenderingContext2D,
+    points: { x: number; y: number }[],
+    style: {
+      color?: string;
+      lineWidth?: number;
+      opacity?: number;
+    }
+  ) {
+    const dpr = window.devicePixelRatio ?? 1;
+    const height = this.canvas!.height / dpr;
+    const zeroY = height / 2; // Center line for the histogram
+
+    ctx.beginPath();
+    ctx.strokeStyle = style.color || "#ffffff";
+    ctx.lineWidth = style.lineWidth || 1;
+    ctx.globalAlpha = style.opacity || 1;
+
+    points.forEach((point) => {
+      // Determine if the bar is positive or negative
+      const isPositive = point.y < zeroY;
+      ctx.strokeStyle = isPositive ? "#4CAF50" : "#F44336"; // Green for positive, red for negative
+
+      // Draw vertical line from zero line to the point
+      ctx.beginPath();
+      ctx.moveTo(point.x, zeroY);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+    });
+
+    ctx.globalAlpha = 1; // Reset opacity
+  }
+
   draw() {
     if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
       console.log("MarketIndicator: Missing required properties", {
@@ -298,15 +331,18 @@ export class MarketIndicator extends CanvasBase {
 
     // Draw each plot using its style from plot_styles
     Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
+      const points = plotPoints[plotRef];
+      if (!points) return;
+
       if (plotStyle.type === "line") {
-        this.drawLine(ctx, plotPoints[plotRef], plotStyle.style);
+        this.drawLine(ctx, points, plotStyle.style);
       } else if (plotStyle.type === "band") {
         // For bands (like Bollinger Bands), we need both upper and lower points
         const upperPoints: { x: number; y: number }[] = [];
         const lowerPoints: { x: number; y: number }[] = [];
 
         // Sort points into upper and lower bands
-        plotPoints[plotRef].forEach((point, index) => {
+        points.forEach((point, index) => {
           if (index % 2 === 0) {
             upperPoints.push(point);
           } else {
@@ -315,6 +351,8 @@ export class MarketIndicator extends CanvasBase {
         });
 
         this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
+      } else if (plotStyle.type === "histogram") {
+        this.drawHistogram(ctx, points, plotStyle.style);
       }
     });
   }

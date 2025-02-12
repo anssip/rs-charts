@@ -1,5 +1,7 @@
 import { css } from "lit";
 
+const INDICATOR_HEIGHT = 150; // Height per stacked indicator
+
 export const getStyles = (
   priceAxisWidth: number,
   timelineHeight: number
@@ -36,7 +38,7 @@ export const getStyles = (
       "chart"
       "indicators-bottom"
       "timeline";
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-rows: auto min-content 1fr min-content ${timelineHeight}px;
     grid-template-columns: minmax(0, 1fr);
     height: 100%;
     background-color: var(--color-primary-dark);
@@ -50,12 +52,11 @@ export const getStyles = (
 
   .chart-area {
     position: relative;
-    flex: 1;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
-    min-height: 0;
   }
   .price-info {
     background: var(--color-primary-dark);
@@ -113,7 +114,9 @@ export const getStyles = (
 
   .timeline-container {
     height: ${timelineHeight}px;
+    min-height: ${timelineHeight}px;
     position: relative;
+    overflow: hidden;
   }
 
   candlestick-chart {
@@ -212,19 +215,34 @@ export const getStyles = (
     height: 20%;
   }
 
-  /* Stack positioning - outside chart-area */
+  /* Update indicator stack styles */
   indicator-stack {
     position: relative;
     width: 100%;
-    height: 80px;
+    min-height: ${INDICATOR_HEIGHT}px;
     border-top: 1px solid var(--chart-grid-line-color, #363c4e);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+  }
+
+  indicator-stack[style*="grid-area: indicators-top"] {
+    border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+  }
+
+  indicator-stack[style*="grid-area: indicators-bottom"] {
+    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+  }
+
+  indicator-stack .stack-item {
+    height: ${INDICATOR_HEIGHT}px;
+    min-height: ${INDICATOR_HEIGHT}px;
+    position: relative;
   }
 
   indicator-stack indicator-container {
     position: relative;
-    flex: 1;
+    height: 100%;
     width: 100%;
   }
 

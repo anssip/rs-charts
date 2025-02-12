@@ -116,6 +116,11 @@ export class ValueAxis extends CanvasBase {
       const labelWidth = ctx.measureText(label).width;
 
       // Draw text
+      const fontFamily = getComputedStyle(document.documentElement)
+        .getPropertyValue("--font-primary")
+        .trim();
+      ctx.font = `${10}px ${fontFamily}`;
+
       ctx.fillStyle = "#666";
       ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
     }

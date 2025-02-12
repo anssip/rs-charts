@@ -43,7 +43,7 @@ export function granularityLabel(granularity: Granularity): string {
 }
 
 export interface PlotStyle {
-  type: "line" | "bar" | "scatter" | "area" | "band"; // can be extended with more plot types
+  type: "line" | "bar" | "scatter" | "area" | "band" | "histogram"; // can be extended with more plot types
   style: {
     color?: string;
     lineWidth?: number;

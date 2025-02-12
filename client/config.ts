@@ -96,5 +96,25 @@ export const config: Config = {
         dispatchMenuActionEvent(chartContainer, event);
       },
     },
+    {
+      label: "MACD",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "macd",
+            visible: !chartContainer.isIndicatorVisible("macd"),
+            params: {
+              period: 12,
+              fastPeriod: 12,
+              slowPeriod: 26,
+              signalPeriod: 9,
+            },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+          },
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
   ],
 };

@@ -34,11 +34,13 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
+import { css } from "lit";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
 export const PRICEAXIS_WIDTH = 70;
 export const PRICEAXIS_MOBILE_WIDTH = 45;
+const INDICATOR_HEIGHT = 150; // Height per stacked indicator
 
 @customElement("chart-container")
 export class ChartContainer extends LitElement {
@@ -465,13 +467,54 @@ export class ChartContainer extends LitElement {
       (indicator) => indicator.display === DisplayType.StackBottom
     );
 
+    // Calculate grid template rows based on number of stacked indicators
+    const gridStyle = {
+      display: "grid",
+      gridTemplateAreas: `
+        'price-info'
+        'indicators-top'
+        'chart'
+        'indicators-bottom'
+        'timeline'
+      `,
+      gridTemplateRows: `
+        auto
+        ${
+          stackTopIndicators.length
+            ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
+            : "auto"
+        }
+        1fr
+        ${
+          stackBottomIndicators.length
+            ? `${stackBottomIndicators.length * INDICATOR_HEIGHT}px`
+            : "auto"
+        }
+        ${TIMELINE_HEIGHT}px
+      `,
+      height: "100%",
+      backgroundColor: "var(--color-primary-dark)",
+      gap: "8px",
+      padding: "0 16px",
+      boxSizing: "border-box",
+      position: "relative" as const,
+      overflow: "hidden",
+    };
+
     return html`
       <div
         class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
           .isFullWindow
           ? "full-window"
           : ""}"
-        style="--price-axis-width: ${this.priceAxisWidth}px;"
+        style="--price-axis-width: ${this.priceAxisWidth}px; ${Object.entries(
+          gridStyle
+        )
+          .map(
+            ([key, value]) =>
+              `${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}:${value}`
+          )
+          .join(";")}"
       >
         <div class="price-info" style="grid-area: price-info;">
           <price-info
