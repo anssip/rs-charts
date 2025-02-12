@@ -262,6 +262,31 @@ export class MarketIndicator extends CanvasBase {
       this._state.timeRange.end
     );
 
+    // Find the indicator data and calculate value range
+    let minValue = Infinity;
+    let maxValue = -Infinity;
+
+    candles.forEach((candle) => {
+      const indicator = candle[1]?.evaluations?.find(
+        (e) => e.id === this.indicatorId
+      );
+      if (indicator) {
+        indicator.values.forEach((value) => {
+          minValue = Math.min(minValue, value.value);
+          maxValue = Math.max(maxValue, value.value);
+        });
+      }
+    });
+
+    // Add padding to the range (20%)
+    const range = maxValue - minValue;
+    const padding = range * 0.2;
+    this.localValueRange = {
+      min: minValue - padding,
+      max: maxValue + padding,
+      range: range + padding * 2,
+    };
+
     console.log("MarketIndicator: Drawing with data", {
       indicatorId: this.indicatorId,
       candlesCount: candles.length,

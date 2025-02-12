@@ -34,7 +34,6 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
-import { css } from "lit";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;

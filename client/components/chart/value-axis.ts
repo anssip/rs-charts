@@ -93,7 +93,7 @@ export class ValueAxis extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
     // Draw value labels
-    const numLabels = this.valueRange.range / 20;
+    const numLabels = 5;
     const step = this.valueRange.range / (numLabels - 1);
     ctx.font = "12px var(--font-primary)";
 
