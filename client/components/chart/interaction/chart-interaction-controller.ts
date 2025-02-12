@@ -40,7 +40,7 @@ export class ChartInteractionController {
     this.DOUBLE_TAP_DELAY = options.doubleTapDelay ?? 300;
   }
 
-  attach() {
+  attach(force = false) {
     const chart = this.options.chart;
     if (!chart) {
       return;
@@ -48,7 +48,11 @@ export class ChartInteractionController {
     chart.addEventListener("click", this.handleClick);
     document.addEventListener("click", this.handleDocumentClick);
 
-    if (this.options.requireActivation && !this.options.isActive?.()) {
+    if (
+      !force &&
+      this.options.requireActivation &&
+      !this.options.isActive?.()
+    ) {
       console.log("not active yet");
       return;
     }
@@ -87,7 +91,7 @@ export class ChartInteractionController {
     e.stopPropagation();
     if (!this.options.isActive?.() && this.options.requireActivation) {
       this.options.onActivate?.();
-      this.attach();
+      this.attach(true);
     }
   };
 

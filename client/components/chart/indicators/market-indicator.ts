@@ -1,6 +1,6 @@
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
-import { observe, xin } from "xinjs";
+import { observe, xin, xinValue } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline, priceToY } from "../../../util/chart-util";
 import { ScaleType } from "./indicator-types";
@@ -76,26 +76,38 @@ export class MarketIndicator extends CanvasBase {
       scale: this.scale,
       valueRange: this.localValueRange,
     });
-    if (this.scale === ScaleType.Price) {
-      observe("state.priceRange", () => {
-        console.log(
-          "MarketIndicator: Price range changed",
-          this._state?.priceRange
-        );
-        this.localValueRange = {
-          min: this._state?.priceRange.min ?? 0,
-          max: this._state?.priceRange.max ?? 100,
-          range:
-            (this._state?.priceRange.max ?? 100) -
-            (this._state?.priceRange.min ?? 0),
-        };
-        this.draw();
-      });
-    }
+
+    // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
+
+      // Check scale and update value range if needed
+      if (this.scale === ScaleType.Price) {
+        this.localValueRange = {
+          min: this._state.priceRange.min,
+          max: this._state.priceRange.max,
+          range: this._state.priceRange.max - this._state.priceRange.min,
+        };
+      }
       this.draw();
     });
+
+    // Observe price range changes when using price scale
+    observe("state.priceRange", () => {
+      console.log("MarketIndicator: Price range changed", this.scale);
+      const state = xin["state"] as ChartState;
+      if (this.scale === ScaleType.Price && state) {
+        this.localValueRange = {
+          min: xinValue(state.priceRange.min),
+          max: xinValue(state.priceRange.max),
+          range:
+            xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
+        };
+        console.log("MarketIndicator: Local value range", this.localValueRange);
+        this.draw();
+      }
+    });
+
     observe("state.timeRange", () => {
       this.draw();
     });
@@ -152,9 +164,19 @@ export class MarketIndicator extends CanvasBase {
       ctx.setLineDash(style.dashArray);
     }
 
-    ctx.moveTo(points[0].x, points[0].y);
+    // Convert value to Y position using localValueRange
+    const height = this.canvas!.height / (window.devicePixelRatio ?? 1);
+    const getY = (value: number) => {
+      return (
+        height -
+        ((value - this.localValueRange.min) / this.localValueRange.range) *
+          height
+      );
+    };
+
+    ctx.moveTo(points[0].x, getY(points[0].y));
     for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
+      ctx.lineTo(points[i].x, getY(points[i].y));
     }
 
     ctx.stroke();
@@ -176,18 +198,28 @@ export class MarketIndicator extends CanvasBase {
   ) {
     if (upperPoints.length < 2 || lowerPoints.length < 2) return;
 
+    // Convert value to Y position using localValueRange
+    const height = this.canvas!.height / (window.devicePixelRatio ?? 1);
+    const getY = (value: number) => {
+      return (
+        height -
+        ((value - this.localValueRange.min) / this.localValueRange.range) *
+          height
+      );
+    };
+
     // Draw the filled area between bands
     ctx.beginPath();
-    ctx.moveTo(upperPoints[0].x, upperPoints[0].y);
+    ctx.moveTo(upperPoints[0].x, getY(upperPoints[0].y));
 
     // Draw upper band
     for (let i = 1; i < upperPoints.length; i++) {
-      ctx.lineTo(upperPoints[i].x, upperPoints[i].y);
+      ctx.lineTo(upperPoints[i].x, getY(upperPoints[i].y));
     }
 
     // Draw lower band in reverse
     for (let i = lowerPoints.length - 1; i >= 0; i--) {
-      ctx.lineTo(lowerPoints[i].x, lowerPoints[i].y);
+      ctx.lineTo(lowerPoints[i].x, getY(lowerPoints[i].y));
     }
 
     ctx.closePath();
@@ -219,7 +251,18 @@ export class MarketIndicator extends CanvasBase {
   ) {
     const dpr = window.devicePixelRatio ?? 1;
     const height = this.canvas!.height / dpr;
-    const zeroY = height / 2; // Center line for the histogram
+
+    // Convert value to Y position using localValueRange
+    const getY = (value: number) => {
+      return (
+        height -
+        ((value - this.localValueRange.min) / this.localValueRange.range) *
+          height
+      );
+    };
+
+    // Calculate zero line position using the same conversion
+    const zeroY = getY(0);
 
     ctx.beginPath();
     ctx.strokeStyle = style.color || "#ffffff";
@@ -227,14 +270,14 @@ export class MarketIndicator extends CanvasBase {
     ctx.globalAlpha = style.opacity || 1;
 
     points.forEach((point) => {
-      // Determine if the bar is positive or negative
-      const isPositive = point.y < zeroY;
+      // Determine if the bar is positive or negative based on raw value
+      const isPositive = point.y > 0;
       ctx.strokeStyle = isPositive ? "#4CAF50" : "#F44336"; // Green for positive, red for negative
 
-      // Draw vertical line from zero line to the point
+      // Draw vertical line from zero line to the converted Y position
       ctx.beginPath();
       ctx.moveTo(point.x, zeroY);
-      ctx.lineTo(point.x, point.y);
+      ctx.lineTo(point.x, getY(point.y));
       ctx.stroke();
     });
 
@@ -242,15 +285,7 @@ export class MarketIndicator extends CanvasBase {
   }
 
   draw() {
-    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
-      console.log("MarketIndicator: Missing required properties", {
-        canvas: !!this.canvas,
-        ctx: !!this.ctx,
-        state: !!this._state,
-        indicatorId: this.indicatorId,
-      });
-      return;
-    }
+    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) return;
 
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
@@ -262,63 +297,15 @@ export class MarketIndicator extends CanvasBase {
       this._state.timeRange.end
     );
 
-    // Find the indicator data and calculate value range
-    let minValue = Infinity;
-    let maxValue = -Infinity;
-
-    candles.forEach((candle) => {
-      const indicator = candle[1]?.evaluations?.find(
-        (e) => e.id === this.indicatorId
-      );
-      if (indicator) {
-        indicator.values.forEach((value) => {
-          minValue = Math.min(minValue, value.value);
-          maxValue = Math.max(maxValue, value.value);
-        });
-      }
-    });
-
-    // Add padding to the range (20%)
-    const range = maxValue - minValue;
-    const padding = range * 0.2;
-    this.localValueRange = {
-      min: minValue - padding,
-      max: maxValue + padding,
-      range: range + padding * 2,
-    };
-
-    console.log("MarketIndicator: Drawing with data", {
-      indicatorId: this.indicatorId,
-      candlesCount: candles.length,
-      timeRange: this._state.timeRange,
-      firstCandle: candles[0]?.[1],
-    });
-
-    // Find the indicator data
-    const evaluation = candles[0]?.[1]?.evaluations?.find(
-      (e) => e.id === this.indicatorId
-    );
-    if (!evaluation) {
-      console.log("MarketIndicator: No evaluation found for", this.indicatorId);
-      return;
-    }
-
     // Create a map to store points for each plot
     const plotPoints: { [key: string]: { x: number; y: number }[] } = {};
     const candleWidth = this.canvas.width / dpr / candles.length;
 
-    // Use localValueRange for both percentage and price scales
-    const getY = (value: number) => {
-      const height = (this.canvas?.height ?? 0) / dpr;
-      // Invert the Y coordinate since canvas coordinates go from top to bottom
-      return (
-        height -
-        ((value - this.localValueRange.min) / this.localValueRange.range) *
-          height
-      );
-    };
+    // Track min/max values for auto-scaling
+    let minValue = Infinity;
+    let maxValue = -Infinity;
 
-    // Collect points for each plot
+    // Collect points and track min/max values
     iterateTimeline({
       callback: (x: number, timestamp: number) => {
         const candle = this._state!.priceHistory.getCandle(timestamp);
@@ -335,9 +322,14 @@ export class MarketIndicator extends CanvasBase {
           }
 
           const candleX = x + candleWidth / 2;
+          // Store raw value and update min/max
+          const rawValue = value.value;
+          minValue = Math.min(minValue, rawValue);
+          maxValue = Math.max(maxValue, rawValue);
+
           plotPoints[value.plot_ref].push({
             x: candleX,
-            y: getY(value.value),
+            y: rawValue,
           });
         });
       },
@@ -349,12 +341,23 @@ export class MarketIndicator extends CanvasBase {
       alignToLocalTime: false,
     });
 
-    console.log("MarketIndicator: Collected points", {
-      plotPoints,
-      plotStyles: evaluation.plot_styles,
-    });
+    // Update localValueRange if not using price scale
+    if (this.scale !== ScaleType.Price && minValue !== Infinity) {
+      const range = maxValue - minValue;
+      const padding = range * 0.1; // Add 10% padding
+      this.localValueRange = {
+        min: minValue - padding,
+        max: maxValue + padding,
+        range: range + padding * 2,
+      };
+    }
 
-    // Draw each plot using its style from plot_styles
+    // Draw each plot using its style
+    const evaluation = candles[0]?.[1]?.evaluations?.find(
+      (e) => e.id === this.indicatorId
+    );
+    if (!evaluation) return;
+
     Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
       const points = plotPoints[plotRef];
       if (!points) return;
@@ -362,19 +365,8 @@ export class MarketIndicator extends CanvasBase {
       if (plotStyle.type === "line") {
         this.drawLine(ctx, points, plotStyle.style);
       } else if (plotStyle.type === "band") {
-        // For bands (like Bollinger Bands), we need both upper and lower points
-        const upperPoints: { x: number; y: number }[] = [];
-        const lowerPoints: { x: number; y: number }[] = [];
-
-        // Sort points into upper and lower bands
-        points.forEach((point, index) => {
-          if (index % 2 === 0) {
-            upperPoints.push(point);
-          } else {
-            lowerPoints.push(point);
-          }
-        });
-
+        const upperPoints = points.filter((_, i) => i % 2 === 0);
+        const lowerPoints = points.filter((_, i) => i % 2 === 1);
         this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
       } else if (plotStyle.type === "histogram") {
         this.drawHistogram(ctx, points, plotStyle.style);
