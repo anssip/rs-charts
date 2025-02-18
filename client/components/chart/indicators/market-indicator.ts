@@ -242,15 +242,19 @@ export class MarketIndicator extends CanvasBase {
 
   private drawHistogram(
     ctx: CanvasRenderingContext2D,
-    points: { x: number; y: number }[],
-    style: {
-      color?: string;
-      lineWidth?: number;
-      opacity?: number;
-    }
+    points: Array<{
+      x: number;
+      y: number;
+      style: { color?: string; opacity?: number };
+    }>
   ) {
     const dpr = window.devicePixelRatio ?? 1;
     const height = this.canvas!.height / dpr;
+    const width = this.canvas!.width / dpr;
+
+    // Calculate bar width based on the number of points and canvas width
+    // Leave a small gap (10% of calculated width) between bars
+    const barWidth = (width / points.length) * 0.9;
 
     // Convert value to Y position using localValueRange
     const getY = (value: number) => {
@@ -264,17 +268,13 @@ export class MarketIndicator extends CanvasBase {
     // Calculate zero line position using the same conversion
     const zeroY = getY(0);
 
-    ctx.beginPath();
-    ctx.strokeStyle = style.color || "#ffffff";
-    ctx.lineWidth = style.lineWidth || 1;
-    ctx.globalAlpha = style.opacity || 1;
+    ctx.lineWidth = barWidth;
 
     points.forEach((point) => {
-      // Determine if the bar is positive or negative based on raw value
-      const isPositive = point.y > 0;
-      ctx.strokeStyle = isPositive ? "#4CAF50" : "#F44336"; // Green for positive, red for negative
+      // Use the color and opacity from the point's style
+      ctx.strokeStyle = point.style.color || "#000";
+      ctx.globalAlpha = point.style.opacity || 1;
 
-      // Draw vertical line from zero line to the converted Y position
       ctx.beginPath();
       ctx.moveTo(point.x, zeroY);
       ctx.lineTo(point.x, getY(point.y));
@@ -298,7 +298,9 @@ export class MarketIndicator extends CanvasBase {
     );
 
     // Create a map to store points for each plot
-    const plotPoints: { [key: string]: { x: number; y: number }[] } = {};
+    const plotPoints: {
+      [key: string]: Array<{ x: number; y: number; style: any }>;
+    } = {};
     const candleWidth = this.canvas.width / dpr / candles.length;
 
     // Track min/max values for auto-scaling
@@ -316,6 +318,12 @@ export class MarketIndicator extends CanvasBase {
         );
         if (!indicator) return;
 
+        console.log("MI: Indicator data:", {
+          id: indicator.id,
+          values: indicator.values,
+          plot_styles: indicator.plot_styles,
+        });
+
         indicator.values.forEach((value) => {
           if (!plotPoints[value.plot_ref]) {
             plotPoints[value.plot_ref] = [];
@@ -327,9 +335,11 @@ export class MarketIndicator extends CanvasBase {
           minValue = Math.min(minValue, rawValue);
           maxValue = Math.max(maxValue, rawValue);
 
+          // Store the point with its style
           plotPoints[value.plot_ref].push({
             x: candleX,
             y: rawValue,
+            style: indicator.plot_styles[value.plot_ref]?.style || {},
           });
         });
       },
@@ -358,9 +368,20 @@ export class MarketIndicator extends CanvasBase {
     );
     if (!evaluation) return;
 
+    console.log("MI: Drawing with evaluation:", {
+      id: evaluation.id,
+      plot_styles: evaluation.plot_styles,
+    });
+
     Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
       const points = plotPoints[plotRef];
       if (!points) return;
+
+      console.log("MI: Drawing plot:", {
+        plotRef,
+        type: plotStyle.type,
+        points: points.length,
+      });
 
       if (plotStyle.type === "line") {
         this.drawLine(ctx, points, plotStyle.style);
@@ -369,7 +390,7 @@ export class MarketIndicator extends CanvasBase {
         const lowerPoints = points.filter((_, i) => i % 2 === 1);
         this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
       } else if (plotStyle.type === "histogram") {
-        this.drawHistogram(ctx, points, plotStyle.style);
+        this.drawHistogram(ctx, points);
       }
     });
   }
