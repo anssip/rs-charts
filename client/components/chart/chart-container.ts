@@ -388,6 +388,7 @@ export class ChartContainer extends LitElement {
       params,
       skipFetch,
       scale,
+      name,
     } = e.detail;
 
     if (visible) {
@@ -399,6 +400,7 @@ export class ChartContainer extends LitElement {
         params,
         skipFetch,
         scale,
+        name,
       });
       // Update state.indicators
       this._state.indicators = Array.from(this.indicators.values())
@@ -545,6 +547,13 @@ export class ChartContainer extends LitElement {
         <div class="chart-area" style="grid-area: chart;">
           <div class="chart" style="position: relative;">
             <indicator-container class="overlay-indicators">
+              <div class="indicator-names">
+                ${overlayIndicators.map(
+                  (indicator) => html`
+                    <div class="indicator-name">${indicator.name}</div>
+                  `
+                )}
+              </div>
               ${overlayIndicators.map(
                 (indicator) => html`
                   <indicator-container
@@ -572,10 +581,12 @@ export class ChartContainer extends LitElement {
                 <indicator-container
                   data-indicator=${indicator.id}
                   class="bottom-indicators"
+                  .name=${indicator.name}
                 >
                   ${new indicator.class({
                     indicatorId: indicator.id,
                     scale: indicator.scale,
+                    name: indicator.name,
                   })}
                 </indicator-container>
               `

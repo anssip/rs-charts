@@ -33,6 +33,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "volume",
+            name: "Volume",
             display: DisplayType.Bottom,
             class: VolumeChart,
             visible: !chartContainer.isIndicatorVisible("volume"),
@@ -50,6 +51,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "moving-averages",
+            name: "Moving Averages",
             visible: !chartContainer.isIndicatorVisible("moving-averages"),
             params: { period: 200 },
             display: DisplayType.Overlay,
@@ -68,6 +70,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "bollinger-bands",
+            name: "Bollinger Bands",
             visible: !chartContainer.isIndicatorVisible("bollinger-bands"),
             params: { period: 20, stdDev: 2 },
             display: DisplayType.Overlay,
@@ -86,6 +89,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "rsi",
+            name: "RSI",
             visible: !chartContainer.isIndicatorVisible("rsi"),
             params: { period: 14 },
             display: DisplayType.StackBottom,
@@ -104,6 +108,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "macd",
+            name: "MACD",
             visible: !chartContainer.isIndicatorVisible("macd"),
             params: {
               period: 12,

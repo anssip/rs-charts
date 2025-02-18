@@ -34,6 +34,18 @@ export class IndicatorStack extends LitElement {
       border-top: none;
     }
 
+    .indicator-name {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 11px;
+      color: var(--color-accent-2);
+      font-family: var(--font-secondary);
+      font-weight: 500;
+      opacity: 0.7;
+      z-index: 2;
+    }
+
     indicator-container {
       width: 100%;
       height: 100%;
@@ -46,6 +58,9 @@ export class IndicatorStack extends LitElement {
       ${this.indicators.map(
         (indicator) => html`
           <div class="stack-item">
+            ${indicator.name
+              ? html`<div class="indicator-name">${indicator.name}</div>`
+              : ""}
             <indicator-container>
               ${new indicator.class({
                 indicatorId: indicator.id,

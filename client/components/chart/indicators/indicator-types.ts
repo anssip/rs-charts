@@ -19,4 +19,5 @@ export interface IndicatorConfig {
   class: any; // This will be the indicator class type
   skipFetch?: boolean;
   scale?: ScaleType;
+  name?: string;
 }

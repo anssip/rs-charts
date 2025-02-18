@@ -258,4 +258,24 @@ export const getStyles = (
     pointer-events: none;
     cursor: crosshair;
   }
+
+  /* Add styles for overlay indicator names */
+  .indicator-names {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 5;
+  }
+
+  .indicator-name {
+    font-size: 11px;
+    color: var(--color-accent-2);
+    font-family: var(--font-secondary);
+    font-weight: 500;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
 `;

@@ -1,11 +1,14 @@
 import { LitElement, html, css } from "lit";
-import { customElement } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { CanvasBase } from "../canvas-base";
 
 @customElement("indicator-container")
 export class IndicatorContainer extends LitElement {
+  @property({ type: String })
+  name?: string;
+
   private _state: ChartState | null = null;
   private resizeObserver: ResizeObserver | null = null;
 
@@ -58,6 +61,11 @@ export class IndicatorContainer extends LitElement {
   render() {
     return html`
       <div class="indicator-container">
+        <div class="indicator-names">
+          ${this.name
+            ? html`<div class="indicator-name">${this.name}</div>`
+            : ""}
+        </div>
         <slot></slot>
       </div>
     `;
@@ -77,6 +85,31 @@ export class IndicatorContainer extends LitElement {
       height: 100%;
       position: relative;
       overflow: visible; /* Allow content to overflow */
+    }
+
+    .indicator-names {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 2;
+    }
+
+    .indicator-name {
+      font-size: 11px;
+      color: var(--color-accent-2);
+      font-family: var(--font-secondary);
+      font-weight: 500;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+
+    /* When multiple indicators are overlaid, stack names vertically */
+    :host(.overlay-indicators) .indicator-name {
+      position: static;
+      margin: 4px 8px;
     }
 
     ::slotted(*) {

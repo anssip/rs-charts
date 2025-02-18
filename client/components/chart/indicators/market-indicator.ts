@@ -375,15 +375,6 @@ export class MarketIndicator extends CanvasBase {
   }
 
   render() {
-    console.log("MarketIndicator render", {
-      scale: this.scale,
-      valueRange:
-        this.scale === ScaleType.Percentage
-          ? { min: 0, max: 100, range: 100 }
-          : this._state?.priceRange,
-      state: this._state,
-    });
-
     return html`
       <div class="indicator-container">
         <div class="chart-area">
@@ -417,6 +408,7 @@ export class MarketIndicator extends CanvasBase {
       width: 100%;
       height: 100%;
       min-height: 150px;
+      position: relative;
     }
 
     .chart-area {
