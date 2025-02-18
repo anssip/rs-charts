@@ -36,6 +36,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   @property({ type: Number })
   priceAxisMobileWidth = 45;
 
+  private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  private isMobile = this.mobileMediaQuery.matches;
+
   private _state: ChartState | null = null;
   private _padding: {
     top: number;
@@ -53,6 +56,25 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   };
 
   private drawingStrategy: Drawable = new CandlestickStrategy();
+
+  constructor() {
+    super();
+    this.isMobile = this.mobileMediaQuery.matches;
+    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+  }
+
+  private handleMobileChange = (e: MediaQueryListEvent) => {
+    this.isMobile = e.matches;
+    this.resize(this.clientWidth, this.clientHeight);
+  };
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.mobileMediaQuery.removeEventListener(
+      "change",
+      this.handleMobileChange
+    );
+  }
 
   @property({ type: Object })
   public set options(options: ChartOptions) {
@@ -79,26 +101,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   override async firstUpdated() {
-    this.canvas = this.renderRoot.querySelector("canvas");
-    const ctx = this.canvas?.getContext("2d");
-    if (!ctx) throw new Error("Could not get canvas context");
-    this.ctx = ctx;
-
-    // Get the actual available width (container width minus price axis)
-    const containerWidth = this.clientWidth;
-    const chartWidth = containerWidth - this.priceAxisWidth;
-
-    // Set canvas size accounting for device pixel ratio
-    const dpr = window.devicePixelRatio ?? 1;
-    if (this.canvas) {
-      this.canvas.width = chartWidth * dpr;
-      this.canvas.height = this.clientHeight * dpr;
-
-      // Set display size through CSS
-      this.canvas.style.width = `${chartWidth}px`;
-      this.canvas.style.height = `${this.clientHeight}px`;
-    }
-
     await super.firstUpdated();
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.dispatchEvent(
@@ -182,20 +184,24 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   static styles = css`
     :host {
       position: relative;
-      display: flex;
-      flex-direction: row;
+      display: grid;
+      grid-template-columns: 1fr auto;
       width: 100%;
       height: 100%;
     }
 
     .chart-container {
       position: relative;
-      flex: 1;
+      width: 100%;
       height: 100%;
       overflow: hidden;
+      grid-column: 1;
     }
 
     canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: block;
@@ -203,10 +209,10 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
     .price-axis-container {
       position: relative;
-      flex: none;
       width: var(--price-axis-width);
       height: 100%;
       background: var(--color-primary-dark);
+      grid-column: 2;
     }
 
     @media (max-width: 767px) {
@@ -215,21 +221,4 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       }
     }
   `;
-
-  public resize(width: number, height: number) {
-    if (!this.canvas) return;
-
-    // Calculate actual chart width (minus price axis)
-    const chartWidth = width - this.priceAxisWidth;
-
-    const dpr = window.devicePixelRatio ?? 1;
-    this.canvas.width = chartWidth * dpr;
-    this.canvas.height = height * dpr;
-
-    // Set display size through CSS
-    this.canvas.style.width = `${chartWidth}px`;
-    this.canvas.style.height = `${height}px`;
-
-    this.draw();
-  }
 }
