@@ -1,18 +1,18 @@
 import { expect, test, describe } from "bun:test";
 import {
   SimplePriceHistory,
-  type CandleData,
+  type Candle,
   type CandleDataByTimestamp,
 } from "../price-history-model";
 
 describe("SimplePriceHistory", () => {
   // Helper function to create test data
   function createTestCandles(): CandleDataByTimestamp {
-    const candles = new Map<number, CandleData>();
+    const candles = new Map<number, Candle>();
 
     // Add some test candles at 1-hour intervals
     const baseTime = 1700000000000; // Some fixed timestamp
-    const testData: CandleData[] = [
+    const testData: Candle[] = [
       {
         granularity: "ONE_HOUR",
         timestamp: baseTime,
@@ -106,9 +106,9 @@ describe("SimplePriceHistory", () => {
 
   test("getCandle handles different granularities correctly", () => {
     // Test with 5-minute granularity
-    const fiveMinCandles = new Map<number, CandleData>();
+    const fiveMinCandles = new Map<number, Candle>();
     const baseTime = 1700000000000;
-    const candle: CandleData = {
+    const candle: Candle = {
       granularity: "FIVE_MINUTE",
       timestamp: baseTime,
       open: 100,
@@ -132,7 +132,7 @@ describe("SimplePriceHistory", () => {
   });
 
   test("getCandlesSorted returns candles in correct order", () => {
-    const candles = new Map<number, CandleData>();
+    const candles = new Map<number, Candle>();
 
     // Add candles in random order
     const timestamps = [1700003600000, 1700000000000, 1700007200000];
@@ -167,7 +167,7 @@ describe("SimplePriceHistory", () => {
   });
 
   test("getTimestampsSorted returns timestamps in correct order", () => {
-    const candles = new Map<number, CandleData>();
+    const candles = new Map<number, Candle>();
 
     // Add candles in random order
     const timestamps = [1700003600000, 1700000000000, 1700007200000];
@@ -200,7 +200,7 @@ describe("SimplePriceHistory", () => {
   });
 
   test("getCandlesInRange returns candles in correct range and order", () => {
-    const candles = new Map<number, CandleData>();
+    const candles = new Map<number, Candle>();
 
     // Add test candles with 1-hour intervals
     const timestamps = [
@@ -251,7 +251,7 @@ describe("SimplePriceHistory", () => {
   });
 
   test("getGaps returns correct gaps in the timeline", () => {
-    const candles = new Map<number, CandleData>();
+    const candles = new Map<number, Candle>();
     const baseTime = 1700000000000; // base time
     const hourInMs = 3600000; // 1 hour in milliseconds
 

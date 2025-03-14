@@ -56,8 +56,8 @@ html, body {
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
     position: fixed;
+    overflow: hidden;
 }
 
 body {
@@ -79,13 +79,7 @@ h1.app-header {
 /* Chart container styles */
 .chart-container {
     width: 100%;
-    height: 100%;
+    height: 800px;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    overflow: hidden;
-    /* Handle iOS safe areas */
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }

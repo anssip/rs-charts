@@ -1,4 +1,4 @@
-import { customElement } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
 import { observe, xin } from "xinjs";
@@ -12,6 +12,7 @@ import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
+import { css } from "lit";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -360,4 +361,18 @@ export class PriceAxis extends CanvasBase {
     this.isDragging = false;
     this.isZooming = false;
   };
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  `;
 }

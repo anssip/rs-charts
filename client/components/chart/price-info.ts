@@ -17,6 +17,7 @@ import { ChartState } from "../..";
 import "../common/button";
 import "../chart/context-menu";
 import "./toolbar/chart-toolbar";
+import { ChartContainer } from "./chart-container";
 
 @customElement("price-info")
 export class PriceInfo extends LitElement {
@@ -54,6 +55,9 @@ export class PriceInfo extends LitElement {
   @state()
   private isMobile = false;
 
+  @property({ type: Object })
+  container?: ChartContainer;
+
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
   firstUpdated() {
@@ -76,6 +80,7 @@ export class PriceInfo extends LitElement {
 
     document.addEventListener("click", this.handleClickOutside);
     window.addEventListener("keydown", this.handleKeyPress);
+    document.addEventListener("fullscreenchange", this.handleFullscreenChange);
   }
 
   disconnectedCallback() {
@@ -183,6 +188,14 @@ export class PriceInfo extends LitElement {
     this.isGranularityDropdownOpen = !this.isGranularityDropdownOpen;
   }
 
+  private handleFullscreenChange = () => {
+    this.isFullscreen = document.fullscreenElement === this;
+    // Delay reflow recalculation
+    setTimeout(() => {
+      this.requestUpdate();
+    }, 100);
+  };
+
   render() {
     const isBearish = this.liveCandle
       ? this.liveCandle.close < this.liveCandle.open
@@ -275,6 +288,7 @@ export class PriceInfo extends LitElement {
             .isFullscreen=${this.isFullscreen}
             .isFullWindow=${this.isFullWindow}
             .showVolume=${this.showVolume}
+            .container=${this.container}
             @toggle-fullscreen=${(e: CustomEvent) => {
               if (e.defaultPrevented) return;
               e.preventDefault();
@@ -299,13 +313,6 @@ export class PriceInfo extends LitElement {
                 })
               );
             }}
-            @toggle-volume=${() =>
-              this.dispatchEvent(
-                new CustomEvent("toggle-volume", {
-                  bubbles: true,
-                  composed: true,
-                })
-              )}
             @upgrade-click=${() =>
               this.dispatchEvent(
                 new CustomEvent("upgrade-click", {
