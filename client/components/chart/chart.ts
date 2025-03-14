@@ -162,9 +162,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     return html`
       <div class="chart-container">
         <canvas></canvas>
-      </div>
-      <div class="price-axis-container">
-        <price-axis></price-axis>
+        <div class="price-axis-container">
+          <price-axis></price-axis>
+        </div>
       </div>
     `;
   }
@@ -184,8 +184,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   static styles = css`
     :host {
       position: relative;
-      display: grid;
-      grid-template-columns: 1fr auto;
+      display: block;
       width: 100%;
       height: 100%;
     }
@@ -195,29 +194,34 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      grid-column: 1;
+      display: flex;
     }
 
     canvas {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
+      width: calc(100% - var(--price-axis-width));
       height: 100%;
       display: block;
     }
 
     .price-axis-container {
-      position: relative;
+      position: absolute;
+      right: 0;
+      top: 0;
       width: var(--price-axis-width);
       height: 100%;
       background: var(--color-primary-dark);
-      grid-column: 2;
     }
 
     @media (max-width: 767px) {
       .price-axis-container {
         width: var(--price-axis-mobile-width);
+      }
+      
+      canvas {
+        width: calc(100% - var(--price-axis-mobile-width));
       }
     }
   `;
