@@ -1,0 +1,281 @@
+import { css } from "lit";
+
+const INDICATOR_HEIGHT = 150; // Height per stacked indicator
+
+export const getStyles = (
+  priceAxisWidth: number,
+  timelineHeight: number
+) => css`
+  :host {
+    display: block;
+    width: 100%;
+    height: var(--spotcanvas-chart-height, 600px);
+    min-height: 400px;
+  }
+
+  :host(.full-window) {
+    background: var(--color-primary-dark);
+    padding: 16px;
+    box-sizing: border-box;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+  }
+
+  :host(.full-window) .container {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .container {
+    display: grid;
+    grid-template-areas:
+      "price-info"
+      "indicators-top"
+      "chart"
+      "indicators-bottom"
+      "timeline";
+    grid-template-rows: auto min-content 1fr min-content ${timelineHeight}px;
+    grid-template-columns: minmax(0, 1fr);
+    height: 100%;
+    background-color: var(--color-primary-dark);
+    gap: 8px;
+    padding: 0 16px;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .chart-area {
+    position: relative;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .price-info {
+    background: var(--color-primary-dark);
+    border-radius: 12px;
+    margin: 8px 0;
+    padding: 12px 16px;
+    border: 1px solid rgba(143, 143, 143, 0.2);
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .chart {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .activate-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    backdrop-filter: blur(8px);
+    background: transparent;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: var(--color-accent-2);
+    z-index: 10;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: auto;
+  }
+
+  .activate-label:hover {
+    opacity: 1;
+  }
+
+  .activate-label.hidden {
+    display: none;
+  }
+
+  chart-timeline {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+  }
+
+  .timeline-container {
+    height: ${timelineHeight}px;
+    min-height: ${timelineHeight}px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  candlestick-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  candlestick-chart.active {
+    cursor: crosshair;
+  }
+
+  candlestick-chart.active:active {
+    cursor: grabbing;
+  }
+
+  live-decorators {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100% - ${priceAxisWidth}px);
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  chart-crosshairs {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: none;
+    cursor: crosshair;
+  }
+
+  chart-crosshairs > * {
+    pointer-events: all;
+  }
+
+  price-axis {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  chart-logo {
+    position: absolute;
+    bottom: ${timelineHeight + 8}px;
+    z-index: 7;
+  }
+
+  indicator-container {
+    position: absolute;
+    bottom: ${timelineHeight}px;
+    left: 0;
+    width: 100%;
+    height: 25%;
+    pointer-events: none;
+    z-index: 2;
+    background: none;
+  }
+
+  indicator-container[hidden] {
+    display: none;
+  }
+
+  .overlay-indicators {
+    position: absolute;
+    height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .bottom-indicators {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 20%;
+    pointer-events: none;
+    bottom: 0;
+    z-index: 5;
+    background: none;
+  }
+
+  indicator-container.bottom-indicators {
+    position: absolute;
+    width: 100%;
+    height: 20%;
+  }
+
+  /* Update indicator stack styles */
+  indicator-stack {
+    position: relative;
+    width: 100%;
+    min-height: ${INDICATOR_HEIGHT}px;
+    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  indicator-stack[style*="grid-area: indicators-top"] {
+    border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+  }
+
+  indicator-stack[style*="grid-area: indicators-bottom"] {
+    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+  }
+
+  indicator-stack .stack-item {
+    height: ${INDICATOR_HEIGHT}px;
+    min-height: ${INDICATOR_HEIGHT}px;
+    position: relative;
+  }
+
+  indicator-stack indicator-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Add grid-crosshairs styling to extend crosshairs over the entire container */
+  chart-crosshairs.grid-crosshairs {
+    grid-area: 1 / 1 / -1 / -1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9; /* higher than bottom indicators */
+    pointer-events: none;
+    cursor: crosshair;
+  }
+
+  /* Add styles for overlay indicator names */
+  .indicator-names {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 5;
+  }
+
+  .indicator-name {
+    font-size: 11px;
+    color: var(--color-accent-2);
+    font-family: var(--font-secondary);
+    font-weight: 500;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+`;

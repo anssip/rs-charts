@@ -42,7 +42,38 @@ export function granularityLabel(granularity: Granularity): string {
   return labels.get(String(granularity)) ?? String(granularity);
 }
 
-export interface CandleData {
+export interface PlotStyle {
+  type: "line" | "bar" | "scatter" | "area" | "band" | "histogram"; // can be extended with more plot types
+  style: {
+    color?: string;
+    lineWidth?: number;
+    opacity?: number;
+    dashArray?: number[];
+    fillColor?: string;
+    fillOpacity?: number;
+    symbol?: string; // symbol type for scatter plots
+    symbolSize?: number; // size of symbols for scatter plots
+  };
+}
+
+export interface PlotValue {
+  name: string;
+  timestamp: number;
+  value: number;
+  plot_ref: string;
+}
+
+export interface Evaluation {
+  id: string;
+  name: string;
+  values: PlotValue[];
+  plot_styles: {
+    [key: string]: PlotStyle;
+  };
+  skipFetch?: boolean;
+}
+
+export interface Candle {
   granularity: Granularity;
   timestamp: number;
   open: number;
@@ -51,8 +82,9 @@ export interface CandleData {
   close: number;
   volume: number;
   live: boolean;
+  evaluations: Evaluation[];
 }
-export type CandleDataByTimestamp = Map<number, CandleData>;
+export type CandleDataByTimestamp = Map<number, Candle>;
 
 export interface PriceDataOptions {
   symbol: string;
@@ -73,9 +105,9 @@ export interface PriceRange {
 export interface PriceHistory {
   getGranularity(): Granularity;
   get granularityMs(): number;
-  getCandle(timestamp: number): CandleData | undefined;
+  getCandle(timestamp: number): Candle | undefined;
   isCandleAvailable(timestamp: number): boolean;
-  getCandlesSorted(): [number, CandleData][];
+  getCandlesSorted(): [number, Candle][];
   getCandles(): CandleDataByTimestamp;
   getTimestampsSorted(): number[];
   numCandles: number;
@@ -85,10 +117,10 @@ export interface PriceHistory {
   getCandlesInRange(
     startTimestamp: number,
     endTimestamp: number
-  ): [number, CandleData][];
+  ): [number, Candle][];
   findNearestCandleIndex(timestamp: number): number;
   getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange;
-  setLiveCandle(candle: CandleData): boolean;
+  setLiveCandle(candle: Candle): boolean;
   getGaps(startTimestamp: number, endTimestamp: number): TimeRange[];
 }
 
@@ -130,7 +162,7 @@ export class SimplePriceHistory implements PriceHistory {
   private granularity: Granularity;
   private candles: CandleDataByTimestamp;
 
-  private candlesSortedByTimestamp: [number, CandleData][];
+  private candlesSortedByTimestamp: [number, Candle][];
 
   constructor(granularity: Granularity, candles: CandleDataByTimestamp) {
     this.granularity = asGranularity(granularity);
@@ -146,7 +178,7 @@ export class SimplePriceHistory implements PriceHistory {
    * @param timestamp - The timestamp to search for.
    * @returns The closest candle or undefined if no candle is found within the interval.
    */
-  getCandle(timestamp: number): CandleData | undefined {
+  getCandle(timestamp: number): Candle | undefined {
     const intervalMs =
       GRANULARITY_TO_MS.get(this.granularity) ?? 60 * 60 * 1000;
 
@@ -200,7 +232,7 @@ export class SimplePriceHistory implements PriceHistory {
    * Get the candles sorted by timestamp.
    * @returns The candles sorted by timestamp.
    */
-  getCandlesSorted(): [number, CandleData][] {
+  getCandlesSorted(): [number, Candle][] {
     return this.candlesSortedByTimestamp;
   }
 
@@ -266,7 +298,7 @@ export class SimplePriceHistory implements PriceHistory {
   getCandlesInRange(
     startTimestamp: number,
     endTimestamp: number
-  ): [number, CandleData][] {
+  ): [number, Candle][] {
     const startIdx = this.findNearestCandleIndex(startTimestamp);
     const endIdx = this.findNearestCandleIndex(endTimestamp);
 
@@ -336,7 +368,7 @@ export class SimplePriceHistory implements PriceHistory {
    * @param candle - The live candle to set.
    * @returns True if the candle was set, false otherwise.
    */
-  setLiveCandle(candle: CandleData): boolean {
+  setLiveCandle(candle: Candle): boolean {
     if (this.candles.size === 0) {
       return false;
     }
@@ -354,7 +386,7 @@ export class SimplePriceHistory implements PriceHistory {
       // - Keep the original open price
       // - Update high/low if the new price exceeds current bounds
       // - Update close price with the latest price
-      const newCandle: CandleData = {
+      const newCandle: Candle = {
         timestamp: candle.timestamp,
         open: existingCandle.open, // Keep original open price
         high: Math.max(existingCandle.high, candle.high, candle.close),
@@ -363,15 +395,17 @@ export class SimplePriceHistory implements PriceHistory {
         volume: candle.volume,
         live: true,
         granularity: this.granularity,
+        evaluations: existingCandle.evaluations,
       };
 
       this.candles.set(newCandle.timestamp, newCandle);
       const index = this.findNearestCandleIndex(existingCandle.timestamp);
       this.candlesSortedByTimestamp[index] = [newCandle.timestamp, newCandle];
     } else {
-      const newCandle: CandleData = {
+      const newCandle: Candle = {
         ...candle,
         granularity: this.granularity,
+        evaluations: [],
       };
       this.candles.set(newCandle.timestamp, newCandle);
       this.candlesSortedByTimestamp.push([newCandle.timestamp, newCandle]);

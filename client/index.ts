@@ -14,7 +14,10 @@ import {
   TimeRange,
 } from "../server/services/price-data/price-history-model";
 import { LiveCandle } from "./api/live-candle-subscription";
-import { ChartContainer } from "./components/chart/chart-container";
+import {
+  ChartContainer,
+  IndicatorState,
+} from "./components/chart/chart-container";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -26,6 +29,7 @@ export type ChartState = {
   symbol: string;
   granularity: Granularity;
   loading?: boolean;
+  indicators?: IndicatorState[];
 };
 
 const chartState: ChartState = {
@@ -38,6 +42,7 @@ const chartState: ChartState = {
   symbol: "BTC-USD",
   granularity: "ONE_HOUR",
   loading: false,
+  indicators: [],
 };
 
 const { state } = xinProxy(

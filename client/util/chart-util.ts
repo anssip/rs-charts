@@ -153,6 +153,18 @@ export function canvasYToPrice(
   return priceRange.min + percentage * (priceRange.max - priceRange.min);
 }
 
+export function yToPrice(
+  y: number,
+  height: number,
+  priceRange: PriceRange
+): number {
+  const availableHeight = height / dpr;
+  // Invert the percentage calculation
+  const percentage = 1 - y / availableHeight;
+  // Convert percentage to price
+  return priceRange.min + percentage * (priceRange.max - priceRange.min);
+}
+
 export type PriceLabelOptions = {
   price: number;
   backgroundColor: string;
@@ -196,6 +208,59 @@ export function drawTimeLabel(
   ctx.textBaseline = "middle";
   ctx.fillStyle = textColor;
   ctx.fillText(timeText, x, y);
+}
+
+export function drawPriceLabel(
+  ctx: CanvasRenderingContext2D,
+  price: number,
+  y: number,
+  labelWidth: number
+) {
+  // Draw price label
+  const textColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-accent-2")
+    .trim();
+  const backgroundColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-primary-dark")
+    .trim();
+  const borderColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-primary")
+    .trim();
+
+  // Set font
+  const fontFamily = getComputedStyle(document.documentElement)
+    .getPropertyValue("--font-primary")
+    .trim();
+  ctx.font = `${10}px ${fontFamily}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Draw price label
+  const labelHeight = 20;
+  const labelX = ctx.canvas.width / dpr - labelWidth;
+  const labelY = y;
+
+  // Draw background
+  const cornerRadius = 4;
+  ctx.beginPath();
+  ctx.roundRect(
+    labelX,
+    labelY - labelHeight / 2,
+    labelWidth,
+    labelHeight,
+    cornerRadius
+  );
+  ctx.fillStyle = backgroundColor;
+  ctx.fill();
+
+  // Draw border
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Draw text
+  ctx.fillStyle = textColor;
+  ctx.fillText(formatPrice(price), labelX + labelWidth / 2, labelY);
 }
 
 /*

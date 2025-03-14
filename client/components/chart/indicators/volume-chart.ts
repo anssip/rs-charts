@@ -1,11 +1,30 @@
 import { customElement, property } from "lit/decorators.js";
-import { CanvasBase } from "./canvas-base";
+import { CanvasBase } from "../canvas-base";
 import { observe, xin } from "xinjs";
-import { ChartState } from "../..";
-import { iterateTimeline } from "../../util/chart-util";
+import { ChartState } from "../../..";
+import { iterateTimeline } from "../../../util/chart-util";
+import { PropertyValues } from "lit";
+import { css } from "lit";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  `;
+
+  @property({ type: Object })
+  params?: Record<string, any>;
+
   private readonly FIXED_GAP_WIDTH = 2; // pixels
   private readonly MIN_BAR_WIDTH = 1; // pixels
   private readonly MAX_BAR_WIDTH = 500; // pixels
@@ -21,34 +40,46 @@ export class VolumeChart extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
-    observe("state", () => {
-      this._state = xin["state"] as ChartState;
-      this.draw();
-    });
-    observe("state.liveCandle", () => {
-      // make sure we have the latest state with the live candle
-      this._state = xin["state"] as ChartState;
-      this.draw();
-    });
+
+    // Get initial state
+    this._state = xin["state"] as ChartState;
+
+    // Wait for canvas and state to be ready
+    if (this.canvas && this._state) {
+      requestAnimationFrame(() => {
+        this.draw();
+      });
+    }
+
+    // Only observe state changes when the component is actually in the DOM
+    if (this.isConnected) {
+      observe("state", () => {
+        this._state = xin["state"] as ChartState;
+        this.draw();
+      });
+      observe("state.liveCandle", () => {
+        this._state = xin["state"] as ChartState;
+        this.draw();
+      });
+    }
   }
 
-  private isVisible(): boolean {
-    // Check if element is hidden via attribute or style
-    if (this.hidden || this.style.display === "none") return false;
-
-    // Check if element has zero dimensions
-    const rect = this.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return false;
-
-    return true;
+  // Add connectedCallback to ensure we draw when added to DOM
+  connectedCallback() {
+    super.connectedCallback();
+    if (this._state) {
+      requestAnimationFrame(() => {
+        this.draw();
+      });
+    }
   }
 
   draw() {
+    // Skip drawing if component is not connected to DOM
+    if (!this.isConnected) return;
     if (!this.canvas || !this.ctx || !this._state) return;
 
-    // Skip drawing if the element is not visible
-    if (!this.isVisible()) return;
-
+    console.log("draw volume chart");
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -90,7 +121,7 @@ export class VolumeChart extends CanvasBase {
         }
 
         const volumeHeight = (candle.volume || 0) * volumeScale;
-        if (volumeHeight <= 0) return; // Skip if no volume
+        // if (volumeHeight <= 0) return; // Skip if no volume
 
         const y = this.canvas!.height / dpr - volumeHeight;
 
@@ -113,5 +144,18 @@ export class VolumeChart extends CanvasBase {
       interval: this._state.priceHistory.granularityMs,
       alignToLocalTime: false,
     });
+  }
+
+  protected updated(changedProperties: PropertyValues) {
+    super.updated(changedProperties);
+    if (changedProperties.has("visible") || changedProperties.has("params")) {
+      this.draw();
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Clean up state observations when removed from DOM
+    // TODO: Add proper cleanup for xinjs observers
   }
 }

@@ -6,6 +6,7 @@ import {
   canvasYToPrice,
   drawTimeLabel,
   getLocalAlignedTimestamp,
+  yToPrice,
 } from "../../util/chart-util";
 import { CandlestickChart } from "./chart";
 import { ChartState } from "../..";
@@ -38,49 +39,35 @@ export class Crosshairs extends CanvasBase {
   private handleMouseMove = (event: MouseEvent) => {
     if (!this.canvas) return;
 
-    const chartArea = this.parentElement;
-    const chart = chartArea?.querySelector(
-      "candlestick-chart"
-    ) as CandlestickChart;
-    const rect = chart?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
+    const rect = this.canvas.getBoundingClientRect();
 
-    const chartWidth = xin["state.canvasWidth"] as number;
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
     const priceRange = state.priceRange;
 
-    // Scale mouse coordinates for DPI
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
 
-    // Calculate time at mouse position
     const timeSpan = timeRange.end - timeRange.start;
-    const mouseTime = timeRange.start + (this.mouseX / chartWidth) * timeSpan;
+    const mouseTime = timeRange.start + (this.mouseX / rect.width) * timeSpan;
 
-    // Get the interval and snap to it
     const interval = granularityToMs(state.granularity);
     const firstTimestamp = Math.floor(timeRange.start / interval) * interval;
 
-    // Find the nearest interval timestamp
     const intervalsSinceMidnight = Math.round(
       (mouseTime - firstTimestamp) / interval
     );
     const snappedTime = firstTimestamp + intervalsSinceMidnight * interval;
 
-    // For SIX_HOUR, align to local time boundaries
     this.cursorTime =
       state.granularity === "SIX_HOUR"
         ? getLocalAlignedTimestamp(snappedTime, 6)
         : snappedTime;
 
-    // Calculate X position from snapped time
     const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
-    this.snappedX = timePosition * chartWidth;
+    this.snappedX = timePosition * rect.width;
 
-    this.cursorPrice = canvasYToPrice(this.mouseY, chart.canvas!, priceRange);
+    this.cursorPrice = yToPrice(this.mouseY, rect.height, priceRange);
 
     this.draw();
   };
@@ -106,30 +93,26 @@ export class Crosshairs extends CanvasBase {
       );
       return;
     }
-
+    const rect = this.canvas.getBoundingClientRect();
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw horizontal line at mouse Y
-    if (this.mouseY < this.canvas.height / dpr - TIMELINE_HEIGHT) {
+    if (this.mouseY * dpr < this.canvas.height - TIMELINE_HEIGHT * dpr) {
       ctx.beginPath();
       ctx.setLineDash([2, 2]);
       ctx.strokeStyle = getComputedStyle(document.documentElement)
         .getPropertyValue("--color-primary")
         .trim();
       ctx.lineWidth = 1;
+
       ctx.moveTo(0, this.mouseY);
       ctx.lineTo(this.canvas.width, this.mouseY);
       ctx.stroke();
     }
 
-    // Draw vertical line at snapped X
-    if (
-      this.snappedX >= 0 &&
-      this.snappedX <= this.canvas.width / dpr - PRICEAXIS_WIDTH
-    ) {
+    if (this.snappedX >= 0 && this.snappedX <= rect.width) {
       ctx.beginPath();
       ctx.moveTo(this.snappedX, 0);
       ctx.lineTo(this.snappedX, this.canvas.height);
@@ -138,58 +121,6 @@ export class Crosshairs extends CanvasBase {
 
     ctx.setLineDash([]);
 
-    // Draw price label
-    const textColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
-      .trim();
-    const backgroundColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary-dark")
-      .trim();
-    const borderColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary")
-      .trim();
-
-    // Set font
-    const fontFamily = getComputedStyle(document.documentElement)
-      .getPropertyValue("--font-primary")
-      .trim();
-    ctx.font = `${10}px ${fontFamily}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Draw price label
-    const labelWidth = PRICEAXIS_WIDTH;
-    const labelHeight = 20;
-    const labelX = this.canvas.width / dpr - labelWidth;
-    const labelY = this.mouseY;
-
-    // Draw background
-    const cornerRadius = 4;
-    ctx.beginPath();
-    ctx.roundRect(
-      labelX,
-      labelY - labelHeight / 2,
-      labelWidth,
-      labelHeight,
-      cornerRadius
-    );
-    ctx.fillStyle = backgroundColor;
-    ctx.fill();
-
-    // Draw border
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Draw text
-    ctx.fillStyle = textColor;
-    ctx.fillText(
-      formatPrice(this.cursorPrice),
-      labelX + labelWidth / 2,
-      labelY
-    );
-
-    // Draw time label
     drawTimeLabel(
       ctx,
       this.cursorTime,

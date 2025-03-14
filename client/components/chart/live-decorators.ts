@@ -62,7 +62,7 @@ export class LiveDecorators extends CanvasBase {
       : getComputedStyle(document.documentElement)
           .getPropertyValue("--color-accent-1")
           .trim();
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = 0.5;
     this.ctx.beginPath();
     this.ctx.moveTo(0, priceY(this.currentPrice));
     this.ctx.lineTo(width, priceY(this.currentPrice));

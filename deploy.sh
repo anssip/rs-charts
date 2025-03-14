@@ -4,7 +4,7 @@
 PROJECT_ID="spotcanvas-prod"
 REGION="europe-west1"
 SERVICE_NAME="spotcanvas-server"
-SERVER_URL="https://chart-api.spotcanvas.com"
+SERVER_URL="https://market.spotcanvas.com"
 
 # Build locally first to test
 echo "🏗️ Building locally..."
