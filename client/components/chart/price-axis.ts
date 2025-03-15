@@ -27,6 +27,9 @@ export class PriceAxis extends CanvasBase {
   @state() private livePriceYPosition: number = 0;
   @state() private isBearish: boolean = false;
 
+  @state() private mouseY: number = -1;
+  @state() private mousePrice: number = 0;
+
   private countdownInterval: number | null = null;
   @state() private timeLeft: string = "";
 
@@ -66,6 +69,28 @@ export class PriceAxis extends CanvasBase {
     });
   }
 
+  // Track mouse movements at the document level
+  private handleDocumentMouseMove = (e: MouseEvent) => {
+    if (!this.isConnected) return;
+
+    // Get our component's position
+    const rect = this.getBoundingClientRect();
+
+    // Calculate relative Y position within our component
+    this.mouseY = e.clientY - rect.top;
+
+    // Convert Y position to price
+    const percentage = 1 - this.mouseY / rect.height;
+    this.mousePrice = this.priceRange.min + percentage * this.priceRange.range;
+
+    this.requestUpdate();
+  };
+
+  private handleDocumentMouseOut = () => {
+    this.mouseY = -1;
+    this.requestUpdate();
+  };
+
   disconnectedCallback() {
     super.disconnectedCallback();
     if (this.countdownInterval) {
@@ -75,6 +100,9 @@ export class PriceAxis extends CanvasBase {
       "change",
       this.handleMobileChange
     );
+
+    document.removeEventListener("mousemove", this.handleDocumentMouseMove);
+    document.removeEventListener("mouseout", this.handleDocumentMouseOut);
   }
 
   useResizeObserver(): boolean {
@@ -141,7 +169,14 @@ export class PriceAxis extends CanvasBase {
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
-    // Mouse events
+    console.log("PriceAxis: Binding event listeners to canvas", canvas);
+
+    // Add a document-level mouse move listener to track mouse position
+    // even when it's outside our component
+    document.addEventListener("mousemove", this.handleDocumentMouseMove);
+    document.addEventListener("mouseout", this.handleDocumentMouseOut);
+
+    // Mouse events for drag/zoom functionality
     canvas.addEventListener("mousedown", this.handleDragStart);
     canvas.addEventListener("mousemove", this.handleDragMove);
     canvas.addEventListener("mouseup", this.handleDragEnd);
@@ -160,6 +195,7 @@ export class PriceAxis extends CanvasBase {
     this.lastY = e.clientY;
   };
 
+  // Call this when dragging
   private handleDragMove = (e: MouseEvent) => {
     if (!this.isDragging) return;
     const deltaY = e.clientY - this.lastY;
@@ -323,10 +359,21 @@ export class PriceAxis extends CanvasBase {
   };
 
   render() {
+    // No need for inline handlers anymore - we use document events
     return html`
       <div class="container">
         <canvas></canvas>
         ${this.liveCandle ? this.renderLivePriceLabel() : ""}
+        ${this.mouseY > 0
+          ? html`
+              <div
+                class="mouse-price-label"
+                style="top: ${this.mouseY - 10}px; left: 0;"
+              >
+                <div class="price">${formatPrice(this.mousePrice)}</div>
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -393,6 +440,28 @@ export class PriceAxis extends CanvasBase {
       font-size: 10px;
       line-height: 1.2;
       margin-right: 2px;
+      z-index: 2;
+    }
+
+    .mouse-price-label {
+      position: absolute;
+      width: 94%;
+      height: 20px;
+      background-color: #222;
+      border: 1px solid var(--color-primary);
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1;
+      margin-right: 2px;
+      z-index: 1000;
+      color: white;
+      pointer-events: none;
+      box-shadow: 0 0 5px var(--color-primary);
     }
 
     .price {
