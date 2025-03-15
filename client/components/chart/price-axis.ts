@@ -1,4 +1,4 @@
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
 import { observe, xin } from "xinjs";
@@ -12,7 +12,7 @@ import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
-import { css } from "lit";
+import { css, html } from "lit";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -22,9 +22,13 @@ export class PriceAxis extends CanvasBase {
   private lastY = 0;
   private lastTouchDistance = 0;
   private isZooming = false;
-  private liveCandle: LiveCandle | null = null;
+
+  @state() private liveCandle: LiveCandle | null = null;
+  @state() private livePriceYPosition: number = 0;
+  @state() private isBearish: boolean = false;
+
   private countdownInterval: number | null = null;
-  private timeLeft: string = "";
+  @state() private timeLeft: string = "";
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
@@ -52,6 +56,7 @@ export class PriceAxis extends CanvasBase {
     observe("state.liveCandle", (path) => {
       this.liveCandle = xin[path] as LiveCandle;
       this.currentPrice = this.liveCandle.close;
+      this.isBearish = this.liveCandle.close < this.liveCandle.open;
       this.startCountdown();
       this.draw();
     });
@@ -126,61 +131,13 @@ export class PriceAxis extends CanvasBase {
         ctx.fillText(priceText, labelWidth / 2, y);
       }
     }
-    this.drawLivePriceLabel(ctx, priceY);
-  }
 
-  drawLivePriceLabel(
-    ctx: CanvasRenderingContext2D,
-    priceY: (price: number) => number
-  ) {
-    if (!this.liveCandle) return;
-
-    const isBearish = this.liveCandle.close < this.liveCandle.open;
-    const priceColor = isBearish
-      ? getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-error")
-          .trim()
-      : getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-accent-1")
-          .trim();
-
-    const textColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
-      .trim();
-
-    const priceYPos = priceY(this.currentPrice);
-    const labelWidth = this.isMobile ? PRICEAXIS_MOBILE_WIDTH : PRICEAXIS_WIDTH;
-    const labelHeight = 30;
-
-    // Draw background with rounded corners
-    const cornerRadius = 4;
-    ctx.beginPath();
-    ctx.roundRect(
-      0,
-      priceYPos - labelHeight / 2,
-      labelWidth,
-      labelHeight,
-      cornerRadius
-    );
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary-dark")
-      .trim();
-    ctx.fill();
-
-    // Draw border with rounded corners
-    ctx.strokeStyle = priceColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Draw price text
-    ctx.fillStyle = textColor;
-    ctx.fillText(formatPrice(this.currentPrice), labelWidth / 2, priceYPos - 6);
-
-    // Draw time text
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-background-secondary")
-      .trim();
-    ctx.fillText(this.timeLeft, labelWidth / 2, priceYPos + 6);
+    // Update live price position for HTML label
+    if (this.liveCandle) {
+      this.livePriceYPosition = priceY(this.currentPrice);
+      this.isBearish = this.liveCandle.close < this.liveCandle.open;
+      this.requestUpdate();
+    }
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
@@ -291,13 +248,16 @@ export class PriceAxis extends CanvasBase {
       );
     }
 
-    if (!this.ctx || !this.canvas) return;
+    if (!this.canvas) return;
 
     const priceY = priceToY(this.canvas.height, {
       start: this.priceRange.min,
       end: this.priceRange.max,
     });
-    this.drawLivePriceLabel(this.ctx, priceY);
+
+    // Update position for HTML label
+    this.livePriceYPosition = priceY(this.currentPrice);
+    this.requestUpdate();
   }
 
   private startCountdown() {
@@ -362,9 +322,52 @@ export class PriceAxis extends CanvasBase {
     this.isZooming = false;
   };
 
+  render() {
+    return html`
+      <div class="container">
+        <canvas></canvas>
+        ${this.liveCandle ? this.renderLivePriceLabel() : ""}
+      </div>
+    `;
+  }
+
+  renderLivePriceLabel() {
+    const priceColor = this.isBearish
+      ? "var(--color-error)"
+      : "var(--color-accent-1)";
+
+    const textColor = "var(--color-accent-2)";
+    const timeColor = "var(--color-background-secondary)";
+
+    const labelHeight = 30;
+    const top = `${this.livePriceYPosition - labelHeight / 2}px`;
+
+    return html`
+      <div
+        class="live-price-label"
+        style="
+          top: ${top}; 
+          border-color: ${priceColor};
+        "
+      >
+        <div class="price" style="color: ${textColor}">
+          ${formatPrice(this.currentPrice)}
+        </div>
+        <div class="time" style="color: ${timeColor}">${this.timeLeft}</div>
+      </div>
+    `;
+  }
+
   static styles = css`
     :host {
       display: block;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .container {
+      position: relative;
       width: 100%;
       height: 100%;
     }
@@ -373,6 +376,27 @@ export class PriceAxis extends CanvasBase {
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    .live-price-label {
+      position: absolute;
+      width: 97%;
+      height: 30px;
+      background-color: var(--color-primary-dark);
+      border: 1px solid;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+      margin-right: 2px;
+    }
+
+    .price {
+      font-weight: bold;
     }
   `;
 }
