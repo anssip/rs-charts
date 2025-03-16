@@ -29,14 +29,10 @@ bun run dev
 
 ### ideas
 
-- Introduce new interactive-pane superclass with:
+- [ ] Resizing of stacked indicators
+- [ ] Activation reimplementation: Add a top layer on top of the chart that disables all mouse events when not active
 
-  - panning
-  - zooming
-  - RESIZING with the mouse
-  - mouse, touch, wheel events
-
-  * this can be then used for the indicator panes and value-axis
+  - this can be then used for the indicator panes and value-axis
 
 - [x] Enhance value-axis to highlight the value on mouse Y
 - [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming
