@@ -8,7 +8,6 @@ import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
 
-@customElement("market-indicator")
 // Add global type for state cache
 declare global {
   interface Window {
@@ -23,6 +22,7 @@ declare global {
   }
 }
 
+@customElement("market-indicator")
 export class MarketIndicator extends CanvasBase {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
@@ -86,42 +86,22 @@ export class MarketIndicator extends CanvasBase {
       try {
         // Store essential data needed for redrawing
         window.__INDICATOR_STATE_CACHE = window.__INDICATOR_STATE_CACHE || {};
-        
+
         // Create a unique key based on indicator id
         const cacheKey = `indicator_${this.indicatorId || this.id}`;
-        
+
         window.__INDICATOR_STATE_CACHE[cacheKey] = {
           state: this._state,
           valueRange: { ...this.localValueRange },
           scale: this.scale,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
-        
+
         console.log(`MarketIndicator: Stored state snapshot for ${cacheKey}`);
       } catch (err) {
         console.error("Failed to store state snapshot", err);
       }
     }
-  }
-  
-  // Restore state from snapshot if available
-  private restoreStateSnapshot(): boolean {
-    if (!this._state && window.__INDICATOR_STATE_CACHE) {
-      try {
-        const cacheKey = `indicator_${this.indicatorId || this.id}`;
-        const snapshot = window.__INDICATOR_STATE_CACHE[cacheKey];
-        
-        if (snapshot && Date.now() - snapshot.timestamp < 30000) { // Valid for 30 seconds
-          console.log(`MarketIndicator: Restoring state from snapshot for ${cacheKey}`);
-          this._state = snapshot.state;
-          this.localValueRange = { ...snapshot.valueRange };
-          return true;
-        }
-      } catch (err) {
-        console.error("Failed to restore state snapshot", err);
-      }
-    }
-    return false;
   }
 
   override getId(): string {
@@ -136,17 +116,10 @@ export class MarketIndicator extends CanvasBase {
       dimensions: `${this.offsetWidth}x${this.offsetHeight}`,
     });
 
-    // Try to restore state from snapshot first
-    if (this.restoreStateSnapshot()) {
-      console.log("MarketIndicator: Successfully restored state from snapshot");
-      // Schedule immediate draw
-      setTimeout(() => this.draw(), 0);
-    }
-
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
-      
+
       // Store a snapshot whenever state is updated
       this.storeStateSnapshot();
 
@@ -173,11 +146,11 @@ export class MarketIndicator extends CanvasBase {
             xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
         };
         console.log("MarketIndicator: Local value range", this.localValueRange);
-        
+
         // Update state snapshot with new value range
         this._state = state;
         this.storeStateSnapshot();
-        
+
         this.draw();
       }
     });
@@ -204,22 +177,6 @@ export class MarketIndicator extends CanvasBase {
     ) => {
       console.log("MarketIndicator: Received force-redraw event", e.detail);
 
-      // First try to restore state from snapshot
-      if (!this._state) {
-        if (!this.restoreStateSnapshot()) {
-          // If snapshot restoration fails, try to get state from xin
-          console.log(
-            "MarketIndicator: State not initialized, getting from global state"
-          );
-          this._state = xin["state"] as ChartState;
-          
-          // Store this state for future use
-          if (this._state) {
-            this.storeStateSnapshot();
-          }
-        }
-      }
-
       // Apply the resize explicitly
       const { width, height } = e.detail;
       if (width && height) {
@@ -243,22 +200,6 @@ export class MarketIndicator extends CanvasBase {
     // Listen for internal-state-update events (used for aggressive redraws)
     this.addEventListener("internal-state-update", ((e: CustomEvent) => {
       console.log("MarketIndicator: Received internal-state-update event");
-
-      // First try to restore state from snapshot
-      if (!this._state) {
-        if (!this.restoreStateSnapshot()) {
-          // If snapshot restoration fails, try to get state from xin
-          console.log(
-            "MarketIndicator: State not initialized, getting from global state"
-          );
-          this._state = xin["state"] as ChartState;
-          
-          // Store this state for future use
-          if (this._state) {
-            this.storeStateSnapshot();
-          }
-        }
-      }
 
       // Recreate canvas if needed
       if (!this.canvas) {
