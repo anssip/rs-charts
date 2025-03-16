@@ -2,22 +2,14 @@ import { observe, xin } from "xinjs";
 import { CanvasBase } from "./canvas-base";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { customElement } from "lit/decorators.js";
-import {
-  canvasYToPrice,
-  drawTimeLabel,
-  getLocalAlignedTimestamp,
-  yToPrice,
-} from "../../util/chart-util";
-import { CandlestickChart } from "./chart";
+import { drawTimeLabel, getLocalAlignedTimestamp } from "../../util/chart-util";
 import { ChartState } from "../..";
-import { PRICEAXIS_WIDTH, TIMELINE_HEIGHT } from "./chart-container";
-import { formatPrice } from "../../util/price-util";
+import { TIMELINE_HEIGHT } from "./chart-container";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
   private mouseX: number = -1;
   private mouseY: number = -1;
-  private cursorPrice: number = 0;
   private cursorTime: number = 0;
   private snappedX: number = -1;
 
@@ -43,7 +35,6 @@ export class Crosshairs extends CanvasBase {
 
     const state = xin["state"] as ChartState;
     const timeRange = state.timeRange;
-    const priceRange = state.priceRange;
 
     this.mouseX = event.clientX - rect.left;
     this.mouseY = event.clientY - rect.top;
@@ -66,8 +57,6 @@ export class Crosshairs extends CanvasBase {
 
     const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
     this.snappedX = timePosition * rect.width;
-
-    this.cursorPrice = yToPrice(this.mouseY, rect.height, priceRange);
 
     this.draw();
   };

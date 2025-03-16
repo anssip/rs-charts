@@ -381,6 +381,7 @@ export class App {
     );
     if (this.chartContainer) {
       this.chartContainer.state = this.state;
+      this.chartContainer.draw();
     }
   }
 

@@ -38,11 +38,10 @@ bun run dev
 
   * this can be then used for the indicator panes and value-axis
 
-- [ ] Enhance value-axis to highlight the value on mouse Y
+- [x] Enhance value-axis to highlight the value on mouse Y
 - [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming
-- [ ] Refactor crosshairs to no include the value drawing in the right edge
 - [x] Refactor the price-axis to be contained inside the chart component
-- [ ] Add Y-axis view to the market-indicator component
+- [x] Add Y-axis view to the market-indicator component
 - [ ] Make menu show the active indicators with a checkmark
 - [ ] Add possibility to supply params to market evaluators
 - [ ] Load indicators from `market.spotcanvas.com/evaluators`
