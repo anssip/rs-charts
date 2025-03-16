@@ -77,14 +77,14 @@ export class IndicatorContainer extends LitElement {
       width: 100%;
       height: 100%;
       position: relative;
-      overflow: visible; /* Allow content to overflow */
+      overflow: visible;
     }
 
     .indicator-container {
       width: 100%;
       height: 100%;
       position: relative;
-      overflow: visible; /* Allow content to overflow */
+      overflow: visible;
     }
 
     .indicator-names {
@@ -120,6 +120,7 @@ export class IndicatorContainer extends LitElement {
       width: 100%;
       height: 100%;
       overflow: visible; /* Allow content to overflow */
+      flex: 1 1 auto;
     }
   `;
 }

@@ -43,50 +43,51 @@ export class ValueAxis extends CanvasBase {
   useResizeObserver(): boolean {
     return true;
   }
-  
+
   firstUpdated() {
     super.firstUpdated();
-    
+
     // Add document-level mouse event listeners
-    document.addEventListener('mousemove', this.handleDocumentMouseMove);
-    document.addEventListener('mouseout', this.handleDocumentMouseOut);
+    document.addEventListener("mousemove", this.handleDocumentMouseMove);
+    document.addEventListener("mouseout", this.handleDocumentMouseOut);
   }
-  
+
   // Handle mouse movements at the document level
   private handleDocumentMouseMove = (e: MouseEvent) => {
     if (!this.isConnected) return;
-    
+
     // Find the parent indicator container
-    const parentIndicator = this.closest('.indicator-container') || this.parentElement;
+    const parentIndicator =
+      this.closest(".indicator-container") || this.parentElement;
     if (!parentIndicator) {
       console.log("ValueAxis: No parent indicator found");
       return;
     }
-    
+
     // Get the parent indicator's position instead of just this component
     const parentRect = parentIndicator.getBoundingClientRect();
     const myRect = this.getBoundingClientRect();
-    
+
     // Check if mouse is vertically within the parent indicator's boundaries
     if (e.clientY >= parentRect.top && e.clientY <= parentRect.bottom) {
       // Calculate relative Y position within our height
       // Use the same relative position within our component height
       const relativeY = (e.clientY - parentRect.top) / parentRect.height;
       this.mouseY = relativeY * myRect.height;
-      
+
       // Convert Y position to value
       this.mouseValue = this.yToValue(this.mouseY);
-      
+
       // Debug logging
       console.log("ValueAxis: Mouse in parent bounds", {
         clientY: e.clientY,
-        parentTop: parentRect.top, 
+        parentTop: parentRect.top,
         parentBottom: parentRect.bottom,
         relativeY,
         mouseY: this.mouseY,
-        value: this.mouseValue
+        value: this.mouseValue,
       });
-      
+
       this.requestUpdate();
     } else {
       // Mouse is outside the vertical boundaries, hide the label
@@ -94,25 +95,25 @@ export class ValueAxis extends CanvasBase {
         this.mouseY = -1;
         console.log("ValueAxis: Mouse outside parent bounds", {
           clientY: e.clientY,
-          parentTop: parentRect.top, 
-          parentBottom: parentRect.bottom
+          parentTop: parentRect.top,
+          parentBottom: parentRect.bottom,
         });
         this.requestUpdate();
       }
     }
   };
-  
+
   private handleDocumentMouseOut = () => {
     this.mouseY = -1;
     this.requestUpdate();
-  }
-  
+  };
+
   disconnectedCallback() {
     super.disconnectedCallback();
-    
+
     // Remove document event listeners
-    document.removeEventListener('mousemove', this.handleDocumentMouseMove);
-    document.removeEventListener('mouseout', this.handleDocumentMouseOut);
+    document.removeEventListener("mousemove", this.handleDocumentMouseMove);
+    document.removeEventListener("mouseout", this.handleDocumentMouseOut);
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
@@ -153,18 +154,18 @@ export class ValueAxis extends CanvasBase {
       height - ((value - this.valueRange.min) / this.valueRange.range) * height
     );
   }
-  
+
   // Convert a Y position to a value
   yToValue(y: number): number {
     if (!this.canvas) return 0;
-    
+
     const height = this.canvas.clientHeight;
     const percentage = 1 - y / height;
-    
+
     if (this.scale === "percentage") {
       return percentage * 100;
     }
-    
+
     return this.valueRange.min + percentage * this.valueRange.range;
   }
 
@@ -360,26 +361,30 @@ export class ValueAxis extends CanvasBase {
     return html`
       <div class="container">
         <canvas></canvas>
-        
+
         <!-- Mouse value label -->
-        ${this.mouseY > 0 ? html`
-          <div class="mouse-value-label"
-               style="top: ${this.mouseY - 10}px; left: 0;">
-            <div class="value">
-              ${(() => {
-                switch(this.scale) {
-                  case "percentage":
-                    return `${this.mouseValue.toFixed(2)}%`;
-                  case "volume":
-                    return formatPrice(this.mouseValue).replace('.', ',');
-                  case "price":
-                  default:
-                    return formatPrice(this.mouseValue);
-                }
-              })()}
-            </div>
-          </div>
-        ` : ''}
+        ${this.mouseY > 0
+          ? html`
+              <div
+                class="mouse-value-label"
+                style="top: ${this.mouseY - 10}px; left: 0;"
+              >
+                <div class="value">
+                  ${(() => {
+                    switch (this.scale) {
+                      case "percentage":
+                        return `${this.mouseValue.toFixed(2)}%`;
+                      case "volume":
+                        return formatPrice(this.mouseValue).replace(".", ",");
+                      case "price":
+                      default:
+                        return formatPrice(this.mouseValue);
+                    }
+                  })()}
+                </div>
+              </div>
+            `
+          : ""}
       </div>
     `;
   }
@@ -404,13 +409,13 @@ export class ValueAxis extends CanvasBase {
       height: 100%;
       display: block;
     }
-    
+
     .mouse-value-label {
       position: absolute;
       width: 94%;
       height: 20px;
       background-color: #222;
-      border: 2px solid var(--color-accent-2);
+      border: 1px solid var(--color-primary);
       border-radius: 4px;
       display: flex;
       justify-content: center;
@@ -423,9 +428,9 @@ export class ValueAxis extends CanvasBase {
       z-index: 1000;
       color: white;
       pointer-events: none;
-      box-shadow: 0 0 5px var(--color-accent-2);
+      box-shadow: 0 0 5px var(--color-primary);
     }
-    
+
     .value {
       font-weight: bold;
     }
