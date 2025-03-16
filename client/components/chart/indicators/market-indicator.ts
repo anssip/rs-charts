@@ -9,6 +9,20 @@ import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
 
 @customElement("market-indicator")
+// Add global type for state cache
+declare global {
+  interface Window {
+    __INDICATOR_STATE_CACHE?: {
+      [key: string]: {
+        state: ChartState;
+        valueRange: ValueRange;
+        scale?: ScaleType;
+        timestamp: number;
+      };
+    };
+  }
+}
+
 export class MarketIndicator extends CanvasBase {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
@@ -66,6 +80,50 @@ export class MarketIndicator extends CanvasBase {
     });
   }
 
+  // Store snapshot of indicator state for restoration
+  private storeStateSnapshot() {
+    if (this._state) {
+      try {
+        // Store essential data needed for redrawing
+        window.__INDICATOR_STATE_CACHE = window.__INDICATOR_STATE_CACHE || {};
+        
+        // Create a unique key based on indicator id
+        const cacheKey = `indicator_${this.indicatorId || this.id}`;
+        
+        window.__INDICATOR_STATE_CACHE[cacheKey] = {
+          state: this._state,
+          valueRange: { ...this.localValueRange },
+          scale: this.scale,
+          timestamp: Date.now()
+        };
+        
+        console.log(`MarketIndicator: Stored state snapshot for ${cacheKey}`);
+      } catch (err) {
+        console.error("Failed to store state snapshot", err);
+      }
+    }
+  }
+  
+  // Restore state from snapshot if available
+  private restoreStateSnapshot(): boolean {
+    if (!this._state && window.__INDICATOR_STATE_CACHE) {
+      try {
+        const cacheKey = `indicator_${this.indicatorId || this.id}`;
+        const snapshot = window.__INDICATOR_STATE_CACHE[cacheKey];
+        
+        if (snapshot && Date.now() - snapshot.timestamp < 30000) { // Valid for 30 seconds
+          console.log(`MarketIndicator: Restoring state from snapshot for ${cacheKey}`);
+          this._state = snapshot.state;
+          this.localValueRange = { ...snapshot.valueRange };
+          return true;
+        }
+      } catch (err) {
+        console.error("Failed to restore state snapshot", err);
+      }
+    }
+    return false;
+  }
+
   override getId(): string {
     return "market-indicator";
   }
@@ -75,11 +133,22 @@ export class MarketIndicator extends CanvasBase {
     console.log("MarketIndicator: First updated", {
       scale: this.scale,
       valueRange: this.localValueRange,
+      dimensions: `${this.offsetWidth}x${this.offsetHeight}`,
     });
+
+    // Try to restore state from snapshot first
+    if (this.restoreStateSnapshot()) {
+      console.log("MarketIndicator: Successfully restored state from snapshot");
+      // Schedule immediate draw
+      setTimeout(() => this.draw(), 0);
+    }
 
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
+      
+      // Store a snapshot whenever state is updated
+      this.storeStateSnapshot();
 
       // Check scale and update value range if needed
       if (this.scale === ScaleType.Price) {
@@ -104,11 +173,19 @@ export class MarketIndicator extends CanvasBase {
             xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
         };
         console.log("MarketIndicator: Local value range", this.localValueRange);
+        
+        // Update state snapshot with new value range
+        this._state = state;
+        this.storeStateSnapshot();
+        
         this.draw();
       }
     });
 
     observe("state.timeRange", () => {
+      // Update state snapshot before drawing
+      this._state = xin["state"] as ChartState;
+      this.storeStateSnapshot();
       this.draw();
     });
 
@@ -116,7 +193,100 @@ export class MarketIndicator extends CanvasBase {
       e: CustomEvent<ValueRange>
     ) => {
       this.localValueRange = e.detail;
+      // Update state snapshot with new value range
+      this.storeStateSnapshot();
       this.draw();
+    }) as EventListener);
+
+    // Listen for force-redraw events from parent component
+    this.addEventListener("force-redraw", ((
+      e: CustomEvent<{ width: number; height: number }>
+    ) => {
+      console.log("MarketIndicator: Received force-redraw event", e.detail);
+
+      // First try to restore state from snapshot
+      if (!this._state) {
+        if (!this.restoreStateSnapshot()) {
+          // If snapshot restoration fails, try to get state from xin
+          console.log(
+            "MarketIndicator: State not initialized, getting from global state"
+          );
+          this._state = xin["state"] as ChartState;
+          
+          // Store this state for future use
+          if (this._state) {
+            this.storeStateSnapshot();
+          }
+        }
+      }
+
+      // Apply the resize explicitly
+      const { width, height } = e.detail;
+      if (width && height) {
+        this.resize(width, height);
+      }
+
+      // Force a redraw with a slight delay to ensure proper rendering
+      setTimeout(() => {
+        if (this.canvas && this.ctx) {
+          console.log("MarketIndicator: Force redrawing after resize");
+
+          // Clear the canvas completely
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // Redraw the content
+          this.draw();
+        }
+      }, 50);
+    }) as EventListener);
+
+    // Listen for internal-state-update events (used for aggressive redraws)
+    this.addEventListener("internal-state-update", ((e: CustomEvent) => {
+      console.log("MarketIndicator: Received internal-state-update event");
+
+      // First try to restore state from snapshot
+      if (!this._state) {
+        if (!this.restoreStateSnapshot()) {
+          // If snapshot restoration fails, try to get state from xin
+          console.log(
+            "MarketIndicator: State not initialized, getting from global state"
+          );
+          this._state = xin["state"] as ChartState;
+          
+          // Store this state for future use
+          if (this._state) {
+            this.storeStateSnapshot();
+          }
+        }
+      }
+
+      // Recreate canvas if needed
+      if (!this.canvas) {
+        // This will completely reinitialize the canvas
+        (this as any).initializeCanvas();
+      } else {
+        // Get the current dimensions
+        const width = this.offsetWidth;
+        const height = this.offsetHeight;
+
+        // Force resize and redraw
+        setTimeout(() => {
+          if (width > 0 && height > 0) {
+            console.log(
+              `MarketIndicator: Forcing resize to ${width}x${height}`
+            );
+            this.resize(width, height);
+
+            // Additional draw call to ensure rendering
+            setTimeout(() => {
+              if (this.canvas && this.ctx) {
+                console.log("MarketIndicator: Extra draw call");
+                this.draw();
+              }
+            }, 100);
+          }
+        }, 10);
+      }
     }) as EventListener);
   }
 
@@ -285,114 +455,144 @@ export class MarketIndicator extends CanvasBase {
   }
 
   draw() {
-    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) return;
-
-    const ctx = this.ctx;
-    const dpr = window.devicePixelRatio ?? 1;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Get visible candles
-    const candles = this._state.priceHistory.getCandlesInRange(
-      this._state.timeRange.start,
-      this._state.timeRange.end
-    );
-
-    // Create a map to store points for each plot
-    const plotPoints: {
-      [key: string]: Array<{ x: number; y: number; style: any }>;
-    } = {};
-    const candleWidth = this.canvas.width / dpr / candles.length;
-
-    // Track min/max values for auto-scaling
-    let minValue = Infinity;
-    let maxValue = -Infinity;
-
-    // Collect points and track min/max values
-    iterateTimeline({
-      callback: (x: number, timestamp: number) => {
-        const candle = this._state!.priceHistory.getCandle(timestamp);
-        if (!candle) return;
-
-        const indicator = candle.evaluations.find(
-          (e) => e.id === this.indicatorId
+    // Try to initialize state if not already done
+    if (!this._state) {
+      console.log(
+        "MarketIndicator.draw: State not initialized, trying to get from global state"
+      );
+      try {
+        this._state = xin["state"] as ChartState;
+      } catch (err) {
+        console.error(
+          "MarketIndicator.draw: Failed to get state from xin",
+          err
         );
-        if (!indicator) return;
-
-        console.log("MI: Indicator data:", {
-          id: indicator.id,
-          values: indicator.values,
-          plot_styles: indicator.plot_styles,
-        });
-
-        indicator.values.forEach((value) => {
-          if (!plotPoints[value.plot_ref]) {
-            plotPoints[value.plot_ref] = [];
-          }
-
-          const candleX = x + candleWidth / 2;
-          // Store raw value and update min/max
-          const rawValue = value.value;
-          minValue = Math.min(minValue, rawValue);
-          maxValue = Math.max(maxValue, rawValue);
-
-          // Store the point with its style
-          plotPoints[value.plot_ref].push({
-            x: candleX,
-            y: rawValue,
-            style: indicator.plot_styles[value.plot_ref]?.style || {},
-          });
-        });
-      },
-      granularity: this._state.priceHistory.getGranularity(),
-      viewportStartTimestamp: this._state.timeRange.start,
-      viewportEndTimestamp: this._state.timeRange.end,
-      canvasWidth: this.canvas.width / dpr,
-      interval: this._state.priceHistory.granularityMs,
-      alignToLocalTime: false,
-    });
-
-    // Update localValueRange if not using price scale
-    if (this.scale !== ScaleType.Price && minValue !== Infinity) {
-      const range = maxValue - minValue;
-      const padding = range * 0.1; // Add 10% padding
-      this.localValueRange = {
-        min: minValue - padding,
-        max: maxValue + padding,
-        range: range + padding * 2,
-      };
+      }
     }
 
-    // Draw each plot using its style
-    const evaluation = candles[0]?.[1]?.evaluations?.find(
-      (e) => e.id === this.indicatorId
-    );
-    if (!evaluation) return;
+    if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
+      console.log(
+        "MarketIndicator: Not drawing, missing canvas, ctx, state, or indicatorId",
+        {
+          canvas: !!this.canvas,
+          ctx: !!this.ctx,
+          state: !!this._state,
+          indicatorId: !!this.indicatorId,
+        }
+      );
+      return;
+    }
 
-    console.log("MI: Drawing with evaluation:", {
-      id: evaluation.id,
-      plot_styles: evaluation.plot_styles,
-    });
+    try {
+      const ctx = this.ctx;
+      const dpr = window.devicePixelRatio ?? 1;
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
-      const points = plotPoints[plotRef];
-      if (!points) return;
+      // Get visible candles
+      const candles = this._state.priceHistory.getCandlesInRange(
+        this._state.timeRange.start,
+        this._state.timeRange.end
+      );
 
-      console.log("MI: Drawing plot:", {
-        plotRef,
-        type: plotStyle.type,
-        points: points.length,
+      if (!candles || candles.length === 0) {
+        console.log("MarketIndicator.draw: No candles to draw");
+        return;
+      }
+
+      // Create a map to store points for each plot
+      const plotPoints: {
+        [key: string]: Array<{ x: number; y: number; style: any }>;
+      } = {};
+      const candleWidth = this.canvas.width / dpr / Math.max(1, candles.length);
+
+      // Track min/max values for auto-scaling
+      let minValue = Infinity;
+      let maxValue = -Infinity;
+
+      // Collect points and track min/max values
+      iterateTimeline({
+        callback: (x: number, timestamp: number) => {
+          const candle = this._state!.priceHistory.getCandle(timestamp);
+          if (!candle) return;
+
+          const indicator = candle.evaluations.find(
+            (e) => e.id === this.indicatorId
+          );
+          if (!indicator) return;
+
+          indicator.values.forEach((value) => {
+            if (!plotPoints[value.plot_ref]) {
+              plotPoints[value.plot_ref] = [];
+            }
+
+            const candleX = x + candleWidth / 2;
+            // Store raw value and update min/max
+            const rawValue = value.value;
+            minValue = Math.min(minValue, rawValue);
+            maxValue = Math.max(maxValue, rawValue);
+
+            // Store the point with its style
+            plotPoints[value.plot_ref].push({
+              x: candleX,
+              y: rawValue,
+              style: indicator.plot_styles[value.plot_ref]?.style || {},
+            });
+          });
+        },
+        granularity: this._state.priceHistory.getGranularity(),
+        viewportStartTimestamp: this._state.timeRange.start,
+        viewportEndTimestamp: this._state.timeRange.end,
+        canvasWidth: this.canvas.width / dpr,
+        interval: this._state.priceHistory.granularityMs,
+        alignToLocalTime: false,
       });
 
-      if (plotStyle.type === "line") {
-        this.drawLine(ctx, points, plotStyle.style);
-      } else if (plotStyle.type === "band") {
-        const upperPoints = points.filter((_, i) => i % 2 === 0);
-        const lowerPoints = points.filter((_, i) => i % 2 === 1);
-        this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
-      } else if (plotStyle.type === "histogram") {
-        this.drawHistogram(ctx, points);
+      // Update localValueRange if not using price scale
+      if (this.scale !== ScaleType.Price && minValue !== Infinity) {
+        const range = maxValue - minValue;
+        const padding = range * 0.1; // Add 10% padding
+        this.localValueRange = {
+          min: minValue - padding,
+          max: maxValue + padding,
+          range: range + padding * 2,
+        };
       }
-    });
+
+      // Draw each plot using its style
+      const evaluation = candles[0]?.[1]?.evaluations?.find(
+        (e) => e.id === this.indicatorId
+      );
+      if (!evaluation) {
+        console.log(
+          "MarketIndicator.draw: No evaluation found for indicator",
+          this.indicatorId
+        );
+        return;
+      }
+
+      Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
+        const points = plotPoints[plotRef];
+        if (!points || points.length === 0) return;
+
+        console.log("MI: Drawing plot:", {
+          plotRef,
+          type: plotStyle.type,
+          points: points.length,
+        });
+
+        if (plotStyle.type === "line") {
+          this.drawLine(ctx, points, plotStyle.style);
+        } else if (plotStyle.type === "band") {
+          const upperPoints = points.filter((_, i) => i % 2 === 0);
+          const lowerPoints = points.filter((_, i) => i % 2 === 1);
+          this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
+        } else if (plotStyle.type === "histogram") {
+          this.drawHistogram(ctx, points);
+        }
+      });
+    } catch (err) {
+      console.error("MarketIndicator.draw: Error drawing indicator", err);
+    }
   }
 
   render() {
