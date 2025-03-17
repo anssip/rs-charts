@@ -505,16 +505,13 @@ export class ChartContainer extends LitElement {
         ${
           stackTopIndicators.length
             ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
-            : "auto"
+            : "0"
         }
-        1fr
-        ${
-          stackBottomIndicators.length
-            ? `${stackBottomIndicators.length * INDICATOR_HEIGHT}px`
-            : "auto"
-        }
+        minmax(400px, 1fr)
+        ${stackBottomIndicators.length ? `${INDICATOR_HEIGHT}px` : "0"}
         ${TIMELINE_HEIGHT}px
       `,
+      gridTemplateColumns: "minmax(0, 1fr)",
       height: "100%",
       backgroundColor: "var(--color-primary-dark)",
       gap: "8px",
@@ -632,8 +629,8 @@ export class ChartContainer extends LitElement {
               .state=${this._state}
               .options=${this.options}
             ></indicator-stack>
+            <live-decorators></live-decorators>
           </div>
-          <live-decorators></live-decorators>
         </div>
 
         <div class="timeline-container" style="grid-area: timeline;">

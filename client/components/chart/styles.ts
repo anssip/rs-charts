@@ -9,7 +9,7 @@ export const getStyles = (
   :host {
     display: block;
     width: 100%;
-    height: var(--spotcanvas-chart-height, 600px);
+    height: 100%;
     min-height: 400px;
   }
 
@@ -52,7 +52,7 @@ export const getStyles = (
 
   .chart-area {
     position: relative;
-    min-height: 200px;
+    min-height: 100px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -74,6 +74,8 @@ export const getStyles = (
   .chart {
     position: relative;
     flex: 1;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     width: 100%;
   }
@@ -215,15 +217,12 @@ export const getStyles = (
     height: 20%;
   }
 
-  /* Update indicator stack styles */
   indicator-stack {
     position: relative;
     width: 100%;
-    min-height: ${INDICATOR_HEIGHT}px;
-    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+    height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
 
   indicator-stack[style*="grid-area: indicators-top"] {
@@ -235,15 +234,16 @@ export const getStyles = (
   }
 
   indicator-stack .stack-item {
-    height: ${INDICATOR_HEIGHT}px;
-    min-height: ${INDICATOR_HEIGHT}px;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   indicator-stack indicator-container {
     position: relative;
     height: 100%;
     width: 100%;
+    flex: 1;
   }
 
   /* Add grid-crosshairs styling to extend crosshairs over the entire container */
@@ -284,18 +284,24 @@ export const getStyles = (
     position: relative;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
     flex: 1;
+    min-height: 0;
+  }
+
+  indicator-stack.main-chart .stack-item {
+    flex: 1;
+    height: auto;
     min-height: 0;
   }
 
   /* Style for the candlestick chart inside the indicator stack */
   indicator-stack.main-chart ::slotted(candlestick-chart) {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    flex: 1;
   }
 
   indicator-stack.main-chart.active ::slotted(candlestick-chart) {
