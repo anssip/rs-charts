@@ -80,30 +80,6 @@ export class MarketIndicator extends CanvasBase {
     });
   }
 
-  // Store snapshot of indicator state for restoration
-  private storeStateSnapshot() {
-    if (this._state) {
-      try {
-        // Store essential data needed for redrawing
-        window.__INDICATOR_STATE_CACHE = window.__INDICATOR_STATE_CACHE || {};
-
-        // Create a unique key based on indicator id
-        const cacheKey = `indicator_${this.indicatorId || this.id}`;
-
-        window.__INDICATOR_STATE_CACHE[cacheKey] = {
-          state: this._state,
-          valueRange: { ...this.localValueRange },
-          scale: this.scale,
-          timestamp: Date.now(),
-        };
-
-        console.log(`MarketIndicator: Stored state snapshot for ${cacheKey}`);
-      } catch (err) {
-        console.error("Failed to store state snapshot", err);
-      }
-    }
-  }
-
   override getId(): string {
     return "market-indicator";
   }
@@ -119,9 +95,6 @@ export class MarketIndicator extends CanvasBase {
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
-
-      // Store a snapshot whenever state is updated
-      this.storeStateSnapshot();
 
       // Check scale and update value range if needed
       if (this.scale === ScaleType.Price) {
@@ -158,7 +131,6 @@ export class MarketIndicator extends CanvasBase {
     observe("state.timeRange", () => {
       // Update state snapshot before drawing
       this._state = xin["state"] as ChartState;
-      this.storeStateSnapshot();
       this.draw();
     });
 
@@ -166,8 +138,6 @@ export class MarketIndicator extends CanvasBase {
       e: CustomEvent<ValueRange>
     ) => {
       this.localValueRange = e.detail;
-      // Update state snapshot with new value range
-      this.storeStateSnapshot();
       this.draw();
     }) as EventListener);
 
