@@ -80,6 +80,8 @@ export class CandlestickStrategy implements Drawable {
         const candle = data.getCandle(timestamp);
         if (!candle) return;
 
+        console.log("drawing candle", candle);
+
         if (
           `${candle.granularity}` !== `${xin["state.granularity"] as string}`
         ) {

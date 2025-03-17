@@ -17,6 +17,12 @@ export class IndicatorStack extends LitElement {
   @property({ type: Boolean })
   allowResize = true;
 
+  @property({ type: Object })
+  state: any; // Use proper type from your ChartState
+
+  @property({ type: Object })
+  options: any; // Use proper type from your ChartOptions
+
   // Track resize state
   @state() private isResizing = false;
   @state() private resizingIndex = -1;
@@ -240,26 +246,23 @@ export class IndicatorStack extends LitElement {
   }
 
   private triggerCanvasResize(item: Element) {
-    // Find the indicator container
     const container = item.querySelector("indicator-container");
     if (!container) return;
 
-    // Get the slot to find MarketIndicator
     const slot = container.shadowRoot?.querySelector("slot");
     if (!slot) return;
 
-    // Get the slotted elements
     const elements = (slot as HTMLSlotElement).assignedElements();
     for (const element of elements) {
-      if (element.tagName.toLowerCase() === "market-indicator") {
+      // Handle both market indicators and candlestick chart
+      if (
+        element.tagName.toLowerCase() === "market-indicator" ||
+        element.tagName.toLowerCase() === "candlestick-chart"
+      ) {
         const indicator = element as HTMLElement;
-
-        // First, set explicit height to make sure it properly fills the container
         indicator.style.height = "100%";
         indicator.style.width = "100%";
 
-        // Create and dispatch a custom resize event
-        // This approach avoids brittle direct method access
         indicator.dispatchEvent(
           new CustomEvent("force-redraw", {
             bubbles: false,
@@ -332,6 +335,8 @@ export class IndicatorStack extends LitElement {
                 scale: indicator.scale,
                 valueAxisWidth: this.valueAxisWidth,
                 valueAxisMobileWidth: this.valueAxisMobileWidth,
+                state: this.state,
+                options: this.options,
               })}
             </indicator-container>
 

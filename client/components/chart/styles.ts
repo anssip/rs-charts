@@ -119,7 +119,7 @@ export const getStyles = (
     overflow: hidden;
   }
 
-  candlestick-chart {
+  .candlestick-chart {
     position: absolute;
     top: 0;
     left: 0;
@@ -128,11 +128,11 @@ export const getStyles = (
     z-index: 1;
   }
 
-  candlestick-chart.active {
+  .candlestick-chart.active {
     cursor: crosshair;
   }
 
-  candlestick-chart.active:active {
+  .candlestick-chart.active:active {
     cursor: grabbing;
   }
 
@@ -277,5 +277,32 @@ export const getStyles = (
     font-weight: 500;
     opacity: 0.7;
     white-space: nowrap;
+  }
+
+  /* Update indicator stack styles for the main chart area */
+  indicator-stack.main-chart {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Style for the candlestick chart inside the indicator stack */
+  indicator-stack.main-chart ::slotted(candlestick-chart) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  indicator-stack.main-chart.active ::slotted(candlestick-chart) {
+    cursor: crosshair;
+  }
+
+  indicator-stack.main-chart.active:active ::slotted(candlestick-chart) {
+    cursor: grabbing;
   }
 `;
