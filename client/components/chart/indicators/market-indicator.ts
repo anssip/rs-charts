@@ -7,6 +7,7 @@ import { ScaleType } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
+import { drawLine, drawBand, drawHistogram } from "./drawing";
 
 // Add global type for state cache
 declare global {
@@ -122,7 +123,6 @@ export class MarketIndicator extends CanvasBase {
 
         // Update state snapshot with new value range
         this._state = state;
-        this.storeStateSnapshot();
 
         this.draw();
       }
@@ -166,39 +166,6 @@ export class MarketIndicator extends CanvasBase {
         }
       }, 50);
     }) as EventListener);
-
-    // Listen for internal-state-update events (used for aggressive redraws)
-    this.addEventListener("internal-state-update", ((e: CustomEvent) => {
-      console.log("MarketIndicator: Received internal-state-update event");
-
-      // Recreate canvas if needed
-      if (!this.canvas) {
-        // This will completely reinitialize the canvas
-        (this as any).initializeCanvas();
-      } else {
-        // Get the current dimensions
-        const width = this.offsetWidth;
-        const height = this.offsetHeight;
-
-        // Force resize and redraw
-        setTimeout(() => {
-          if (width > 0 && height > 0) {
-            console.log(
-              `MarketIndicator: Forcing resize to ${width}x${height}`
-            );
-            this.resize(width, height);
-
-            // Additional draw call to ensure rendering
-            setTimeout(() => {
-              if (this.canvas && this.ctx) {
-                console.log("MarketIndicator: Extra draw call");
-                this.draw();
-              }
-            }, 100);
-          }
-        }, 10);
-      }
-    }) as EventListener);
   }
 
   updated(changedProperties: PropertyValues) {
@@ -224,146 +191,6 @@ export class MarketIndicator extends CanvasBase {
     return true;
   }
 
-  private drawLine(
-    ctx: CanvasRenderingContext2D,
-    points: { x: number; y: number }[],
-    style: {
-      color?: string;
-      lineWidth?: number;
-      opacity?: number;
-      dashArray?: number[];
-    }
-  ) {
-    if (points.length < 2) return;
-
-    ctx.beginPath();
-    ctx.strokeStyle = style.color || "#ffffff";
-    ctx.lineWidth = style.lineWidth || 1;
-    ctx.globalAlpha = style.opacity || 1;
-
-    if (style.dashArray) {
-      ctx.setLineDash(style.dashArray);
-    }
-
-    // Convert value to Y position using localValueRange
-    const height = this.canvas!.height / (window.devicePixelRatio ?? 1);
-    const getY = (value: number) => {
-      return (
-        height -
-        ((value - this.localValueRange.min) / this.localValueRange.range) *
-          height
-      );
-    };
-
-    ctx.moveTo(points[0].x, getY(points[0].y));
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, getY(points[i].y));
-    }
-
-    ctx.stroke();
-    ctx.setLineDash([]); // Reset dash array
-    ctx.globalAlpha = 1; // Reset opacity
-  }
-
-  private drawBand(
-    ctx: CanvasRenderingContext2D,
-    upperPoints: { x: number; y: number }[],
-    lowerPoints: { x: number; y: number }[],
-    style: {
-      color?: string;
-      lineWidth?: number;
-      opacity?: number;
-      fillColor?: string;
-      fillOpacity?: number;
-    }
-  ) {
-    if (upperPoints.length < 2 || lowerPoints.length < 2) return;
-
-    // Convert value to Y position using localValueRange
-    const height = this.canvas!.height / (window.devicePixelRatio ?? 1);
-    const getY = (value: number) => {
-      return (
-        height -
-        ((value - this.localValueRange.min) / this.localValueRange.range) *
-          height
-      );
-    };
-
-    // Draw the filled area between bands
-    ctx.beginPath();
-    ctx.moveTo(upperPoints[0].x, getY(upperPoints[0].y));
-
-    // Draw upper band
-    for (let i = 1; i < upperPoints.length; i++) {
-      ctx.lineTo(upperPoints[i].x, getY(upperPoints[i].y));
-    }
-
-    // Draw lower band in reverse
-    for (let i = lowerPoints.length - 1; i >= 0; i--) {
-      ctx.lineTo(lowerPoints[i].x, getY(lowerPoints[i].y));
-    }
-
-    ctx.closePath();
-
-    // Fill the area
-    if (style.fillColor) {
-      ctx.fillStyle = style.fillColor;
-      ctx.globalAlpha = style.fillOpacity || 0.1;
-      ctx.fill();
-    }
-
-    // Draw the band borders
-    ctx.strokeStyle = style.color || "#ffffff";
-    ctx.lineWidth = style.lineWidth || 1;
-    ctx.globalAlpha = style.opacity || 1;
-    ctx.stroke();
-
-    ctx.globalAlpha = 1; // Reset opacity
-  }
-
-  private drawHistogram(
-    ctx: CanvasRenderingContext2D,
-    points: Array<{
-      x: number;
-      y: number;
-      style: { color?: string; opacity?: number };
-    }>
-  ) {
-    const dpr = window.devicePixelRatio ?? 1;
-    const height = this.canvas!.height / dpr;
-    const width = this.canvas!.width / dpr;
-
-    // Calculate bar width based on the number of points and canvas width
-    // Leave a small gap (10% of calculated width) between bars
-    const barWidth = (width / points.length) * 0.9;
-
-    // Convert value to Y position using localValueRange
-    const getY = (value: number) => {
-      return (
-        height -
-        ((value - this.localValueRange.min) / this.localValueRange.range) *
-          height
-      );
-    };
-
-    // Calculate zero line position using the same conversion
-    const zeroY = getY(0);
-
-    ctx.lineWidth = barWidth;
-
-    points.forEach((point) => {
-      // Use the color and opacity from the point's style
-      ctx.strokeStyle = point.style.color || "#000";
-      ctx.globalAlpha = point.style.opacity || 1;
-
-      ctx.beginPath();
-      ctx.moveTo(point.x, zeroY);
-      ctx.lineTo(point.x, getY(point.y));
-      ctx.stroke();
-    });
-
-    ctx.globalAlpha = 1; // Reset opacity
-  }
 
   draw() {
     // Try to initialize state if not already done
@@ -492,13 +319,13 @@ export class MarketIndicator extends CanvasBase {
         });
 
         if (plotStyle.type === "line") {
-          this.drawLine(ctx, points, plotStyle.style);
+          drawLine(ctx, points, plotStyle.style, this.localValueRange);
         } else if (plotStyle.type === "band") {
           const upperPoints = points.filter((_, i) => i % 2 === 0);
           const lowerPoints = points.filter((_, i) => i % 2 === 1);
-          this.drawBand(ctx, upperPoints, lowerPoints, plotStyle.style);
+          drawBand(ctx, upperPoints, lowerPoints, plotStyle.style, this.localValueRange);
         } else if (plotStyle.type === "histogram") {
-          this.drawHistogram(ctx, points);
+          drawHistogram(ctx, points, this.localValueRange);
         }
       });
     } catch (err) {
