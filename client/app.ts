@@ -33,6 +33,10 @@ export class App {
   constructor(private firestore: Firestore, state: ChartState) {
     this.state = state;
     this.chartContainer = document.querySelector("chart-container");
+    if (!this.chartContainer) {
+      console.error("chart container not found");
+      return;
+    }
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
     this.firestoreClient = new FirestoreClient(this.firestore);
@@ -135,20 +139,6 @@ export class App {
     this.isInitializing = true;
     const timeRange = this.getInitialTimeRange();
 
-    // Calculate buffer size to keep total candles under MAX_CANDLES
-    // const MAX_CANDLES = 200;
-    // const intervalMs = granularityToMs(this.state.granularity);
-    // const baseCandles = Math.floor(
-    //   (timeRange.end - timeRange.start) / intervalMs
-    // );
-    // const maxBufferCandles = Math.floor((MAX_CANDLES - baseCandles) / 2);
-    // const BUFFER_CANDLES = Math.min(50, maxBufferCandles); // Use smaller of 50 or available space
-
-    // const bufferedTimeRange = {
-    //   start: timeRange.start - BUFFER_CANDLES * intervalMs,
-    //   end: timeRange.end + BUFFER_CANDLES * intervalMs,
-    // };
-
     const candles = await this.candleRepository.fetchCandles({
       symbol: xinValue(this.state.symbol),
       granularity: xinValue(this.state.granularity),
@@ -183,9 +173,11 @@ export class App {
         viewportStartTimestamp,
         viewportEndTimestamp
       );
-      if (this.chartContainer) {
-        this.chartContainer.state = this.state;
+      if (!this.chartContainer) {
+        console.error("chart container not found");
+        return;
       }
+      this.chartContainer.state = this.state;
 
       const products = await this.firestoreClient.getProducts(
         "coinbase",

@@ -37,7 +37,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   priceAxisMobileWidth = 45;
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
-  private isMobile = this.mobileMediaQuery.matches;
 
   private _state: ChartState | null = null;
   private _padding: {
@@ -59,12 +58,22 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   constructor() {
     super();
-    this.isMobile = this.mobileMediaQuery.matches;
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
 
+  bindEventListeners(_: HTMLCanvasElement): void {
+    this.addEventListener(
+      "force-redraw",
+      this.handleForceRedraw as EventListener
+    );
+  }
+
+  handleForceRedraw(e: CustomEvent<{ width: number; height: number }>) {
+    console.log("CandlestickChart: Received force-redraw event", e.detail);
+    this.resize(e.detail.width, e.detail.height);
+  }
+
   private handleMobileChange = (e: MediaQueryListEvent) => {
-    this.isMobile = e.matches;
     this.resize(this.clientWidth, this.clientHeight);
   };
 
@@ -93,7 +102,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   @property({ type: Object })
   public set state(state: ChartState) {
+    console.log("CandlestickChart set state", state);
     this._state = state;
+    this.draw();
   }
 
   override getId(): string {
@@ -102,6 +113,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   override async firstUpdated() {
     await super.firstUpdated();
+
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
@@ -121,7 +133,10 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   override draw() {
-    if (!this._state) return;
+    console.log("CandlestickChart draw");
+    if (!this._state) {
+      this._state = xin["state"] as ChartState;
+    }
     const context: DrawingContext = {
       ctx: this.ctx!,
       chartCanvas: this.canvas!,
@@ -219,7 +234,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       .price-axis-container {
         width: var(--price-axis-mobile-width);
       }
-      
+
       canvas {
         width: calc(100% - var(--price-axis-mobile-width));
       }
