@@ -52,12 +52,13 @@ export const getStyles = (
 
   .chart-area {
     position: relative;
-    min-height: 100px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
     height: 100%;
+    flex: 1;
   }
   .price-info {
     background: var(--color-primary-dark);
@@ -74,11 +75,11 @@ export const getStyles = (
 
   .chart {
     position: relative;
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    width: 100%;
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
   }
 
   .activate-label {
@@ -226,8 +227,15 @@ export const getStyles = (
     flex-direction: column;
   }
 
+  indicator-stack.main-chart {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   indicator-stack[style*="grid-area: indicators-top"] {
     border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+    height: 100%;
   }
 
   indicator-stack[style*="grid-area: indicators-bottom"] {
@@ -278,23 +286,6 @@ export const getStyles = (
     font-weight: 500;
     opacity: 0.7;
     white-space: nowrap;
-  }
-
-  /* Update indicator stack styles for the main chart area */
-  indicator-stack.main-chart {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-
-  indicator-stack.main-chart .stack-item {
-    flex: 1;
-    height: auto;
-    min-height: 0;
   }
 
   /* Style for the candlestick chart inside the indicator stack */

@@ -29,48 +29,27 @@ export class IndicatorStack extends LitElement {
   @state() private startY = 0;
   @state() private itemHeights: number[] = [];
 
-  private resizeObserver!: ResizeObserver;
-
   static styles = css`
     :host {
       display: flex;
-      flex-direction: column-reverse;
+      flex-direction: column-reverse; /* Makes the bottom indicator stay at the bottom */
       width: 100%;
+      min-height: 150px;
       background: var(--chart-background-color, #131722);
       position: relative;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    :host(.main-chart) {
-      min-height: 0;
-      flex: 1 1 auto;
-    }
-
-    :host([style*="grid-area: indicators-bottom"]) {
-      height: 150px;
     }
 
     .stack-item {
+      flex: 0 0 auto; /* Don't automatically grow/shrink */
+      height: 150px; /* Default height */
+      min-height: 30px; /* Minimum height */
       position: relative;
       border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
       overflow: visible;
-      display: flex;
-      flex-direction: column;
-      min-height: 30px;
     }
 
-    /* Special handling for chart item */
     .stack-item:first-child {
-      border-bottom: none;
-      flex: 1 1 auto;
-      min-height: 0;
-    }
-
-    /* Fixed height for other indicators */
-    .stack-item:not(:first-child) {
-      flex: 0 0 150px;
-      min-height: 30px;
+      border-bottom: none; /* No border for first (bottom) item */
     }
 
     .indicator-name {
@@ -88,11 +67,6 @@ export class IndicatorStack extends LitElement {
     indicator-container {
       width: 100%;
       height: 100%;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      margin: 0;
-      padding: 0;
     }
 
     .resize-handle {
@@ -303,48 +277,19 @@ export class IndicatorStack extends LitElement {
     }
   }
 
-  // Add new method to calculate and set height
-  private updateStackHeight() {
-    if (!this.classList.contains("main-chart")) return;
+  // Initialize heights when component is first updated
+  firstUpdated() {
+    // Set initial heights equally distributed
+    this.initializeHeights();
 
-    const chartArea = this.closest(".chart-area");
-    if (!chartArea) return;
-
-    const chartAreaHeight = chartArea.clientHeight;
-    if (chartAreaHeight > 0) {
-      this.style.height = `${chartAreaHeight}px`;
-      this.requestUpdate();
-    }
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-
-    // Set up resize observer for the parent container
-    this.resizeObserver = new ResizeObserver(() => {
+    // Set up a resize observer to adjust heights when container resizes
+    const resizeObserver = new ResizeObserver(() => {
       if (!this.isResizing) {
-        this.updateStackHeight();
         this.initializeHeights();
       }
     });
 
-    // Observe both the stack itself and its parent
-    this.resizeObserver.observe(this);
-    const chartArea = this.closest(".chart-area");
-    if (chartArea) {
-      this.resizeObserver.observe(chartArea);
-    }
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.resizeObserver?.disconnect();
-  }
-
-  firstUpdated() {
-    // Set initial heights equally distributed
-    this.updateStackHeight();
-    this.initializeHeights();
+    resizeObserver.observe(this);
   }
 
   // Handle property changes
@@ -352,7 +297,6 @@ export class IndicatorStack extends LitElement {
     if (changedProps.has("indicators")) {
       // When indicators change, reinitialize heights and redraw
       setTimeout(() => {
-        this.updateStackHeight();
         this.initializeHeights();
         this.redrawAllIndicators();
       }, 100);
