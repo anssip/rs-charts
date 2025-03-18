@@ -87,12 +87,6 @@ export class MarketIndicator extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
-    console.log("MarketIndicator: First updated", {
-      scale: this.scale,
-      valueRange: this.localValueRange,
-      dimensions: `${this.offsetWidth}x${this.offsetHeight}`,
-    });
-
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
@@ -110,7 +104,6 @@ export class MarketIndicator extends CanvasBase {
 
     // Observe price range changes when using price scale
     observe("state.priceRange", () => {
-      console.log("MarketIndicator: Price range changed", this.scale);
       const state = xin["state"] as ChartState;
       if (this.scale === ScaleType.Price && state) {
         this.localValueRange = {
@@ -119,7 +112,6 @@ export class MarketIndicator extends CanvasBase {
           range:
             xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
         };
-        console.log("MarketIndicator: Local value range", this.localValueRange);
 
         // Update state snapshot with new value range
         this._state = state;
@@ -145,8 +137,6 @@ export class MarketIndicator extends CanvasBase {
     this.addEventListener("force-redraw", ((
       e: CustomEvent<{ width: number; height: number }>
     ) => {
-      console.log("MarketIndicator: Received force-redraw event", e.detail);
-
       // Apply the resize explicitly
       const { width, height } = e.detail;
       if (width && height) {
@@ -156,8 +146,6 @@ export class MarketIndicator extends CanvasBase {
       // Force a redraw with a slight delay to ensure proper rendering
       setTimeout(() => {
         if (this.canvas && this.ctx) {
-          console.log("MarketIndicator: Force redrawing after resize");
-
           // Clear the canvas completely
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -191,13 +179,9 @@ export class MarketIndicator extends CanvasBase {
     return true;
   }
 
-
   draw() {
     // Try to initialize state if not already done
     if (!this._state) {
-      console.log(
-        "MarketIndicator.draw: State not initialized, trying to get from global state"
-      );
       try {
         this._state = xin["state"] as ChartState;
       } catch (err) {
@@ -209,15 +193,6 @@ export class MarketIndicator extends CanvasBase {
     }
 
     if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
-      console.log(
-        "MarketIndicator: Not drawing, missing canvas, ctx, state, or indicatorId",
-        {
-          canvas: !!this.canvas,
-          ctx: !!this.ctx,
-          state: !!this._state,
-          indicatorId: !!this.indicatorId,
-        }
-      );
       return;
     }
 
@@ -233,7 +208,6 @@ export class MarketIndicator extends CanvasBase {
       );
 
       if (!candles || candles.length === 0) {
-        console.log("MarketIndicator.draw: No candles to draw");
         return;
       }
 
@@ -301,10 +275,6 @@ export class MarketIndicator extends CanvasBase {
         (e) => e.id === this.indicatorId
       );
       if (!evaluation) {
-        console.log(
-          "MarketIndicator.draw: No evaluation found for indicator",
-          this.indicatorId
-        );
         return;
       }
 
@@ -312,18 +282,18 @@ export class MarketIndicator extends CanvasBase {
         const points = plotPoints[plotRef];
         if (!points || points.length === 0) return;
 
-        console.log("MI: Drawing plot:", {
-          plotRef,
-          type: plotStyle.type,
-          points: points.length,
-        });
-
         if (plotStyle.type === "line") {
           drawLine(ctx, points, plotStyle.style, this.localValueRange);
         } else if (plotStyle.type === "band") {
           const upperPoints = points.filter((_, i) => i % 2 === 0);
           const lowerPoints = points.filter((_, i) => i % 2 === 1);
-          drawBand(ctx, upperPoints, lowerPoints, plotStyle.style, this.localValueRange);
+          drawBand(
+            ctx,
+            upperPoints,
+            lowerPoints,
+            plotStyle.style,
+            this.localValueRange
+          );
         } else if (plotStyle.type === "histogram") {
           drawHistogram(ctx, points, this.localValueRange);
         }

@@ -72,14 +72,9 @@ export class App {
       if (!this.isInitializing) this.refetchData();
     });
     observe("state.indicators", (_) => {
-      console.log("indicators", xinValue(this.state.indicators));
-
       if (!this.isInitializing) {
         if (!this.hasIndicatorData()) {
-          console.log("refetching data");
           this.refetchData();
-        } else {
-          console.log("no need to refetch data");
         }
       }
     });

@@ -53,10 +53,8 @@ export class ChartInteractionController {
       this.options.requireActivation &&
       !this.options.isActive?.()
     ) {
-      console.log("not active yet");
       return;
     }
-    console.log("attaching event listeners");
 
     // Mouse events
     chart.addEventListener("mousedown", this.handleDragStart);

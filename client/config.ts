@@ -19,7 +19,6 @@ function dispatchMenuActionEvent(
   chartContainer: ChartContainer,
   event: MenuActionEvent
 ): void {
-  console.log("dispatchMenuActionEvent", event);
   chartContainer.dispatchEvent(event);
 }
 

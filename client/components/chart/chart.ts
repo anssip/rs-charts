@@ -69,7 +69,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   handleForceRedraw(e: CustomEvent<{ width: number; height: number }>) {
-    console.log("CandlestickChart: Received force-redraw event", e.detail);
     this.resize(e.detail.width, e.detail.height);
   }
 
@@ -102,7 +101,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   @property({ type: Object })
   public set state(state: ChartState) {
-    console.log("CandlestickChart set state", state);
     this._state = state;
     this.draw();
   }
@@ -133,7 +131,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   override draw() {
-    console.log("CandlestickChart draw");
     if (!this._state) {
       this._state = xin["state"] as ChartState;
     }
@@ -173,7 +170,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   render() {
-    console.log("CandlestickChart render");
     return html`
       <div class="chart-container">
         <canvas></canvas>
@@ -189,10 +185,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     this.style.setProperty(
       "--price-axis-mobile-width",
       `${this.priceAxisMobileWidth}px`
-    );
-    console.log(
-      "CandlestickChart updated with priceAxisWidth",
-      this.priceAxisWidth
     );
   }
 
