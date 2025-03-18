@@ -60,7 +60,6 @@ export class ValueAxis extends CanvasBase {
     const parentIndicator =
       this.closest(".indicator-container") || this.parentElement;
     if (!parentIndicator) {
-      console.log("ValueAxis: No parent indicator found");
       return;
     }
 
@@ -78,26 +77,11 @@ export class ValueAxis extends CanvasBase {
       // Convert Y position to value
       this.mouseValue = this.yToValue(this.mouseY);
 
-      // Debug logging
-      console.log("ValueAxis: Mouse in parent bounds", {
-        clientY: e.clientY,
-        parentTop: parentRect.top,
-        parentBottom: parentRect.bottom,
-        relativeY,
-        mouseY: this.mouseY,
-        value: this.mouseValue,
-      });
-
       this.requestUpdate();
     } else {
       // Mouse is outside the vertical boundaries, hide the label
       if (this.mouseY !== -1) {
         this.mouseY = -1;
-        console.log("ValueAxis: Mouse outside parent bounds", {
-          clientY: e.clientY,
-          parentTop: parentRect.top,
-          parentBottom: parentRect.bottom,
-        });
         this.requestUpdate();
       }
     }
@@ -137,9 +121,6 @@ export class ValueAxis extends CanvasBase {
       this.style.setProperty("--value-axis-width", `${this.width}px`);
     }
     if (changedProperties.has("valueRange")) {
-      console.log("ValueAxis updated", {
-        valueRange: this.valueRange,
-      });
       this.draw();
     }
   }
@@ -170,7 +151,6 @@ export class ValueAxis extends CanvasBase {
   }
 
   draw() {
-    console.log("ValueAxis draw", this.valueRange);
     if (!this.canvas || !this.ctx) return;
 
     const ctx = this.ctx;
@@ -217,7 +197,6 @@ export class ValueAxis extends CanvasBase {
   }
 
   private handleDragStart = (e: MouseEvent) => {
-    console.log("ValueAxis handleDragStart", e);
     this.isDragging = true;
     this.lastY = e.clientY;
     this.startRange = { ...this.valueRange };
@@ -252,7 +231,6 @@ export class ValueAxis extends CanvasBase {
 
   // Touch events
   private handleTouchStart = (e: TouchEvent) => {
-    console.log("ValueAxis handleTouchStart", e);
     if (e.touches.length === 1) {
       e.preventDefault();
       this.isDragging = true;
@@ -262,7 +240,6 @@ export class ValueAxis extends CanvasBase {
   };
 
   private handleTouchMove = (e: TouchEvent) => {
-    console.log("ValueAxis handleTouchMove", e);
     if (!this.isDragging || !this.startRange) return;
     e.preventDefault();
 
@@ -315,14 +292,12 @@ export class ValueAxis extends CanvasBase {
   };
 
   private handleTouchEnd = () => {
-    console.log("ValueAxis handleTouchEnd");
     this.isDragging = false;
     this.startRange = null;
     this.lastPinchDistance = 0;
   };
 
   private handleWheel = (e: WheelEvent) => {
-    console.log("ValueAxis handleWheel", e);
     e.preventDefault();
 
     const zoomFactor = 1 - e.deltaY * 0.001;

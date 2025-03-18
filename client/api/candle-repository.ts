@@ -166,7 +166,6 @@ export class CandleRepository {
       const effectiveIndicators = indicators?.length
         ? indicators.filter((i) => i.length > 0)
         : null;
-      console.log("effectiveIndicators", effectiveIndicators);
 
       const params = new URLSearchParams({
         symbol,

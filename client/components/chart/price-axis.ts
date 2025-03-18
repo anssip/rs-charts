@@ -169,8 +169,6 @@ export class PriceAxis extends CanvasBase {
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
-    console.log("PriceAxis: Binding event listeners to canvas", canvas);
-
     // Add a document-level mouse move listener to track mouse position
     // even when it's outside our component
     document.addEventListener("mousemove", this.handleDocumentMouseMove);

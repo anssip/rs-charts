@@ -377,10 +377,6 @@ export class IndicatorStack extends LitElement {
   }
 
   render() {
-    console.log(
-      "Rendering indicator stack with indicators:",
-      this.indicators.length
-    );
     return html`
       ${this.indicators.map(
         (indicator, index) => html`

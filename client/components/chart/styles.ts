@@ -57,6 +57,7 @@ export const getStyles = (
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    height: 100%;
   }
   .price-info {
     background: var(--color-primary-dark);

@@ -264,14 +264,12 @@ export class ChartContainer extends LitElement {
           this.dispatchRefetch(direction);
         },
         onActivate: () => {
-          console.log("onActivate");
           this.isActive = true;
           if (this.isMobile) {
             this.toggleFullWindow();
           }
         },
         onDeactivate: () => {
-          console.log("onDeactivate");
           this.isActive = false;
           if (this.isMobile) {
             this.toggleFullWindow();
@@ -375,7 +373,6 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   set state(state: ChartState) {
-    console.log("ChartContainer set state", state);
     this._state = state;
   }
 
@@ -490,7 +487,7 @@ export class ChartContainer extends LitElement {
     };
     const alllIndicators = [chartAsIndicator, ...stackBottomIndicators];
 
-    // Calculate grid template rows based on number of stacked indicators
+    // Calculate grid template rows based on number of stacked indicators and chart height
     const gridStyle = {
       display: "grid",
       gridTemplateAreas: `
@@ -507,14 +504,14 @@ export class ChartContainer extends LitElement {
             ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
             : "0"
         }
-        minmax(400px, 1fr)
+        minmax(600px, 1fr)
         ${stackBottomIndicators.length ? `${INDICATOR_HEIGHT}px` : "0"}
         ${TIMELINE_HEIGHT}px
       `,
       gridTemplateColumns: "minmax(0, 1fr)",
       height: "100%",
       backgroundColor: "var(--color-primary-dark)",
-      gap: "8px",
+      gap: "0px",
       padding: "0 16px",
       boxSizing: "border-box",
       position: "relative" as const,
@@ -844,16 +841,5 @@ export class ChartContainer extends LitElement {
     return {
       requireActivation: { type: Boolean, attribute: "require-activation" },
     };
-  }
-
-  private getChartElement(): CandlestickChart | null {
-    const indicatorStack = this.renderRoot.querySelector(
-      "indicator-stack.main-chart"
-    ) as LitElement;
-    if (!indicatorStack) return null;
-
-    const chartElement =
-      indicatorStack.renderRoot.querySelector("candlestick-chart");
-    return chartElement as CandlestickChart;
   }
 }
