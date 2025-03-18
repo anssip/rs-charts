@@ -151,13 +151,13 @@ export class ChartContainer extends LitElement {
   }
 
   firstUpdated() {
-    const chartContainer = this.renderRoot.querySelector(".chart");
-    if (!chartContainer) {
-      console.error("chart container not found");
+    const chartArea = this.renderRoot.querySelector(".chart-area");
+    if (!chartArea) {
+      console.error("chart area not found");
       return;
     }
     // Get the computed style to check if we have a fixed height
-    const computedStyle = getComputedStyle(chartContainer);
+    const computedStyle = getComputedStyle(chartArea);
     const height = parseFloat(computedStyle.height);
     const width = parseFloat(computedStyle.width);
 
@@ -189,37 +189,24 @@ export class ChartContainer extends LitElement {
         }, this.RESIZE_DEBOUNCE_MS);
       }
     });
-    this.resizeObserver.observe(chartContainer);
+    this.resizeObserver.observe(chartArea);
 
-    // Update the chart element query to look inside the indicator-stack
-    const indicatorStack = this.renderRoot.querySelector(
-      "indicator-stack.main-chart"
-    ) as LitElement;
-    if (!indicatorStack) {
-      console.error("indicator-stack not found");
-      return;
-    }
-
-    // Wait for the indicator-stack to finish its first update
+    // Wait for components to initialize
     setTimeout(() => {
-      const chartElement =
-        indicatorStack.renderRoot.querySelector("candlestick-chart");
-      if (!chartElement) {
-        console.error("candlestick-chart not found in indicator-stack");
-        return;
-      }
-      this.chart = chartElement as CandlestickChart;
+      this.chart = this.getChartElement();
 
-      // Forward chart-ready and chart-pan events from the candlestick chart
-      this.chart.addEventListener("chart-ready", (e: Event) => {
-        this.dispatchEvent(
-          new CustomEvent("chart-ready", {
-            detail: (e as CustomEvent).detail,
-            bubbles: true,
-            composed: true,
-          })
-        );
-      });
+      if (this.chart) {
+        // Forward chart-ready events from the candlestick chart
+        this.chart.addEventListener("chart-ready", (e: Event) => {
+          this.dispatchEvent(
+            new CustomEvent("chart-ready", {
+              detail: (e as CustomEvent).detail,
+              bubbles: true,
+              composed: true,
+            })
+          );
+        });
+      }
     }, 0);
 
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
@@ -487,14 +474,13 @@ export class ChartContainer extends LitElement {
     };
     const alllIndicators = [chartAsIndicator, ...stackBottomIndicators];
 
-    // Calculate grid template rows based on number of stacked indicators and chart height
+    // Calculate grid template rows based on number of stacked indicators
     const gridStyle = {
       display: "grid",
       gridTemplateAreas: `
         'price-info'
         'indicators-top'
-        'chart'
-        'indicators-bottom'
+        'chart-area'
         'timeline'
       `,
       gridTemplateRows: `
@@ -504,8 +490,7 @@ export class ChartContainer extends LitElement {
             ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
             : "0"
         }
-        minmax(600px, 1fr)
-        ${stackBottomIndicators.length ? `${INDICATOR_HEIGHT}px` : "0"}
+        1fr
         ${TIMELINE_HEIGHT}px
       `,
       gridTemplateColumns: "minmax(0, 1fr)",
@@ -560,8 +545,14 @@ export class ChartContainer extends LitElement {
             `
           : ""}
 
-        <div class="chart-area" style="grid-area: chart;">
-          <div class="chart" style="position: relative;">
+        <div
+          class="chart-area"
+          style="grid-area: chart-area; display: flex; flex-direction: column; overflow: hidden; flex: 1;"
+        >
+          <div
+            class="chart"
+            style="position: relative; flex: 1; display: flex; flex-direction: column;"
+          >
             <indicator-container class="overlay-indicators">
               <div class="indicator-names">
                 ${overlayIndicators.map(
@@ -620,6 +611,7 @@ export class ChartContainer extends LitElement {
 
             <indicator-stack
               class="main-chart ${this.isActive ? "active" : ""}"
+              style="flex: 1; height: 100%;"
               .indicators=${alllIndicators}
               .valueAxisWidth=${PRICEAXIS_WIDTH}
               .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
@@ -805,7 +797,10 @@ export class ChartContainer extends LitElement {
     if (this.isMobile) return; // Don't handle fullscreen on mobile
     this.isFullscreen = document.fullscreenElement === this;
     if (!this.isFullscreen) {
-      this.handleResize(this.clientWidth, this.clientHeight);
+      // Add a small delay to ensure dimensions are properly updated
+      setTimeout(() => {
+        this.handleResize(this.clientWidth, this.clientHeight);
+      }, 100);
     }
   };
 
@@ -829,10 +824,10 @@ export class ChartContainer extends LitElement {
     } else {
       this.classList.remove("full-window");
     }
-    // Force a resize after the class change
-    requestAnimationFrame(() => {
+    // Force a resize after the class change with a small delay
+    setTimeout(() => {
       this.handleResize(this.clientWidth, this.clientHeight);
-    });
+    }, 100);
   };
 
   static styles = getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT);
@@ -841,5 +836,21 @@ export class ChartContainer extends LitElement {
     return {
       requireActivation: { type: Boolean, attribute: "require-activation" },
     };
+  }
+
+  // Helper method to get the chart element from the indicator stack
+  private getChartElement(): CandlestickChart | null {
+    const indicatorStack = this.renderRoot.querySelector(
+      "indicator-stack.main-chart"
+    ) as LitElement | null;
+
+    if (!indicatorStack) {
+      return null;
+    }
+
+    const chartElement = indicatorStack.renderRoot.querySelector(
+      "candlestick-chart"
+    ) as CandlestickChart | null;
+    return chartElement;
   }
 }
