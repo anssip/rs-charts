@@ -39,17 +39,20 @@ export class IndicatorStack extends LitElement {
       background: var(--chart-background-color, #131722);
       position: relative;
       height: 100%;
+      pointer-events: auto;
     }
 
     :host(.main-chart) {
       flex: 1;
       height: 100%;
+      pointer-events: auto;
     }
 
     /* When we have chart and indicators stacked together */
     .stack-item {
       position: relative;
       border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+      pointer-events: auto;
     }
 
     /* Special handling for chart item - it should flex grow */
@@ -57,6 +60,7 @@ export class IndicatorStack extends LitElement {
       flex: 1;
       min-height: 200px;
       border-bottom: none;
+      pointer-events: auto;
     }
 
     /* Fixed height for regular indicators */
@@ -64,6 +68,7 @@ export class IndicatorStack extends LitElement {
       flex: 0 0 auto;
       min-height: 30px;
       height: 150px;
+      pointer-events: auto;
     }
 
     .indicator-name {
@@ -76,12 +81,14 @@ export class IndicatorStack extends LitElement {
       font-weight: 500;
       opacity: 0.7;
       z-index: 2;
+      pointer-events: none;
     }
 
     indicator-container {
       width: 100%;
       height: 100%;
       display: flex;
+      pointer-events: auto;
     }
 
     .resize-handle {
@@ -185,7 +192,12 @@ export class IndicatorStack extends LitElement {
     }
 
     const deltaY = currentY - this.startY;
+
+    // Apply the resize with the delta
     this.applyResize(deltaY);
+
+    // Update startY for next move to prevent cumulative effect
+    this.startY = currentY;
   };
 
   private handleResizeEnd = () => {
