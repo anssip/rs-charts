@@ -28,28 +28,42 @@ export class IndicatorStack extends LitElement {
   @state() private resizingIndex = -1;
   @state() private startY = 0;
   @state() private itemHeights: number[] = [];
+  @state() private manuallyResized = false;
 
   static styles = css`
     :host {
       display: flex;
-      flex-direction: column-reverse; /* Makes the bottom indicator stay at the bottom */
+      flex-direction: column-reverse;
       width: 100%;
       min-height: 150px;
       background: var(--chart-background-color, #131722);
       position: relative;
+      height: 100%;
     }
 
+    :host(.main-chart) {
+      flex: 1;
+      height: 100%;
+    }
+
+    /* When we have chart and indicators stacked together */
     .stack-item {
-      flex: 0 0 auto; /* Don't automatically grow/shrink */
-      height: 150px; /* Default height */
-      min-height: 30px; /* Minimum height */
       position: relative;
       border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
-      overflow: visible;
     }
 
-    .stack-item:first-child {
-      border-bottom: none; /* No border for first (bottom) item */
+    /* Special handling for chart item - it should flex grow */
+    .stack-item.chart-item {
+      flex: 1;
+      min-height: 200px;
+      border-bottom: none;
+    }
+
+    /* Fixed height for regular indicators */
+    .stack-item:not(.chart-item) {
+      flex: 0 0 auto;
+      min-height: 30px;
+      height: 150px;
     }
 
     .indicator-name {
@@ -67,6 +81,7 @@ export class IndicatorStack extends LitElement {
     indicator-container {
       width: 100%;
       height: 100%;
+      display: flex;
     }
 
     .resize-handle {
@@ -192,6 +207,15 @@ export class IndicatorStack extends LitElement {
     window.removeEventListener("mouseup", this.handleResizeEnd);
     window.removeEventListener("touchend", this.handleResizeEnd);
 
+    // Mark that we've manually resized
+    this.manuallyResized = true;
+
+    // Store heights for future reference
+    const stackItems = this.renderRoot.querySelectorAll(".stack-item");
+    this.itemHeights = Array.from(stackItems).map((item) => {
+      return (item as HTMLElement).offsetHeight;
+    });
+
     // Reset resizing index
     this.resizingIndex = -1;
   };
@@ -216,9 +240,7 @@ export class IndicatorStack extends LitElement {
     );
     if (stackItems.length < 2) return;
 
-    // Note: In column-reverse layout, the DOM order is opposite to visual order
-    // When we resize index, we're adjusting the item at index and index-1 visually
-    // But in DOM, that corresponds to index and index+1
+    // In column-reverse layout, the DOM order is opposite to visual order
     const itemAbove = stackItems[this.resizingIndex] as HTMLElement;
     const itemBelow = stackItems[this.resizingIndex + 1] as HTMLElement;
 
@@ -228,17 +250,45 @@ export class IndicatorStack extends LitElement {
     const heightAbove = this.itemHeights[this.resizingIndex];
     const heightBelow = this.itemHeights[this.resizingIndex + 1];
 
+    // Check if either item is a chart (should flex)
+    const isChartAbove = itemAbove.classList.contains("chart-item");
+    const isChartBelow = itemBelow.classList.contains("chart-item");
+
     // Calculate new heights with constraints
     const minHeight = 30; // Minimum height for indicators
 
-    // When dragging down (positive deltaY), we increase the height of the item above
-    // and decrease the height of the item below
-    const newHeightAbove = Math.max(minHeight, heightAbove + deltaY);
-    const newHeightBelow = Math.max(minHeight, heightBelow - deltaY);
+    // Apply new heights based on what we're resizing
+    if (isChartBelow) {
+      // If chart is below, only adjust the item above
+      const newHeightAbove = Math.max(minHeight, heightAbove + deltaY);
+      itemAbove.style.height = `${newHeightAbove}px`;
+      itemAbove.style.flexBasis = `${newHeightAbove}px`;
 
-    // Apply new heights
-    itemAbove.style.height = `${newHeightAbove}px`;
-    itemBelow.style.height = `${newHeightBelow}px`;
+      // Update the height in our tracking array
+      this.itemHeights[this.resizingIndex] = newHeightAbove;
+    } else if (isChartAbove) {
+      // If chart is above, only adjust the item below
+      const newHeightBelow = Math.max(minHeight, heightBelow - deltaY);
+      itemBelow.style.height = `${newHeightBelow}px`;
+      itemBelow.style.flexBasis = `${newHeightBelow}px`;
+
+      // Update the height in our tracking array
+      this.itemHeights[this.resizingIndex + 1] = newHeightBelow;
+    } else {
+      // Regular case: two non-chart indicators
+      const newHeightAbove = Math.max(minHeight, heightAbove + deltaY);
+      const newHeightBelow = Math.max(minHeight, heightBelow - deltaY);
+
+      itemAbove.style.height = `${newHeightAbove}px`;
+      itemAbove.style.flexBasis = `${newHeightAbove}px`;
+
+      itemBelow.style.height = `${newHeightBelow}px`;
+      itemBelow.style.flexBasis = `${newHeightBelow}px`;
+
+      // Update heights in our tracking array
+      this.itemHeights[this.resizingIndex] = newHeightAbove;
+      this.itemHeights[this.resizingIndex + 1] = newHeightBelow;
+    }
 
     // Trigger resize on canvas elements
     this.triggerCanvasResize(itemAbove);
@@ -281,24 +331,18 @@ export class IndicatorStack extends LitElement {
   firstUpdated() {
     // Set initial heights equally distributed
     this.initializeHeights();
-
-    // Set up a resize observer to adjust heights when container resizes
-    const resizeObserver = new ResizeObserver(() => {
-      if (!this.isResizing) {
-        this.initializeHeights();
-      }
-    });
-
-    resizeObserver.observe(this);
   }
 
   // Handle property changes
   updated(changedProps: Map<string, any>) {
     if (changedProps.has("indicators")) {
-      // When indicators change, reinitialize heights and redraw
+      // When indicators change, reset our manual resize flag
+      this.manuallyResized = false;
+
+      // Let CSS handle most of the layout but make sure canvases get resized
       setTimeout(() => {
-        this.initializeHeights();
-        this.redrawAllIndicators();
+        const stackItems = this.renderRoot.querySelectorAll(".stack-item");
+        stackItems.forEach((item) => this.triggerCanvasResize(item));
       }, 100);
     }
   }
@@ -308,23 +352,26 @@ export class IndicatorStack extends LitElement {
     const stackItems = this.renderRoot.querySelectorAll(".stack-item");
     if (!stackItems.length) return;
 
-    const totalHeight = this.clientHeight;
-    const equalHeight = Math.max(30, totalHeight / stackItems.length);
+    stackItems.forEach((item) => {
+      // Store chart heights for resize operations
+      if (!this.manuallyResized) {
+        this.itemHeights = Array.from(stackItems).map((item) => {
+          const computed = getComputedStyle(item);
+          return parseFloat(computed.height);
+        });
+      }
 
-    stackItems.forEach((item, i) => {
-      (item as HTMLElement).style.height = `${equalHeight}px`;
       this.triggerCanvasResize(item);
     });
-
-    // Store initial heights
-    this.itemHeights = Array.from(stackItems).map(() => equalHeight);
   }
 
   render() {
     return html`
       ${this.indicators.map(
         (indicator, index) => html`
-          <div class="stack-item">
+          <div
+            class="stack-item ${indicator.id === "chart" ? "chart-item" : ""}"
+          >
             ${indicator.name
               ? html`<div class="indicator-name">${indicator.name}</div>`
               : ""}

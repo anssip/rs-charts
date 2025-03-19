@@ -76,8 +76,6 @@ export class ChartContainer extends LitElement {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
 
-  private resizeObserver!: ResizeObserver;
-
   private chart: CandlestickChart | null = null;
 
   private padding = {
@@ -103,7 +101,6 @@ export class ChartContainer extends LitElement {
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
-  private readonly RESIZE_DEBOUNCE_MS = 100;
 
   @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
@@ -166,31 +163,6 @@ export class ChartContainer extends LitElement {
       this.handleResize(width, height);
     }
 
-    this.resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        const { width, height } = entry.contentRect;
-
-        // Cancel any pending animation frame
-        if (this.resizeAnimationFrame) {
-          cancelAnimationFrame(this.resizeAnimationFrame);
-        }
-
-        // Clear any pending timeout
-        if (this.resizeTimeout) {
-          clearTimeout(this.resizeTimeout);
-        }
-
-        // Set a new timeout for debouncing
-        this.resizeTimeout = window.setTimeout(() => {
-          this.resizeAnimationFrame = requestAnimationFrame(() => {
-            this.handleResize(width, height);
-          });
-        }, this.RESIZE_DEBOUNCE_MS);
-      }
-    });
-    this.resizeObserver.observe(chartArea);
-
     // Wait for components to initialize
     setTimeout(() => {
       this.chart = this.getChartElement();
@@ -208,8 +180,6 @@ export class ChartContainer extends LitElement {
         });
       }
     }, 0);
-
-    document.addEventListener("fullscreenchange", this.handleFullscreenChange);
 
     // Add click outside listener
     document.addEventListener("click", this.handleClickOutside);
@@ -332,7 +302,6 @@ export class ChartContainer extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.resizeObserver?.disconnect();
     if (this.resizeAnimationFrame) {
       cancelAnimationFrame(this.resizeAnimationFrame);
     }
