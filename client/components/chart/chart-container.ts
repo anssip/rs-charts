@@ -153,6 +153,7 @@ export class ChartContainer extends LitElement {
       console.error("chart area not found");
       return;
     }
+
     // Get the computed style to check if we have a fixed height
     const computedStyle = getComputedStyle(chartArea);
     const height = parseFloat(computedStyle.height);
@@ -177,6 +178,11 @@ export class ChartContainer extends LitElement {
               composed: true,
             })
           );
+
+          // Initialize interaction controller after chart is ready
+          if (!this.interactionController) {
+            this.initializeInteractionController();
+          }
         });
       }
     }, 0);
@@ -202,53 +208,6 @@ export class ChartContainer extends LitElement {
     this.mobileMediaQuery.addEventListener("change", () =>
       this.handleMobileChange()
     );
-
-    if (this.chart) {
-      this.interactionController = new ChartInteractionController({
-        chart: this.chart,
-        container: this,
-        state: this._state,
-        requireActivation: this.requireActivation,
-        isActive: () => this.isActive,
-        onStateChange: (updates) => {
-          this._state = Object.assign(this._state, updates);
-          Object.keys(updates).forEach((key) => {
-            touch(`state.${key}`);
-          });
-          this.draw();
-        },
-        onNeedMoreData: (direction) => {
-          this.dispatchRefetch(direction);
-        },
-        onActivate: () => {
-          this.isActive = true;
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onDeactivate: () => {
-          this.isActive = false;
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onFullWindowToggle: () => {
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onContextMenu: (position) => {
-          this.showContextMenu = true;
-          this.contextMenuPosition = position;
-        },
-        bufferMultiplier: BUFFER_MULTIPLIER,
-        zoomFactor: this.ZOOM_FACTOR,
-        doubleTapDelay: this.DOUBLE_TAP_DELAY,
-      });
-      if (this.requireActivation && !this.isActive) {
-        this.interactionController.attach();
-      }
-    }
   }
 
   private handleMobileChange = () => {
@@ -516,11 +475,11 @@ export class ChartContainer extends LitElement {
 
         <div
           class="chart-area"
-          style="grid-area: chart-area; display: flex; flex-direction: column; overflow: hidden; flex: 1;"
+          style="grid-area: chart-area; display: flex; flex-direction: column; overflow: hidden; flex: 1; pointer-events: auto;"
         >
           <div
             class="chart"
-            style="position: relative; flex: 1; display: flex; flex-direction: column;"
+            style="position: relative; flex: 1; display: flex; flex-direction: column; pointer-events: auto;"
           >
             <indicator-container class="overlay-indicators">
               <div class="indicator-names">
@@ -580,7 +539,7 @@ export class ChartContainer extends LitElement {
 
             <indicator-stack
               class="main-chart ${this.isActive ? "active" : ""}"
-              style="flex: 1; height: 100%;"
+              style="flex: 1; height: 100%; pointer-events: auto;"
               .indicators=${alllIndicators}
               .valueAxisWidth=${PRICEAXIS_WIDTH}
               .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
@@ -821,5 +780,60 @@ export class ChartContainer extends LitElement {
       "candlestick-chart"
     ) as CandlestickChart | null;
     return chartElement;
+  }
+
+  private initializeInteractionController() {
+    if (!this.chart) return;
+
+    this.interactionController = new ChartInteractionController({
+      chart: this.chart,
+      container: this.renderRoot.querySelector(".chart-area") as HTMLElement,
+      state: this._state,
+      requireActivation: this.requireActivation,
+      isActive: () => this.isActive,
+      onStateChange: (updates) => {
+        this._state = Object.assign(this._state, updates);
+        Object.keys(updates).forEach((key) => {
+          touch(`state.${key}`);
+        });
+        this.draw();
+      },
+      onNeedMoreData: (direction) => {
+        this.dispatchRefetch(direction);
+      },
+      onActivate: () => {
+        this.isActive = true;
+        if (this.isMobile) {
+          this.toggleFullWindow();
+        }
+      },
+      onDeactivate: () => {
+        this.isActive = false;
+        if (this.isMobile) {
+          this.toggleFullWindow();
+        }
+      },
+      onFullWindowToggle: () => {
+        if (this.isMobile) {
+          this.toggleFullWindow();
+        }
+      },
+      onContextMenu: (position) => {
+        this.showContextMenu = true;
+        this.contextMenuPosition = position;
+      },
+      bufferMultiplier: BUFFER_MULTIPLIER,
+      zoomFactor: this.ZOOM_FACTOR,
+      doubleTapDelay: this.DOUBLE_TAP_DELAY,
+    });
+    if (this.requireActivation && !this.isActive) {
+      console.log("attaching chart interaction controller");
+      this.interactionController.attach();
+    } else if (!this.requireActivation) {
+      console.log(
+        "attaching chart interaction controller (no activation required)"
+      );
+      this.interactionController.attach(true);
+    }
   }
 }

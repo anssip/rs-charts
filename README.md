@@ -27,9 +27,9 @@ bun run dev
 - [ ] macd
 - [ ] stochastic
 
-### ideas
-
-- [ ] Resizing of stacked indicators
+- [x] Resizing of stacked indicators
+- [ ] Fix Panning & zooming
+- [ ] Fix overlaid indicators that now take the whole area
 - [ ] Activation reimplementation: Add a top layer on top of the chart that disables all mouse events when not active
 
   - this can be then used for the indicator panes and value-axis
