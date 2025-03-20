@@ -1,13 +1,9 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "../indicators/indicator-container";
-import { IndicatorConfig } from "./indicator-types";
 
 @customElement("indicator-stack")
 export class IndicatorStack extends LitElement {
-  @property({ type: Array })
-  indicators: IndicatorConfig[] = [];
-
   @property({ type: Number })
   valueAxisWidth = 70;
 
@@ -84,7 +80,7 @@ export class IndicatorStack extends LitElement {
       pointer-events: none;
     }
 
-    indicator-container {
+    ::slotted(*) {
       width: 100%;
       height: 100%;
       display: flex;
@@ -96,7 +92,7 @@ export class IndicatorStack extends LitElement {
       height: 8px;
       left: 0;
       right: 0;
-      bottom: -4px; /* Center on the border */
+      top: -4px; /* Position at the top instead of bottom */
       cursor: ns-resize;
       z-index: 10;
       touch-action: none;
@@ -132,7 +128,7 @@ export class IndicatorStack extends LitElement {
     @media (max-width: 767px) {
       .resize-handle {
         height: 14px; /* Bigger touch target for mobile */
-        bottom: -7px; /* Adjust center point for bigger handle */
+        top: -7px; /* Adjust center point for bigger handle */
       }
 
       .resize-handle::after {
@@ -148,9 +144,23 @@ export class IndicatorStack extends LitElement {
 
     e.preventDefault();
 
+    console.log(
+      `IndicatorStack: Starting resize for handle with index ${index}`
+    );
+
     // Store current item heights
-    const stackItems = this.renderRoot.querySelectorAll(".stack-item");
+    const stackItems = this.renderRoot.querySelectorAll(
+      ".stack-item:not([style*='display: none'])"
+    );
+    console.log(
+      `IndicatorStack: Found ${stackItems.length} visible stack items`
+    );
     this.itemHeights = Array.from(stackItems).map((item) => item.clientHeight);
+
+    // Log the heights for debugging
+    this.itemHeights.forEach((height, i) => {
+      console.log(`IndicatorStack: Item ${i} height: ${height}px`);
+    });
 
     this.isResizing = true;
     this.resizingIndex = index;
@@ -246,92 +256,140 @@ export class IndicatorStack extends LitElement {
   private applyResize(deltaY: number) {
     if (this.resizingIndex < 0 || this.itemHeights.length < 2) return;
 
-    // Get the items being resized (current and next)
+    // Get only the visible stack items
     const stackItems = Array.from(
-      this.renderRoot.querySelectorAll(".stack-item")
-    );
+      this.renderRoot.querySelectorAll(
+        ".stack-item:not([style*='display: none'])"
+      )
+    ) as HTMLElement[];
+
     if (stackItems.length < 2) return;
 
-    // In column-reverse layout, the DOM order is opposite to visual order
-    const itemAbove = stackItems[this.resizingIndex] as HTMLElement;
-    const itemBelow = stackItems[this.resizingIndex + 1] as HTMLElement;
+    console.log(`IndicatorStack: Applying resize, deltaY: ${deltaY}`);
 
-    if (!itemAbove || !itemBelow) return;
+    // Find the actual items to resize based on the handle's index
+    // Each handle is at the top of an item, so it resizes that item and the one above it
+    const currentIndex = this.resizingIndex + 1; // +1 because the first handle is actually for the second item
+    const aboveIndex = this.resizingIndex; // The item above the handle (in DOM order)
 
-    // Get the original heights
-    const heightAbove = this.itemHeights[this.resizingIndex];
-    const heightBelow = this.itemHeights[this.resizingIndex + 1];
+    console.log(
+      `IndicatorStack: Resizing items ${aboveIndex} and ${currentIndex}`
+    );
 
-    // Check if either item is a chart (should flex)
-    const isChartAbove = itemAbove.classList.contains("chart-item");
-    const isChartBelow = itemBelow.classList.contains("chart-item");
+    // Get the elements being resized
+    const currentItem = stackItems[currentIndex];
+    const aboveItem = stackItems[aboveIndex];
 
-    // Calculate new heights with constraints
-    const minHeight = 30; // Minimum height for indicators
-
-    // Apply new heights based on what we're resizing
-    if (isChartBelow) {
-      // If chart is below, only adjust the item above
-      const newHeightAbove = Math.max(minHeight, heightAbove + deltaY);
-      itemAbove.style.height = `${newHeightAbove}px`;
-      itemAbove.style.flexBasis = `${newHeightAbove}px`;
-
-      // Update the height in our tracking array
-      this.itemHeights[this.resizingIndex] = newHeightAbove;
-    } else if (isChartAbove) {
-      // If chart is above, only adjust the item below
-      const newHeightBelow = Math.max(minHeight, heightBelow - deltaY);
-      itemBelow.style.height = `${newHeightBelow}px`;
-      itemBelow.style.flexBasis = `${newHeightBelow}px`;
-
-      // Update the height in our tracking array
-      this.itemHeights[this.resizingIndex + 1] = newHeightBelow;
-    } else {
-      // Regular case: two non-chart indicators
-      const newHeightAbove = Math.max(minHeight, heightAbove + deltaY);
-      const newHeightBelow = Math.max(minHeight, heightBelow - deltaY);
-
-      itemAbove.style.height = `${newHeightAbove}px`;
-      itemAbove.style.flexBasis = `${newHeightAbove}px`;
-
-      itemBelow.style.height = `${newHeightBelow}px`;
-      itemBelow.style.flexBasis = `${newHeightBelow}px`;
-
-      // Update heights in our tracking array
-      this.itemHeights[this.resizingIndex] = newHeightAbove;
-      this.itemHeights[this.resizingIndex + 1] = newHeightBelow;
+    if (!currentItem || !aboveItem) {
+      console.warn(
+        `IndicatorStack: Can't find items to resize: current=${!!currentItem}, above=${!!aboveItem}`
+      );
+      return;
     }
 
-    // Trigger resize on canvas elements
-    this.triggerCanvasResize(itemAbove);
-    this.triggerCanvasResize(itemBelow);
+    console.log(
+      `IndicatorStack: Resizing ${aboveItem.className} and ${currentItem.className}`
+    );
+
+    // Get the current heights
+    const currentHeight = this.itemHeights[currentIndex];
+    const aboveHeight = this.itemHeights[aboveIndex];
+
+    // Check if either item is the chart
+    const isCurrentChart = currentItem.classList.contains("chart-item");
+    const isAboveChart = aboveItem.classList.contains("chart-item");
+
+    console.log(
+      `IndicatorStack: Current is chart: ${isCurrentChart}, Above is chart: ${isAboveChart}`
+    );
+
+    // Minimum height for items
+    const minHeight = 30;
+
+    if (isAboveChart) {
+      // Don't resize the chart, only adjust the current item
+      const newCurrentHeight = Math.max(minHeight, currentHeight - deltaY);
+      console.log(
+        `IndicatorStack: Setting current height to ${newCurrentHeight}px`
+      );
+
+      currentItem.style.height = `${newCurrentHeight}px`;
+      currentItem.style.flexBasis = `${newCurrentHeight}px`;
+      this.itemHeights[currentIndex] = newCurrentHeight;
+    } else if (isCurrentChart) {
+      // Don't resize the chart, only adjust the item above
+      const newAboveHeight = Math.max(minHeight, aboveHeight + deltaY);
+      console.log(
+        `IndicatorStack: Setting above height to ${newAboveHeight}px`
+      );
+
+      aboveItem.style.height = `${newAboveHeight}px`;
+      aboveItem.style.flexBasis = `${newAboveHeight}px`;
+      this.itemHeights[aboveIndex] = newAboveHeight;
+    } else {
+      // Adjust both items
+      const newCurrentHeight = Math.max(minHeight, currentHeight - deltaY);
+      const newAboveHeight = Math.max(minHeight, aboveHeight + deltaY);
+
+      console.log(
+        `IndicatorStack: Setting current height to ${newCurrentHeight}px, above height to ${newAboveHeight}px`
+      );
+
+      currentItem.style.height = `${newCurrentHeight}px`;
+      currentItem.style.flexBasis = `${newCurrentHeight}px`;
+      aboveItem.style.height = `${newAboveHeight}px`;
+      aboveItem.style.flexBasis = `${newAboveHeight}px`;
+
+      this.itemHeights[currentIndex] = newCurrentHeight;
+      this.itemHeights[aboveIndex] = newAboveHeight;
+    }
+
+    // Trigger resize on both elements
+    this.triggerCanvasResize(currentItem);
+    this.triggerCanvasResize(aboveItem);
   }
 
   private triggerCanvasResize(item: Element) {
-    const container = item.querySelector("indicator-container");
-    if (!container) return;
+    // Find all elements within the stack item
+    const slot = item.querySelector("slot");
+    if (!slot) {
+      console.warn(
+        "IndicatorStack: No slot found in item to resize:",
+        item.className
+      );
+      return;
+    }
 
-    const slot = container.shadowRoot?.querySelector("slot");
-    if (!slot) return;
+    console.log(
+      "IndicatorStack: Triggering canvas resize for slot:",
+      (slot as HTMLSlotElement).name || "default",
+      "width:",
+      item.clientWidth,
+      "height:",
+      item.clientHeight
+    );
 
+    // Get assigned elements from slot
     const elements = (slot as HTMLSlotElement).assignedElements();
-    for (const element of elements) {
-      // Handle both market indicators and candlestick chart
-      if (
-        element.tagName.toLowerCase() === "market-indicator" ||
-        element.tagName.toLowerCase() === "candlestick-chart"
-      ) {
-        const indicator = element as HTMLElement;
-        indicator.style.height = "100%";
-        indicator.style.width = "100%";
+    console.log(
+      `IndicatorStack: Slot has ${elements.length} assigned elements:`,
+      elements.map((el) => el.tagName)
+    );
 
-        indicator.dispatchEvent(
+    // Send resize event to each assigned element
+    for (const element of elements) {
+      if (element instanceof HTMLElement) {
+        console.log(
+          "IndicatorStack: Sending force-redraw to element:",
+          element.tagName
+        );
+        element.dispatchEvent(
           new CustomEvent("force-redraw", {
-            bubbles: false,
+            bubbles: true,
             composed: true,
             detail: {
-              width: container.clientWidth,
-              height: container.clientHeight,
+              width: item.clientWidth,
+              height: item.clientHeight,
             },
           })
         );
@@ -341,22 +399,87 @@ export class IndicatorStack extends LitElement {
 
   // Initialize heights when component is first updated
   firstUpdated() {
-    // Set initial heights equally distributed
-    this.initializeHeights();
+    console.log("IndicatorStack: firstUpdated called");
+
+    // Create all slots initially to ensure they're available for assignments
+    this.requestUpdate();
+
+    // Add handler for force-redraw events
+    // this.addEventListener("force-redraw", () => {
+    //   console.log("IndicatorStack: Received force-redraw event");
+    //   this.initializeHeights();
+    // });
+
+    // Add slot change handler after slots are created
+    setTimeout(() => {
+      // Log all slots in the shadow DOM
+      const slots = this.shadowRoot?.querySelectorAll("slot");
+      console.log(
+        `IndicatorStack: Found ${slots?.length} slots in shadow DOM:`
+      );
+      slots?.forEach((slot) => {
+        const name = slot.getAttribute("name") || "default";
+        console.log(`  - Slot "${name}"`);
+
+        // Check initial content
+        const elements = (slot as HTMLSlotElement).assignedElements();
+        console.log(
+          `IndicatorStack: Initial slot "${name}" has ${elements.length} elements:`,
+          elements.map((el) => el.tagName)
+        );
+      });
+
+      // Monitor all slots for changes
+      slots?.forEach((slot) => {
+        slot.addEventListener("slotchange", (e) => {
+          const slotName = (e.target as HTMLSlotElement).name || "default";
+          const elements = (e.target as HTMLSlotElement).assignedElements();
+          console.log(
+            `IndicatorStack: Slot "${slotName}" changed, now has ${elements.length} elements:`,
+            elements.map((el) => el.tagName)
+          );
+
+          // Force a re-render to update which slots are shown
+          this.requestUpdate();
+
+          // Initialize heights after slot content changes
+          this.initializeHeights();
+
+          // Dispatch rendered event
+          this.dispatchEvent(
+            new CustomEvent("rendered", {
+              bubbles: true,
+              composed: true,
+              detail: {
+                slot: slotName,
+                elements: elements.map((el) => el.tagName),
+              },
+            })
+          );
+        });
+      });
+
+      // Set initial heights
+      this.initializeHeights();
+
+      // Dispatch rendered event
+      console.log("IndicatorStack: Dispatching initial rendered event");
+      this.dispatchEvent(
+        new CustomEvent("rendered", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }, 10);
   }
 
   // Handle property changes
   updated(changedProps: Map<string, any>) {
-    if (changedProps.has("indicators")) {
-      // When indicators change, reset our manual resize flag
-      this.manuallyResized = false;
-
-      // Let CSS handle most of the layout but make sure canvases get resized
-      setTimeout(() => {
-        const stackItems = this.renderRoot.querySelectorAll(".stack-item");
-        stackItems.forEach((item) => this.triggerCanvasResize(item));
-      }, 100);
-    }
+    // Make sure canvases get resized when properties change
+    setTimeout(() => {
+      const stackItems = this.renderRoot.querySelectorAll(".stack-item");
+      stackItems.forEach((item) => this.triggerCanvasResize(item));
+    }, 100);
   }
 
   // Initialize heights equally distributed
@@ -377,43 +500,123 @@ export class IndicatorStack extends LitElement {
     });
   }
 
-  render() {
-    return html`
-      ${this.indicators.map(
-        (indicator, index) => html`
-          <div
-            class="stack-item ${indicator.id === "chart" ? "chart-item" : ""}"
-          >
-            ${indicator.name
-              ? html`<div class="indicator-name">${indicator.name}</div>`
-              : ""}
-            <indicator-container>
-              ${new indicator.class({
-                indicatorId: indicator.id,
-                scale: indicator.scale,
-                valueAxisWidth: this.valueAxisWidth,
-                valueAxisMobileWidth: this.valueAxisMobileWidth,
-                state: this.state,
-                options: this.options,
-              })}
-            </indicator-container>
+  // Get slotted elements
+  private getSlottedElements(): HTMLElement[] {
+    console.log("IndicatorStack: Getting slotted elements");
+    const slot = this.shadowRoot?.querySelector("slot");
+    if (!slot) {
+      console.warn("IndicatorStack: No default slot found in shadow root");
+      return [];
+    }
 
-            ${
-              /* Add resize handle except for the first item (visually bottom) */ ""
-            }
-            ${index < this.indicators.length - 1 && this.allowResize
-              ? html`<div
-                  class="resize-handle"
-                  data-index="${index}"
-                  @mousedown="${(e: MouseEvent) =>
-                    this.handleResizeStart(index, e)}"
-                  @touchstart="${(e: TouchEvent) =>
-                    this.handleResizeStart(index, e)}"
-                ></div>`
-              : ""}
-          </div>
-        `
-      )}
+    // First try to get elements assigned to named slots
+    const namedSlots = Array.from(
+      this.shadowRoot?.querySelectorAll("slot[name]") || []
+    );
+    console.log(
+      "IndicatorStack: Found named slots:",
+      namedSlots.map((s) => s.getAttribute("name"))
+    );
+
+    const assignedElements: HTMLElement[] = [];
+
+    // Check named slots first
+    namedSlots.forEach((namedSlot) => {
+      const slottedElements = (namedSlot as HTMLSlotElement).assignedElements();
+      console.log(
+        `IndicatorStack: Slot "${namedSlot.getAttribute("name")}" has ${
+          slottedElements.length
+        } elements:`,
+        slottedElements.map((el) => el.tagName)
+      );
+      if (slottedElements.length > 0) {
+        assignedElements.push(slottedElements[0] as HTMLElement);
+      }
+    });
+
+    // If we found elements in named slots, return them
+    if (assignedElements.length > 0) {
+      console.log(
+        "IndicatorStack: Using named slots with elements:",
+        assignedElements.map((el) => el.tagName)
+      );
+      return assignedElements;
+    }
+
+    // Otherwise return elements from the default slot
+    const defaultElements = (
+      slot as HTMLSlotElement
+    ).assignedElements() as HTMLElement[];
+    console.log(
+      "IndicatorStack: Using default slot with elements:",
+      defaultElements.map((el) => el.tagName)
+    );
+    return defaultElements;
+  }
+
+  render() {
+    console.log("IndicatorStack: Rendering with default and named slots");
+
+    // Create slots for chart and indicators
+    return html`
+      <!-- Main chart container -->
+      <div class="stack-item chart-item">
+        <slot name="chart"></slot>
+      </div>
+
+      <!-- Always include indicator slots, but hide them when not in use -->
+      <div
+        class="stack-item"
+        style="${this.hasSlottedIndicator(1) ? "" : "display: none;"}"
+      >
+        <!-- Resize handle for indicator-1 - this is data-index="0" because it's the first handle -->
+        ${this.allowResize
+          ? html`<div
+              class="resize-handle"
+              data-index="0"
+              @mousedown="${(e: MouseEvent) => this.handleResizeStart(0, e)}"
+              @touchstart="${(e: TouchEvent) => this.handleResizeStart(0, e)}"
+            ></div>`
+          : ""}
+        <slot name="indicator-1"></slot>
+      </div>
+
+      <div
+        class="stack-item"
+        style="${this.hasSlottedIndicator(2) ? "" : "display: none;"}"
+      >
+        <!-- Resize handle for indicator-2 - this is data-index="1" because it's the second handle -->
+        ${this.allowResize
+          ? html`<div
+              class="resize-handle"
+              data-index="1"
+              @mousedown="${(e: MouseEvent) => this.handleResizeStart(1, e)}"
+              @touchstart="${(e: TouchEvent) => this.handleResizeStart(1, e)}"
+            ></div>`
+          : ""}
+        <slot name="indicator-2"></slot>
+      </div>
+
+      <!-- Default slot for backward compatibility -->
+      <div class="stack-item" style="display: none;">
+        <slot></slot>
+      </div>
     `;
+  }
+
+  // Helper method to check if an indicator slot has content
+  private hasSlottedIndicator(index: number): boolean {
+    // First check if we can find the slot in shadowRoot
+    const slot = this.shadowRoot?.querySelector(
+      `slot[name="indicator-${index}"]`
+    );
+    if (!slot) return false;
+
+    // Then check if any elements are assigned to this slot
+    const assignedElements = (slot as HTMLSlotElement).assignedElements();
+    console.log(
+      `IndicatorStack: Checking slot indicator-${index}, has ${assignedElements.length} elements`
+    );
+    return assignedElements.length > 0;
   }
 }

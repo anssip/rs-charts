@@ -134,6 +134,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     if (!this._state) {
       this._state = xin["state"] as ChartState;
     }
+    if (!this.ctx || !this.canvas) {
+      return;
+    }
     const context: DrawingContext = {
       ctx: this.ctx!,
       chartCanvas: this.canvas!,
