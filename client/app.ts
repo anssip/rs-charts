@@ -33,15 +33,14 @@ export class App {
   constructor(private firestore: Firestore, state: ChartState) {
     this.state = state;
     this.chartContainer = document.querySelector("chart-container");
-    if (!this.chartContainer) {
-      console.error("chart container not found");
-      return;
-    }
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
     this.firestoreClient = new FirestoreClient(this.firestore);
     this.initialize();
     this.setupObservers();
+    if (!this.chartContainer) {
+      console.error("chart container not found");
+    }
   }
 
   private hasIndicatorData() {
