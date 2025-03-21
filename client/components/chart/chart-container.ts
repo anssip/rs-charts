@@ -34,6 +34,7 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
+import { logger } from "../../util/logger";
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -142,13 +143,13 @@ export class ChartContainer extends LitElement {
   }
 
   firstUpdated() {
-    console.log("ChartContainer: firstUpdated called");
+    logger.debug("ChartContainer: firstUpdated called");
     const chartArea = this.renderRoot.querySelector(".chart-area");
     if (!chartArea) {
-      console.error("chart area not found");
+      logger.error("chart area not found");
       return;
     }
-    console.log(
+    logger.debug(
       "ChartContainer: chart area found, dimensions:",
       chartArea.clientWidth,
       "x",
@@ -159,13 +160,13 @@ export class ChartContainer extends LitElement {
     const computedStyle = getComputedStyle(chartArea);
     const height = parseFloat(computedStyle.height);
     const width = parseFloat(computedStyle.width);
-    console.log("ChartContainer: computed dimensions:", width, "x", height);
+    logger.debug("ChartContainer: computed dimensions:", width, "x", height);
 
     // Initial resize with the computed dimensions
     if (height > 0 && width > 0) {
       this.handleResize(width, height);
     } else {
-      console.warn(
+      logger.warn(
         "ChartContainer: Invalid dimensions for initial resize:",
         width,
         "x",
@@ -175,14 +176,14 @@ export class ChartContainer extends LitElement {
 
     // Wait for components to initialize
     setTimeout(() => {
-      console.log("ChartContainer: Delayed initialization, looking for chart");
+      logger.debug("ChartContainer: Delayed initialization, looking for chart");
       this.chart = this.getChartElement();
 
       if (this.chart) {
-        console.log("ChartContainer: Chart found and assigned");
+        logger.debug("ChartContainer: Chart found and assigned");
         // Forward chart-ready events from the candlestick chart
         this.chart.addEventListener("chart-ready", (e: Event) => {
-          console.log("ChartContainer: Got chart-ready event");
+          logger.debug("ChartContainer: Got chart-ready event");
           this.dispatchEvent(
             new CustomEvent("chart-ready", {
               detail: (e as CustomEvent).detail,
@@ -193,12 +194,12 @@ export class ChartContainer extends LitElement {
 
           // Initialize interaction controller after chart is ready
           if (!this.interactionController) {
-            console.log("ChartContainer: Initializing interaction controller");
+            logger.debug("ChartContainer: Initializing interaction controller");
             this.initializeInteractionController();
           }
         });
       } else {
-        console.error(
+        logger.error(
           "ChartContainer: Chart element not found during initialization"
         );
       }
@@ -273,7 +274,7 @@ export class ChartContainer extends LitElement {
 
   // Helper method to force redraw of all indicators
   private redrawIndicators() {
-    console.log("ChartContainer: Redrawing indicators");
+    logger.debug("ChartContainer: Redrawing indicators");
 
     // Force indicator-stack to redraw
     const indicatorStack = this.renderRoot.querySelector(
@@ -291,7 +292,7 @@ export class ChartContainer extends LitElement {
     // Find and redraw all market indicators
     const indicators = this.renderRoot.querySelectorAll("market-indicator");
     indicators.forEach((indicator) => {
-      console.log(
+      logger.debug(
         `ChartContainer: Sending redraw to ${
           indicator.getAttribute("slot") || "unknown"
         } indicator`
@@ -532,7 +533,7 @@ export class ChartContainer extends LitElement {
               .state=${this._state}
               .options=${this.options}
               @rendered=${() =>
-                console.log("ChartContainer: indicator-stack rendered")}
+                logger.debug("ChartContainer: indicator-stack rendered")}
             >
               <!-- Chart container with overlay indicators -->
               <indicator-container slot="chart" class="chart-with-overlays">
@@ -575,7 +576,7 @@ export class ChartContainer extends LitElement {
               ${stackBottomIndicators.length > 0
                 ? stackBottomIndicators.map((indicator, index) => {
                     const slotId = `indicator-${index + 1}`;
-                    console.log(
+                    logger.debug(
                       `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`
                     );
                     return html`
@@ -690,9 +691,7 @@ export class ChartContainer extends LitElement {
   private calculateCandleOptions(): ChartOptions {
     if (!this.chart) return this.options;
     if (!this.chart.canvas) {
-      console.warn(
-        "ChartContainer: No canvas found, returning default options"
-      );
+      logger.warn("ChartContainer: No canvas found, returning default options");
       return this.options;
     }
 
@@ -765,7 +764,7 @@ export class ChartContainer extends LitElement {
         await document.exitFullscreen();
       }
     } catch (err) {
-      console.error("Error attempting to toggle fullscreen:", err);
+      logger.error("Error attempting to toggle fullscreen:", err);
     }
   };
 
@@ -810,23 +809,23 @@ export class ChartContainer extends LitElement {
 
   // Helper method to get the chart element from the indicator stack
   private getChartElement(): CandlestickChart | null {
-    console.log("ChartContainer: Getting chart element");
+    logger.debug("ChartContainer: Getting chart element");
     const indicatorStack = this.renderRoot.querySelector(
       "indicator-stack.main-chart"
     ) as LitElement | null;
 
     if (!indicatorStack) {
-      console.warn("ChartContainer: indicator-stack.main-chart not found");
+      logger.warn("ChartContainer: indicator-stack.main-chart not found");
       return null;
     }
-    console.log("ChartContainer: Found indicator-stack");
+    logger.debug("ChartContainer: Found indicator-stack");
 
     // Find the chart in the new structure - inside indicator-container with class chart-with-overlays
     const chartElement = this.renderRoot.querySelector(
       "indicator-stack.main-chart indicator-container.chart-with-overlays candlestick-chart"
     ) as CandlestickChart | null;
 
-    console.log(
+    logger.debug(
       "ChartContainer: candlestick-chart",
       chartElement ? "found" : "NOT FOUND"
     );
