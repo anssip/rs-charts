@@ -173,6 +173,7 @@ export const getStyles = (
     display: block;
     width: 100%;
     height: 100%;
+    pointer-events: auto;
   }
 
   chart-logo {
@@ -368,5 +369,25 @@ export const getStyles = (
     height: 100%;
     width: 100%;
     flex: 1;
+  }
+
+  /* Fix pointer events for price-axis */
+  candlestick-chart .price-axis-container {
+    pointer-events: auto;
+    z-index: 10;
+  }
+
+  /* Ensure overlay elements don't block the price-axis */
+  .overlay-indicators,
+  .indicator-names,
+  live-decorators,
+  .chart-with-overlays candlestick-chart {
+    pointer-events: none;
+  }
+
+  /* Allow controls within the overlays to receive events */
+  .overlay-indicators *,
+  .indicator-names * {
+    pointer-events: auto;
   }
 `;
