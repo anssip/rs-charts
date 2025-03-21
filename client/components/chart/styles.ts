@@ -310,8 +310,7 @@ export const getStyles = (
     height: 25%;
     margin-top: auto; /* Push to bottom with flexbox */
     z-index: 3;
-    background-color: rgba(0, 0, 0, 0.15);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: transparent; /* Transparent background to see gridlines */
   }
 
   /* Make sure hidden volume chart doesn't take up space */
@@ -366,7 +365,6 @@ export const getStyles = (
     width: 100%;
     height: 100%;
     pointer-events: none;
-    background: none;
   }
 
   /* Make sure the chart area positions elements correctly */
