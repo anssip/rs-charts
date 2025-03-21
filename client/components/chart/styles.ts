@@ -297,50 +297,32 @@ export const getStyles = (
     flex-direction: column;
   }
 
+  /* Main chart sizing and positioning */
   .chart-with-overlays candlestick-chart {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-  }
-
-  .chart-with-overlays .overlay-indicators {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .chart-with-overlays .indicator-names {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    z-index: 3;
-    font-size: 12px;
-    opacity: 0.7;
-  }
-
-  .chart-with-overlays .indicator-name {
-    margin-bottom: 3px;
-    color: var(--color-accent-2, #4caf50);
-  }
-
-  indicator-stack .stack-item {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-  }
-
-  indicator-stack indicator-container {
-    position: relative;
-    height: 100%;
     width: 100%;
     flex: 1;
+    z-index: 2;
+  }
+
+  /* Volume chart container */
+  .volume-chart {
+    width: 100%;
+    height: 25%;
+    margin-top: auto; /* Push to bottom with flexbox */
+    z-index: 3;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Make sure hidden volume chart doesn't take up space */
+  .volume-chart[hidden] {
+    display: none !important;
+  }
+
+  /* Volume chart component itself */
+  volume-chart {
+    width: 100%;
+    height: 100%;
   }
 
   /* Fix pointer events for price-axis */
@@ -361,5 +343,78 @@ export const getStyles = (
   .overlay-indicators *,
   .indicator-names * {
     pointer-events: auto;
+  }
+
+  .volume-chart[hidden] {
+    display: none !important;
+  }
+
+  .volume-chart {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 25%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  volume-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: none;
+  }
+
+  /* Make sure the chart area positions elements correctly */
+  .chart-area {
+    position: relative !important;
+  }
+
+  /* Make sure chart-with-overlays has proper positioning context */
+  .chart-with-overlays {
+    position: relative !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Adjust main chart to accommodate volume chart at bottom */
+  .chart-with-overlays candlestick-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  /* Overlay indicators positioning */
+  .chart-with-overlays .overlay-indicators {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Stack item styling */
+  indicator-stack .stack-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  indicator-stack indicator-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    flex: 1;
   }
 `;

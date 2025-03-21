@@ -363,6 +363,39 @@ export class ChartContainer extends LitElement {
       name,
     } = e.detail;
 
+    // Special handling for volume indicator
+    if (id === "volume") {
+      this.showVolume = visible;
+      logger.debug(
+        `ChartContainer: Volume indicator toggled to ${
+          visible ? "visible" : "hidden"
+        }`
+      );
+      // Force redraw of the volume chart
+      const volumeChart = this.renderRoot.querySelector(
+        ".volume-chart"
+      ) as HTMLElement;
+      if (volumeChart) {
+        volumeChart.hidden = !visible;
+        logger.debug(
+          `ChartContainer: Volume chart container ${
+            visible ? "shown" : "hidden"
+          }`
+        );
+
+        // Force a redraw on the volume-chart element
+        const volumeChartElement = volumeChart.querySelector("volume-chart");
+        if (volumeChartElement) {
+          volumeChartElement.dispatchEvent(
+            new CustomEvent("force-redraw", {
+              bubbles: false,
+              composed: true,
+            })
+          );
+        }
+      }
+    }
+
     if (visible) {
       this.indicators.set(id, {
         id,
@@ -385,6 +418,42 @@ export class ChartContainer extends LitElement {
     }
 
     this.requestUpdate();
+  }
+
+  private toggleVolume() {
+    this.showVolume = !this.showVolume;
+    logger.debug(
+      `ChartContainer: Volume toggled to ${
+        this.showVolume ? "visible" : "hidden"
+      }`
+    );
+
+    const volumeChart = this.renderRoot.querySelector(
+      ".volume-chart"
+    ) as HTMLElement;
+    if (volumeChart) {
+      volumeChart.hidden = !this.showVolume;
+      logger.debug(
+        `ChartContainer: Volume chart container ${
+          this.showVolume ? "shown" : "hidden"
+        }`
+      );
+
+      // Force a redraw on the volume-chart element
+      const volumeChartElement = volumeChart.querySelector("volume-chart");
+      if (volumeChartElement) {
+        volumeChartElement.dispatchEvent(
+          new CustomEvent("force-redraw", {
+            bubbles: false,
+            composed: true,
+          })
+        );
+      }
+    }
+
+    // Update the chart
+    this.requestUpdate();
+    setTimeout(() => this.draw(), 10);
   }
 
   render() {
@@ -439,15 +508,6 @@ export class ChartContainer extends LitElement {
     const stackBottomIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === DisplayType.StackBottom
     );
-    const chartAsIndicator = {
-      id: "chart",
-      name: "Chart",
-      class: CandlestickChart,
-      display: DisplayType.Overlay,
-      visible: true,
-      scale: ScaleType.Price,
-    };
-    const alllIndicators = [chartAsIndicator, ...stackBottomIndicators];
 
     // Calculate grid template rows based on number of stacked indicators
     const gridTemplateRows = `
@@ -546,14 +606,6 @@ export class ChartContainer extends LitElement {
                   .scale=${ScaleType.Price}
                 ></candlestick-chart>
 
-                <!-- Overlay indicators -->
-                <div class="indicator-names">
-                  ${overlayIndicators.map(
-                    (indicator) => html`
-                      <div class="indicator-name">${indicator.name}</div>
-                    `
-                  )}
-                </div>
                 ${overlayIndicators.map(
                   (indicator) => html`
                     <indicator-container
@@ -570,6 +622,10 @@ export class ChartContainer extends LitElement {
                   `
                 )}
                 <live-decorators></live-decorators>
+                <!-- Volume chart - positioned using flexbox at the bottom -->
+                <div class="volume-chart" ?hidden=${!this.showVolume}>
+                  <volume-chart></volume-chart>
+                </div>
               </indicator-container>
 
               <!-- Bottom stacked indicators (unchanged) -->
