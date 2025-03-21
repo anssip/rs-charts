@@ -35,14 +35,12 @@ export const getStyles = (
     grid-template-areas:
       "price-info"
       "indicators-top"
-      "chart"
-      "indicators-bottom"
+      "chart-area"
       "timeline";
-    grid-template-rows: auto min-content 1fr min-content ${timelineHeight}px;
     grid-template-columns: minmax(0, 1fr);
     height: 100%;
     background-color: var(--color-primary-dark);
-    gap: 8px;
+    gap: 0px;
     padding: 0 16px;
     box-sizing: border-box;
     position: relative;
@@ -51,6 +49,7 @@ export const getStyles = (
   }
 
   .chart-area {
+    grid-area: chart-area;
     position: relative;
     min-height: 300px;
     display: flex;
@@ -59,8 +58,11 @@ export const getStyles = (
     min-width: 0;
     height: 100%;
     flex: 1;
+    pointer-events: auto;
   }
+
   .price-info {
+    grid-area: price-info;
     background: var(--color-primary-dark);
     border-radius: 12px;
     margin: 8px 0;
@@ -80,6 +82,7 @@ export const getStyles = (
     flex: 1;
     height: 100%;
     overflow: hidden;
+    pointer-events: auto;
   }
 
   .activate-label {
@@ -117,6 +120,7 @@ export const getStyles = (
   }
 
   .timeline-container {
+    grid-area: timeline;
     height: ${timelineHeight}px;
     min-height: ${timelineHeight}px;
     position: relative;
@@ -231,28 +235,35 @@ export const getStyles = (
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    height: 100%;
+    pointer-events: auto;
   }
 
-  indicator-stack[style*="grid-area: indicators-top"] {
+  /* Style elements by their grid area attribute */
+  [grid-area="indicators-top"] {
     border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
     height: 100%;
   }
 
-  indicator-stack[style*="grid-area: indicators-bottom"] {
+  [grid-area="indicators-bottom"] {
     border-top: 1px solid var(--chart-grid-line-color, #363c4e);
   }
 
-  indicator-stack .stack-item {
-    position: relative;
+  [grid-area="chart-area"] {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+    pointer-events: auto;
   }
 
-  indicator-stack indicator-container {
-    position: relative;
-    height: 100%;
-    width: 100%;
-    flex: 1;
+  [grid-area="price-info"] {
+    z-index: 10;
+  }
+
+  [grid-area="timeline"] {
+    height: ${timelineHeight}px;
+    min-height: ${timelineHeight}px;
   }
 
   /* Add grid-crosshairs styling to extend crosshairs over the entire container */
@@ -302,5 +313,60 @@ export const getStyles = (
 
   indicator-stack.main-chart.active:active ::slotted(candlestick-chart) {
     cursor: grabbing;
+  }
+
+  /* Styles for the chart with overlays container */
+  .chart-with-overlays {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-with-overlays candlestick-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .chart-with-overlays .overlay-indicators {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .chart-with-overlays .indicator-names {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 3;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .chart-with-overlays .indicator-name {
+    margin-bottom: 3px;
+    color: var(--color-accent-2, #4caf50);
+  }
+
+  indicator-stack .stack-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  indicator-stack indicator-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    flex: 1;
   }
 `;
