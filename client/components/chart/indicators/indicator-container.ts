@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
 import { CanvasBase } from "../canvas-base";
+import { logger } from "../../../util/logger";
 
 @customElement("indicator-container")
 export class IndicatorContainer extends LitElement {

@@ -2,6 +2,7 @@ import { ChartState } from "../../..";
 import { getCandleInterval } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
+import { logger } from "../../../util/logger";
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -44,17 +45,20 @@ export class ChartInteractionController {
 
   attach(force = false) {
     if (!this.eventTarget) {
-      console.error("Event target not found");
+      logger.error("Event target not found");
       return;
     }
 
-    console.log("Attaching chart interaction controller to:", this.eventTarget);
+    logger.debug(
+      "Attaching chart interaction controller to:",
+      this.eventTarget
+    );
 
     // Always ensure we're properly detached first to avoid duplicate listeners
     this.detach();
 
     // Add event listeners
-    console.log("Attaching full interaction handlers");
+    logger.debug("Attaching full interaction handlers");
 
     // Mouse events
     this.eventTarget.addEventListener("mousedown", this.handleDragStart);
@@ -152,7 +156,7 @@ export class ChartInteractionController {
   private handlePan(deltaX: number, isTrackpad = false) {
     const { state } = this.options;
     if (!state.timeRange) {
-      console.error("Time range not found");
+      logger.error("Time range not found");
       return;
     }
 
@@ -203,7 +207,7 @@ export class ChartInteractionController {
   private handleVerticalPan(deltaY: number, isTrackpad = false) {
     const { state } = this.options;
     if (!state.priceRange) {
-      console.error("Price range not found");
+      logger.error("Price range not found");
       return;
     }
 
@@ -297,7 +301,7 @@ export class ChartInteractionController {
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
     const { state } = this.options;
     if (!state.timeRange) {
-      console.error("Time range not found");
+      logger.error("Time range not found");
       return;
     }
 

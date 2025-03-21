@@ -115,7 +115,11 @@
             upgradeButton.addEventListener('click', () => {
                 hidePopup();
                 // Add actual upgrade logic here
-                console.log('Upgrade clicked');
+                if (window.spotcanvas?.log) {
+                    window.spotcanvas.log('info', 'Upgrade clicked');
+                } else {
+                    console.log('Upgrade clicked');
+                }
             });
         });
     </script>
