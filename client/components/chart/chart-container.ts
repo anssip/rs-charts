@@ -107,12 +107,6 @@ export class ChartContainer extends LitElement {
 
   private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
 
-  @property({ type: Boolean, reflect: true, attribute: "require-activation" })
-  requireActivation = false;
-
-  @state()
-  private isActive = false;
-
   @state()
   private indicators: Map<string, IndicatorConfig> = new Map();
 
@@ -248,14 +242,6 @@ export class ChartContainer extends LitElement {
 
   protected updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
-    if (changedProperties.has("requireActivation")) {
-      // Only set isActive to true if requireActivation is explicitly false
-      if (this.requireActivation === false) {
-        this.isActive = true;
-      } else {
-        this.isActive = false;
-      }
-    }
     this.draw();
   }
 
@@ -538,25 +524,9 @@ export class ChartContainer extends LitElement {
                 </indicator-container>
               `
             )}
-            ${this.requireActivation
-              ? html`
-                  <div
-                    class="activate-label ${this.isActive ? "hidden" : ""}"
-                    @click=${() => {
-                      this.isActive = true;
-                      this.interactionController?.attach(true);
-                      if (this.isMobile) {
-                        this.toggleFullWindow();
-                      }
-                    }}
-                  >
-                    Click to activate
-                  </div>
-                `
-              : ""}
 
             <indicator-stack
-              class="main-chart ${this.isActive ? "active" : ""}"
+              class="main-chart"
               .valueAxisWidth=${PRICEAXIS_WIDTH}
               .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
               .state=${this._state}
@@ -598,6 +568,7 @@ export class ChartContainer extends LitElement {
                     </indicator-container>
                   `
                 )}
+                <live-decorators></live-decorators>
               </indicator-container>
 
               <!-- Bottom stacked indicators (unchanged) -->
@@ -620,7 +591,6 @@ export class ChartContainer extends LitElement {
                   })
                 : ""}
             </indicator-stack>
-            <live-decorators></live-decorators>
           </div>
         </div>
 
@@ -639,7 +609,7 @@ export class ChartContainer extends LitElement {
           .items=${menuItems}
         ></chart-context-menu>
 
-        ${!this.isTouchOnly && this.isActive
+        ${!this.isTouchOnly
           ? html`<chart-crosshairs class="grid-crosshairs"></chart-crosshairs>`
           : ""}
       </div>
@@ -838,12 +808,6 @@ export class ChartContainer extends LitElement {
 
   static styles = [getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT)];
 
-  static get properties() {
-    return {
-      requireActivation: { type: Boolean, attribute: "require-activation" },
-    };
-  }
-
   // Helper method to get the chart element from the indicator stack
   private getChartElement(): CandlestickChart | null {
     console.log("ChartContainer: Getting chart element");
@@ -877,8 +841,6 @@ export class ChartContainer extends LitElement {
       chart: this.chart,
       container: this.renderRoot.querySelector(".chart-area") as HTMLElement,
       state: this._state,
-      requireActivation: this.requireActivation,
-      isActive: () => this.isActive,
       onStateChange: (updates) => {
         this._state = Object.assign(this._state, updates);
         Object.keys(updates).forEach((key) => {
@@ -888,18 +850,6 @@ export class ChartContainer extends LitElement {
       },
       onNeedMoreData: (direction) => {
         this.dispatchRefetch(direction);
-      },
-      onActivate: () => {
-        this.isActive = true;
-        if (this.isMobile) {
-          this.toggleFullWindow();
-        }
-      },
-      onDeactivate: () => {
-        this.isActive = false;
-        if (this.isMobile) {
-          this.toggleFullWindow();
-        }
       },
       onFullWindowToggle: () => {
         if (this.isMobile) {
@@ -914,14 +864,7 @@ export class ChartContainer extends LitElement {
       zoomFactor: this.ZOOM_FACTOR,
       doubleTapDelay: this.DOUBLE_TAP_DELAY,
     });
-    if (this.requireActivation && !this.isActive) {
-      console.log("attaching chart interaction controller");
-      this.interactionController.attach();
-    } else if (!this.requireActivation) {
-      console.log(
-        "attaching chart interaction controller (no activation required)"
-      );
-      this.interactionController.attach(true);
-    }
+
+    this.interactionController.attach(true);
   }
 }

@@ -85,33 +85,6 @@ export const getStyles = (
     pointer-events: auto;
   }
 
-  .activate-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    backdrop-filter: blur(8px);
-    background: transparent;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 1.5em;
-    font-weight: 600;
-    color: var(--color-accent-2);
-    z-index: 10;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease-in-out;
-    pointer-events: auto;
-  }
-
-  .activate-label:hover {
-    opacity: 1;
-  }
-
-  .activate-label.hidden {
-    display: none;
-  }
-
   chart-timeline {
     display: block;
     width: 100%;
@@ -134,13 +107,10 @@ export const getStyles = (
     width: 100%;
     height: 100%;
     z-index: 1;
-  }
-
-  .candlestick-chart.active {
     cursor: crosshair;
   }
 
-  .candlestick-chart.active:active {
+  .candlestick-chart:active {
     cursor: grabbing;
   }
 
@@ -238,6 +208,11 @@ export const getStyles = (
     overflow: hidden;
     height: 100%;
     pointer-events: auto;
+    cursor: crosshair;
+  }
+
+  indicator-stack.main-chart:active {
+    cursor: grabbing;
   }
 
   /* Style elements by their grid area attribute */
@@ -306,13 +281,10 @@ export const getStyles = (
     width: 100%;
     height: 100%;
     flex: 1;
-  }
-
-  indicator-stack.main-chart.active ::slotted(candlestick-chart) {
     cursor: crosshair;
   }
 
-  indicator-stack.main-chart.active:active ::slotted(candlestick-chart) {
+  indicator-stack.main-chart:active ::slotted(candlestick-chart) {
     cursor: grabbing;
   }
 

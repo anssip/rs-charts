@@ -12,7 +12,7 @@ interface ChartInteractionOptions {
   onContextMenu?: (position: { x: number; y: number }) => void;
   bufferMultiplier?: number;
   zoomFactor?: number;
-  onActivate: () => void;
+  onActivate?: () => void;
   onFullWindowToggle?: () => void;
   doubleTapDelay?: number;
   isActive?: () => boolean;
@@ -53,19 +53,7 @@ export class ChartInteractionController {
     // Always ensure we're properly detached first to avoid duplicate listeners
     this.detach();
 
-    // First add the click handler for activation
-    this.eventTarget.addEventListener("click", this.handleClick);
-    document.addEventListener("click", this.handleDocumentClick);
-
-    if (
-      !force &&
-      this.options.requireActivation &&
-      !this.options.isActive?.()
-    ) {
-      console.log("Chart requires activation, stopping at basic click handler");
-      return;
-    }
-
+    // Add event listeners
     console.log("Attaching full interaction handlers");
 
     // Mouse events
@@ -102,24 +90,6 @@ export class ChartInteractionController {
     );
   }
 
-  private handleClick = (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!this.options.isActive?.() && this.options.requireActivation) {
-      this.options.onActivate?.();
-      this.attach(true);
-    }
-  };
-
-  private handleDocumentClick = (e: MouseEvent) => {
-    if (this.eventTarget.contains(e.target as Node)) {
-      return;
-    }
-    this.options.onDeactivate?.();
-    this.detach();
-    this.eventTarget.addEventListener("click", this.handleClick);
-  };
-
   detach() {
     if (!this.eventTarget) return;
 
@@ -134,7 +104,6 @@ export class ChartInteractionController {
     this.eventTarget.removeEventListener("touchend", this.handleTouchEnd);
     this.eventTarget.removeEventListener("touchcancel", this.handleTouchEnd);
 
-    this.eventTarget.removeEventListener("click", this.handleClick);
     this.eventTarget.removeEventListener(
       "contextmenu",
       this.handleContextMenu as EventListener
@@ -147,7 +116,6 @@ export class ChartInteractionController {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
-    document.removeEventListener("click", this.handleDocumentClick);
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -253,10 +221,6 @@ export class ChartInteractionController {
   }
 
   private handleTouchStart = (e: TouchEvent) => {
-    if (this.options.isActive && !this.options.isActive()) {
-      this.options.onActivate?.();
-      return;
-    }
     e.preventDefault();
 
     const currentTime = new Date().getTime();
