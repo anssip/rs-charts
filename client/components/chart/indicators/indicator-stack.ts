@@ -33,7 +33,6 @@ export class IndicatorStack extends LitElement {
       flex-direction: column-reverse;
       width: 100%;
       min-height: 150px;
-      background: var(--chart-background-color, #131722);
       position: relative;
       height: 100%;
       pointer-events: auto;
