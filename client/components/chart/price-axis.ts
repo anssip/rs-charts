@@ -409,18 +409,21 @@ export class PriceAxis extends CanvasBase {
       width: 100%;
       height: 100%;
       position: relative;
+      pointer-events: auto;
     }
 
     .container {
       position: relative;
       width: 100%;
       height: 100%;
+      pointer-events: auto;
     }
 
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+      pointer-events: auto;
     }
 
     .live-price-label {
@@ -439,6 +442,7 @@ export class PriceAxis extends CanvasBase {
       line-height: 1.2;
       margin-right: 2px;
       z-index: 2;
+      pointer-events: none;
     }
 
     .mouse-price-label {

@@ -566,7 +566,7 @@ export class ChartContainer extends LitElement {
             >
               <!-- Chart container with overlay indicators -->
               <indicator-container slot="chart" class="chart-with-overlays">
-                <!-- Main chart -->
+                <!-- Main chart - Important: price-axis in candlestick-chart must receive pointer events -->
                 <candlestick-chart
                   id="main-chart"
                   .state=${this._state}

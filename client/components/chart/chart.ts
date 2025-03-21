@@ -223,6 +223,8 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       width: var(--price-axis-width);
       height: 100%;
       background: var(--color-primary-dark);
+      pointer-events: auto;
+      z-index: 10;
     }
 
     @media (max-width: 767px) {
