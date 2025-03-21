@@ -463,33 +463,16 @@ export class ChartContainer extends LitElement {
     const alllIndicators = [chartAsIndicator, ...stackBottomIndicators];
 
     // Calculate grid template rows based on number of stacked indicators
-    const gridStyle = {
-      display: "grid",
-      gridTemplateAreas: `
-        'price-info'
-        'indicators-top'
-        'chart-area'
-        'timeline'
-      `,
-      gridTemplateRows: `
-        auto
-        ${
-          stackTopIndicators.length
-            ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
-            : "0"
-        }
-        1fr
-        ${TIMELINE_HEIGHT}px
-      `,
-      gridTemplateColumns: "minmax(0, 1fr)",
-      height: "100%",
-      backgroundColor: "var(--color-primary-dark)",
-      gap: "0px",
-      padding: "0 16px",
-      boxSizing: "border-box",
-      position: "relative" as const,
-      overflow: "hidden",
-    };
+    const gridTemplateRows = `
+      auto
+      ${
+        stackTopIndicators.length
+          ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
+          : "0"
+      }
+      1fr
+      ${TIMELINE_HEIGHT}px
+    `;
 
     return html`
       <div
@@ -499,15 +482,14 @@ export class ChartContainer extends LitElement {
           : ""}"
         style="
           --price-axis-width: ${this.priceAxisWidth}px;
-          ${Object.entries(gridStyle)
-          .map(
-            ([key, value]) =>
-              `${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}:${value}`
-          )
-          .join(";")}
+          grid-template-rows: ${gridTemplateRows};
         "
       >
-        <div class="price-info" style="grid-area: price-info;">
+        <div
+          class="price-info"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "price-info")}
+        >
           <price-info
             .product=${this._state.liveCandle?.productId}
             .symbols=${this.products}
@@ -525,7 +507,9 @@ export class ChartContainer extends LitElement {
         ${stackTopIndicators.length > 0
           ? html`
               <indicator-stack
-                style="grid-area: indicators-top;"
+                .setAttribute=${() => {}}
+                @connectedCallback=${(e: HTMLElement) =>
+                  e.setAttribute("grid-area", "indicators-top")}
                 .indicators=${stackTopIndicators}
                 .valueAxisWidth=${PRICEAXIS_WIDTH}
                 .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
@@ -535,37 +519,10 @@ export class ChartContainer extends LitElement {
 
         <div
           class="chart-area"
-          style="grid-area: chart-area; display: flex; flex-direction: column; overflow: hidden; flex: 1; pointer-events: auto;"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "chart-area")}
         >
-          <div
-            class="chart"
-            style="position: relative; flex: 1; display: flex; flex-direction: column; pointer-events: auto;"
-          >
-            <indicator-container class="overlay-indicators">
-              <div class="indicator-names">
-                ${overlayIndicators.map(
-                  (indicator) => html`
-                    <div class="indicator-name">${indicator.name}</div>
-                  `
-                )}
-              </div>
-              ${overlayIndicators.map(
-                (indicator) => html`
-                  <indicator-container
-                    data-indicator=${indicator.id}
-                    class="overlay-indicators"
-                  >
-                    <market-indicator
-                      .indicatorId=${indicator.id}
-                      .scale=${ScaleType.Price}
-                      .showAxis=${false}
-                      .name=${indicator.name}
-                    ></market-indicator>
-                  </indicator-container>
-                `
-              )}
-            </indicator-container>
-
+          <div class="chart">
             ${bottomIndicators.map(
               (indicator) => html`
                 <indicator-container
@@ -600,7 +557,6 @@ export class ChartContainer extends LitElement {
 
             <indicator-stack
               class="main-chart ${this.isActive ? "active" : ""}"
-              style="flex: 1; height: 100%; pointer-events: auto;"
               .valueAxisWidth=${PRICEAXIS_WIDTH}
               .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
               .state=${this._state}
@@ -608,17 +564,43 @@ export class ChartContainer extends LitElement {
               @rendered=${() =>
                 console.log("ChartContainer: indicator-stack rendered")}
             >
-              <!-- Chart component -->
-              <candlestick-chart
-                slot="chart"
-                id="main-chart"
-                .state=${this._state}
-                .options=${this.options}
-                .indicatorId="chart"
-                .scale=${ScaleType.Price}
-              ></candlestick-chart>
+              <!-- Chart container with overlay indicators -->
+              <indicator-container slot="chart" class="chart-with-overlays">
+                <!-- Main chart -->
+                <candlestick-chart
+                  id="main-chart"
+                  .state=${this._state}
+                  .options=${this.options}
+                  .indicatorId="chart"
+                  .scale=${ScaleType.Price}
+                ></candlestick-chart>
 
-              <!-- Only add indicators if there are any -->
+                <!-- Overlay indicators -->
+                <div class="indicator-names">
+                  ${overlayIndicators.map(
+                    (indicator) => html`
+                      <div class="indicator-name">${indicator.name}</div>
+                    `
+                  )}
+                </div>
+                ${overlayIndicators.map(
+                  (indicator) => html`
+                    <indicator-container
+                      data-indicator=${indicator.id}
+                      class="overlay-indicators"
+                    >
+                      <market-indicator
+                        .indicatorId=${indicator.id}
+                        .scale=${ScaleType.Price}
+                        .showAxis=${false}
+                        .name=${indicator.name}
+                      ></market-indicator>
+                    </indicator-container>
+                  `
+                )}
+              </indicator-container>
+
+              <!-- Bottom stacked indicators (unchanged) -->
               ${stackBottomIndicators.length > 0
                 ? stackBottomIndicators.map((indicator, index) => {
                     const slotId = `indicator-${index + 1}`;
@@ -642,7 +624,11 @@ export class ChartContainer extends LitElement {
           </div>
         </div>
 
-        <div class="timeline-container" style="grid-area: timeline;">
+        <div
+          class="timeline-container"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "timeline")}
+        >
           <chart-timeline></chart-timeline>
         </div>
 
@@ -850,7 +836,7 @@ export class ChartContainer extends LitElement {
     }, 100);
   };
 
-  static styles = getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT);
+  static styles = [getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT)];
 
   static get properties() {
     return {
@@ -871,15 +857,9 @@ export class ChartContainer extends LitElement {
     }
     console.log("ChartContainer: Found indicator-stack");
 
-    // Let's log all candlestick charts in our renderRoot
-    const allCharts = this.renderRoot.querySelectorAll("candlestick-chart");
-    console.log(
-      `ChartContainer: Found ${allCharts.length} candlestick-chart elements in renderRoot`
-    );
-
-    // Look for the chart in the indicator-stack container
+    // Find the chart in the new structure - inside indicator-container with class chart-with-overlays
     const chartElement = this.renderRoot.querySelector(
-      "indicator-stack.main-chart candlestick-chart"
+      "indicator-stack.main-chart indicator-container.chart-with-overlays candlestick-chart"
     ) as CandlestickChart | null;
 
     console.log(
