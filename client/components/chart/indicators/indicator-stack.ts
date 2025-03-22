@@ -1,7 +1,10 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "../indicators/indicator-container";
-import { logger } from "../../../util/logger";
+import { getLogger, LogLevel } from "../../../util/logger";
+
+const logger = getLogger("IndicatorStack");
+logger.setLoggerLevel("IndicatorStack", LogLevel.INFO);
 
 @customElement("indicator-stack")
 export class IndicatorStack extends LitElement {
@@ -26,6 +29,9 @@ export class IndicatorStack extends LitElement {
   @state() private startY = 0;
   @state() private itemHeights: number[] = [];
   @state() private manuallyResized = false;
+
+  // Track indicator names
+  @state() private indicatorNames: Map<string, string> = new Map();
 
   static styles = css`
     :host {
@@ -427,37 +433,13 @@ export class IndicatorStack extends LitElement {
           `IndicatorStack: Initial slot "${name}" has ${elements.length} elements:`,
           elements.map((el) => el.tagName)
         );
+
+        // Add slot change listener to update indicator names
+        slot.addEventListener("slotchange", this.handleSlotChange);
       });
 
-      // Monitor all slots for changes
-      slots?.forEach((slot) => {
-        slot.addEventListener("slotchange", (e) => {
-          const slotName = (e.target as HTMLSlotElement).name || "default";
-          const elements = (e.target as HTMLSlotElement).assignedElements();
-          logger.debug(
-            `IndicatorStack: Slot "${slotName}" changed, now has ${elements.length} elements:`,
-            elements.map((el) => el.tagName)
-          );
-
-          // Force a re-render to update which slots are shown
-          this.requestUpdate();
-
-          // Initialize heights after slot content changes
-          this.initializeHeights();
-
-          // Dispatch rendered event
-          this.dispatchEvent(
-            new CustomEvent("rendered", {
-              bubbles: true,
-              composed: true,
-              detail: {
-                slot: slotName,
-                elements: elements.map((el) => el.tagName),
-              },
-            })
-          );
-        });
-      });
+      // Initial collection of indicator names
+      this.collectIndicatorNames();
 
       // Set initial heights
       this.initializeHeights();
@@ -471,6 +453,86 @@ export class IndicatorStack extends LitElement {
         })
       );
     }, 10);
+  }
+
+  private handleSlotChange = (e: Event) => {
+    const slot = e.target as HTMLSlotElement;
+    const slotName = slot.name || "default";
+    const elements = slot.assignedElements();
+    logger.debug(
+      `IndicatorStack: Slot "${slotName}" changed, now has ${elements.length} elements:`,
+      elements.map((el) => el.tagName)
+    );
+
+    // Update indicator names
+    this.collectIndicatorNames();
+
+    // Force a re-render to update which slots are shown
+    this.requestUpdate();
+
+    // Initialize heights after slot content changes
+    this.initializeHeights();
+
+    // Dispatch rendered event
+    this.dispatchEvent(
+      new CustomEvent("rendered", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          slot: slotName,
+          elements: elements.map((el) => el.tagName),
+        },
+      })
+    );
+  };
+
+  // Collect names from all slotted market-indicators
+  private collectIndicatorNames() {
+    const nameMap = new Map<string, string>();
+
+    const slots = this.shadowRoot?.querySelectorAll("slot");
+    if (!slots) return;
+
+    slots.forEach((slot) => {
+      const slotName = slot.getAttribute("name") || "default";
+      const elements = (slot as HTMLSlotElement).assignedElements();
+
+      elements.forEach((element) => {
+        // Check for market-indicator elements with name property
+        if (
+          element.tagName.toLowerCase() === "market-indicator" &&
+          "name" in element
+        ) {
+          const indicatorName = (element as any).name;
+          if (indicatorName) {
+            logger.debug(
+              `Found indicator "${indicatorName}" in slot "${slotName}"`
+            );
+            nameMap.set(slotName, indicatorName);
+          }
+        }
+
+        // Also check for indicator-container that might have a name
+        if (
+          element.tagName.toLowerCase() === "indicator-container" &&
+          "name" in element
+        ) {
+          const containerName = (element as any).name;
+          if (containerName) {
+            logger.debug(
+              `Found container "${containerName}" in slot "${slotName}"`
+            );
+            nameMap.set(slotName, containerName);
+          }
+        }
+      });
+    });
+
+    this.indicatorNames = nameMap;
+    logger.debug(
+      "Updated indicator names:",
+      Object.fromEntries(this.indicatorNames)
+    );
   }
 
   // Handle property changes
@@ -561,6 +623,11 @@ export class IndicatorStack extends LitElement {
     return html`
       <!-- Main chart container -->
       <div class="stack-item chart-item">
+        ${this.indicatorNames.get("chart")
+          ? html`<div class="indicator-name">
+              ${this.indicatorNames.get("chart")}
+            </div>`
+          : ""}
         <slot name="chart"></slot>
       </div>
 
@@ -578,6 +645,11 @@ export class IndicatorStack extends LitElement {
               @touchstart="${(e: TouchEvent) => this.handleResizeStart(0, e)}"
             ></div>`
           : ""}
+        ${this.indicatorNames.get("indicator-1")
+          ? html`<div class="indicator-name">
+              ${this.indicatorNames.get("indicator-1")}
+            </div>`
+          : ""}
         <slot name="indicator-1"></slot>
       </div>
 
@@ -593,6 +665,11 @@ export class IndicatorStack extends LitElement {
               @mousedown="${(e: MouseEvent) => this.handleResizeStart(1, e)}"
               @touchstart="${(e: TouchEvent) => this.handleResizeStart(1, e)}"
             ></div>`
+          : ""}
+        ${this.indicatorNames.get("indicator-2")
+          ? html`<div class="indicator-name">
+              ${this.indicatorNames.get("indicator-2")}
+            </div>`
           : ""}
         <slot name="indicator-2"></slot>
       </div>

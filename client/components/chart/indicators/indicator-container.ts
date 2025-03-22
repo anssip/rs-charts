@@ -6,7 +6,7 @@ import { CanvasBase } from "../canvas-base";
 import { LogLevel, getLogger } from "../../../util/logger";
 
 const logger = getLogger("IndicatorContainer");
-logger.setLoggerLevel("IndicatorContainer", LogLevel.DEBUG);
+logger.setLoggerLevel("IndicatorContainer", LogLevel.INFO);
 
 @customElement("indicator-container")
 export class IndicatorContainer extends LitElement {
