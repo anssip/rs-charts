@@ -281,10 +281,15 @@ export class ChartContainer extends LitElement {
       "indicator-stack.main-chart"
     );
     if (indicatorStack) {
+      // Get current dimensions for the detail object
+      const width = indicatorStack.clientWidth || 100;
+      const height = indicatorStack.clientHeight || 100;
+
       indicatorStack.dispatchEvent(
         new CustomEvent("force-redraw", {
           bubbles: false,
           composed: true,
+          detail: { width, height }, // Add detail property
         })
       );
     }
@@ -297,10 +302,16 @@ export class ChartContainer extends LitElement {
           indicator.getAttribute("slot") || "unknown"
         } indicator`
       );
+
+      // Get current dimensions for the detail object
+      const width = indicator.clientWidth || 100;
+      const height = indicator.clientHeight || 100;
+
       indicator.dispatchEvent(
         new CustomEvent("force-redraw", {
           bubbles: false,
           composed: true,
+          detail: { width, height }, // Add detail property
         })
       );
     });
@@ -595,8 +606,10 @@ export class ChartContainer extends LitElement {
               @rendered=${() =>
                 logger.debug("ChartContainer: indicator-stack rendered")}
             >
-              <!-- Chart container with overlay indicators -->
-              <indicator-container slot="chart" class="chart-with-overlays">
+              <indicator-container
+                slot="chart"
+                class="chart-with-overlays overlay-indicators"
+              >
                 <!-- Main chart - Important: price-axis in candlestick-chart must receive pointer events -->
                 <candlestick-chart
                   id="main-chart"
@@ -608,17 +621,12 @@ export class ChartContainer extends LitElement {
 
                 ${overlayIndicators.map(
                   (indicator) => html`
-                    <indicator-container
-                      data-indicator=${indicator.id}
-                      class="overlay-indicators"
-                    >
-                      <market-indicator
-                        .indicatorId=${indicator.id}
-                        .scale=${ScaleType.Price}
-                        .showAxis=${false}
-                        .name=${indicator.name}
-                      ></market-indicator>
-                    </indicator-container>
+                    <market-indicator
+                      .indicatorId=${indicator.id}
+                      .scale=${ScaleType.Price}
+                      .showAxis=${false}
+                      .name=${indicator.name}
+                    ></market-indicator>
                   `
                 )}
                 <live-decorators></live-decorators>

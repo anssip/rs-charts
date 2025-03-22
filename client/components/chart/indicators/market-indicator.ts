@@ -8,6 +8,12 @@ import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
 import { drawLine, drawBand, drawHistogram } from "./drawing";
+import { getLogger, LogLevel, logger } from "../../../util/logger";
+
+// Create a logger specific to this component
+const indicatorLogger = getLogger("MarketIndicator");
+// Set debug level for this logger
+logger.setLoggerLevel("MarketIndicator", LogLevel.DEBUG);
 
 // Add global type for state cache
 declare global {
@@ -87,12 +93,22 @@ export class MarketIndicator extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
+    indicatorLogger.debug(
+      "MarketIndicator firstUpdated called",
+      this.indicatorId
+    );
+
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
+      indicatorLogger.debug("State updated for indicator", this.indicatorId);
 
       // Check scale and update value range if needed
       if (this.scale === ScaleType.Price) {
+        indicatorLogger.debug(
+          "Updating from price range",
+          this._state.priceRange
+        );
         this.localValueRange = {
           min: this._state.priceRange.min,
           max: this._state.priceRange.max,
@@ -129,30 +145,39 @@ export class MarketIndicator extends CanvasBase {
     this.addEventListener("value-range-change", ((
       e: CustomEvent<ValueRange>
     ) => {
-      this.localValueRange = e.detail;
-      this.draw();
+      if (e && e.detail) {
+        this.localValueRange = e.detail;
+        this.draw();
+      } else {
+        indicatorLogger.warn(
+          "Received value-range-change event with null detail"
+        );
+      }
     }) as EventListener);
 
     // Listen for force-redraw events from parent component
     this.addEventListener("force-redraw", ((
       e: CustomEvent<{ width: number; height: number }>
     ) => {
-      // Apply the resize explicitly
-      const { width, height } = e.detail;
-      if (width && height) {
-        this.resize(width, height);
-      }
-
-      // Force a redraw with a slight delay to ensure proper rendering
-      setTimeout(() => {
-        if (this.canvas && this.ctx) {
-          // Clear the canvas completely
-          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-          // Redraw the content
-          this.draw();
+      if (e && e.detail) {
+        const { width, height } = e.detail;
+        if (width && height) {
+          this.resize(width, height);
         }
-      }, 50);
+
+        // Force a redraw with a slight delay to ensure proper rendering
+        setTimeout(() => {
+          if (this.canvas && this.ctx) {
+            // Clear the canvas completely
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Redraw the content
+            this.draw();
+          }
+        }, 50);
+      } else {
+        indicatorLogger.warn("Received force-redraw event with null detail");
+      }
     }) as EventListener);
   }
 
@@ -185,7 +210,7 @@ export class MarketIndicator extends CanvasBase {
       try {
         this._state = xin["state"] as ChartState;
       } catch (err) {
-        console.error(
+        indicatorLogger.error(
           "MarketIndicator.draw: Failed to get state from xin",
           err
         );
@@ -193,10 +218,20 @@ export class MarketIndicator extends CanvasBase {
     }
 
     if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
+      indicatorLogger.debug(
+        "MarketIndicator.draw: Missing required properties",
+        {
+          canvas: !!this.canvas,
+          ctx: !!this.ctx,
+          state: !!this._state,
+          indicatorId: this.indicatorId,
+        }
+      );
       return;
     }
 
     try {
+      indicatorLogger.debug(`Drawing indicator ${this.indicatorId}`);
       const ctx = this.ctx;
       const dpr = window.devicePixelRatio ?? 1;
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
