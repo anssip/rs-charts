@@ -389,6 +389,9 @@ export class MarketIndicator extends CanvasBase {
         return;
       }
 
+      // Reset line dash pattern before drawing indicator lines
+      ctx.setLineDash([]);
+
       Object.entries(evaluation.plot_styles).forEach(([plotRef, plotStyle]) => {
         const points = plotPoints[plotRef];
         if (!points || points.length === 0) return;
