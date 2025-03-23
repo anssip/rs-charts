@@ -2,6 +2,7 @@ import { css, PropertyValues, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { formatPrice } from "../../util/price-util";
+import { GridStyle } from "./indicators/indicator-types";
 
 export interface ValueRange {
   min: number;
@@ -30,6 +31,9 @@ export class ValueAxis extends CanvasBase {
 
   @property({ type: Number })
   width = 70;
+
+  @property({ type: String })
+  gridStyle?: GridStyle;
 
   // Mouse tracking for the value label
   @state() private mouseY: number = -1;
@@ -162,37 +166,114 @@ export class ValueAxis extends CanvasBase {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
-    // Draw value labels
-    const numLabels = 5;
-    const step = this.valueRange.range / (numLabels - 1);
-    ctx.font = "12px var(--font-primary)";
+    // Use the gridStyle property to determine how to draw labels
+    if (this.gridStyle === GridStyle.Stochastic) {
+      // For stochastic, draw labels at specific reference levels
+      const stochasticLevels = [0, 20, 50, 80, 100];
 
-    for (let i = 0; i < numLabels; i++) {
-      const value = this.valueRange.max - i * step;
-      const y = this.valueToY(value) / dpr;
-      const label =
-        this.scale === "percentage"
-          ? `${value.toFixed(0)}%`
-          : formatPrice(value);
+      ctx.font = "12px var(--font-primary)";
 
-      const labelHeight = 20 / dpr;
+      for (const value of stochasticLevels) {
+        const y = this.valueToY(value) / dpr;
 
-      // Draw background
-      ctx.fillStyle = getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-primary-dark")
-        .trim();
-      ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
+        // Use percentage format for stochastic
+        const label = `${value}%`;
 
-      const labelWidth = ctx.measureText(label).width;
+        const labelHeight = 20 / dpr;
 
-      // Draw text
-      const fontFamily = getComputedStyle(document.documentElement)
-        .getPropertyValue("--font-primary")
-        .trim();
-      ctx.font = `${10}px ${fontFamily}`;
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
 
-      ctx.fillStyle = "#666";
-      ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+        const labelWidth = ctx.measureText(label).width;
+
+        // Draw text
+        const fontFamily = getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-primary")
+          .trim();
+        ctx.font = `${10}px ${fontFamily}`;
+
+        // Use different color for overbought/oversold levels
+        if (value === 20 || value === 80) {
+          ctx.fillStyle = value === 80 ? "#FF9800" : "#4CAF50"; // Orange for overbought, green for oversold
+        } else {
+          ctx.fillStyle = "#666";
+        }
+
+        ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+      }
+    } else if (this.gridStyle === GridStyle.RSI) {
+      // For RSI, draw labels at specific reference levels
+      const rsiLevels = [0, 30, 50, 70, 100];
+
+      ctx.font = "12px var(--font-primary)";
+
+      for (const value of rsiLevels) {
+        const y = this.valueToY(value) / dpr;
+
+        // Use percentage format for RSI
+        const label = `${value}%`;
+
+        const labelHeight = 20 / dpr;
+
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
+
+        const labelWidth = ctx.measureText(label).width;
+
+        // Draw text
+        const fontFamily = getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-primary")
+          .trim();
+        ctx.font = `${10}px ${fontFamily}`;
+
+        // Use different color for overbought/oversold levels
+        if (value === 30 || value === 70) {
+          ctx.fillStyle = value === 70 ? "#FF9800" : "#4CAF50"; // Orange for overbought, green for oversold
+        } else {
+          ctx.fillStyle = "#666";
+        }
+
+        ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+      }
+    } else {
+      // For standard indicators, use evenly spaced labels
+      const numLabels = 5;
+      const step = this.valueRange.range / (numLabels - 1);
+      ctx.font = "12px var(--font-primary)";
+
+      for (let i = 0; i < numLabels; i++) {
+        const value = this.valueRange.max - i * step;
+        const y = this.valueToY(value) / dpr;
+        const label =
+          this.scale === "percentage"
+            ? `${value.toFixed(0)}%`
+            : formatPrice(value);
+
+        const labelHeight = 20 / dpr;
+
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
+
+        const labelWidth = ctx.measureText(label).width;
+
+        // Draw text
+        const fontFamily = getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-primary")
+          .trim();
+        ctx.font = `${10}px ${fontFamily}`;
+
+        ctx.fillStyle = "#666";
+        ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+      }
     }
   }
 

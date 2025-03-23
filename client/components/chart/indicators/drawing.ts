@@ -25,7 +25,8 @@ export function drawLine(
   // Convert value to Y position using valueRange
   const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
   const getY = (value: number) => {
-    return height - ((value - valueRange.min) / valueRange.range) * height;
+    const y = height - ((value - valueRange.min) / valueRange.range) * height;
+    return Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
   };
 
   ctx.moveTo(points[0].x, getY(points[0].y));
@@ -59,6 +60,7 @@ export function drawHorizontalReferenceLine(
 
   // Convert value to Y position
   const y = height - ((value - valueRange.min) / valueRange.range) * height;
+  const yPixel = Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
 
   ctx.beginPath();
   ctx.strokeStyle = style.color || "#ffffff";
@@ -69,8 +71,8 @@ export function drawHorizontalReferenceLine(
     ctx.setLineDash(style.dashArray);
   }
 
-  ctx.moveTo(0, y);
-  ctx.lineTo(width, y);
+  ctx.moveTo(0, yPixel);
+  ctx.lineTo(width, yPixel);
   ctx.stroke();
 
   ctx.setLineDash([]); // Reset dash array
@@ -95,7 +97,8 @@ export function drawBand(
   // Convert value to Y position using valueRange
   const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
   const getY = (value: number) => {
-    return height - ((value - valueRange.min) / valueRange.range) * height;
+    const y = height - ((value - valueRange.min) / valueRange.range) * height;
+    return Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
   };
 
   // Draw the filled area between bands
@@ -149,7 +152,8 @@ export function drawHistogram(
 
   // Convert value to Y position using valueRange
   const getY = (value: number) => {
-    return height - ((value - valueRange.min) / valueRange.range) * height;
+    const y = height - ((value - valueRange.min) / valueRange.range) * height;
+    return Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
   };
 
   // Calculate zero line position using the same conversion
