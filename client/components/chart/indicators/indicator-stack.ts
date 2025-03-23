@@ -93,6 +93,18 @@ export class IndicatorStack extends LitElement {
       pointer-events: auto;
     }
 
+    /* Ensure value-axis elements receive pointer events */
+    ::slotted(market-indicator) value-axis {
+      pointer-events: auto !important;
+      z-index: 10;
+    }
+
+    /* This is a special selector to reach into shadow DOM (works in most modern browsers) */
+    ::slotted(market-indicator)::part(value-axis) {
+      pointer-events: auto !important;
+      z-index: 10;
+    }
+
     .resize-handle {
       position: absolute;
       height: 8px;
