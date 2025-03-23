@@ -122,5 +122,24 @@ export const config: Config = {
         dispatchMenuActionEvent(chartContainer, event);
       },
     },
+    {
+      label: "Stochastic",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "stochastic",
+            name: "Stochastic",
+            visible: !chartContainer.isIndicatorVisible("stochastic"),
+            params: { period: 14, smoothK: 1, smoothD: 3 },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+            scale: ScaleType.Percentage,
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
   ],
 };

@@ -25,11 +25,7 @@ export function drawLine(
   // Convert value to Y position using valueRange
   const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
   const getY = (value: number) => {
-    return (
-      height -
-      ((value - valueRange.min) / valueRange.range) *
-        height
-    );
+    return height - ((value - valueRange.min) / valueRange.range) * height;
   };
 
   ctx.moveTo(points[0].x, getY(points[0].y));
@@ -38,6 +34,45 @@ export function drawLine(
   }
 
   ctx.stroke();
+  ctx.setLineDash([]); // Reset dash array
+  ctx.globalAlpha = 1; // Reset opacity
+}
+
+/**
+ * Draw a horizontal reference line efficiently
+ * Useful for indicators like Stochastic with overbought/oversold lines
+ */
+export function drawHorizontalReferenceLine(
+  ctx: CanvasRenderingContext2D,
+  value: number,
+  style: {
+    color?: string;
+    lineWidth?: number;
+    opacity?: number;
+    dashArray?: number[];
+  },
+  valueRange: ValueRange
+) {
+  const dpr = window.devicePixelRatio ?? 1;
+  const width = ctx.canvas.width / dpr;
+  const height = ctx.canvas.height / dpr;
+
+  // Convert value to Y position
+  const y = height - ((value - valueRange.min) / valueRange.range) * height;
+
+  ctx.beginPath();
+  ctx.strokeStyle = style.color || "#ffffff";
+  ctx.lineWidth = style.lineWidth || 1;
+  ctx.globalAlpha = style.opacity || 1;
+
+  if (style.dashArray) {
+    ctx.setLineDash(style.dashArray);
+  }
+
+  ctx.moveTo(0, y);
+  ctx.lineTo(width, y);
+  ctx.stroke();
+
   ctx.setLineDash([]); // Reset dash array
   ctx.globalAlpha = 1; // Reset opacity
 }
@@ -60,11 +95,7 @@ export function drawBand(
   // Convert value to Y position using valueRange
   const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
   const getY = (value: number) => {
-    return (
-      height -
-      ((value - valueRange.min) / valueRange.range) *
-        height
-    );
+    return height - ((value - valueRange.min) / valueRange.range) * height;
   };
 
   // Draw the filled area between bands
@@ -118,11 +149,7 @@ export function drawHistogram(
 
   // Convert value to Y position using valueRange
   const getY = (value: number) => {
-    return (
-      height -
-      ((value - valueRange.min) / valueRange.range) *
-        height
-    );
+    return height - ((value - valueRange.min) / valueRange.range) * height;
   };
 
   // Calculate zero line position using the same conversion
