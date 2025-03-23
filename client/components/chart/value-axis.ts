@@ -3,6 +3,10 @@ import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "./canvas-base";
 import { formatPrice } from "../../util/price-util";
 import { GridStyle } from "./indicators/indicator-types";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger("value-axis");
+logger.setLoggerLevel("value-axis", LogLevel.DEBUG);
 
 export interface ValueRange {
   min: number;
@@ -50,6 +54,58 @@ export class ValueAxis extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
+
+    // Get the container element and add event listeners
+    const container = this.renderRoot.querySelector(".container");
+    if (container) {
+      // Mouse events with capture phase
+      container.addEventListener(
+        "mousedown",
+        this.handleDragStart as EventListener,
+        true
+      );
+      container.addEventListener(
+        "mousemove",
+        this.handleDragMove as EventListener,
+        true
+      );
+      container.addEventListener(
+        "mouseup",
+        this.handleDragEnd as EventListener,
+        true
+      );
+      container.addEventListener(
+        "mouseleave",
+        this.handleDragEnd as EventListener,
+        true
+      );
+      container.addEventListener("wheel", this.handleWheel as EventListener, {
+        capture: true,
+        passive: false,
+      });
+
+      // Touch events with capture phase
+      container.addEventListener(
+        "touchstart",
+        this.handleTouchStart as EventListener,
+        { capture: true, passive: false }
+      );
+      container.addEventListener(
+        "touchmove",
+        this.handleTouchMove as EventListener,
+        { capture: true, passive: false }
+      );
+      container.addEventListener(
+        "touchend",
+        this.handleTouchEnd as EventListener,
+        true
+      );
+      container.addEventListener(
+        "touchcancel",
+        this.handleTouchEnd as EventListener,
+        true
+      );
+    }
 
     // Add document-level mouse event listeners
     document.addEventListener("mousemove", this.handleDocumentMouseMove);
@@ -105,18 +161,27 @@ export class ValueAxis extends CanvasBase {
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
-    // Mouse events
-    canvas.addEventListener("mousedown", this.handleDragStart);
-    canvas.addEventListener("mousemove", this.handleDragMove);
-    canvas.addEventListener("mouseup", this.handleDragEnd);
-    canvas.addEventListener("mouseleave", this.handleDragEnd);
-    canvas.addEventListener("wheel", this.handleWheel);
+    // Mouse events with capture phase (true) to ensure they're handled before chart events
+    canvas.addEventListener("mousedown", this.handleDragStart, true);
+    canvas.addEventListener("mousemove", this.handleDragMove, true);
+    canvas.addEventListener("mouseup", this.handleDragEnd, true);
+    canvas.addEventListener("mouseleave", this.handleDragEnd, true);
+    canvas.addEventListener("wheel", this.handleWheel, {
+      capture: true,
+      passive: false,
+    });
 
-    // Touch events
-    canvas.addEventListener("touchstart", this.handleTouchStart);
-    canvas.addEventListener("touchmove", this.handleTouchMove);
-    canvas.addEventListener("touchend", this.handleTouchEnd);
-    canvas.addEventListener("touchcancel", this.handleTouchEnd);
+    // Touch events with capture phase
+    canvas.addEventListener("touchstart", this.handleTouchStart, {
+      capture: true,
+      passive: false,
+    });
+    canvas.addEventListener("touchmove", this.handleTouchMove, {
+      capture: true,
+      passive: false,
+    });
+    canvas.addEventListener("touchend", this.handleTouchEnd, true);
+    canvas.addEventListener("touchcancel", this.handleTouchEnd, true);
   }
 
   updated(changedProperties: PropertyValues) {
@@ -132,9 +197,7 @@ export class ValueAxis extends CanvasBase {
   valueToY(value: number): number {
     const height = this.canvas?.height ?? 0;
 
-    if (this.scale === "percentage") {
-      return height - (value / 100) * height;
-    }
+    // Always use valueRange regardless of scale
     return (
       height - ((value - this.valueRange.min) / this.valueRange.range) * height
     );
@@ -147,10 +210,7 @@ export class ValueAxis extends CanvasBase {
     const height = this.canvas.clientHeight;
     const percentage = 1 - y / height;
 
-    if (this.scale === "percentage") {
-      return percentage * 100;
-    }
-
+    // Always use valueRange regardless of scale
     return this.valueRange.min + percentage * this.valueRange.range;
   }
 
@@ -167,13 +227,20 @@ export class ValueAxis extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
     // Use the gridStyle property to determine how to draw labels
-    if (this.gridStyle === GridStyle.Stochastic) {
-      // For stochastic, draw labels at specific reference levels
+    if (
+      this.gridStyle === GridStyle.Stochastic &&
+      this.valueRange.range === 100
+    ) {
+      // For stochastic that hasn't been zoomed, draw labels at specific reference levels
       const stochasticLevels = [0, 20, 50, 80, 100];
 
       ctx.font = "12px var(--font-primary)";
 
       for (const value of stochasticLevels) {
+        // Skip label if it's outside current range
+        if (value < this.valueRange.min || value > this.valueRange.max)
+          continue;
+
         const y = this.valueToY(value) / dpr;
 
         // Use percentage format for stochastic
@@ -204,13 +271,20 @@ export class ValueAxis extends CanvasBase {
 
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
-    } else if (this.gridStyle === GridStyle.RSI) {
-      // For RSI, draw labels at specific reference levels
+    } else if (
+      this.gridStyle === GridStyle.RSI &&
+      this.valueRange.range === 100
+    ) {
+      // For RSI that hasn't been zoomed, draw labels at specific reference levels
       const rsiLevels = [0, 30, 50, 70, 100];
 
       ctx.font = "12px var(--font-primary)";
 
       for (const value of rsiLevels) {
+        // Skip label if it's outside current range
+        if (value < this.valueRange.min || value > this.valueRange.max)
+          continue;
+
         const y = this.valueToY(value) / dpr;
 
         // Use percentage format for RSI
@@ -242,7 +316,7 @@ export class ValueAxis extends CanvasBase {
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
     } else {
-      // For standard indicators, use evenly spaced labels
+      // For standard indicators or zoomed indicators, use evenly spaced labels
       const numLabels = 5;
       const step = this.valueRange.range / (numLabels - 1);
       ctx.font = "12px var(--font-primary)";
@@ -252,7 +326,7 @@ export class ValueAxis extends CanvasBase {
         const y = this.valueToY(value) / dpr;
         const label =
           this.scale === "percentage"
-            ? `${value.toFixed(0)}%`
+            ? `${value.toFixed(2)}%`
             : formatPrice(value);
 
         const labelHeight = 20 / dpr;
@@ -278,13 +352,18 @@ export class ValueAxis extends CanvasBase {
   }
 
   private handleDragStart = (e: MouseEvent) => {
+    logger.debug("handleDragStart", e);
+    e.stopPropagation(); // Stop propagation to prevent chart handling
     this.isDragging = true;
     this.lastY = e.clientY;
     this.startRange = { ...this.valueRange };
   };
 
   private handleDragMove = (e: MouseEvent) => {
+    logger.debug("handleDragMove", e);
     if (!this.isDragging || !this.startRange) return;
+
+    e.stopPropagation(); // Stop propagation to prevent chart handling
 
     const deltaY = e.clientY - this.lastY;
     const rangePerPixel = this.valueRange.range / (this.canvas?.height ?? 1);
@@ -305,13 +384,18 @@ export class ValueAxis extends CanvasBase {
     );
   };
 
-  private handleDragEnd = () => {
+  private handleDragEnd = (e: MouseEvent) => {
+    logger.debug("handleDragEnd", e);
+    e.stopPropagation(); // Stop propagation to prevent chart handling
     this.isDragging = false;
     this.startRange = null;
   };
 
   // Touch events
   private handleTouchStart = (e: TouchEvent) => {
+    logger.debug("handleTouchStart", e);
+    e.stopPropagation(); // Stop propagation to prevent chart handling
+
     if (e.touches.length === 1) {
       e.preventDefault();
       this.isDragging = true;
@@ -321,7 +405,10 @@ export class ValueAxis extends CanvasBase {
   };
 
   private handleTouchMove = (e: TouchEvent) => {
+    logger.debug("handleTouchMove", e);
     if (!this.isDragging || !this.startRange) return;
+
+    e.stopPropagation(); // Stop propagation to prevent chart handling
     e.preventDefault();
 
     const touch = e.touches[0];
@@ -372,16 +459,21 @@ export class ValueAxis extends CanvasBase {
     }
   };
 
-  private handleTouchEnd = () => {
+  private handleTouchEnd = (e: TouchEvent) => {
+    logger.debug("handleTouchEnd", e);
+    e.stopPropagation(); // Stop propagation to prevent chart handling
     this.isDragging = false;
     this.startRange = null;
     this.lastPinchDistance = 0;
   };
 
   private handleWheel = (e: WheelEvent) => {
+    logger.debug("handleWheel", e);
+    e.stopPropagation(); // Stop propagation to prevent chart handling
     e.preventDefault();
 
-    const zoomFactor = 1 - e.deltaY * 0.001;
+    // Use a more balanced zoom factor
+    const zoomFactor = 1 - e.deltaY * 0.01;
     const rect = this.canvas?.getBoundingClientRect();
     if (!rect) return;
 
@@ -403,6 +495,8 @@ export class ValueAxis extends CanvasBase {
       max: newMax,
       range: newRange,
     };
+
+    logger.debug("newValueRange", newValueRange);
 
     this.dispatchEvent(
       new CustomEvent("value-range-change", {
@@ -452,18 +546,22 @@ export class ValueAxis extends CanvasBase {
       height: 100%;
       background: var(--color-primary-dark, #131722);
       position: relative;
+      z-index: 10; /* Ensure this is above other elements */
+      pointer-events: auto; /* Explicitly enable pointer events */
     }
 
     .container {
       position: relative;
       width: 100%;
       height: 100%;
+      pointer-events: auto; /* Ensure container receives events */
     }
 
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+      pointer-events: auto; /* Ensure canvas receives events */
     }
 
     .mouse-value-label {

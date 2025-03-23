@@ -13,13 +13,13 @@ import {
   drawHistogram,
   drawHorizontalReferenceLine,
 } from "./drawing";
-import { getLogger, LogLevel, logger } from "../../../util/logger";
+import { getLogger, LogLevel } from "../../../util/logger";
 import { HairlineGrid } from "../grid";
 import { DrawingContext } from "../drawing-strategy";
 import { PriceRangeImpl } from "../../../util/price-range";
 
 // Create a logger specific to this component
-const indicatorLogger = getLogger("MarketIndicator");
+const logger = getLogger("MarketIndicator");
 // Set debug level for this logger
 logger.setLoggerLevel("MarketIndicator", LogLevel.DEBUG);
 
@@ -62,6 +62,8 @@ export class MarketIndicator extends CanvasBase {
 
   private _state: ChartState | null = null;
   private grid = new HairlineGrid();
+  // Track when the value range is manually set by user zooming
+  private manualRangeSet = false;
 
   @property({ type: Object })
   private localValueRange: ValueRange = {
@@ -109,22 +111,16 @@ export class MarketIndicator extends CanvasBase {
 
   firstUpdated() {
     super.firstUpdated();
-    indicatorLogger.debug(
-      "MarketIndicator firstUpdated called",
-      this.indicatorId
-    );
+    logger.debug("MarketIndicator firstUpdated called", this.indicatorId);
 
     // Initialize state observation
     observe("state", () => {
       this._state = xin["state"] as ChartState;
-      indicatorLogger.debug("State updated for indicator", this.indicatorId);
+      logger.debug("State updated for indicator", this.indicatorId);
 
       // Check scale and update value range if needed
       if (this.scale === ScaleType.Price) {
-        indicatorLogger.debug(
-          "Updating from price range",
-          this._state.priceRange
-        );
+        logger.debug("Updating from price range", this._state.priceRange);
         this.localValueRange = {
           min: this._state.priceRange.min,
           max: this._state.priceRange.max,
@@ -163,11 +159,10 @@ export class MarketIndicator extends CanvasBase {
     ) => {
       if (e && e.detail) {
         this.localValueRange = e.detail;
+        this.manualRangeSet = true;
         this.draw();
       } else {
-        indicatorLogger.warn(
-          "Received value-range-change event with null detail"
-        );
+        logger.warn("Received value-range-change event with null detail");
       }
     }) as EventListener);
 
@@ -192,7 +187,7 @@ export class MarketIndicator extends CanvasBase {
           }
         }, 50);
       } else {
-        indicatorLogger.warn("Received force-redraw event with null detail");
+        logger.warn("Received force-redraw event with null detail");
       }
     }) as EventListener);
   }
@@ -214,6 +209,15 @@ export class MarketIndicator extends CanvasBase {
         `${this.valueAxisMobileWidth}px`
       );
     }
+
+    // Reset manual range flag when indicator or scale changes
+    if (
+      changedProperties.has("indicatorId") ||
+      changedProperties.has("scale")
+    ) {
+      this.manualRangeSet = false;
+      this.draw();
+    }
   }
 
   useResizeObserver(): boolean {
@@ -226,28 +230,22 @@ export class MarketIndicator extends CanvasBase {
       try {
         this._state = xin["state"] as ChartState;
       } catch (err) {
-        indicatorLogger.error(
-          "MarketIndicator.draw: Failed to get state from xin",
-          err
-        );
+        logger.error("MarketIndicator.draw: Failed to get state from xin", err);
       }
     }
 
     if (!this.canvas || !this.ctx || !this._state || !this.indicatorId) {
-      indicatorLogger.debug(
-        "MarketIndicator.draw: Missing required properties",
-        {
-          canvas: !!this.canvas,
-          ctx: !!this.ctx,
-          state: !!this._state,
-          indicatorId: this.indicatorId,
-        }
-      );
+      logger.debug("MarketIndicator.draw: Missing required properties", {
+        canvas: !!this.canvas,
+        ctx: !!this.ctx,
+        state: !!this._state,
+        indicatorId: this.indicatorId,
+      });
       return;
     }
 
     try {
-      indicatorLogger.debug(`Drawing indicator ${this.indicatorId}`);
+      logger.debug(`Drawing indicator ${this.indicatorId}`);
       const ctx = this.ctx;
       const dpr = window.devicePixelRatio ?? 1;
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -277,9 +275,9 @@ export class MarketIndicator extends CanvasBase {
       const isRSI = this.indicatorId === "rsi";
 
       if (isStochastic) {
-        indicatorLogger.debug("Drawing Stochastic Oscillator indicator");
+        logger.debug("Drawing Stochastic Oscillator indicator");
       } else if (isRSI) {
-        indicatorLogger.debug("Drawing RSI indicator");
+        logger.debug("Drawing RSI indicator");
       }
 
       // Collect points and track min/max values
@@ -321,7 +319,7 @@ export class MarketIndicator extends CanvasBase {
       });
 
       // Update localValueRange based on indicator type
-      if (this.scale !== ScaleType.Price) {
+      if (this.scale !== ScaleType.Price && !this.manualRangeSet) {
         if (isStochastic) {
           // Force exact 0-100 range for stochastic
           this.localValueRange = {
