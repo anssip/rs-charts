@@ -227,11 +227,8 @@ export class ValueAxis extends CanvasBase {
     ctx.clearRect(0, 0, this.canvas.width / dpr, this.canvas.height / dpr);
 
     // Use the gridStyle property to determine how to draw labels
-    if (
-      this.gridStyle === GridStyle.Stochastic &&
-      this.valueRange.range === 100
-    ) {
-      // For stochastic that hasn't been zoomed, draw labels at specific reference levels
+    if (this.gridStyle === GridStyle.Stochastic) {
+      // For stochastic, always use special reference levels
       const stochasticLevels = [0, 20, 50, 80, 100];
 
       ctx.font = "12px var(--font-primary)";
@@ -271,11 +268,8 @@ export class ValueAxis extends CanvasBase {
 
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
-    } else if (
-      this.gridStyle === GridStyle.RSI &&
-      this.valueRange.range === 100
-    ) {
-      // For RSI that hasn't been zoomed, draw labels at specific reference levels
+    } else if (this.gridStyle === GridStyle.RSI) {
+      // For RSI, always use special reference levels
       const rsiLevels = [0, 30, 50, 70, 100];
 
       ctx.font = "12px var(--font-primary)";
@@ -316,7 +310,7 @@ export class ValueAxis extends CanvasBase {
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
     } else {
-      // For standard indicators or zoomed indicators, use evenly spaced labels
+      // For standard indicators, use evenly spaced labels
       const numLabels = 5;
       const step = this.valueRange.range / (numLabels - 1);
       ctx.font = "12px var(--font-primary)";
