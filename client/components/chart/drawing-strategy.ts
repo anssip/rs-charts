@@ -6,6 +6,7 @@ import {
 import { HairlineGrid } from "./grid";
 import { xin } from "xinjs";
 import { iterateTimeline } from "../../util/chart-util";
+import { GridStyle } from "./indicators/indicator-types";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -16,6 +17,7 @@ export interface DrawingContext {
   viewportEndTimestamp: number;
   priceRange: PriceRange;
   axisMappings: AxisMappings;
+  gridStyle?: GridStyle;
 }
 
 export interface Drawable {

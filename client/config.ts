@@ -4,6 +4,7 @@ import {
   DisplayType,
   IndicatorConfig,
   ScaleType,
+  GridStyle,
 } from "./components/chart/indicators/indicator-types";
 import { MarketIndicator } from "./components/chart/indicators/market-indicator";
 import { VolumeChart } from "./components/chart/indicators/volume-chart";
@@ -94,6 +95,7 @@ export const config: Config = {
             display: DisplayType.StackBottom,
             class: MarketIndicator,
             scale: ScaleType.Percentage,
+            gridStyle: GridStyle.RSI,
           },
           bubbles: true,
           composed: true,
@@ -117,6 +119,7 @@ export const config: Config = {
             },
             display: DisplayType.StackBottom,
             class: MarketIndicator,
+            gridStyle: GridStyle.Standard,
           },
         });
         dispatchMenuActionEvent(chartContainer, event);
@@ -134,6 +137,7 @@ export const config: Config = {
             display: DisplayType.StackBottom,
             class: MarketIndicator,
             scale: ScaleType.Percentage,
+            gridStyle: GridStyle.Stochastic,
           },
           bubbles: true,
           composed: true,

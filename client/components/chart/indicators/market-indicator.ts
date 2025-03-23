@@ -2,13 +2,21 @@ import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
 import { observe, xin, xinValue } from "xinjs";
 import { ChartState } from "../../..";
-import { iterateTimeline, priceToY } from "../../../util/chart-util";
-import { ScaleType } from "./indicator-types";
+import { iterateTimeline, priceToY, timeToX } from "../../../util/chart-util";
+import { ScaleType, GridStyle } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
-import { drawLine, drawBand, drawHistogram } from "./drawing";
+import {
+  drawLine,
+  drawBand,
+  drawHistogram,
+  drawHorizontalReferenceLine,
+} from "./drawing";
 import { getLogger, LogLevel, logger } from "../../../util/logger";
+import { HairlineGrid } from "../grid";
+import { DrawingContext } from "../drawing-strategy";
+import { PriceRangeImpl } from "../../../util/price-range";
 
 // Create a logger specific to this component
 const indicatorLogger = getLogger("MarketIndicator");
@@ -49,7 +57,11 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: Boolean })
   showAxis = true;
 
+  @property({ type: String })
+  gridStyle?: GridStyle;
+
   private _state: ChartState | null = null;
+  private grid = new HairlineGrid();
 
   @property({ type: Object })
   private localValueRange: ValueRange = {
@@ -64,6 +76,7 @@ export class MarketIndicator extends CanvasBase {
     valueAxisWidth?: number;
     valueAxisMobileWidth?: number;
     showAxis?: boolean;
+    gridStyle?: GridStyle;
   }) {
     super();
     if (props?.indicatorId) {
@@ -80,6 +93,9 @@ export class MarketIndicator extends CanvasBase {
     }
     if (props?.showAxis !== undefined) {
       this.showAxis = props.showAxis;
+    }
+    if (props?.gridStyle) {
+      this.gridStyle = props.gridStyle;
     }
     this.mobileMediaQuery.addEventListener("change", () => {
       this.isMobile = this.mobileMediaQuery.matches;
@@ -256,6 +272,16 @@ export class MarketIndicator extends CanvasBase {
       let minValue = Infinity;
       let maxValue = -Infinity;
 
+      // Check if this is a stochastic oscillator or RSI
+      const isStochastic = this.indicatorId === "stochastic";
+      const isRSI = this.indicatorId === "rsi";
+
+      if (isStochastic) {
+        indicatorLogger.debug("Drawing Stochastic Oscillator indicator");
+      } else if (isRSI) {
+        indicatorLogger.debug("Drawing RSI indicator");
+      }
+
       // Collect points and track min/max values
       iterateTimeline({
         callback: (x: number, timestamp: number) => {
@@ -294,16 +320,66 @@ export class MarketIndicator extends CanvasBase {
         alignToLocalTime: false,
       });
 
-      // Update localValueRange if not using price scale
-      if (this.scale !== ScaleType.Price && minValue !== Infinity) {
-        const range = maxValue - minValue;
-        const padding = range * 0.1; // Add 10% padding
-        this.localValueRange = {
-          min: minValue - padding,
-          max: maxValue + padding,
-          range: range + padding * 2,
-        };
+      // Update localValueRange based on indicator type
+      if (this.scale !== ScaleType.Price) {
+        if (isStochastic) {
+          // Force exact 0-100 range for stochastic
+          this.localValueRange = {
+            min: 0,
+            max: 100,
+            range: 100,
+          };
+        } else if (isRSI) {
+          // Force exact 0-100 range for RSI
+          this.localValueRange = {
+            min: 0,
+            max: 100,
+            range: 100,
+          };
+        } else if (minValue !== Infinity) {
+          // For other indicators, use auto-scaling with padding
+          const range = maxValue - minValue;
+          const padding = range * 0.1; // Add 10% padding
+          this.localValueRange = {
+            min: minValue - padding,
+            max: maxValue + padding,
+            range: range + padding * 2,
+          };
+        }
       }
+
+      // Now draw the grid with the finalized value range
+      const drawingContext: DrawingContext = {
+        ctx,
+        chartCanvas: this.canvas,
+        data: this._state.priceHistory,
+        options: {
+          candleWidth: 7,
+          candleGap: 2,
+          minCandleWidth: 2,
+          maxCandleWidth: 100,
+        },
+        viewportStartTimestamp: this._state.timeRange.start,
+        viewportEndTimestamp: this._state.timeRange.end,
+        priceRange:
+          this.scale === ScaleType.Price
+            ? this._state.priceRange
+            : new PriceRangeImpl(
+                this.localValueRange.min,
+                this.localValueRange.max
+              ),
+        axisMappings: {
+          timeToX: timeToX(this.canvas.width / dpr, this._state.timeRange),
+          priceToY: priceToY(this.canvas.height / dpr, {
+            start: this.localValueRange.min,
+            end: this.localValueRange.max,
+          }),
+        },
+        gridStyle: this.gridStyle,
+      };
+
+      // Draw the grid first (behind the indicator data)
+      this.grid.draw(drawingContext);
 
       // Draw each plot using its style
       const evaluation = candles[0]?.[1]?.evaluations?.find(
@@ -353,6 +429,7 @@ export class MarketIndicator extends CanvasBase {
                 : this.valueAxisWidth}
               .showAxis=${this.showAxis}
               .isMobile=${this.isMobile}
+              .gridStyle=${this.gridStyle}
             ></value-axis>`
           : ""}
       </div>
@@ -365,6 +442,7 @@ export class MarketIndicator extends CanvasBase {
       width: 100%;
       height: 100%;
       --show-axis: var(--indicator-show-axis, 1);
+      background: transparent;
     }
 
     .indicator-container {
@@ -373,6 +451,7 @@ export class MarketIndicator extends CanvasBase {
       height: 100%;
       min-height: 150px;
       position: relative;
+      background: transparent;
     }
 
     .chart-area {
@@ -380,6 +459,7 @@ export class MarketIndicator extends CanvasBase {
       position: relative;
       height: 100%;
       width: calc(100% - (var(--show-axis) * var(--value-axis-width, 70px)));
+      background: transparent;
     }
 
     canvas {
@@ -388,6 +468,8 @@ export class MarketIndicator extends CanvasBase {
       left: 0;
       width: calc(100% - (var(--show-axis) * var(--value-axis-width, 70px)));
       height: 100%;
+      background: transparent;
+      z-index: 1;
     }
 
     value-axis {

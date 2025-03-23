@@ -34,7 +34,10 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
-import { logger } from "../../util/logger";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger("ChartContainer");
+logger.setLoggerLevel("ChartContainer", LogLevel.DEBUG);
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -372,7 +375,14 @@ export class ChartContainer extends LitElement {
       skipFetch,
       scale,
       name,
+      gridStyle,
     } = e.detail;
+
+    logger.debug(
+      `ChartContainer: Indicator ${id} toggled to ${
+        visible ? "visible" : "hidden"
+      }`
+    );
 
     // Special handling for volume indicator
     if (id === "volume") {
@@ -417,6 +427,8 @@ export class ChartContainer extends LitElement {
         skipFetch,
         scale,
         name,
+        gridStyle,
+        ...e.detail,
       });
       // Update state.indicators
       this._state.indicators = Array.from(this.indicators.values())
@@ -429,42 +441,6 @@ export class ChartContainer extends LitElement {
     }
 
     this.requestUpdate();
-  }
-
-  private toggleVolume() {
-    this.showVolume = !this.showVolume;
-    logger.debug(
-      `ChartContainer: Volume toggled to ${
-        this.showVolume ? "visible" : "hidden"
-      }`
-    );
-
-    const volumeChart = this.renderRoot.querySelector(
-      ".volume-chart"
-    ) as HTMLElement;
-    if (volumeChart) {
-      volumeChart.hidden = !this.showVolume;
-      logger.debug(
-        `ChartContainer: Volume chart container ${
-          this.showVolume ? "shown" : "hidden"
-        }`
-      );
-
-      // Force a redraw on the volume-chart element
-      const volumeChartElement = volumeChart.querySelector("volume-chart");
-      if (volumeChartElement) {
-        volumeChartElement.dispatchEvent(
-          new CustomEvent("force-redraw", {
-            bubbles: false,
-            composed: true,
-          })
-        );
-      }
-    }
-
-    // Update the chart
-    this.requestUpdate();
-    setTimeout(() => this.draw(), 10);
   }
 
   render() {
@@ -592,6 +568,7 @@ export class ChartContainer extends LitElement {
                     .indicatorId=${indicator.id}
                     .scale=${indicator.scale}
                     .name=${indicator.name}
+                    .gridStyle=${indicator.gridStyle}
                   ></market-indicator>
                 </indicator-container>
               `
@@ -626,6 +603,7 @@ export class ChartContainer extends LitElement {
                       .scale=${ScaleType.Price}
                       .showAxis=${false}
                       .name=${indicator.name}
+                      .gridStyle=${indicator.gridStyle}
                     ></market-indicator>
                   `
                 )}
@@ -651,6 +629,7 @@ export class ChartContainer extends LitElement {
                         .name=${indicator.name}
                         .state=${this._state}
                         .valueAxisWidth=${this.priceAxisWidth}
+                        .gridStyle=${indicator.gridStyle}
                       ></market-indicator>
                     `;
                   })
