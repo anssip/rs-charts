@@ -616,6 +616,36 @@ export class IndicatorStack extends LitElement {
     return defaultElements;
   }
 
+  // Helper method to render an indicator slot
+  private renderIndicatorSlot(index: number) {
+    const slotName = `indicator-${index}`;
+    const handleIndex = index - 1; // Convert to zero-based index for handles
+
+    return html`
+      <div
+        class="stack-item"
+        style="${this.hasSlottedIndicator(index) ? "" : "display: none;"}"
+      >
+        ${this.allowResize
+          ? html`<div
+              class="resize-handle"
+              data-index="${handleIndex}"
+              @mousedown="${(e: MouseEvent) =>
+                this.handleResizeStart(handleIndex, e)}"
+              @touchstart="${(e: TouchEvent) =>
+                this.handleResizeStart(handleIndex, e)}"
+            ></div>`
+          : ""}
+        ${this.indicatorNames.get(slotName)
+          ? html`<div class="indicator-name">
+              ${this.indicatorNames.get(slotName)}
+            </div>`
+          : ""}
+        <slot name="${slotName}"></slot>
+      </div>
+    `;
+  }
+
   render() {
     logger.debug("IndicatorStack: Rendering with default and named slots");
 
@@ -631,48 +661,10 @@ export class IndicatorStack extends LitElement {
         <slot name="chart"></slot>
       </div>
 
-      <!-- Always include indicator slots, but hide them when not in use -->
-      <div
-        class="stack-item"
-        style="${this.hasSlottedIndicator(1) ? "" : "display: none;"}"
-      >
-        <!-- Resize handle for indicator-1 - this is data-index="0" because it's the first handle -->
-        ${this.allowResize
-          ? html`<div
-              class="resize-handle"
-              data-index="0"
-              @mousedown="${(e: MouseEvent) => this.handleResizeStart(0, e)}"
-              @touchstart="${(e: TouchEvent) => this.handleResizeStart(0, e)}"
-            ></div>`
-          : ""}
-        ${this.indicatorNames.get("indicator-1")
-          ? html`<div class="indicator-name">
-              ${this.indicatorNames.get("indicator-1")}
-            </div>`
-          : ""}
-        <slot name="indicator-1"></slot>
-      </div>
-
-      <div
-        class="stack-item"
-        style="${this.hasSlottedIndicator(2) ? "" : "display: none;"}"
-      >
-        <!-- Resize handle for indicator-2 - this is data-index="1" because it's the second handle -->
-        ${this.allowResize
-          ? html`<div
-              class="resize-handle"
-              data-index="1"
-              @mousedown="${(e: MouseEvent) => this.handleResizeStart(1, e)}"
-              @touchstart="${(e: TouchEvent) => this.handleResizeStart(1, e)}"
-            ></div>`
-          : ""}
-        ${this.indicatorNames.get("indicator-2")
-          ? html`<div class="indicator-name">
-              ${this.indicatorNames.get("indicator-2")}
-            </div>`
-          : ""}
-        <slot name="indicator-2"></slot>
-      </div>
+      <!-- Render 10 indicator slots -->
+      ${Array.from({ length: 10 }, (_, i) => i + 1).map((index) =>
+        this.renderIndicatorSlot(index)
+      )}
 
       <!-- Default slot for backward compatibility -->
       <div class="stack-item" style="display: none;">
