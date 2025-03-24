@@ -309,6 +309,111 @@ export class ValueAxis extends CanvasBase {
 
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
+    } else if (this.gridStyle === GridStyle.MACD) {
+      // For MACD, use zero baseline with additional levels above/below
+
+      // Use the actual visible range rather than the absolute values
+      const visibleRange = this.valueRange.range;
+
+      // Target having approximately 5-7 grid lines in the visible area
+      const targetLines = 5;
+      let step = visibleRange / targetLines;
+
+      // Round the step to a nice number for readability
+      if (step > 10) {
+        step = Math.ceil(step / 10) * 10;
+      } else if (step > 5) {
+        step = Math.ceil(step / 5) * 5;
+      } else if (step > 1) {
+        step = Math.ceil(step);
+      } else if (step > 0.5) {
+        step = 0.5;
+      } else if (step > 0.25) {
+        step = 0.25;
+      } else if (step > 0.1) {
+        step = 0.1;
+      } else {
+        step = 0.05;
+      }
+
+      // Find the first grid line below the visible area
+      const firstLevel = Math.floor(this.valueRange.min / step) * step;
+
+      // Create array of grid levels within and slightly beyond the visible range
+      let levels = [];
+
+      // Add levels from bottom to top
+      for (
+        let level = firstLevel;
+        level <= this.valueRange.max + step / 2;
+        level += step
+      ) {
+        levels.push(level);
+      }
+
+      // Always include zero if it's reasonably close to the visible range
+      if (
+        !levels.includes(0) &&
+        (Math.abs(this.valueRange.min) < visibleRange * 2 ||
+          Math.abs(this.valueRange.max) < visibleRange * 2)
+      ) {
+        levels.push(0);
+        // Sort levels to maintain proper order
+        levels.sort((a, b) => a - b);
+      }
+
+      ctx.font = "12px var(--font-primary)";
+
+      for (const value of levels) {
+        // Skip label if it's outside current range
+        if (
+          value < this.valueRange.min - step / 2 ||
+          value > this.valueRange.max + step / 2
+        )
+          continue;
+
+        const y = this.valueToY(value) / dpr;
+
+        // Format the label based on the step size
+        let label;
+        if (step >= 1) {
+          label = value.toFixed(0);
+        } else if (step >= 0.1) {
+          label = value.toFixed(1);
+        } else {
+          label = value.toFixed(2);
+        }
+
+        const labelHeight = 20 / dpr;
+
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
+
+        const labelWidth = ctx.measureText(label).width;
+
+        // Draw text
+        const fontFamily = getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-primary")
+          .trim();
+        ctx.font = `${10}px ${fontFamily}`;
+
+        // Use special color for zero baseline
+        if (Math.abs(value) < 0.0001) {
+          // Check if value is essentially zero
+          ctx.fillStyle = "#BB86FC"; // Accent color for zero line
+          // Make zero label stand out with slightly larger font
+          ctx.font = `bold ${10}px ${fontFamily}`;
+        } else if (value > 0) {
+          ctx.fillStyle = "#4CAF50"; // Green for positive values
+        } else {
+          ctx.fillStyle = "#F44336"; // Red for negative values
+        }
+
+        ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+      }
     } else {
       // For standard indicators, use evenly spaced labels
       const numLabels = 5;
