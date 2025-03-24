@@ -7,12 +7,7 @@ import { ScaleType, GridStyle } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
-import {
-  drawLine,
-  drawBand,
-  drawHistogram,
-  drawHorizontalReferenceLine,
-} from "./drawing";
+import { drawLine, drawBand, drawHistogram } from "./drawing";
 import { getLogger, LogLevel } from "../../../util/logger";
 import { HairlineGrid } from "../grid";
 import { DrawingContext } from "../drawing-strategy";
@@ -270,15 +265,7 @@ export class MarketIndicator extends CanvasBase {
       let minValue = Infinity;
       let maxValue = -Infinity;
 
-      // Check if this is a stochastic oscillator or RSI
-      const isStochastic = this.indicatorId === "stochastic";
-      const isRSI = this.indicatorId === "rsi";
-
-      if (isStochastic) {
-        logger.debug("Drawing Stochastic Oscillator indicator");
-      } else if (isRSI) {
-        logger.debug("Drawing RSI indicator");
-      }
+      logger.debug("Grid style", this.gridStyle);
 
       // Collect points and track min/max values
       iterateTimeline({
@@ -320,14 +307,14 @@ export class MarketIndicator extends CanvasBase {
 
       // Update localValueRange based on indicator type
       if (this.scale !== ScaleType.Price && !this.manualRangeSet) {
-        if (isStochastic) {
+        if (this.gridStyle === GridStyle.Stochastic) {
           // Force exact 0-100 range for stochastic
           this.localValueRange = {
             min: 0,
             max: 100,
             range: 100,
           };
-        } else if (isRSI) {
+        } else if (this.gridStyle === GridStyle.RSI) {
           // Force exact 0-100 range for RSI
           this.localValueRange = {
             min: 0,

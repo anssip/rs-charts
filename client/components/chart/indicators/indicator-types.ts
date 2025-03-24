@@ -15,6 +15,7 @@ export enum GridStyle {
   Standard = "standard", // Regular evenly-spaced grid
   Stochastic = "stochastic", // Special grid for stochastic (0,20,50,80,100)
   RSI = "rsi", // Special grid for RSI (30,50,70)
+  MACD = "macd", // Special grid for MACD with zero baseline emphasis
 }
 
 export interface IndicatorConfig {

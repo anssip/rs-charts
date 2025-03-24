@@ -119,8 +119,10 @@ export const config: Config = {
             },
             display: DisplayType.StackBottom,
             class: MarketIndicator,
-            gridStyle: GridStyle.Standard,
+            gridStyle: GridStyle.MACD,
           },
+          bubbles: true,
+          composed: true,
         });
         dispatchMenuActionEvent(chartContainer, event);
       },
