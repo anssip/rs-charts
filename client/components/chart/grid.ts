@@ -173,10 +173,10 @@ export class HairlineGrid implements Drawable {
             // Check if level is essentially zero
             // Special styling for zero line
             ctx.strokeStyle = "#BB86FC"; // Accent color
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1;
 
             // Draw dashed zero line with more prominent pattern
-            ctx.setLineDash([8, 4]);
+            ctx.setLineDash([3, 3]);
           } else if (level > 0) {
             ctx.strokeStyle = "rgba(76, 175, 80, 0.35)"; // Green with transparency
             ctx.lineWidth = 1;

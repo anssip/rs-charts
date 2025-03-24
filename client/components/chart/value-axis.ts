@@ -464,19 +464,23 @@ export class ValueAxis extends CanvasBase {
 
     e.stopPropagation(); // Stop propagation to prevent chart handling
 
+    // Calculate delta movement and convert to value delta
     const deltaY = e.clientY - this.lastY;
     const rangePerPixel = this.valueRange.range / (this.canvas?.height ?? 1);
     const deltaValue = deltaY * rangePerPixel;
 
-    const newRange = {
+    // Pan by shifting both min and max by the same amount
+    const newValueRange = {
       min: this.startRange.min + deltaValue,
       max: this.startRange.max + deltaValue,
       range: this.startRange.range,
     };
 
+    logger.debug("panning to newValueRange", newValueRange);
+
     this.dispatchEvent(
       new CustomEvent("value-range-change", {
-        detail: newRange,
+        detail: newValueRange,
         bubbles: true,
         composed: true,
       })
@@ -494,40 +498,75 @@ export class ValueAxis extends CanvasBase {
   private handleTouchStart = (e: TouchEvent) => {
     logger.debug("handleTouchStart", e);
     e.stopPropagation(); // Stop propagation to prevent chart handling
+    e.preventDefault();
 
     if (e.touches.length === 1) {
-      e.preventDefault();
       this.isDragging = true;
       this.lastY = e.touches[0].clientY;
       this.startRange = { ...this.valueRange };
+    } else if (e.touches.length === 2) {
+      // Initialize for pinch-to-zoom
+      this.lastPinchDistance = Math.abs(
+        e.touches[0].clientY - e.touches[1].clientY
+      );
     }
   };
 
   private handleTouchMove = (e: TouchEvent) => {
     logger.debug("handleTouchMove", e);
-    if (!this.isDragging || !this.startRange) return;
-
     e.stopPropagation(); // Stop propagation to prevent chart handling
     e.preventDefault();
 
-    const touch = e.touches[0];
-    const deltaY = touch.clientY - this.lastY;
-    const rangePerPixel = this.valueRange.range / (this.canvas?.height ?? 1);
-    const deltaValue = deltaY * rangePerPixel;
+    if (e.touches.length === 1 && this.isDragging && this.startRange) {
+      // Handle panning
+      const deltaY = e.touches[0].clientY - this.lastY;
+      const rangePerPixel = this.valueRange.range / (this.canvas?.height ?? 1);
+      const deltaValue = deltaY * rangePerPixel;
 
-    // For touch, we'll also support pinch-zoom
-    if (e.touches.length === 2) {
-      const touch2 = e.touches[1];
-      const currentDistance = Math.abs(touch2.clientY - touch.clientY);
-      const zoomFactor = 1 + (currentDistance - this.lastPinchDistance) * 0.01;
+      // Pan by shifting both min and max by the same amount
+      const newValueRange = {
+        min: this.startRange.min + deltaValue,
+        max: this.startRange.max + deltaValue,
+        range: this.startRange.range,
+      };
 
-      const center = (this.valueRange.max + this.valueRange.min) / 2;
+      this.dispatchEvent(
+        new CustomEvent("value-range-change", {
+          detail: newValueRange,
+          bubbles: true,
+          composed: true,
+        })
+      );
+    } else if (e.touches.length === 2) {
+      // Handle pinch zoom
+      const currentDistance = Math.abs(
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const zoomFactor = 1 + (this.lastPinchDistance - currentDistance) * 0.01;
+
+      // Calculate center point between fingers
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = this.canvas?.getBoundingClientRect();
+      if (!rect) return;
+
+      // Convert center position to value
+      const relativeY = (centerY - rect.top) / rect.height;
+      const centerValue =
+        this.valueRange.max - relativeY * this.valueRange.range;
+
+      // Calculate new range around that center
       const newRange = this.valueRange.range * zoomFactor;
       const halfRange = newRange / 2;
 
       const newValueRange = {
-        min: center - halfRange,
-        max: center + halfRange,
+        min:
+          centerValue -
+          (halfRange * (centerValue - this.valueRange.min)) /
+            (this.valueRange.range / 2),
+        max:
+          centerValue +
+          (halfRange * (this.valueRange.max - centerValue)) /
+            (this.valueRange.range / 2),
         range: newRange,
       };
 
@@ -540,21 +579,6 @@ export class ValueAxis extends CanvasBase {
       );
 
       this.lastPinchDistance = currentDistance;
-    } else {
-      // Regular touch pan
-      const newRange = {
-        min: this.startRange.min + deltaValue,
-        max: this.startRange.max + deltaValue,
-        range: this.startRange.range,
-      };
-
-      this.dispatchEvent(
-        new CustomEvent("value-range-change", {
-          detail: newRange,
-          bubbles: true,
-          composed: true,
-        })
-      );
     }
   };
 
@@ -571,8 +595,14 @@ export class ValueAxis extends CanvasBase {
     e.stopPropagation(); // Stop propagation to prevent chart handling
     e.preventDefault();
 
-    // Use a more balanced zoom factor
-    const zoomFactor = 1 - e.deltaY * 0.01;
+    // Detect if this is a trackpad gesture (presence of deltaX or small deltaY)
+    const isTrackpad =
+      Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < this.canvas!.width;
+
+    // Use different sensitivity based on input type
+    const sensitivity = isTrackpad ? 0.005 : 0.01;
+    const zoomFactor = 1 - e.deltaY * sensitivity;
+
     const rect = this.canvas?.getBoundingClientRect();
     if (!rect) return;
 
