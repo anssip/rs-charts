@@ -53,7 +53,7 @@ export class IndicatorStack extends LitElement {
     /* When we have chart and indicators stacked together */
     .stack-item {
       position: relative;
-      border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+      border-top: 0.5px solid var(--color-gray-300, #363c4e);
       pointer-events: auto;
     }
 
@@ -107,51 +107,77 @@ export class IndicatorStack extends LitElement {
 
     .resize-handle {
       position: absolute;
-      height: 8px;
+      height: 16px;
       left: 0;
       right: 0;
-      top: -4px; /* Position at the top instead of bottom */
+      top: -8px;
       cursor: ns-resize;
       z-index: 10;
       touch-action: none;
+      background-color: transparent;
     }
 
     .resize-handle::after {
       content: "";
       position: absolute;
       left: 50%;
-      top: 3px;
+      top: 6px;
       transform: translateX(-50%);
-      width: 40px;
-      height: 2px;
-      background-color: rgba(150, 150, 150, 0.6);
-      border-radius: 2px;
+      width: 60px;
+      height: 4px;
+      background-color: rgba(150, 150, 150, 1);
+      border-radius: 3px;
     }
 
     .resize-handle:hover::after {
       background-color: rgba(150, 150, 150, 0.8);
+      width: 80px;
     }
 
     .resize-handle:active::after,
     .resize-handle.resizing::after {
       background-color: rgba(30, 144, 255, 0.8);
+      width: 100px;
     }
 
     .resize-handle:hover,
     .resize-handle:active,
     .resize-handle.resizing {
+      background-color: transparent;
+    }
+
+    .resize-handle:hover::before,
+    .resize-handle:active::before,
+    .resize-handle.resizing::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 12px;
       background-color: rgba(100, 180, 255, 0.3);
+      border-radius: 6px;
+      z-index: -1;
     }
 
     @media (max-width: 767px) {
       .resize-handle {
-        height: 14px; /* Bigger touch target for mobile */
-        top: -7px; /* Adjust center point for bigger handle */
+        height: 24px;
+        top: -12px;
       }
 
       .resize-handle::after {
-        width: 50px;
-        height: 3px;
+        width: 120px;
+        height: 6px;
+        top: 9px;
+      }
+
+      .resize-handle:hover::before,
+      .resize-handle:active::before,
+      .resize-handle.resizing::before {
+        width: 160px;
+        height: 16px;
       }
     }
   `;
