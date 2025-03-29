@@ -471,19 +471,6 @@ export class ChartContainer extends LitElement {
         label: "Indicators",
         isHeader: true,
       },
-      ...config.getBuiltInIndicators(this),
-      {
-        label: "separator",
-        separator: true,
-      },
-      {
-        label: "Drawing Tools (Pro)",
-        action: () => this.dispatchUpgrade(),
-      },
-      {
-        label: "Assets (Pro)",
-        action: () => this.dispatchUpgrade(),
-      },
     ];
 
     const overlayIndicators = Array.from(this.indicators.values()).filter(
