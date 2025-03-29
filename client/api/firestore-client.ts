@@ -28,9 +28,20 @@ export class FirestoreClient {
     this.firestore = firestore;
   }
 
+  async getMinimalProducts(): Promise<CoinbaseProduct[]> {
+    return this.getProducts("coinbase", "online", [
+      "BTC-USD",
+      "ETH-USD",
+      "ADA-USD",
+      "DOGE-USD",
+      "SOL-USD",
+    ]);
+  }
+
   async getProducts(
     exchange: Exchange,
-    status: ProductStatus
+    status: ProductStatus,
+    symbols: string[] = []
   ): Promise<CoinbaseProduct[]> {
     try {
       const exchangesDoc = await getDoc(
@@ -45,6 +56,9 @@ export class FirestoreClient {
 
       return (Object.entries(productsMap) as [string, DbProduct][])
         .filter(([_, product]) => product.status === status)
+        .filter(
+          ([productId]) => symbols.length === 0 || symbols.includes(productId)
+        )
         .map(([productId, product]) => ({
           id: productId,
           baseCurrency: product.base_currency,

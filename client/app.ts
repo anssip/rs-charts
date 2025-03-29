@@ -173,10 +173,7 @@ export class App {
       }
       this.chartContainer.state = this.state;
 
-      const products = await this.firestoreClient.getProducts(
-        "coinbase",
-        "online"
-      );
+      const products = await this.firestoreClient.getMinimalProducts();
       this.chartContainer!.products = products;
     }
     observe("state.symbol", (_) => {
