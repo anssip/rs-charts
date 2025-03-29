@@ -31,7 +31,7 @@ export class ValueAxis extends CanvasBase {
   valueRange: ValueRange = { min: 0, max: 100, range: 100 };
 
   @property({ type: String })
-  scale: "price" | "percentage" | "volume" = "price";
+  scale: "price" | "percentage" | "volume" | "atr" = "price";
 
   @property({ type: Number })
   width = 70;
@@ -414,6 +414,89 @@ export class ValueAxis extends CanvasBase {
 
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
+    } else if (this.gridStyle === GridStyle.ATR) {
+      // For ATR, create an adaptive grid with proper distribution
+
+      // Use the actual visible range
+      const visibleRange = this.valueRange.range;
+
+      // Target having approximately 4-6 grid lines in the visible area
+      const targetLines = 5;
+      let step = visibleRange / targetLines;
+
+      // Round the step to a nice number for readability
+      if (step > 10) {
+        step = Math.ceil(step / 10) * 10;
+      } else if (step > 5) {
+        step = Math.ceil(step / 5) * 5;
+      } else if (step > 1) {
+        step = Math.ceil(step);
+      } else if (step > 0.5) {
+        step = 0.5;
+      } else if (step > 0.25) {
+        step = 0.25;
+      } else if (step > 0.1) {
+        step = 0.1;
+      } else {
+        step = 0.05;
+      }
+
+      // Find the first grid line at or below the min visible value
+      const firstLevel = Math.floor(this.valueRange.min / step) * step;
+
+      // Create array of grid levels across the visible range
+      let levels = [];
+
+      // Add levels from bottom to top
+      for (
+        let level = firstLevel;
+        level <= this.valueRange.max + step / 2;
+        level += step
+      ) {
+        levels.push(level);
+      }
+
+      ctx.font = "12px var(--font-primary)";
+
+      for (const value of levels) {
+        // Skip label if it's outside current range
+        if (
+          value < this.valueRange.min - step / 2 ||
+          value > this.valueRange.max + step / 2
+        )
+          continue;
+
+        const y = this.valueToY(value) / dpr;
+
+        // Format the label based on the step size
+        let label;
+        if (step >= 1) {
+          label = value.toFixed(0);
+        } else if (step >= 0.1) {
+          label = value.toFixed(1);
+        } else {
+          label = value.toFixed(2);
+        }
+
+        const labelHeight = 20 / dpr;
+
+        // Draw background
+        ctx.fillStyle = getComputedStyle(document.documentElement)
+          .getPropertyValue("--color-primary-dark")
+          .trim();
+        ctx.fillRect(0, y - labelHeight / 2, this.width, labelHeight);
+
+        const labelWidth = ctx.measureText(label).width;
+
+        // Draw text
+        const fontFamily = getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-primary")
+          .trim();
+        ctx.font = `${10}px ${fontFamily}`;
+
+        ctx.fillStyle = "#9C27B0"; // Match the ATR line color
+        ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
+      }
     } else {
       // For standard indicators, use evenly spaced labels
       const numLabels = 5;
@@ -655,6 +738,8 @@ export class ValueAxis extends CanvasBase {
                         return `${this.mouseValue.toFixed(2)}%`;
                       case "volume":
                         return formatPrice(this.mouseValue).replace(".", ",");
+                      case "atr":
+                        return this.mouseValue.toFixed(2);
                       case "price":
                       default:
                         return formatPrice(this.mouseValue);
