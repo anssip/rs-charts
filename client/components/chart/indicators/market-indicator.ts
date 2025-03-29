@@ -321,6 +321,20 @@ export class MarketIndicator extends CanvasBase {
             max: 100,
             range: 100,
           };
+        } else if (this.scale === ScaleType.ATR) {
+          // For ATR, use auto-scaling with padding to utilize full vertical space
+          const range = maxValue - minValue;
+          const padding = range * 0.1; // Add 10% padding
+
+          // Calculate a more appropriate min value to utilize the full chart height
+          // Find the lowest visible value and add some padding below it
+          let calculatedMin = Math.max(0, minValue - range * 0.3);
+
+          this.localValueRange = {
+            min: calculatedMin,
+            max: maxValue + padding,
+            range: maxValue + padding - calculatedMin,
+          };
         } else if (minValue !== Infinity) {
           // For other indicators, use auto-scaling with padding
           const range = maxValue - minValue;

@@ -24,15 +24,15 @@ bun run dev
 - [x] moving-average
 - [x] bollinger-bands
 - [ ] atr
-- [ ] macd
-- [ ] stochastic
+- [x] macd
+- [x] stochastic
 
 - [x] Resizing of stacked indicators
-- [ ] Fix Panning & zooming
-- [ ] Fix overlaid indicators that now take the whole area
-- [ ] Activation reimplementation: Add a top layer on top of the chart that disables all mouse events when not active
+- [x] Fix Panning & zooming
+- [x] Fix overlaid indicators that now take the whole area
 
-  - this can be then used for the indicator panes and value-axis
+- [ ] Make Market Indicator show the current value of the indicator. We should probably save the live indicator values in Firestore.
+- [ ] Change GridStyle setting to be generic and come from the indicator metadata (from the server). The grid.ts and value-axis.ts drawing should be generalized and scriptable via indicator code.
 
 - [x] Enhance value-axis to highlight the value on mouse Y
 - [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming

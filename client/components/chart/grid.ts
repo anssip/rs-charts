@@ -198,6 +198,68 @@ export class HairlineGrid implements Drawable {
 
       // Reset line dash
       ctx.setLineDash([]);
+    } else if (gridStyle === GridStyle.ATR) {
+      // For ATR, create an adaptive grid with proper distribution
+      const visibleRange = priceRange.range;
+
+      // Target having approximately 4-6 grid lines in the visible area
+      const targetLines = 5;
+      let step = visibleRange / targetLines;
+
+      // Round the step to a nice number for readability
+      if (step > 10) {
+        step = Math.ceil(step / 10) * 10;
+      } else if (step > 5) {
+        step = Math.ceil(step / 5) * 5;
+      } else if (step > 1) {
+        step = Math.ceil(step);
+      } else if (step > 0.5) {
+        step = 0.5;
+      } else if (step > 0.25) {
+        step = 0.25;
+      } else if (step > 0.1) {
+        step = 0.1;
+      } else {
+        step = 0.05;
+      }
+
+      // Find the first grid line at or below the min visible value
+      const firstLevel = Math.floor(priceRange.min / step) * step;
+
+      // Create array of grid levels across the visible range
+      let levels = [];
+      // Add levels from bottom to top
+      for (
+        let level = firstLevel;
+        level <= priceRange.max + step / 2;
+        level += step
+      ) {
+        levels.push(level);
+      }
+
+      // Draw each level
+      for (const level of levels) {
+        if (
+          level >= priceRange.min - step / 2 &&
+          level <= priceRange.max + step / 2
+        ) {
+          const y = priceY(level);
+
+          ctx.strokeStyle = `rgba(${gridColor}, 0.5)`;
+          ctx.lineWidth = 0.5;
+          ctx.setLineDash([3, 3]);
+
+          ctx.beginPath();
+          // Draw the line at precise pixel boundary
+          const yPixel = Math.floor(y) + 0.5;
+          ctx.moveTo(0, yPixel);
+          ctx.lineTo(canvas.width / dpr, yPixel);
+          ctx.stroke();
+        }
+      }
+
+      // Reset line dash
+      ctx.setLineDash([]);
     } else {
       // Standard grid - evenly spaced lines
       const numLabels = 5;

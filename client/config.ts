@@ -46,6 +46,26 @@ export const config: Config = {
       },
     },
     {
+      label: "ATR 14 RMA",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "atr",
+            name: "ATR 14 RMA",
+            visible: !chartContainer.isIndicatorVisible("atr"),
+            params: { period: 14 },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+            scale: ScaleType.ATR,
+            gridStyle: GridStyle.ATR,
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
       label: "Moving Averages",
       action: () => {
         const event = new CustomEvent("toggle-indicator", {
