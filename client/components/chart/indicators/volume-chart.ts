@@ -137,17 +137,9 @@ export class VolumeChart extends CanvasBase {
       `VolumeChart: Drawing ${candleCount} volume bars with width ${barWidth}px`
     );
 
-    // Draw a subtle top border for the volume area if needed
-    // ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    // ctx.lineWidth = 1;
-    // ctx.beginPath();
-    // ctx.moveTo(0, 1);
-    // ctx.lineTo(this.canvas.width, 1);
-    // ctx.stroke();
-
     // Display "Volume" label at top left of the volume chart area
     ctx.font = "bold 11px var(--font-secondary, sans-serif)";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)"; // Increased opacity for better visibility
     ctx.fillText("Volume", 8, 15);
 
     iterateTimeline({

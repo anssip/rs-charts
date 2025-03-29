@@ -286,17 +286,6 @@ export class IndicatorStack extends LitElement {
     this.resizingIndex = -1;
   };
 
-  // Redraw all indicators to ensure proper rendering
-  private redrawAllIndicators() {
-    // Get all stack items
-    const stackItems = this.renderRoot.querySelectorAll(".stack-item");
-
-    // Trigger canvas resize for each item
-    stackItems.forEach((item) => {
-      this.triggerCanvasResize(item);
-    });
-  }
-
   private applyResize(deltaY: number) {
     if (this.resizingIndex < 0 || this.itemHeights.length < 2) return;
 
@@ -539,7 +528,8 @@ export class IndicatorStack extends LitElement {
         // Check for market-indicator elements with name property
         if (
           element.tagName.toLowerCase() === "market-indicator" &&
-          "name" in element
+          "name" in element &&
+          (element as any).name !== "Volume"
         ) {
           const indicatorName = (element as any).name;
           if (indicatorName) {
@@ -547,20 +537,6 @@ export class IndicatorStack extends LitElement {
               `Found indicator "${indicatorName}" in slot "${slotName}"`
             );
             nameMap.set(slotName, indicatorName);
-          }
-        }
-
-        // Also check for indicator-container that might have a name
-        if (
-          element.tagName.toLowerCase() === "indicator-container" &&
-          "name" in element
-        ) {
-          const containerName = (element as any).name;
-          if (containerName) {
-            logger.debug(
-              `Found container "${containerName}" in slot "${slotName}"`
-            );
-            nameMap.set(slotName, containerName);
           }
         }
       });
@@ -574,7 +550,7 @@ export class IndicatorStack extends LitElement {
   }
 
   // Handle property changes
-  updated(changedProps: Map<string, any>) {
+  updated(_: Map<string, any>) {
     // Make sure canvases get resized when properties change
     setTimeout(() => {
       const stackItems = this.renderRoot.querySelectorAll(".stack-item");
