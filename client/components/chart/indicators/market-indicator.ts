@@ -3,7 +3,7 @@ import { CanvasBase } from "../canvas-base";
 import { observe, xin, xinValue } from "xinjs";
 import { ChartState } from "../../..";
 import { iterateTimeline, priceToY, timeToX } from "../../../util/chart-util";
-import { ScaleType, GridStyle } from "./indicator-types";
+import { ScaleType, GridStyle, OscillatorConfig } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
 import { ValueRange } from "../value-axis";
@@ -55,6 +55,9 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: String })
   gridStyle?: GridStyle;
 
+  @property({ type: Object })
+  oscillatorConfig?: OscillatorConfig;
+
   private _state: ChartState | null = null;
   private grid = new HairlineGrid();
   // Track when the value range is manually set by user zooming
@@ -74,6 +77,7 @@ export class MarketIndicator extends CanvasBase {
     valueAxisMobileWidth?: number;
     showAxis?: boolean;
     gridStyle?: GridStyle;
+    oscillatorConfig?: OscillatorConfig;
   }) {
     super();
     if (props?.indicatorId) {
@@ -93,6 +97,9 @@ export class MarketIndicator extends CanvasBase {
     }
     if (props?.gridStyle) {
       this.gridStyle = props.gridStyle;
+    }
+    if (props?.oscillatorConfig) {
+      this.oscillatorConfig = props.oscillatorConfig;
     }
     this.mobileMediaQuery.addEventListener("change", () => {
       this.isMobile = this.mobileMediaQuery.matches;
@@ -307,15 +314,8 @@ export class MarketIndicator extends CanvasBase {
 
       // Update localValueRange based on indicator type
       if (this.scale !== ScaleType.Price && !this.manualRangeSet) {
-        if (this.gridStyle === GridStyle.Stochastic) {
-          // Force exact 0-100 range for stochastic
-          this.localValueRange = {
-            min: 0,
-            max: 100,
-            range: 100,
-          };
-        } else if (this.gridStyle === GridStyle.RSI) {
-          // Force exact 0-100 range for RSI
+        if (this.gridStyle === GridStyle.PercentageOscillator) {
+          // Force exact 0-100 range for percentage oscillators (RSI, Stochastic)
           this.localValueRange = {
             min: 0,
             max: 100,
@@ -375,6 +375,7 @@ export class MarketIndicator extends CanvasBase {
           }),
         },
         gridStyle: this.gridStyle,
+        oscillatorConfig: this.oscillatorConfig,
       };
 
       // Draw the grid first (behind the indicator data)
