@@ -35,6 +35,9 @@ export class PriceAxis extends CanvasBase {
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
+  // Track if the device is touch-only (no mouse/trackpad)
+  private isTouchOnly = window.matchMedia("(hover: none) and (pointer: coarse)")
+    .matches;
 
   constructor() {
     super();
@@ -362,7 +365,7 @@ export class PriceAxis extends CanvasBase {
       <div class="container">
         <canvas></canvas>
         ${this.liveCandle ? this.renderLivePriceLabel() : ""}
-        ${this.mouseY > 0
+        ${this.mouseY > 0 && !this.isTouchOnly
           ? html`
               <div
                 class="mouse-price-label"

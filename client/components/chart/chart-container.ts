@@ -415,6 +415,9 @@ export class ChartContainer extends LitElement {
           );
         }
       }
+
+      // Skip adding volume to indicators map - it has special handling
+      return;
     }
 
     if (visible) {

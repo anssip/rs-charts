@@ -33,7 +33,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "volume",
-            name: "Volume",
+            name: "",
             display: DisplayType.Bottom,
             class: VolumeChart,
             visible: !chartContainer.isIndicatorVisible("volume"),
