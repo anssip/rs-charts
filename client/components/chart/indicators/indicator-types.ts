@@ -2,7 +2,7 @@ export enum ScaleType {
   Price = "price",
   Percentage = "percentage",
   Custom = "custom",
-  ATR = "atr",
+  Value = "value",
 }
 
 export enum DisplayType {
@@ -17,7 +17,7 @@ export enum GridStyle {
   Stochastic = "stochastic", // Special grid for stochastic (0,20,50,80,100)
   RSI = "rsi", // Special grid for RSI (30,50,70)
   MACD = "macd", // Special grid for MACD with zero baseline emphasis
-  ATR = "atr", // Grid for ATR indicator
+  Value = "value", // Grid for custom value indicators (adaptive to value range)
 }
 
 export interface IndicatorConfig {

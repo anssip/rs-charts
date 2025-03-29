@@ -198,8 +198,8 @@ export class HairlineGrid implements Drawable {
 
       // Reset line dash
       ctx.setLineDash([]);
-    } else if (gridStyle === GridStyle.ATR) {
-      // For ATR, create an adaptive grid with proper distribution
+    } else if (gridStyle === GridStyle.Value) {
+      // For custom value indicators, create an adaptive grid with proper distribution
       const visibleRange = priceRange.range;
 
       // Target having approximately 4-6 grid lines in the visible area
