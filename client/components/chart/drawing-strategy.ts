@@ -6,7 +6,7 @@ import {
 import { HairlineGrid } from "./grid";
 import { xin } from "xinjs";
 import { iterateTimeline } from "../../util/chart-util";
-import { GridStyle } from "./indicators/indicator-types";
+import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -18,6 +18,7 @@ export interface DrawingContext {
   priceRange: PriceRange;
   axisMappings: AxisMappings;
   gridStyle?: GridStyle;
+  oscillatorConfig?: OscillatorConfig; // Configuration for oscillator indicators
 }
 
 export interface Drawable {

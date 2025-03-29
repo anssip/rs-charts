@@ -14,10 +14,16 @@ export enum DisplayType {
 
 export enum GridStyle {
   Standard = "standard", // Regular evenly-spaced grid
-  Stochastic = "stochastic", // Special grid for stochastic (0,20,50,80,100)
-  RSI = "rsi", // Special grid for RSI (30,50,70)
   MACD = "macd", // Special grid for MACD with zero baseline emphasis
   Value = "value", // Grid for custom value indicators (adaptive to value range)
+  PercentageOscillator = "percentage-oscillator", // Configurable grid for percentage oscillators (RSI, Stochastic, etc.)
+}
+
+// Configuration for the PercentageOscillator grid style
+export interface OscillatorConfig {
+  levels: number[]; // The reference levels to display (e.g., [0, 30, 50, 70, 100])
+  thresholds: number[]; // The threshold levels to highlight (e.g., [30, 70])
+  format?: string; // Format string for labels (e.g., "%d%")
 }
 
 export interface IndicatorConfig {
@@ -30,4 +36,5 @@ export interface IndicatorConfig {
   class?: any;
   skipFetch?: boolean;
   gridStyle?: GridStyle; // Add grid style configuration
+  oscillatorConfig?: OscillatorConfig; // Configuration for oscillator indicators
 }
