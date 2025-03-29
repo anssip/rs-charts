@@ -31,7 +31,7 @@ export class ValueAxis extends CanvasBase {
   valueRange: ValueRange = { min: 0, max: 100, range: 100 };
 
   @property({ type: String })
-  scale: "price" | "percentage" | "volume" | "atr" = "price";
+  scale: "price" | "percentage" | "volume" | "value" = "price";
 
   @property({ type: Number })
   width = 70;
@@ -414,8 +414,8 @@ export class ValueAxis extends CanvasBase {
 
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
-    } else if (this.gridStyle === GridStyle.ATR) {
-      // For ATR, create an adaptive grid with proper distribution
+    } else if (this.gridStyle === GridStyle.Value) {
+      // For custom value indicators, create an adaptive grid with proper distribution
 
       // Use the actual visible range
       const visibleRange = this.valueRange.range;
@@ -494,7 +494,8 @@ export class ValueAxis extends CanvasBase {
           .trim();
         ctx.font = `${10}px ${fontFamily}`;
 
-        ctx.fillStyle = "#9C27B0"; // Match the ATR line color
+        // Use a neutral color for value indicators (previously matched ATR's purple)
+        ctx.fillStyle = "#64B5F6"; // Light blue that works well for most indicators
         ctx.fillText(label, this.width / 2 - labelWidth / 2, y);
       }
     } else {
@@ -738,7 +739,7 @@ export class ValueAxis extends CanvasBase {
                         return `${this.mouseValue.toFixed(2)}%`;
                       case "volume":
                         return formatPrice(this.mouseValue).replace(".", ",");
-                      case "atr":
+                      case "value":
                         return this.mouseValue.toFixed(2);
                       case "price":
                       default:

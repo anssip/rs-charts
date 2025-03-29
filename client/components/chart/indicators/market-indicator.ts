@@ -321,8 +321,8 @@ export class MarketIndicator extends CanvasBase {
             max: 100,
             range: 100,
           };
-        } else if (this.scale === ScaleType.ATR) {
-          // For ATR, use auto-scaling with padding to utilize full vertical space
+        } else if (this.scale === ScaleType.Value) {
+          // For custom value indicators, use auto-scaling with padding to utilize full vertical space
           const range = maxValue - minValue;
           const padding = range * 0.1; // Add 10% padding
 
