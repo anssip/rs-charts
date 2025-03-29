@@ -101,7 +101,7 @@ export class ChartContainer extends LitElement {
   private readonly ZOOM_FACTOR = 0.005;
 
   @state()
-  public showVolume = false;
+  public showVolume = true;
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
@@ -362,6 +362,11 @@ export class ChartContainer extends LitElement {
   }
 
   public isIndicatorVisible(id: string): boolean {
+    // Special case for volume indicator
+    if (id === "volume") {
+      return this.showVolume;
+    }
+    // Regular indicators
     return this.indicators.get(id)?.visible || false;
   }
 
@@ -470,6 +475,40 @@ export class ChartContainer extends LitElement {
       {
         label: "Indicators",
         isHeader: true,
+      },
+      // Transform the built-in indicators to have active state
+      ...config.getBuiltInIndicators(this).map((item) => {
+        // Skip separators and headers
+        if (item.separator || item.isHeader) {
+          return item;
+        }
+
+        // For Volume indicator, check showVolume property
+        if (item.label === "Volume") {
+          return {
+            ...item,
+            active: this.showVolume,
+          };
+        }
+
+        // For other indicators, determine ID based on the label
+        const indicatorId = item.label.toLowerCase().replace(/\s+/g, "-");
+        return {
+          ...item,
+          active: this.isIndicatorVisible(indicatorId),
+        };
+      }),
+      {
+        label: "separator",
+        separator: true,
+      },
+      {
+        label: "Drawing Tools (Pro)",
+        action: () => this.dispatchUpgrade(),
+      },
+      {
+        label: "Assets (Pro)",
+        action: () => this.dispatchUpgrade(),
       },
     ];
 

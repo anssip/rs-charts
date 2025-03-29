@@ -20,6 +20,9 @@ export class ChartToolbar extends LitElement {
   container?: ChartContainer;
 
   @state()
+  private activeIndicators: Set<string> = new Set();
+
+  @state()
   private showIndicatorsMenu = false;
 
   @state()
@@ -39,11 +42,30 @@ export class ChartToolbar extends LitElement {
     this.requestUpdate();
   };
 
+  // Store the event listener so we can remove it properly
+  private toggleIndicatorListener = () => {
+    // Give a small delay to let the container update
+    setTimeout(() => this.updateActiveIndicators(), 50);
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // Listen for toggle-indicator events to update our state
+    document.addEventListener("toggle-indicator", this.toggleIndicatorListener);
+  }
+
   disconnectedCallback() {
     super.disconnectedCallback();
     this.mobileMediaQuery.removeEventListener(
       "change",
       this.handleMobileChange
+    );
+
+    // Remove event listener using the same function reference
+    document.removeEventListener(
+      "toggle-indicator",
+      this.toggleIndicatorListener
     );
   }
 
@@ -84,6 +106,9 @@ export class ChartToolbar extends LitElement {
       return;
     }
 
+    // Update active indicators before showing the menu
+    this.updateActiveIndicators();
+
     const button = e.currentTarget as HTMLElement;
     const rect = button.getBoundingClientRect();
     const toolbarRect = this.renderRoot
@@ -111,18 +136,78 @@ export class ChartToolbar extends LitElement {
     });
   }
 
+  updated(changedProperties: Map<string, unknown>) {
+    super.updated?.(changedProperties);
+
+    if (
+      changedProperties.has("container") ||
+      changedProperties.has("showVolume")
+    ) {
+      this.updateActiveIndicators();
+    }
+  }
+
+  private updateActiveIndicators() {
+    if (!this.container) return;
+
+    // Clear and rebuild the set
+    this.activeIndicators.clear();
+
+    // Add all visible indicators from the container
+    const builtInIndicators = config.getBuiltInIndicators(this.container);
+    builtInIndicators.forEach((item) => {
+      if (item.separator || item.isHeader) return;
+
+      const indicatorId = item.label.toLowerCase().replace(/\s+/g, "-");
+      if (this.container?.isIndicatorVisible(indicatorId)) {
+        this.activeIndicators.add(indicatorId);
+      }
+    });
+
+    // Volume indicator is special - use the container's isIndicatorVisible method
+    this.showVolume = this.container.isIndicatorVisible("volume");
+  }
+
   render() {
     if (!this.container) {
       console.warn("ChartToolbar: No container provided");
       return html``;
     }
 
+    // Update active indicators on each render
+    this.updateActiveIndicators();
+
     const indicatorMenuItems: MenuItem[] = [
       {
         isHeader: true,
         label: "Indicators",
       },
-      ...config.getBuiltInIndicators(this.container),
+      // Transform the built-in indicators to have active state
+      ...config.getBuiltInIndicators(this.container).map((item) => {
+        // Skip separators and headers
+        if (item.separator || item.isHeader) {
+          return item;
+        }
+
+        // For Volume indicator, check showVolume property
+        if (item.label === "Volume") {
+          // Clone the original action instead of replacing it
+          const isActive = this.showVolume;
+          return {
+            ...item,
+            active: isActive,
+          };
+        }
+
+        // For other indicators, check our local activeIndicators set
+        const indicatorId = item.label.toLowerCase().replace(/\s+/g, "-");
+        const isActive = this.activeIndicators.has(indicatorId);
+
+        return {
+          ...item,
+          active: isActive,
+        };
+      }),
     ];
 
     return html`
@@ -224,6 +309,9 @@ export class ChartToolbar extends LitElement {
         @menu-close=${() => {
           this.showIndicatorsMenu = false;
           document.removeEventListener("click", this.closeMenuHandler);
+
+          // Update indicators after the menu closes (for toggles)
+          setTimeout(() => this.updateActiveIndicators(), 50);
         }}
       ></chart-context-menu>
     `;

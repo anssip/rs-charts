@@ -11,6 +11,7 @@ export interface MenuItem {
   action?: () => void;
   separator?: boolean;
   isHeader?: boolean;
+  active?: boolean;
 }
 
 @customElement("chart-context-menu")
@@ -30,6 +31,7 @@ export class ChartContextMenu extends LitElement {
   private handleKeyDown = (e: KeyboardEvent) => {
     if (!this.show) return;
 
+    // TODO: move this to chart state so that the menus can stay in sync in real time
     const menuItems = this.items.filter(
       (item) => !item.separator && !item.isHeader
     );
@@ -123,7 +125,9 @@ export class ChartContextMenu extends LitElement {
 
     return html`
       <div
-        class="menu-item ${isSelected ? "selected" : ""}"
+        class="menu-item ${isSelected ? "selected" : ""} ${item.active
+          ? "active"
+          : ""}"
         @click=${() => {
           item.action?.();
           this.show = false;
@@ -136,6 +140,7 @@ export class ChartContextMenu extends LitElement {
         }}
         @mouseover=${() => (this.selectedIndex = actionableIndex)}
       >
+        ${item.active ? html`<span class="checkmark">✓</span>` : ""}
         ${item.label}
       </div>
     `;
@@ -163,7 +168,7 @@ export class ChartContextMenu extends LitElement {
       border: 1px solid rgba(143, 143, 143, 0.2);
       border-radius: 4px;
       padding: 0;
-      min-width: 150px;
+      min-width: 180px;
       z-index: 1001;
       outline: none;
       max-height: 80vh;
@@ -176,6 +181,17 @@ export class ChartContextMenu extends LitElement {
       color: var(--color-accent-2);
       font-size: 14px;
       transition: background-color 0.2s ease;
+      position: relative;
+    }
+
+    .menu-item.active {
+      color: var(--color-accent-1);
+    }
+
+    .checkmark {
+      margin-right: 8px;
+      display: inline-block;
+      color: var(--color-accent-1);
     }
 
     .menu-item:hover,
