@@ -46,26 +46,6 @@ export const config: Config = {
       },
     },
     {
-      label: "ATR 14 RMA",
-      action: () => {
-        const event = new CustomEvent("toggle-indicator", {
-          detail: {
-            id: "atr",
-            name: "ATR 14 RMA",
-            visible: !chartContainer.isIndicatorVisible("atr"),
-            params: { period: 14 },
-            display: DisplayType.StackBottom,
-            class: MarketIndicator,
-            scale: ScaleType.Value,
-            gridStyle: GridStyle.Value,
-          },
-          bubbles: true,
-          composed: true,
-        });
-        dispatchMenuActionEvent(chartContainer, event);
-      },
-    },
-    {
       label: "Moving Averages",
       action: () => {
         const event = new CustomEvent("toggle-indicator", {
@@ -170,6 +150,26 @@ export const config: Config = {
               thresholds: [20, 80],
               format: "%d%%",
             },
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
+      label: "ATR",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "atr",
+            name: "ATR 14 RMA",
+            visible: !chartContainer.isIndicatorVisible("atr"),
+            params: { period: 14 },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+            scale: ScaleType.Value,
+            gridStyle: GridStyle.Value,
           },
           bubbles: true,
           composed: true,
