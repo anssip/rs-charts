@@ -9,7 +9,7 @@ export const getStyles = (
   :host {
     display: block;
     width: 100%;
-    height: var(--spotcanvas-chart-height, 600px);
+    height: 100%;
     min-height: 400px;
   }
 
@@ -35,14 +35,12 @@ export const getStyles = (
     grid-template-areas:
       "price-info"
       "indicators-top"
-      "chart"
-      "indicators-bottom"
+      "chart-area"
       "timeline";
-    grid-template-rows: auto min-content 1fr min-content ${timelineHeight}px;
     grid-template-columns: minmax(0, 1fr);
     height: 100%;
     background-color: var(--color-primary-dark);
-    gap: 8px;
+    gap: 0px;
     padding: 0 16px;
     box-sizing: border-box;
     position: relative;
@@ -51,14 +49,20 @@ export const getStyles = (
   }
 
   .chart-area {
+    grid-area: chart-area;
     position: relative;
-    min-height: 200px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    height: 100%;
+    flex: 1;
+    pointer-events: auto;
   }
+
   .price-info {
+    grid-area: price-info;
     background: var(--color-primary-dark);
     border-radius: 12px;
     margin: 8px 0;
@@ -73,36 +77,12 @@ export const getStyles = (
 
   .chart {
     position: relative;
+    display: flex;
+    flex-direction: column;
     flex: 1;
-    min-height: 0;
-    width: 100%;
-  }
-
-  .activate-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    backdrop-filter: blur(8px);
-    background: transparent;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 1.5em;
-    font-weight: 600;
-    color: var(--color-accent-2);
-    z-index: 10;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease-in-out;
+    height: 100%;
+    overflow: hidden;
     pointer-events: auto;
-  }
-
-  .activate-label:hover {
-    opacity: 1;
-  }
-
-  .activate-label.hidden {
-    display: none;
   }
 
   chart-timeline {
@@ -113,26 +93,24 @@ export const getStyles = (
   }
 
   .timeline-container {
+    grid-area: timeline;
     height: ${timelineHeight}px;
     min-height: ${timelineHeight}px;
     position: relative;
     overflow: hidden;
   }
 
-  candlestick-chart {
+  .candlestick-chart {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     z-index: 1;
-  }
-
-  candlestick-chart.active {
     cursor: crosshair;
   }
 
-  candlestick-chart.active:active {
+  .candlestick-chart:active {
     cursor: grabbing;
   }
 
@@ -165,6 +143,7 @@ export const getStyles = (
     display: block;
     width: 100%;
     height: 100%;
+    pointer-events: auto;
   }
 
   chart-logo {
@@ -215,35 +194,52 @@ export const getStyles = (
     height: 20%;
   }
 
-  /* Update indicator stack styles */
   indicator-stack {
     position: relative;
     width: 100%;
-    min-height: ${INDICATOR_HEIGHT}px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  indicator-stack.main-chart {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    height: 100%;
+    pointer-events: auto;
+    cursor: crosshair;
+  }
+
+  indicator-stack.main-chart:active {
+    cursor: grabbing;
+  }
+
+  /* Style elements by their grid area attribute */
+  [grid-area="indicators-top"] {
+    border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+    height: 100%;
+  }
+
+  [grid-area="indicators-bottom"] {
     border-top: 1px solid var(--chart-grid-line-color, #363c4e);
+  }
+
+  [grid-area="chart-area"] {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    flex: 1;
+    pointer-events: auto;
   }
 
-  indicator-stack[style*="grid-area: indicators-top"] {
-    border-bottom: 1px solid var(--chart-grid-line-color, #363c4e);
+  [grid-area="price-info"] {
+    z-index: 10;
   }
 
-  indicator-stack[style*="grid-area: indicators-bottom"] {
-    border-top: 1px solid var(--chart-grid-line-color, #363c4e);
-  }
-
-  indicator-stack .stack-item {
-    height: ${INDICATOR_HEIGHT}px;
-    min-height: ${INDICATOR_HEIGHT}px;
-    position: relative;
-  }
-
-  indicator-stack indicator-container {
-    position: relative;
-    height: 100%;
-    width: 100%;
+  [grid-area="timeline"] {
+    height: ${timelineHeight}px;
+    min-height: ${timelineHeight}px;
   }
 
   /* Add grid-crosshairs styling to extend crosshairs over the entire container */
@@ -277,5 +273,146 @@ export const getStyles = (
     font-weight: 500;
     opacity: 0.7;
     white-space: nowrap;
+  }
+
+  /* Style for the candlestick chart inside the indicator stack */
+  indicator-stack.main-chart ::slotted(candlestick-chart) {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    cursor: crosshair;
+  }
+
+  indicator-stack.main-chart:active ::slotted(candlestick-chart) {
+    cursor: grabbing;
+  }
+
+  /* Styles for the chart with overlays container */
+  .chart-with-overlays {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Main chart sizing and positioning */
+  .chart-with-overlays candlestick-chart {
+    width: 100%;
+    flex: 1;
+    z-index: 2;
+  }
+
+  /* Volume chart container */
+  .volume-chart {
+    width: 100%;
+    height: 25%;
+    margin-top: auto; /* Push to bottom with flexbox */
+    z-index: 3;
+    background-color: transparent; /* Transparent background to see gridlines */
+  }
+
+  /* Make sure hidden volume chart doesn't take up space */
+  .volume-chart[hidden] {
+    display: none !important;
+  }
+
+  /* Volume chart component itself */
+  volume-chart {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Fix pointer events for price-axis */
+  candlestick-chart .price-axis-container {
+    pointer-events: auto;
+    z-index: 10;
+  }
+
+  /* Ensure overlay elements don't block the price-axis */
+  .overlay-indicators,
+  .indicator-names,
+  live-decorators,
+  .chart-with-overlays candlestick-chart {
+    pointer-events: none;
+  }
+
+  /* Allow controls within the overlays to receive events */
+  .overlay-indicators *,
+  .indicator-names * {
+    pointer-events: auto;
+  }
+
+  .volume-chart[hidden] {
+    display: none !important;
+  }
+
+  .volume-chart {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 25%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  volume-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Make sure the chart area positions elements correctly */
+  .chart-area {
+    position: relative !important;
+  }
+
+  /* Make sure chart-with-overlays has proper positioning context */
+  .chart-with-overlays {
+    position: relative !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Adjust main chart to accommodate volume chart at bottom */
+  .chart-with-overlays candlestick-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  /* Overlay indicators positioning */
+  .chart-with-overlays .overlay-indicators {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Stack item styling */
+  indicator-stack .stack-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  indicator-stack indicator-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    flex: 1;
   }
 `;

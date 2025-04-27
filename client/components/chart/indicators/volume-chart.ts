@@ -5,6 +5,7 @@ import { ChartState } from "../../..";
 import { iterateTimeline } from "../../../util/chart-util";
 import { PropertyValues } from "lit";
 import { css } from "lit";
+import { logger } from "../../../util/logger";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {
@@ -13,6 +14,7 @@ export class VolumeChart extends CanvasBase {
       display: block;
       width: 100%;
       height: 100%;
+      position: relative;
     }
 
     canvas {
@@ -24,6 +26,9 @@ export class VolumeChart extends CanvasBase {
 
   @property({ type: Object })
   params?: Record<string, any>;
+
+  @property({ type: Boolean })
+  visible = true;
 
   private readonly FIXED_GAP_WIDTH = 2; // pixels
   private readonly MIN_BAR_WIDTH = 1; // pixels
@@ -62,6 +67,12 @@ export class VolumeChart extends CanvasBase {
         this.draw();
       });
     }
+
+    // Listen for force-redraw events
+    this.addEventListener("force-redraw", () => {
+      logger.debug("VolumeChart: Received force-redraw event");
+      this.draw();
+    });
   }
 
   // Add connectedCallback to ensure we draw when added to DOM
@@ -79,7 +90,14 @@ export class VolumeChart extends CanvasBase {
     if (!this.isConnected) return;
     if (!this.canvas || !this.ctx || !this._state) return;
 
-    console.log("draw volume chart");
+    // Check if we're in a hidden container
+    const container = this.closest(".volume-chart");
+    if (container && container.hasAttribute("hidden")) {
+      logger.debug("VolumeChart: Container is hidden, skipping draw");
+      return;
+    }
+
+    logger.debug("VolumeChart: Drawing volume chart");
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio ?? 1;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -90,8 +108,10 @@ export class VolumeChart extends CanvasBase {
       this._state.timeRange.end
     );
     if (!candles || candles.length === 0) {
+      logger.warn("VolumeChart: No candles available in visible range");
       return;
     }
+
     // Calculate max volume including a minimum to prevent division by zero
     const maxVolume = Math.max(
       1, // Minimum value to prevent division by zero
@@ -113,6 +133,15 @@ export class VolumeChart extends CanvasBase {
       Math.min(this.MAX_BAR_WIDTH, spaceForBars / candleCount)
     );
 
+    logger.debug(
+      `VolumeChart: Drawing ${candleCount} volume bars with width ${barWidth}px`
+    );
+
+    // Display "Volume" label at top left of the volume chart area
+    ctx.font = "bold 11px var(--font-secondary, sans-serif)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.7)"; // Increased opacity for better visibility
+    ctx.fillText("Volume", 8, 15);
+
     iterateTimeline({
       callback: (x: number, timestamp: number) => {
         const candle = this._state!.priceHistory.getCandle(timestamp);
@@ -130,10 +159,10 @@ export class VolumeChart extends CanvasBase {
           candle.close >= candle.open
             ? `${getComputedStyle(document.documentElement)
                 .getPropertyValue("--color-accent-1")
-                .trim()}80` // 50% opacity
+                .trim()}A0` // 60% opacity
             : `${getComputedStyle(document.documentElement)
                 .getPropertyValue("--color-error")
-                .trim()}80`; // 50% opacity
+                .trim()}A0`; // 60% opacity
 
         ctx.fillRect(x - barWidth / 2, y, barWidth, volumeHeight);
       },
@@ -149,6 +178,7 @@ export class VolumeChart extends CanvasBase {
   protected updated(changedProperties: PropertyValues) {
     super.updated(changedProperties);
     if (changedProperties.has("visible") || changedProperties.has("params")) {
+      logger.debug(`VolumeChart: Property changed, visible=${this.visible}`);
       this.draw();
     }
   }

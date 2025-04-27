@@ -14,10 +14,9 @@ import {
   TimeRange,
 } from "../server/services/price-data/price-history-model";
 import { LiveCandle } from "./api/live-candle-subscription";
-import {
-  ChartContainer,
-  IndicatorState,
-} from "./components/chart/chart-container";
+import { ChartContainer } from "./components/chart/chart-container";
+import { IndicatorConfig } from "./components/chart/indicators/indicator-types";
+import { logger, setProductionLogging } from "./util/logger";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -29,7 +28,7 @@ export type ChartState = {
   symbol: string;
   granularity: Granularity;
   loading?: boolean;
-  indicators?: IndicatorState[];
+  indicators?: IndicatorConfig[];
 };
 
 const chartState: ChartState = {
@@ -55,8 +54,50 @@ const { state } = xinProxy(
 declare global {
   interface Window {
     app: typeof chartState;
+    spotcanvas?: {
+      setProductionMode: (isProduction: boolean) => void;
+      log: (level: string, message: string, ...args: any[]) => void;
+    };
   }
 }
+
+// Initialize logger settings
+if (process.env.NODE_ENV === "production") {
+  setProductionLogging();
+  logger.info("Running in production mode - minimal logging enabled");
+} else {
+  logger.info("Running in development mode - verbose logging enabled");
+}
+
+// Make logger settings available globally
+window.spotcanvas = {
+  setProductionMode: (isProduction) => {
+    if (isProduction) {
+      setProductionLogging();
+      logger.info("Switched to production logging mode");
+    } else {
+      logger.info("Switched to development logging mode");
+    }
+  },
+  log: (level, message, ...args) => {
+    switch (level) {
+      case "debug":
+        logger.debug(message, ...args);
+        break;
+      case "info":
+        logger.info(message, ...args);
+        break;
+      case "warn":
+        logger.warn(message, ...args);
+        break;
+      case "error":
+        logger.error(message, ...args);
+        break;
+      default:
+        logger.info(message, ...args);
+    }
+  },
+};
 
 window.app = state;
 
@@ -71,17 +112,23 @@ const firestore = getFirestore(firebaseApp);
 
 window.addEventListener("DOMContentLoaded", () => {
   const chartApp = new App(firestore, state);
+  logger.info("Chart application initialized");
 
   window.addEventListener("pagehide", () => {
     chartApp.cleanup();
+    logger.debug("Application cleanup triggered on page hide");
   });
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       chartApp.cleanup();
+      logger.debug(
+        "Application cleanup triggered on visibility change to hidden"
+      );
     }
     if (document.visibilityState === "visible") {
       chartApp.fetchGaps();
+      logger.debug("Fetching data gaps on visibility change to visible");
     }
   });
 });
@@ -115,10 +162,12 @@ if (container) {
     }
     chartContainerElement.state = state;
     container.append(chartContainerElement);
+    logger.info("New chart container created and appended");
   } else {
     if (container.hasAttribute("data-spotcanvas-require-activation")) {
       existingChart.setAttribute("require-activation", "");
     }
     existingChart.state = state;
+    logger.info("Using existing chart container");
   }
 }

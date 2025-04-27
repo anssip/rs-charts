@@ -37,7 +37,6 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   priceAxisMobileWidth = 45;
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
-  private isMobile = this.mobileMediaQuery.matches;
 
   private _state: ChartState | null = null;
   private _padding: {
@@ -59,12 +58,21 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   constructor() {
     super();
-    this.isMobile = this.mobileMediaQuery.matches;
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
   }
 
+  bindEventListeners(_: HTMLCanvasElement): void {
+    this.addEventListener(
+      "force-redraw",
+      this.handleForceRedraw as EventListener
+    );
+  }
+
+  handleForceRedraw(e: CustomEvent<{ width: number; height: number }>) {
+    this.resize(e.detail.width, e.detail.height);
+  }
+
   private handleMobileChange = (e: MediaQueryListEvent) => {
-    this.isMobile = e.matches;
     this.resize(this.clientWidth, this.clientHeight);
   };
 
@@ -94,6 +102,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   @property({ type: Object })
   public set state(state: ChartState) {
     this._state = state;
+    this.draw();
   }
 
   override getId(): string {
@@ -102,6 +111,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   override async firstUpdated() {
     await super.firstUpdated();
+
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
@@ -121,7 +131,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   override draw() {
-    if (!this._state) return;
+    if (!this._state) {
+      this._state = xin["state"] as ChartState;
+    }
+    if (!this.ctx || !this.canvas) {
+      return;
+    }
     const context: DrawingContext = {
       ctx: this.ctx!,
       chartCanvas: this.canvas!,
@@ -158,13 +173,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   render() {
-    console.log("CandlestickChart render");
     return html`
       <div class="chart-container">
         <canvas></canvas>
-      </div>
-      <div class="price-axis-container">
-        <price-axis></price-axis>
+        <div class="price-axis-container">
+          <price-axis></price-axis>
+        </div>
       </div>
     `;
   }
@@ -175,17 +189,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       "--price-axis-mobile-width",
       `${this.priceAxisMobileWidth}px`
     );
-    console.log(
-      "CandlestickChart updated with priceAxisWidth",
-      this.priceAxisWidth
-    );
   }
 
   static styles = css`
     :host {
       position: relative;
-      display: grid;
-      grid-template-columns: 1fr auto;
+      display: block;
       width: 100%;
       height: 100%;
     }
@@ -195,29 +204,36 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      grid-column: 1;
+      display: flex;
     }
 
     canvas {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
+      width: calc(100% - var(--price-axis-width));
       height: 100%;
       display: block;
     }
 
     .price-axis-container {
-      position: relative;
+      position: absolute;
+      right: 0;
+      top: 0;
       width: var(--price-axis-width);
       height: 100%;
       background: var(--color-primary-dark);
-      grid-column: 2;
+      pointer-events: auto;
+      z-index: 10;
     }
 
     @media (max-width: 767px) {
       .price-axis-container {
         width: var(--price-axis-mobile-width);
+      }
+
+      canvas {
+        width: calc(100% - var(--price-axis-mobile-width));
       }
     }
   `;
