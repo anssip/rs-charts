@@ -81,7 +81,7 @@
 </head>
 
 <body>
-    <div data-spotcanvas-require-activation="true" class="chart-container">
+    <div class="chart-container">
     </div>
 
     <div class="upgrade-backdrop"></div>
@@ -115,7 +115,11 @@
             upgradeButton.addEventListener('click', () => {
                 hidePopup();
                 // Add actual upgrade logic here
-                console.log('Upgrade clicked');
+                if (window.spotcanvas?.log) {
+                    window.spotcanvas.log('info', 'Upgrade clicked');
+                } else {
+                    console.log('Upgrade clicked');
+                }
             });
         });
     </script>

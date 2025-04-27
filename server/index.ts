@@ -71,7 +71,6 @@ const server = serve({
             start: new Date(parseInt(params.get("start")!)),
             end: new Date(parseInt(params.get("end")!)),
           });
-          console.log("Server: Fetched candles:", candles.size);
           return new Response(JSON.stringify(Object.fromEntries(candles)), {
             headers: {
               ...corsHeaders,

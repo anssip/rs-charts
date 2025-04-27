@@ -20,36 +20,33 @@ bun run dev
 
 ## TODO
 
+- [ ] Add ChartManager for multichart layouts
+- [ ] Add user accounts
+
 - [x] rsi
 - [x] moving-average
 - [x] bollinger-bands
-- [ ] atr
-- [ ] macd
-- [ ] stochastic
+- [x] atr
+- [x] macd
+- [x] stochastic
 
-### ideas
+- [x] Resizing of stacked indicators
+- [x] Fix Panning & zooming
+- [x] Fix overlaid indicators that now take the whole area
 
-- Introduce new interactive-pane superclass with:
+- [ ] Make Market Indicator show the current value of the indicator. Make the chart fetch the values for the single live candle.
+- [ ] Change GridStyle setting to be generic and come from the indicator metadata (from the server). The grid.ts and value-axis.ts drawing should be generalized and scriptable via indicator code.
 
-  - panning
-  - zooming
-  - RESIZING with the mouse
-  - mouse, touch, wheel events
-
-  * this can be then used for the indicator panes and value-axis
-
-- [ ] Enhance value-axis to highlight the value on mouse Y
+- [x] Enhance value-axis to highlight the value on mouse Y
 - [ ] Enhance value-axis to handle the mouse and touch events for panning and zooming
-- [ ] Refactor crosshairs to no include the value drawing in the right edge
 - [x] Refactor the price-axis to be contained inside the chart component
-- [ ] Add Y-axis view to the market-indicator component
-- [ ] Make menu show the active indicators with a checkmark
+- [x] Add Y-axis view to the market-indicator component
+- [x] Make menu show the active indicators with a checkmark
 - [ ] Add possibility to supply params to market evaluators
 - [ ] Load indicators from `market.spotcanvas.com/evaluators`
 - [x] Fix initial data loading to not repeat the same requests
 
 - [x] Add indicator data loading.
-- [ ] Add ChartGrid for multichart layouts
 
 - [x] Require a click on the chart to enabe mouse/wheel/touch events
 - [x] Gaps loading should widen the gaps to ensure partial candles are loaded. Also the loading should bypass the caches in candleRepository.

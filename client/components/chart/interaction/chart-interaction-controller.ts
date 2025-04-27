@@ -2,22 +2,23 @@ import { ChartState } from "../../..";
 import { getCandleInterval } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
+import { logger } from "../../../util/logger";
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
+  container: HTMLElement;
   state: ChartState;
   onStateChange: (updates: Partial<ChartState>) => void;
   onNeedMoreData: (direction: "forward" | "backward") => void;
   onContextMenu?: (position: { x: number; y: number }) => void;
   bufferMultiplier?: number;
   zoomFactor?: number;
-  onActivate: () => void;
+  onActivate?: () => void;
   onFullWindowToggle?: () => void;
   doubleTapDelay?: number;
   isActive?: () => boolean;
   requireActivation?: boolean;
   onDeactivate?: () => void;
-  container?: HTMLElement;
 }
 
 export class ChartInteractionController {
@@ -32,44 +33,51 @@ export class ChartInteractionController {
   private lastTapTime = 0;
 
   private readonly options: ChartInteractionOptions;
+  private eventTarget: HTMLElement;
 
   constructor(options: ChartInteractionOptions) {
     this.options = options;
     this.ZOOM_FACTOR = options.zoomFactor ?? 0.005;
     this.BUFFER_MULTIPLIER = options.bufferMultiplier ?? 1;
     this.DOUBLE_TAP_DELAY = options.doubleTapDelay ?? 300;
+    this.eventTarget = options.container;
   }
 
   attach(force = false) {
-    const chart = this.options.chart;
-    if (!chart) {
+    if (!this.eventTarget) {
+      logger.error("Event target not found");
       return;
     }
-    chart.addEventListener("click", this.handleClick);
-    document.addEventListener("click", this.handleDocumentClick);
 
-    if (
-      !force &&
-      this.options.requireActivation &&
-      !this.options.isActive?.()
-    ) {
-      console.log("not active yet");
-      return;
-    }
-    console.log("attaching event listeners");
+    logger.debug(
+      "Attaching chart interaction controller to:",
+      this.eventTarget
+    );
+
+    // Always ensure we're properly detached first to avoid duplicate listeners
+    this.detach();
+
+    // Add event listeners
+    logger.debug("Attaching full interaction handlers");
 
     // Mouse events
-    chart.addEventListener("mousedown", this.handleDragStart);
-    chart.addEventListener("mousemove", this.handleDragMove);
-    chart.addEventListener("mouseup", this.handleDragEnd);
-    chart.addEventListener("mouseleave", this.handleDragEnd);
-    chart.addEventListener("wheel", this.handleWheel);
+    this.eventTarget.addEventListener("mousedown", this.handleDragStart);
+    this.eventTarget.addEventListener("mousemove", this.handleDragMove);
+    this.eventTarget.addEventListener("mouseup", this.handleDragEnd);
+    this.eventTarget.addEventListener("mouseleave", this.handleDragEnd);
+    this.eventTarget.addEventListener("wheel", this.handleWheel, {
+      passive: false,
+    });
 
     // Touch events
-    chart.addEventListener("touchstart", this.handleTouchStart);
-    chart.addEventListener("touchmove", this.handleTouchMove);
-    chart.addEventListener("touchend", this.handleTouchEnd);
-    chart.addEventListener("touchcancel", this.handleTouchEnd);
+    this.eventTarget.addEventListener("touchstart", this.handleTouchStart, {
+      passive: false,
+    });
+    this.eventTarget.addEventListener("touchmove", this.handleTouchMove, {
+      passive: false,
+    });
+    this.eventTarget.addEventListener("touchend", this.handleTouchEnd);
+    this.eventTarget.addEventListener("touchcancel", this.handleTouchEnd);
 
     // Add timeline and price axis zoom listeners
     window.addEventListener(
@@ -80,48 +88,27 @@ export class ChartInteractionController {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
-    chart.addEventListener(
+    this.eventTarget.addEventListener(
       "contextmenu",
       this.handleContextMenu as EventListener
     );
   }
 
-  private handleClick = (e: MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!this.options.isActive?.() && this.options.requireActivation) {
-      this.options.onActivate?.();
-      this.attach(true);
-    }
-  };
-
-  private handleDocumentClick = (e: MouseEvent) => {
-    const container = this.options.container;
-    if (container && container.contains(e.target as Node)) {
-      return;
-    }
-    this.options.onDeactivate?.();
-    this.detach();
-    this.options.chart?.addEventListener("click", this.handleClick);
-  };
-
   detach() {
-    const chart = this.options.chart;
-    if (!chart) return;
+    if (!this.eventTarget) return;
 
-    chart.removeEventListener("mousedown", this.handleDragStart);
-    chart.removeEventListener("mousemove", this.handleDragMove);
-    chart.removeEventListener("mouseup", this.handleDragEnd);
-    chart.removeEventListener("mouseleave", this.handleDragEnd);
-    chart.removeEventListener("wheel", this.handleWheel);
+    this.eventTarget.removeEventListener("mousedown", this.handleDragStart);
+    this.eventTarget.removeEventListener("mousemove", this.handleDragMove);
+    this.eventTarget.removeEventListener("mouseup", this.handleDragEnd);
+    this.eventTarget.removeEventListener("mouseleave", this.handleDragEnd);
+    this.eventTarget.removeEventListener("wheel", this.handleWheel);
 
-    chart.removeEventListener("touchstart", this.handleTouchStart);
-    chart.removeEventListener("touchmove", this.handleTouchMove);
-    chart.removeEventListener("touchend", this.handleTouchEnd);
-    chart.removeEventListener("touchcancel", this.handleTouchEnd);
+    this.eventTarget.removeEventListener("touchstart", this.handleTouchStart);
+    this.eventTarget.removeEventListener("touchmove", this.handleTouchMove);
+    this.eventTarget.removeEventListener("touchend", this.handleTouchEnd);
+    this.eventTarget.removeEventListener("touchcancel", this.handleTouchEnd);
 
-    chart.removeEventListener("click", this.handleClick);
-    chart.removeEventListener(
+    this.eventTarget.removeEventListener(
       "contextmenu",
       this.handleContextMenu as EventListener
     );
@@ -133,7 +120,6 @@ export class ChartInteractionController {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
-    document.removeEventListener("click", this.handleDocumentClick);
   }
 
   private handleDragStart = (e: MouseEvent) => {
@@ -168,11 +154,14 @@ export class ChartInteractionController {
   };
 
   private handlePan(deltaX: number, isTrackpad = false) {
-    const { chart, state } = this.options;
-    if (!chart?.canvas) return;
+    const { state } = this.options;
+    if (!state.timeRange) {
+      logger.error("Time range not found");
+      return;
+    }
 
     const timeRange = state.timeRange.end - state.timeRange.start;
-    const viewportWidth = chart.canvas.width / (window.devicePixelRatio ?? 1);
+    const viewportWidth = this.eventTarget?.clientWidth ?? 0;
     const timePerPixel = timeRange / viewportWidth;
 
     const adjustedDelta = isTrackpad ? -deltaX : deltaX;
@@ -216,14 +205,13 @@ export class ChartInteractionController {
   }
 
   private handleVerticalPan(deltaY: number, isTrackpad = false) {
-    const { chart, state } = this.options;
-    if (!chart?.canvas || !state.priceRange) {
-      console.error("Chart or price range not found");
+    const { state } = this.options;
+    if (!state.priceRange) {
+      logger.error("Price range not found");
       return;
     }
 
-    const availableHeight =
-      chart.canvas.height / (window.devicePixelRatio ?? 1);
+    const availableHeight = this.eventTarget?.clientHeight ?? 0;
     const pricePerPixel = state.priceRange.range / availableHeight;
 
     const sensitivity = 1.5;
@@ -237,10 +225,6 @@ export class ChartInteractionController {
   }
 
   private handleTouchStart = (e: TouchEvent) => {
-    if (this.options.isActive && !this.options.isActive()) {
-      this.options.onActivate?.();
-      return;
-    }
     e.preventDefault();
 
     const currentTime = new Date().getTime();
@@ -283,7 +267,7 @@ export class ChartInteractionController {
 
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
-      this.options.chart.dispatchEvent(
+      this.eventTarget.dispatchEvent(
         new CustomEvent("timeline-zoom", {
           detail: {
             deltaX: adjustedDelta,
@@ -315,8 +299,11 @@ export class ChartInteractionController {
   };
 
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
-    const { chart, state } = this.options;
-    if (!chart) return;
+    const { state } = this.options;
+    if (!state.timeRange) {
+      logger.error("Time range not found");
+      return;
+    }
 
     const durationMs = durationSeconds * 1000;
     const FRAMES_PER_SECOND = 60;

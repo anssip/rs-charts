@@ -34,6 +34,10 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger("ChartContainer");
+logger.setLoggerLevel("ChartContainer", LogLevel.DEBUG);
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -76,8 +80,6 @@ export class ChartContainer extends LitElement {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
 
-  private resizeObserver!: ResizeObserver;
-
   private chart: CandlestickChart | null = null;
 
   private padding = {
@@ -99,22 +101,15 @@ export class ChartContainer extends LitElement {
   private readonly ZOOM_FACTOR = 0.005;
 
   @state()
-  public showVolume = false;
+  public showVolume = true;
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
-  private readonly RESIZE_DEBOUNCE_MS = 100;
 
   @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
 
   private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
-
-  @property({ type: Boolean, reflect: true, attribute: "require-activation" })
-  requireActivation = false;
-
-  @state()
-  private isActive = false;
 
   @state()
   private indicators: Map<string, IndicatorConfig> = new Map();
@@ -151,70 +146,71 @@ export class ChartContainer extends LitElement {
   }
 
   firstUpdated() {
-    const chartContainer = this.renderRoot.querySelector(".chart");
-    if (chartContainer) {
-      // Get the computed style to check if we have a fixed height
-      const computedStyle = getComputedStyle(chartContainer);
-      const height = parseFloat(computedStyle.height);
-      const width = parseFloat(computedStyle.width);
-
-      // Initial resize with the computed dimensions
-      if (height > 0 && width > 0) {
-        this.handleResize(width, height);
-      }
-
-      this.resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (entry) {
-          const { width, height } = entry.contentRect;
-
-          // Cancel any pending animation frame
-          if (this.resizeAnimationFrame) {
-            cancelAnimationFrame(this.resizeAnimationFrame);
-          }
-
-          // Clear any pending timeout
-          if (this.resizeTimeout) {
-            clearTimeout(this.resizeTimeout);
-          }
-
-          // Set a new timeout for debouncing
-          this.resizeTimeout = window.setTimeout(() => {
-            this.resizeAnimationFrame = requestAnimationFrame(() => {
-              this.handleResize(width, height);
-            });
-          }, this.RESIZE_DEBOUNCE_MS);
-        }
-      });
-      this.resizeObserver.observe(chartContainer);
+    logger.debug("ChartContainer: firstUpdated called");
+    const chartArea = this.renderRoot.querySelector(".chart-area");
+    if (!chartArea) {
+      logger.error("chart area not found");
+      return;
     }
+    logger.debug(
+      "ChartContainer: chart area found, dimensions:",
+      chartArea.clientWidth,
+      "x",
+      chartArea.clientHeight
+    );
 
-    const chartElement = this.renderRoot.querySelector("candlestick-chart");
-    this.chart = chartElement as CandlestickChart;
+    // Get the computed style to check if we have a fixed height
+    const computedStyle = getComputedStyle(chartArea);
+    const height = parseFloat(computedStyle.height);
+    const width = parseFloat(computedStyle.width);
+    logger.debug("ChartContainer: computed dimensions:", width, "x", height);
 
-    if (chartElement) {
-      document.addEventListener(
-        "fullscreenchange",
-        this.handleFullscreenChange
+    // Initial resize with the computed dimensions
+    if (height > 0 && width > 0) {
+      this.handleResize(width, height);
+    } else {
+      logger.warn(
+        "ChartContainer: Invalid dimensions for initial resize:",
+        width,
+        "x",
+        height
       );
-
-      // Add click outside listener
-      document.addEventListener("click", this.handleClickOutside);
-      document.addEventListener("touchstart", this.handleClickOutside);
     }
 
-    // Forward chart-ready and chart-pan events from the candlestick chart
-    if (this.chart) {
-      this.chart.addEventListener("chart-ready", (e: Event) => {
-        this.dispatchEvent(
-          new CustomEvent("chart-ready", {
-            detail: (e as CustomEvent).detail,
-            bubbles: true,
-            composed: true,
-          })
+    // Wait for components to initialize
+    setTimeout(() => {
+      logger.debug("ChartContainer: Delayed initialization, looking for chart");
+      this.chart = this.getChartElement();
+
+      if (this.chart) {
+        logger.debug("ChartContainer: Chart found and assigned");
+        // Forward chart-ready events from the candlestick chart
+        this.chart.addEventListener("chart-ready", (e: Event) => {
+          logger.debug("ChartContainer: Got chart-ready event");
+          this.dispatchEvent(
+            new CustomEvent("chart-ready", {
+              detail: (e as CustomEvent).detail,
+              bubbles: true,
+              composed: true,
+            })
+          );
+
+          // Initialize interaction controller after chart is ready
+          if (!this.interactionController) {
+            logger.debug("ChartContainer: Initializing interaction controller");
+            this.initializeInteractionController();
+          }
+        });
+      } else {
+        logger.error(
+          "ChartContainer: Chart element not found during initialization"
         );
-      });
-    }
+      }
+    }, 0);
+
+    // Add click outside listener
+    document.addEventListener("click", this.handleClickOutside);
+    document.addEventListener("touchstart", this.handleClickOutside);
 
     window.addEventListener("spotcanvas-upgrade", this.handleUpgrade);
 
@@ -233,55 +229,6 @@ export class ChartContainer extends LitElement {
     this.mobileMediaQuery.addEventListener("change", () =>
       this.handleMobileChange()
     );
-
-    if (this.chart) {
-      this.interactionController = new ChartInteractionController({
-        chart: this.chart,
-        container: this,
-        state: this._state,
-        requireActivation: this.requireActivation,
-        isActive: () => this.isActive,
-        onStateChange: (updates) => {
-          this._state = Object.assign(this._state, updates);
-          Object.keys(updates).forEach((key) => {
-            touch(`state.${key}`);
-          });
-          this.draw();
-        },
-        onNeedMoreData: (direction) => {
-          this.dispatchRefetch(direction);
-        },
-        onActivate: () => {
-          console.log("onActivate");
-          this.isActive = true;
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onDeactivate: () => {
-          console.log("onDeactivate");
-          this.isActive = false;
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onFullWindowToggle: () => {
-          if (this.isMobile) {
-            this.toggleFullWindow();
-          }
-        },
-        onContextMenu: (position) => {
-          this.showContextMenu = true;
-          this.contextMenuPosition = position;
-        },
-        bufferMultiplier: BUFFER_MULTIPLIER,
-        zoomFactor: this.ZOOM_FACTOR,
-        doubleTapDelay: this.DOUBLE_TAP_DELAY,
-      });
-      if (this.requireActivation && !this.isActive) {
-        this.interactionController.attach();
-      }
-    }
   }
 
   private handleMobileChange = () => {
@@ -299,14 +246,6 @@ export class ChartContainer extends LitElement {
 
   protected updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
-    if (changedProperties.has("requireActivation")) {
-      // Only set isActive to true if requireActivation is explicitly false
-      if (this.requireActivation === false) {
-        this.isActive = true;
-      } else {
-        this.isActive = false;
-      }
-    }
     this.draw();
   }
 
@@ -331,11 +270,58 @@ export class ChartContainer extends LitElement {
       },
     };
     this.chart.drawWithContext(context);
+
+    // Force redraw on indicators
+    this.redrawIndicators();
+  }
+
+  // Helper method to force redraw of all indicators
+  private redrawIndicators() {
+    logger.debug("ChartContainer: Redrawing indicators");
+
+    // Force indicator-stack to redraw
+    const indicatorStack = this.renderRoot.querySelector(
+      "indicator-stack.main-chart"
+    );
+    if (indicatorStack) {
+      // Get current dimensions for the detail object
+      const width = indicatorStack.clientWidth || 100;
+      const height = indicatorStack.clientHeight || 100;
+
+      indicatorStack.dispatchEvent(
+        new CustomEvent("force-redraw", {
+          bubbles: false,
+          composed: true,
+          detail: { width, height }, // Add detail property
+        })
+      );
+    }
+
+    // Find and redraw all market indicators
+    const indicators = this.renderRoot.querySelectorAll("market-indicator");
+    indicators.forEach((indicator) => {
+      logger.debug(
+        `ChartContainer: Sending redraw to ${
+          indicator.getAttribute("slot") || "unknown"
+        } indicator`
+      );
+
+      // Get current dimensions for the detail object
+      const width = indicator.clientWidth || 100;
+      const height = indicator.clientHeight || 100;
+
+      indicator.dispatchEvent(
+        new CustomEvent("force-redraw", {
+          bubbles: false,
+          composed: true,
+          detail: { width, height }, // Add detail property
+        })
+      );
+    });
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.resizeObserver?.disconnect();
     if (this.resizeAnimationFrame) {
       cancelAnimationFrame(this.resizeAnimationFrame);
     }
@@ -376,6 +362,11 @@ export class ChartContainer extends LitElement {
   }
 
   public isIndicatorVisible(id: string): boolean {
+    // Special case for volume indicator
+    if (id === "volume") {
+      return this.showVolume;
+    }
+    // Regular indicators
     return this.indicators.get(id)?.visible || false;
   }
 
@@ -389,7 +380,50 @@ export class ChartContainer extends LitElement {
       skipFetch,
       scale,
       name,
+      gridStyle,
     } = e.detail;
+
+    logger.debug(
+      `ChartContainer: Indicator ${id} toggled to ${
+        visible ? "visible" : "hidden"
+      }`
+    );
+
+    // Special handling for volume indicator
+    if (id === "volume") {
+      this.showVolume = visible;
+      logger.debug(
+        `ChartContainer: Volume indicator toggled to ${
+          visible ? "visible" : "hidden"
+        }`
+      );
+      // Force redraw of the volume chart
+      const volumeChart = this.renderRoot.querySelector(
+        ".volume-chart"
+      ) as HTMLElement;
+      if (volumeChart) {
+        volumeChart.hidden = !visible;
+        logger.debug(
+          `ChartContainer: Volume chart container ${
+            visible ? "shown" : "hidden"
+          }`
+        );
+
+        // Force a redraw on the volume-chart element
+        const volumeChartElement = volumeChart.querySelector("volume-chart");
+        if (volumeChartElement) {
+          volumeChartElement.dispatchEvent(
+            new CustomEvent("force-redraw", {
+              bubbles: false,
+              composed: true,
+            })
+          );
+        }
+      }
+
+      // Skip adding volume to indicators map - it has special handling
+      return;
+    }
 
     if (visible) {
       this.indicators.set(id, {
@@ -401,6 +435,8 @@ export class ChartContainer extends LitElement {
         skipFetch,
         scale,
         name,
+        gridStyle,
+        ...e.detail,
       });
       // Update state.indicators
       this._state.indicators = Array.from(this.indicators.values())
@@ -440,7 +476,28 @@ export class ChartContainer extends LitElement {
         label: "Indicators",
         isHeader: true,
       },
-      ...config.getBuiltInIndicators(this),
+      // Transform the built-in indicators to have active state
+      ...config.getBuiltInIndicators(this).map((item) => {
+        // Skip separators and headers
+        if (item.separator || item.isHeader) {
+          return item;
+        }
+
+        // For Volume indicator, check showVolume property
+        if (item.label === "Volume") {
+          return {
+            ...item,
+            active: this.showVolume,
+          };
+        }
+
+        // For other indicators, determine ID based on the label
+        const indicatorId = item.label.toLowerCase().replace(/\s+/g, "-");
+        return {
+          ...item,
+          active: this.isIndicatorVisible(indicatorId),
+        };
+      }),
       {
         label: "separator",
         separator: true,
@@ -469,38 +526,16 @@ export class ChartContainer extends LitElement {
     );
 
     // Calculate grid template rows based on number of stacked indicators
-    const gridStyle = {
-      display: "grid",
-      gridTemplateAreas: `
-        'price-info'
-        'indicators-top'
-        'chart'
-        'indicators-bottom'
-        'timeline'
-      `,
-      gridTemplateRows: `
-        auto
-        ${
-          stackTopIndicators.length
-            ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
-            : "auto"
-        }
-        1fr
-        ${
-          stackBottomIndicators.length
-            ? `${stackBottomIndicators.length * INDICATOR_HEIGHT}px`
-            : "auto"
-        }
-        ${TIMELINE_HEIGHT}px
-      `,
-      height: "100%",
-      backgroundColor: "var(--color-primary-dark)",
-      gap: "8px",
-      padding: "0 16px",
-      boxSizing: "border-box",
-      position: "relative" as const,
-      overflow: "hidden",
-    };
+    const gridTemplateRows = `
+      auto
+      ${
+        stackTopIndicators.length
+          ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
+          : "0"
+      }
+      1fr
+      ${TIMELINE_HEIGHT}px
+    `;
 
     return html`
       <div
@@ -510,15 +545,14 @@ export class ChartContainer extends LitElement {
           : ""}"
         style="
           --price-axis-width: ${this.priceAxisWidth}px;
-          ${Object.entries(gridStyle)
-          .map(
-            ([key, value]) =>
-              `${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}:${value}`
-          )
-          .join(";")}
+          grid-template-rows: ${gridTemplateRows};
         "
       >
-        <div class="price-info" style="grid-area: price-info;">
+        <div
+          class="price-info"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "price-info")}
+        >
           <price-info
             .product=${this._state.liveCandle?.productId}
             .symbols=${this.products}
@@ -536,7 +570,9 @@ export class ChartContainer extends LitElement {
         ${stackTopIndicators.length > 0
           ? html`
               <indicator-stack
-                style="grid-area: indicators-top;"
+                .setAttribute=${() => {}}
+                @connectedCallback=${(e: HTMLElement) =>
+                  e.setAttribute("grid-area", "indicators-top")}
                 .indicators=${stackTopIndicators}
                 .valueAxisWidth=${PRICEAXIS_WIDTH}
                 .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
@@ -544,38 +580,12 @@ export class ChartContainer extends LitElement {
             `
           : ""}
 
-        <div class="chart-area" style="grid-area: chart;">
-          <div class="chart" style="position: relative;">
-            <indicator-container class="overlay-indicators">
-              <div class="indicator-names">
-                ${overlayIndicators.map(
-                  (indicator) => html`
-                    <div class="indicator-name">${indicator.name}</div>
-                  `
-                )}
-              </div>
-              ${overlayIndicators.map(
-                (indicator) => html`
-                  <indicator-container
-                    data-indicator=${indicator.id}
-                    class="overlay-indicators"
-                  >
-                    ${new indicator.class({
-                      indicatorId: indicator.id,
-                      scale: ScaleType.Price,
-                      showAxis: false,
-                    })}
-                  </indicator-container>
-                `
-              )}
-            </indicator-container>
-
-            <candlestick-chart
-              class="${this.isActive ? "active" : ""}"
-              .priceAxisWidth=${PRICEAXIS_WIDTH}
-              .priceAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
-            ></candlestick-chart>
-
+        <div
+          class="chart-area"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "chart-area")}
+        >
+          <div class="chart">
             ${bottomIndicators.map(
               (indicator) => html`
                 <indicator-container
@@ -583,46 +593,85 @@ export class ChartContainer extends LitElement {
                   class="bottom-indicators"
                   .name=${indicator.name}
                 >
-                  ${new indicator.class({
-                    indicatorId: indicator.id,
-                    scale: indicator.scale,
-                    name: indicator.name,
-                  })}
+                  <market-indicator
+                    .indicatorId=${indicator.id}
+                    .scale=${indicator.scale}
+                    .name=${indicator.name}
+                    .gridStyle=${indicator.gridStyle}
+                  ></market-indicator>
                 </indicator-container>
               `
             )}
-            ${this.requireActivation
-              ? html`
-                  <div
-                    class="activate-label ${this.isActive ? "hidden" : ""}"
-                    @click=${() => {
-                      this.isActive = true;
-                      this.interactionController?.attach(true);
-                      if (this.isMobile) {
-                        this.toggleFullWindow();
-                      }
-                    }}
-                  >
-                    Click to activate
-                  </div>
-                `
-              : ""}
+
+            <indicator-stack
+              class="main-chart"
+              .valueAxisWidth=${PRICEAXIS_WIDTH}
+              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+              .state=${this._state}
+              .options=${this.options}
+              @rendered=${() =>
+                logger.debug("ChartContainer: indicator-stack rendered")}
+            >
+              <indicator-container
+                slot="chart"
+                class="chart-with-overlays overlay-indicators"
+              >
+                <!-- Main chart - Important: price-axis in candlestick-chart must receive pointer events -->
+                <candlestick-chart
+                  id="main-chart"
+                  .state=${this._state}
+                  .options=${this.options}
+                  .indicatorId="chart"
+                  .scale=${ScaleType.Price}
+                ></candlestick-chart>
+
+                ${overlayIndicators.map(
+                  (indicator) => html`
+                    <market-indicator
+                      .indicatorId=${indicator.id}
+                      .scale=${ScaleType.Price}
+                      .showAxis=${false}
+                      .name=${indicator.name}
+                      .gridStyle=${indicator.gridStyle}
+                    ></market-indicator>
+                  `
+                )}
+                <live-decorators></live-decorators>
+                <!-- Volume chart - positioned using flexbox at the bottom -->
+                <div class="volume-chart" ?hidden=${!this.showVolume}>
+                  <volume-chart></volume-chart>
+                </div>
+              </indicator-container>
+
+              <!-- Bottom stacked indicators (unchanged) -->
+              ${stackBottomIndicators.length > 0
+                ? stackBottomIndicators.map((indicator, index) => {
+                    const slotId = `indicator-${index + 1}`;
+                    logger.debug(
+                      `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`
+                    );
+                    return html`
+                      <market-indicator
+                        slot="${slotId}"
+                        .indicatorId=${indicator.id}
+                        .scale=${indicator.scale}
+                        .name=${indicator.name}
+                        .state=${this._state}
+                        .valueAxisWidth=${this.priceAxisWidth}
+                        .gridStyle=${indicator.gridStyle}
+                      ></market-indicator>
+                    `;
+                  })
+                : ""}
+            </indicator-stack>
           </div>
-          <live-decorators></live-decorators>
         </div>
 
-        ${stackBottomIndicators.length > 0
-          ? html`
-              <indicator-stack
-                style="grid-area: indicators-bottom;"
-                .indicators=${stackBottomIndicators}
-                .valueAxisWidth=${PRICEAXIS_WIDTH}
-                .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
-              ></indicator-stack>
-            `
-          : ""}
-
-        <div class="timeline-container" style="grid-area: timeline;">
+        <div
+          class="timeline-container"
+          @connectedCallback=${(e: HTMLElement) =>
+            e.setAttribute("grid-area", "timeline")}
+        >
           <chart-timeline></chart-timeline>
         </div>
 
@@ -633,7 +682,7 @@ export class ChartContainer extends LitElement {
           .items=${menuItems}
         ></chart-context-menu>
 
-        ${!this.isTouchOnly && this.isActive
+        ${!this.isTouchOnly
           ? html`<chart-crosshairs class="grid-crosshairs"></chart-crosshairs>`
           : ""}
       </div>
@@ -714,9 +763,7 @@ export class ChartContainer extends LitElement {
   private calculateCandleOptions(): ChartOptions {
     if (!this.chart) return this.options;
     if (!this.chart.canvas) {
-      console.warn(
-        "ChartContainer: No canvas found, returning default options"
-      );
+      logger.warn("ChartContainer: No canvas found, returning default options");
       return this.options;
     }
 
@@ -789,7 +836,7 @@ export class ChartContainer extends LitElement {
         await document.exitFullscreen();
       }
     } catch (err) {
-      console.error("Error attempting to toggle fullscreen:", err);
+      logger.error("Error attempting to toggle fullscreen:", err);
     }
   };
 
@@ -797,7 +844,10 @@ export class ChartContainer extends LitElement {
     if (this.isMobile) return; // Don't handle fullscreen on mobile
     this.isFullscreen = document.fullscreenElement === this;
     if (!this.isFullscreen) {
-      this.handleResize(this.clientWidth, this.clientHeight);
+      // Add a small delay to ensure dimensions are properly updated
+      setTimeout(() => {
+        this.handleResize(this.clientWidth, this.clientHeight);
+      }, 100);
     }
   };
 
@@ -821,17 +871,71 @@ export class ChartContainer extends LitElement {
     } else {
       this.classList.remove("full-window");
     }
-    // Force a resize after the class change
-    requestAnimationFrame(() => {
+    // Force a resize after the class change with a small delay
+    setTimeout(() => {
       this.handleResize(this.clientWidth, this.clientHeight);
-    });
+    }, 100);
   };
 
-  static styles = getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT);
+  static styles = [getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT)];
 
-  static get properties() {
-    return {
-      requireActivation: { type: Boolean, attribute: "require-activation" },
-    };
+  // Helper method to get the chart element from the indicator stack
+  private getChartElement(): CandlestickChart | null {
+    logger.debug("ChartContainer: Getting chart element");
+    const indicatorStack = this.renderRoot.querySelector(
+      "indicator-stack.main-chart"
+    ) as LitElement | null;
+
+    if (!indicatorStack) {
+      logger.warn("ChartContainer: indicator-stack.main-chart not found");
+      return null;
+    }
+    logger.debug("ChartContainer: Found indicator-stack");
+
+    // Find the chart in the new structure - inside indicator-container with class chart-with-overlays
+    const chartElement = this.renderRoot.querySelector(
+      "indicator-stack.main-chart indicator-container.chart-with-overlays candlestick-chart"
+    ) as CandlestickChart | null;
+
+    logger.debug(
+      "ChartContainer: candlestick-chart",
+      chartElement ? "found" : "NOT FOUND"
+    );
+
+    return chartElement;
+  }
+
+  private initializeInteractionController() {
+    if (!this.chart) return;
+
+    this.interactionController = new ChartInteractionController({
+      chart: this.chart,
+      container: this.renderRoot.querySelector(".chart-area") as HTMLElement,
+      state: this._state,
+      onStateChange: (updates) => {
+        this._state = Object.assign(this._state, updates);
+        Object.keys(updates).forEach((key) => {
+          touch(`state.${key}`);
+        });
+        this.draw();
+      },
+      onNeedMoreData: (direction) => {
+        this.dispatchRefetch(direction);
+      },
+      onFullWindowToggle: () => {
+        if (this.isMobile) {
+          this.toggleFullWindow();
+        }
+      },
+      onContextMenu: (position) => {
+        this.showContextMenu = true;
+        this.contextMenuPosition = position;
+      },
+      bufferMultiplier: BUFFER_MULTIPLIER,
+      zoomFactor: this.ZOOM_FACTOR,
+      doubleTapDelay: this.DOUBLE_TAP_DELAY,
+    });
+
+    this.interactionController.attach(true);
   }
 }

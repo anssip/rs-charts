@@ -4,6 +4,7 @@ import {
   DisplayType,
   IndicatorConfig,
   ScaleType,
+  GridStyle,
 } from "./components/chart/indicators/indicator-types";
 import { MarketIndicator } from "./components/chart/indicators/market-indicator";
 import { VolumeChart } from "./components/chart/indicators/volume-chart";
@@ -19,7 +20,6 @@ function dispatchMenuActionEvent(
   chartContainer: ChartContainer,
   event: MenuActionEvent
 ): void {
-  console.log("dispatchMenuActionEvent", event);
   chartContainer.dispatchEvent(event);
 }
 
@@ -33,7 +33,7 @@ export const config: Config = {
         const event = new CustomEvent("toggle-indicator", {
           detail: {
             id: "volume",
-            name: "Volume",
+            name: "",
             display: DisplayType.Bottom,
             class: VolumeChart,
             visible: !chartContainer.isIndicatorVisible("volume"),
@@ -95,6 +95,12 @@ export const config: Config = {
             display: DisplayType.StackBottom,
             class: MarketIndicator,
             scale: ScaleType.Percentage,
+            gridStyle: GridStyle.PercentageOscillator,
+            oscillatorConfig: {
+              levels: [0, 30, 50, 70, 100],
+              thresholds: [30, 70],
+              format: "%d%%",
+            },
           },
           bubbles: true,
           composed: true,
@@ -118,7 +124,55 @@ export const config: Config = {
             },
             display: DisplayType.StackBottom,
             class: MarketIndicator,
+            gridStyle: GridStyle.MACD,
           },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
+      label: "Stochastic",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "stochastic",
+            name: "Stochastic",
+            visible: !chartContainer.isIndicatorVisible("stochastic"),
+            params: { period: 14, smoothK: 1, smoothD: 3 },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+            scale: ScaleType.Percentage,
+            gridStyle: GridStyle.PercentageOscillator,
+            oscillatorConfig: {
+              levels: [0, 20, 50, 80, 100],
+              thresholds: [20, 80],
+              format: "%d%%",
+            },
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
+      label: "ATR",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "atr",
+            name: "ATR 14 RMA",
+            visible: !chartContainer.isIndicatorVisible("atr"),
+            params: { period: 14 },
+            display: DisplayType.StackBottom,
+            class: MarketIndicator,
+            scale: ScaleType.Value,
+            gridStyle: GridStyle.Value,
+          },
+          bubbles: true,
+          composed: true,
         });
         dispatchMenuActionEvent(chartContainer, event);
       },

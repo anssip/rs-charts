@@ -1,4 +1,4 @@
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
 import { observe, xin } from "xinjs";
@@ -12,7 +12,7 @@ import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
-import { css } from "lit";
+import { css, html } from "lit";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -22,12 +22,22 @@ export class PriceAxis extends CanvasBase {
   private lastY = 0;
   private lastTouchDistance = 0;
   private isZooming = false;
-  private liveCandle: LiveCandle | null = null;
+
+  @state() private liveCandle: LiveCandle | null = null;
+  @state() private livePriceYPosition: number = 0;
+  @state() private isBearish: boolean = false;
+
+  @state() private mouseY: number = -1;
+  @state() private mousePrice: number = 0;
+
   private countdownInterval: number | null = null;
-  private timeLeft: string = "";
+  @state() private timeLeft: string = "";
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
+  // Track if the device is touch-only (no mouse/trackpad)
+  private isTouchOnly = window.matchMedia("(hover: none) and (pointer: coarse)")
+    .matches;
 
   constructor() {
     super();
@@ -52,6 +62,7 @@ export class PriceAxis extends CanvasBase {
     observe("state.liveCandle", (path) => {
       this.liveCandle = xin[path] as LiveCandle;
       this.currentPrice = this.liveCandle.close;
+      this.isBearish = this.liveCandle.close < this.liveCandle.open;
       this.startCountdown();
       this.draw();
     });
@@ -60,6 +71,28 @@ export class PriceAxis extends CanvasBase {
       this.draw();
     });
   }
+
+  // Track mouse movements at the document level
+  private handleDocumentMouseMove = (e: MouseEvent) => {
+    if (!this.isConnected) return;
+
+    // Get our component's position
+    const rect = this.getBoundingClientRect();
+
+    // Calculate relative Y position within our component
+    this.mouseY = e.clientY - rect.top;
+
+    // Convert Y position to price
+    const percentage = 1 - this.mouseY / rect.height;
+    this.mousePrice = this.priceRange.min + percentage * this.priceRange.range;
+
+    this.requestUpdate();
+  };
+
+  private handleDocumentMouseOut = () => {
+    this.mouseY = -1;
+    this.requestUpdate();
+  };
 
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -70,6 +103,9 @@ export class PriceAxis extends CanvasBase {
       "change",
       this.handleMobileChange
     );
+
+    document.removeEventListener("mousemove", this.handleDocumentMouseMove);
+    document.removeEventListener("mouseout", this.handleDocumentMouseOut);
   }
 
   useResizeObserver(): boolean {
@@ -126,65 +162,22 @@ export class PriceAxis extends CanvasBase {
         ctx.fillText(priceText, labelWidth / 2, y);
       }
     }
-    this.drawLivePriceLabel(ctx, priceY);
-  }
 
-  drawLivePriceLabel(
-    ctx: CanvasRenderingContext2D,
-    priceY: (price: number) => number
-  ) {
-    if (!this.liveCandle) return;
-
-    const isBearish = this.liveCandle.close < this.liveCandle.open;
-    const priceColor = isBearish
-      ? getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-error")
-          .trim()
-      : getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-accent-1")
-          .trim();
-
-    const textColor = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-accent-2")
-      .trim();
-
-    const priceYPos = priceY(this.currentPrice);
-    const labelWidth = this.isMobile ? PRICEAXIS_MOBILE_WIDTH : PRICEAXIS_WIDTH;
-    const labelHeight = 30;
-
-    // Draw background with rounded corners
-    const cornerRadius = 4;
-    ctx.beginPath();
-    ctx.roundRect(
-      0,
-      priceYPos - labelHeight / 2,
-      labelWidth,
-      labelHeight,
-      cornerRadius
-    );
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-primary-dark")
-      .trim();
-    ctx.fill();
-
-    // Draw border with rounded corners
-    ctx.strokeStyle = priceColor;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Draw price text
-    ctx.fillStyle = textColor;
-    ctx.fillText(formatPrice(this.currentPrice), labelWidth / 2, priceYPos - 6);
-
-    // Draw time text
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--color-background-secondary")
-      .trim();
-    ctx.fillText(this.timeLeft, labelWidth / 2, priceYPos + 6);
+    // Update live price position for HTML label
+    if (this.liveCandle) {
+      this.livePriceYPosition = priceY(this.currentPrice);
+      this.isBearish = this.liveCandle.close < this.liveCandle.open;
+      this.requestUpdate();
+    }
   }
 
   override bindEventListeners(canvas: HTMLCanvasElement) {
-    // Mouse events
+    // Add a document-level mouse move listener to track mouse position
+    // even when it's outside our component
+    document.addEventListener("mousemove", this.handleDocumentMouseMove);
+    document.addEventListener("mouseout", this.handleDocumentMouseOut);
+
+    // Mouse events for drag/zoom functionality
     canvas.addEventListener("mousedown", this.handleDragStart);
     canvas.addEventListener("mousemove", this.handleDragMove);
     canvas.addEventListener("mouseup", this.handleDragEnd);
@@ -203,6 +196,7 @@ export class PriceAxis extends CanvasBase {
     this.lastY = e.clientY;
   };
 
+  // Call this when dragging
   private handleDragMove = (e: MouseEvent) => {
     if (!this.isDragging) return;
     const deltaY = e.clientY - this.lastY;
@@ -291,13 +285,16 @@ export class PriceAxis extends CanvasBase {
       );
     }
 
-    if (!this.ctx || !this.canvas) return;
+    if (!this.canvas) return;
 
     const priceY = priceToY(this.canvas.height, {
       start: this.priceRange.min,
       end: this.priceRange.max,
     });
-    this.drawLivePriceLabel(this.ctx, priceY);
+
+    // Update position for HTML label
+    this.livePriceYPosition = priceY(this.currentPrice);
+    this.requestUpdate();
   }
 
   private startCountdown() {
@@ -362,17 +359,118 @@ export class PriceAxis extends CanvasBase {
     this.isZooming = false;
   };
 
+  render() {
+    // No need for inline handlers anymore - we use document events
+    return html`
+      <div class="container">
+        <canvas></canvas>
+        ${this.liveCandle ? this.renderLivePriceLabel() : ""}
+        ${this.mouseY > 0 && !this.isTouchOnly
+          ? html`
+              <div
+                class="mouse-price-label"
+                style="top: ${this.mouseY - 10}px; left: 0;"
+              >
+                <div class="price">${formatPrice(this.mousePrice)}</div>
+              </div>
+            `
+          : ""}
+      </div>
+    `;
+  }
+
+  renderLivePriceLabel() {
+    const priceColor = this.isBearish
+      ? "var(--color-error)"
+      : "var(--color-accent-1)";
+
+    const textColor = "var(--color-accent-2)";
+    const timeColor = "var(--color-background-secondary)";
+
+    const labelHeight = 30;
+    const top = `${this.livePriceYPosition - labelHeight / 2}px`;
+
+    return html`
+      <div
+        class="live-price-label"
+        style="
+          top: ${top}; 
+          border-color: ${priceColor};
+        "
+      >
+        <div class="price" style="color: ${textColor}">
+          ${formatPrice(this.currentPrice)}
+        </div>
+        <div class="time" style="color: ${timeColor}">${this.timeLeft}</div>
+      </div>
+    `;
+  }
+
   static styles = css`
     :host {
       display: block;
       width: 100%;
       height: 100%;
+      position: relative;
+      pointer-events: auto;
+    }
+
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      pointer-events: auto;
     }
 
     canvas {
       width: 100%;
       height: 100%;
       display: block;
+      pointer-events: auto;
+    }
+
+    .live-price-label {
+      position: absolute;
+      width: 97%;
+      height: 30px;
+      background-color: var(--color-primary-dark);
+      border: 1px solid;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+      margin-right: 2px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .mouse-price-label {
+      position: absolute;
+      width: 94%;
+      height: 20px;
+      background-color: #222;
+      border: 1px solid var(--color-primary);
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1;
+      margin-right: 2px;
+      z-index: 1000;
+      color: white;
+      pointer-events: none;
+      box-shadow: 0 0 5px var(--color-primary);
+    }
+
+    .price {
+      font-weight: bold;
     }
   `;
 }
