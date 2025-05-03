@@ -1,22 +1,18 @@
-import { elements, xinProxy } from "xinjs";
+import { elements } from "xinjs";
 import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
-import { App } from "./app";
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { PriceRangeImpl } from "./util/price-range";
-import {
-  Granularity,
-  PriceHistory,
-  PriceRange,
-  SimplePriceHistory,
-  TimeRange,
-} from "../server/services/price-data/price-history-model";
-import { LiveCandle } from "./api/live-candle-subscription";
 import { ChartContainer } from "./components/chart/chart-container";
 import { IndicatorConfig } from "./components/chart/indicators/indicator-types";
 import { logger, setProductionLogging } from "./util/logger";
+import { initChart } from "./init";
+import {
+  PriceRange,
+  PriceHistory,
+  TimeRange,
+  Granularity,
+} from "../server/services/price-data/price-history-model";
+import { LiveCandle } from "./api/live-candle-subscription";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -31,29 +27,8 @@ export type ChartState = {
   indicators?: IndicatorConfig[];
 };
 
-const chartState: ChartState = {
-  priceRange: new PriceRangeImpl(0, 100),
-  priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
-  timeRange: { start: 0, end: 0 },
-  liveCandle: null,
-  canvasWidth: 0,
-  canvasHeight: 0,
-  symbol: "BTC-USD",
-  granularity: "ONE_HOUR",
-  loading: false,
-  indicators: [],
-};
-
-const { state } = xinProxy(
-  {
-    state: chartState,
-  },
-  true
-);
-
 declare global {
   interface Window {
-    app: typeof chartState;
     spotcanvas?: {
       setProductionMode: (isProduction: boolean) => void;
       log: (level: string, message: string, ...args: any[]) => void;
@@ -61,7 +36,6 @@ declare global {
   }
 }
 
-// Initialize logger settings
 if (process.env.NODE_ENV === "production") {
   setProductionLogging();
   logger.info("Running in production mode - minimal logging enabled");
@@ -69,7 +43,6 @@ if (process.env.NODE_ENV === "production") {
   logger.info("Running in development mode - verbose logging enabled");
 }
 
-// Make logger settings available globally
 window.spotcanvas = {
   setProductionMode: (isProduction) => {
     if (isProduction) {
@@ -99,75 +72,81 @@ window.spotcanvas = {
   },
 };
 
-window.app = state;
-
 const firebaseConfig = {
   projectId: "spotcanvas-prod",
-  apiKey: "AIzaSyB6H5Fy06K_iiOjpJdU9xaR57Kia31ribM",
+  apiKey: "YOUR_API_KEY",
   authDomain: "spotcanvas-prod.firebaseapp.com",
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const firestore = getFirestore(firebaseApp);
-
 window.addEventListener("DOMContentLoaded", () => {
-  const chartApp = new App(firestore, state);
-  logger.info("Chart application initialized");
+  const parentContainer = document.querySelector(
+    ".chart-container",
+  ) as HTMLElement;
+  if (!parentContainer) {
+    logger.error(
+      "Chart container parent element (.chart-container) not found in the DOM.",
+    );
+    return;
+  }
 
-  window.addEventListener("pagehide", () => {
-    chartApp.cleanup();
-    logger.debug("Application cleanup triggered on page hide");
-  });
+  const chartContainerElement: ChartContainer = elements.chartContainer();
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") {
-      chartApp.cleanup();
-      logger.debug(
-        "Application cleanup triggered on visibility change to hidden"
-      );
-    }
-    if (document.visibilityState === "visible") {
-      chartApp.fetchGaps();
-      logger.debug("Fetching data gaps on visibility change to visible");
-    }
-  });
-});
+  if (parentContainer.hasAttribute("data-spotcanvas-require-activation")) {
+    chartContainerElement.setAttribute("require-activation", "");
+  }
 
-const container = document.querySelector(".chart-container") as HTMLElement;
-const existingChart = container?.querySelector(
-  "chart-container"
-) as ChartContainer;
+  parentContainer.innerHTML = "";
+  parentContainer.append(chartContainerElement);
+  logger.info("Chart container element created and appended.");
 
-if (container) {
-  // Set chart height from computed style and observe changes
+  initChart(chartContainerElement, firebaseConfig);
+  logger.info("Chart application started via initChart.");
+
   const updateChartHeight = () => {
-    const computedStyle = getComputedStyle(container);
-    container.style.setProperty(
+    const computedStyle = getComputedStyle(parentContainer);
+    parentContainer.style.setProperty(
       "--spotcanvas-chart-height",
-      computedStyle.height
+      computedStyle.height,
     );
   };
-
-  // Initial height set
   updateChartHeight();
-
-  // Observe container size changes
   const resizeObserver = new ResizeObserver(updateChartHeight);
-  resizeObserver.observe(container);
+  resizeObserver.observe(parentContainer);
 
-  if (!existingChart) {
-    const chartContainerElement: ChartContainer = elements.chartContainer();
-    if (container.hasAttribute("data-spotcanvas-require-activation")) {
-      chartContainerElement.setAttribute("require-activation", "");
-    }
-    chartContainerElement.state = state;
-    container.append(chartContainerElement);
-    logger.info("New chart container created and appended");
+  const popup = document.querySelector(".upgrade-popup") as HTMLElement | null;
+  const backdrop = document.querySelector(
+    ".upgrade-backdrop",
+  ) as HTMLElement | null;
+  const upgradeButton = document.querySelector(
+    ".upgrade-button",
+  ) as HTMLElement | null;
+
+  if (popup && backdrop && upgradeButton) {
+    const hidePopup = () => {
+      popup.classList.remove("show");
+      backdrop.classList.remove("show");
+    };
+    const showPopup = () => {
+      popup.classList.add("show");
+      backdrop.classList.add("show");
+    };
+
+    chartContainerElement.addEventListener("spotcanvas-upgrade", () => {
+      logger.debug("Received spotcanvas-upgrade event, showing popup.");
+      showPopup();
+    });
+
+    backdrop.addEventListener("click", hidePopup);
+    upgradeButton.addEventListener("click", () => {
+      hidePopup();
+      if (window.spotcanvas?.log) {
+        window.spotcanvas.log("info", "Upgrade clicked");
+      } else {
+        console.log("Upgrade clicked");
+      }
+    });
+    logger.info("Upgrade popup listeners initialized.");
   } else {
-    if (container.hasAttribute("data-spotcanvas-require-activation")) {
-      existingChart.setAttribute("require-activation", "");
-    }
-    existingChart.state = state;
-    logger.info("Using existing chart container");
+    logger.error("Upgrade popup elements not found in the DOM.");
   }
-}
+});

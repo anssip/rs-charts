@@ -89,40 +89,6 @@
         <div class="upgrade-popup-text">Upgrade to enable all features</div>
         <button class="upgrade-button">Upgrade</button>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const popup = document.querySelector('.upgrade-popup');
-            const backdrop = document.querySelector('.upgrade-backdrop');
-            const upgradeButton = document.querySelector('.upgrade-button');
-            const chartContainer = document.querySelector('chart-container');
-
-            function hidePopup() {
-                popup.classList.remove('show');
-                backdrop.classList.remove('show');
-            }
-
-            function showPopup() {
-                popup.classList.add('show');
-                backdrop.classList.add('show');
-            }
-
-            chartContainer.addEventListener('spotcanvas-upgrade', () => {
-                showPopup();
-            });
-
-            backdrop.addEventListener('click', hidePopup);
-            upgradeButton.addEventListener('click', () => {
-                hidePopup();
-                // Add actual upgrade logic here
-                if (window.spotcanvas?.log) {
-                    window.spotcanvas.log('info', 'Upgrade clicked');
-                } else {
-                    console.log('Upgrade clicked');
-                }
-            });
-        });
-    </script>
 </body>
 
 </html>
