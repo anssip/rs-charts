@@ -13,6 +13,7 @@ import {
   Granularity,
 } from "../server/services/price-data/price-history-model";
 import { LiveCandle } from "./api/live-candle-subscription";
+import { initializeApp } from "firebase/app";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -99,7 +100,8 @@ window.addEventListener("DOMContentLoaded", () => {
   parentContainer.append(chartContainerElement);
   logger.info("Chart container element created and appended.");
 
-  initChart(chartContainerElement, firebaseConfig);
+  const firebaseApp = initializeApp(firebaseConfig);
+  initChart(chartContainerElement, firebaseApp);
   logger.info("Chart application started via initChart.");
 
   const updateChartHeight = () => {

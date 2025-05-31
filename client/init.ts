@@ -1,5 +1,5 @@
 // client/init.ts
-import { initializeApp, FirebaseOptions } from "firebase/app";
+import { FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { App } from "./app";
 import { ChartState } from "."; // Assuming ChartState is defined in index.ts or similar
@@ -24,24 +24,24 @@ const createInitialChartState = (): ChartState => ({
 });
 
 /**
- * Initializes Firebase, creates the application state proxy,
- * instantiates the main App controller, and returns the App instance.
+ * Initializes the chart application with a Firebase app instance,
+ * creates the application state proxy, instantiates the main App controller,
+ * and returns the App instance.
  *
  * @param chartContainerElement The chart-container DOM element.
- * @param firebaseConfig Firebase configuration options.
+ * @param firebaseApp Firebase app instance.
  * @param initialState Optional initial state override.
  * @returns The initialized App instance.
  */
 export function initChart(
   chartContainerElement: ChartContainer, // Add chart element parameter
-  firebaseConfig: FirebaseOptions,
+  firebaseApp: FirebaseApp,
   initialState?: Partial<ChartState>,
 ): App {
   logger.info("Initializing SpotCanvas Chart App...");
 
-  const firebaseApp = initializeApp(firebaseConfig);
   const firestore = getFirestore(firebaseApp);
-  logger.debug("Firebase initialized.");
+  logger.debug("Firebase firestore initialized.");
 
   // Create the reactive state
   const initialChartState = {
