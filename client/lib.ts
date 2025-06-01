@@ -24,3 +24,8 @@ export { App } from "./app";
 // You might want to export related types if consumers need them
 export type { ChartState } from "./index"; // Export ChartState type as well
 // Consider defining shared types in a separate file if needed.
+
+// Helper function to create chart container instances
+export function createChartContainer() {
+  return document.createElement("chart-container");
+}

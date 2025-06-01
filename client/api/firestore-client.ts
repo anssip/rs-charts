@@ -1,4 +1,5 @@
 import { Firestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 
 export type Exchange = "coinbase";
 
@@ -41,14 +42,14 @@ export class FirestoreClient {
   async getProducts(
     exchange: Exchange,
     status: ProductStatus,
-    symbols: string[] = []
+    symbols: string[] = [],
   ): Promise<CoinbaseProduct[]> {
     try {
+      const workingFirestore = getFirestore(this.firestore.app);
       const exchangesDoc = await getDoc(
-        doc(this.firestore, "trading_pairs/exchanges")
+        doc(workingFirestore, "trading_pairs/exchanges"),
       );
       if (!exchangesDoc.exists()) {
-        console.error("Exchanges document not found");
         return [];
       }
       const data = exchangesDoc.data();
@@ -57,7 +58,7 @@ export class FirestoreClient {
       return (Object.entries(productsMap) as [string, DbProduct][])
         .filter(([_, product]) => product.status === status)
         .filter(
-          ([productId]) => symbols.length === 0 || symbols.includes(productId)
+          ([productId]) => symbols.length === 0 || symbols.includes(productId),
         )
         .map(([productId, product]) => ({
           id: productId,

@@ -37,11 +37,11 @@ export function initChart(
   chartContainerElement: ChartContainer, // Add chart element parameter
   firebaseApp: FirebaseApp,
   initialState?: Partial<ChartState>,
+  firestoreInstance?: Firestore,
 ): App {
   logger.info("Initializing SpotCanvas Chart App...");
 
-  const firestore = getFirestore(firebaseApp);
-  logger.debug("Firebase firestore initialized.");
+  const firestore = firestoreInstance || getFirestore(firebaseApp);
 
   // Create the reactive state
   const initialChartState = {

@@ -74,9 +74,12 @@ window.spotcanvas = {
 };
 
 const firebaseConfig = {
-  projectId: "spotcanvas-prod",
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyDkDBUUnxUqV3YZBm9GOrkcULZjBT4azyc",
   authDomain: "spotcanvas-prod.firebaseapp.com",
+  projectId: "spotcanvas-prod",
+  storageBucket: "spotcanvas-prod.firebasestorage.app",
+  messagingSenderId: "346028322665",
+  appId: "1:346028322665:web:f278b8364243d165f8d7f8",
 };
 
 window.addEventListener("DOMContentLoaded", () => {
