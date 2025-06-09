@@ -156,12 +156,19 @@ export class Timeline extends CanvasBase {
 
   private handleWheel = (e: WheelEvent) => {
     e.preventDefault(); // Prevent page scrolling
+    console.log("Timeline: Wheel event", { deltaX: e.deltaX, deltaY: e.deltaY });
     const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
     const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     this.dispatchZoom(delta, e.clientX, isTrackpad);
   };
 
   private dispatchZoom(deltaX: number, clientX: number, isTrackpad: boolean) {
+    console.log("Timeline: Dispatching timeline-zoom event", {
+      deltaX,
+      clientX,
+      isTrackpad,
+      chartId: this._chartId
+    });
     this.dispatchEvent(
       new CustomEvent("timeline-zoom", {
         detail: {

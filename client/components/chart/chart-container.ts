@@ -910,7 +910,7 @@ export class ChartContainer extends LitElement {
 
     this.interactionController = new ChartInteractionController({
       chart: this.chart,
-      container: this.renderRoot.querySelector(".chart-area") as HTMLElement,
+      container: this as HTMLElement,
       state: this._state,
       onStateChange: (updates) => {
         this._state = Object.assign(this._state, updates);
