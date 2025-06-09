@@ -4,7 +4,7 @@ const INDICATOR_HEIGHT = 150; // Height per stacked indicator
 
 export const getStyles = (
   priceAxisWidth: number,
-  timelineHeight: number
+  timelineHeight: number,
 ) => css`
   :host {
     display: block;
