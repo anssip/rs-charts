@@ -27,14 +27,15 @@ export class LiveCandleSubscription {
   private _currentCallback: ((candle: LiveCandle) => void) | null = null;
   private readonly TIMEOUT_MS = 30000; // 30 seconds
   private _lastCheckTime: number = Date.now();
+  private _boundVisibilityHandler: (() => void) | null = null;
 
   constructor(private firestore: Firestore) {
+    // Create a bound reference to the visibility handler for proper cleanup
+    this._boundVisibilityHandler = this.handleVisibilityChange.bind(this);
+    
     // Add visibility change listener to detect when the page becomes visible again
     if (typeof document !== "undefined") {
-      document.addEventListener(
-        "visibilitychange",
-        this.handleVisibilityChange.bind(this)
-      );
+      document.addEventListener("visibilitychange", this._boundVisibilityHandler);
     }
   }
 
@@ -133,16 +134,30 @@ export class LiveCandleSubscription {
       this._unsubscribe = null;
     }
     this.stopMonitoring();
+    
+    // Reset current subscription state but keep it available for reconnection
     // this._currentSymbol = null;
     // this._currentGranularity = null;
     // this._currentCallback = null;
+  }
 
-    // Remove visibility change listener
-    if (typeof document !== "undefined") {
-      document.removeEventListener(
-        "visibilitychange",
-        this.handleVisibilityChange.bind(this)
-      );
+  /**
+   * Completely dispose of the subscription and clean up all resources.
+   * Call this when the chart instance is being destroyed.
+   */
+  dispose(): void {
+    // First unsubscribe from current subscription
+    this.unsubscribe();
+    
+    // Clear all state to prevent reconnection
+    this._currentSymbol = null;
+    this._currentGranularity = null;
+    this._currentCallback = null;
+
+    // Remove visibility change listener using the bound reference
+    if (typeof document !== "undefined" && this._boundVisibilityHandler) {
+      document.removeEventListener("visibilitychange", this._boundVisibilityHandler);
+      this._boundVisibilityHandler = null;
     }
   }
 }

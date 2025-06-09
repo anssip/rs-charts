@@ -9,6 +9,7 @@ import {
 import { xin } from "xinjs";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
 import "./price-axis";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
@@ -39,6 +40,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
   private _state: ChartState | null = null;
+  private _chartId: string = "state";
   private _padding: {
     top: number;
     right: number;
@@ -112,13 +114,42 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   override async firstUpdated() {
     await super.firstUpdated();
 
+    // Initialize state management
     await new Promise((resolve) => setTimeout(resolve, 0));
+    this.initializeState();
+    
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
         bubbles: true,
         composed: true,
       })
     );
+  }
+
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    // Initialize state with actual data
+    this._state = xin[this._chartId] as ChartState;
+    
+    // Set up observers for state changes
+    observeLocal(this, "state", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.priceHistory", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.timeRange", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.priceRange", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
   }
 
   public drawWithContext(context: DrawingContext) {
@@ -132,9 +163,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   override draw() {
     if (!this._state) {
-      this._state = xin["state"] as ChartState;
+      this._state = xin[this._chartId] as ChartState;
     }
-    if (!this.ctx || !this.canvas) {
+    if (!this.ctx || !this.canvas || !this._state) {
       return;
     }
     const context: DrawingContext = {

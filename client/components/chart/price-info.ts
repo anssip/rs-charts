@@ -97,13 +97,13 @@ export class PriceInfo extends LitElement {
 
     // Set up observers
     observeLocal(this, "state.liveCandle", () => {
-      this.liveCandle = xinValue(xin[`${this._chartId}.liveCandle`]) as LiveCandle;
+      this.liveCandle = xin[`${this._chartId}.liveCandle`] as LiveCandle;
     });
     observeLocal(this, "state.granularity", () => {
-      this.granularity = xinValue(xin[`${this._chartId}.granularity`]) as Granularity;
+      this.granularity = xin[`${this._chartId}.granularity`] as Granularity;
     });
     observeLocal(this, "state.symbol", () => {
-      this.symbol = xinValue(xin[`${this._chartId}.symbol`]) as string;
+      this.symbol = xin[`${this._chartId}.symbol`] as string;
     });
     observeLocal(this, "state", () => {
       this._state = xin[this._chartId] as ChartState;
