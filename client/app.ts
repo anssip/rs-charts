@@ -19,6 +19,7 @@ import { getCandleInterval } from "./util/chart-util";
 import { config } from "./config";
 import { CandleRepository } from "./api/candle-repository";
 import { getLogger, LogLevel } from "./util/logger";
+import { getLocalChartId } from "./util/state-context";
 
 const logger = getLogger("App");
 logger.setLoggerLevel("App", LogLevel.DEBUG);
@@ -33,6 +34,7 @@ export class App {
   private isInitializing = true;
   private observersInitialized = false;
   private chartReadyHandled = false;
+  private _chartId: string = "state";
 
   constructor(
     chartContainerElement: ChartContainer,
@@ -52,6 +54,9 @@ export class App {
       );
       return;
     }
+
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this.chartContainer);
 
     this.initialize();
     this.setupObservers();
@@ -78,13 +83,13 @@ export class App {
   private setupObservers() {
     if (this.observersInitialized) return;
 
-    observe("state.symbol", (_) => {
+    observe(`${this._chartId}.symbol`, (_) => {
       if (!this.isInitializing) this.refetchData();
     });
-    observe("state.granularity", (_) => {
+    observe(`${this._chartId}.granularity`, (_) => {
       if (!this.isInitializing) this.refetchData();
     });
-    observe("state.indicators", (_) => {
+    observe(`${this._chartId}.indicators`, (_) => {
       if (!this.isInitializing) {
         if (!this.hasIndicatorData()) {
           this.refetchData();
@@ -193,15 +198,15 @@ export class App {
       const products = await this.firestoreClient.getMinimalProducts();
       this.chartContainer!.products = products;
     }
-    observe("state.symbol", (_) => {
+    observe(`${this._chartId}.symbol`, (_) => {
       this.refetchData();
     });
-    observe("state.granularity", (_) => {
+    observe(`${this._chartId}.granularity`, (_) => {
       // TODO: we need to fetch the data when we have both granularity and time range
       // TODO: combine these in the state
       this.refetchData();
     });
-    observe("state.indicators", (_) => {
+    observe(`${this._chartId}.indicators`, (_) => {
       // Check if we need to refetch by checking if all active indicators have evaluations
       const activeIndicators = xinValue(this.state.indicators) || [];
       const visibleCandles = this.state.priceHistory.getCandlesInRange(

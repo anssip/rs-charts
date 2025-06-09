@@ -13,6 +13,8 @@ import { priceToY } from "../../util/chart-util";
 import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
 import { css, html } from "lit";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
+import { logger } from "../../util/logger";
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -32,6 +34,7 @@ export class PriceAxis extends CanvasBase {
 
   private countdownInterval: number | null = null;
   @state() private timeLeft: string = "";
+  private _chartId: string = "state";
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
@@ -57,24 +60,60 @@ export class PriceAxis extends CanvasBase {
   firstUpdated() {
     super.firstUpdated();
 
-    this.priceRange = xin["state.priceRange"] as PriceRange;
+    // Initialize with safe defaults
+    this.priceRange = new PriceRangeImpl(0, 100);
+    this.currentPrice = 0;
+    this.liveCandle = null;
 
-    observe("state.liveCandle", (path) => {
-      this.liveCandle = xin[path] as LiveCandle;
-      this.currentPrice = this.liveCandle.close;
-      this.isBearish = this.liveCandle.close < this.liveCandle.open;
-      this.startCountdown();
-      this.draw();
+    // Defer state initialization until component is properly connected
+    requestAnimationFrame(() => {
+      this.initializeState();
     });
-    observe("state.priceRange", (path) => {
-      this.priceRange = xin[path] as PriceRange;
+  }
+
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    console.log("PriceAxis: Got chart ID:", this._chartId);
+    console.log("PriceAxis: Available xin keys:", Object.keys(xin));
+    
+    // Initialize state with actual data
+    const stateData = xin[this._chartId] as ChartState;
+    console.log("PriceAxis: State data:", stateData);
+    if (stateData && typeof stateData === 'object') {
+      this.priceRange = stateData.priceRange || new PriceRangeImpl(0, 100);
+      this.liveCandle = stateData.liveCandle || null;
+      console.log("PriceAxis: Initialized priceRange:", this.priceRange);
+      if (this.liveCandle) {
+        this.currentPrice = this.liveCandle.close;
+        this.isBearish = this.liveCandle.close < this.liveCandle.open;
+      }
+    }
+
+    // Set up observers
+    console.log("PriceAxis: Setting up observers for chart:", this._chartId);
+    observeLocal(this, "state.liveCandle", () => {
+      console.log("PriceAxis: liveCandle observer triggered");
+      this.liveCandle = xin[`${this._chartId}.liveCandle`] as LiveCandle;
+      if (this.liveCandle) {
+        this.currentPrice = this.liveCandle.close;
+        this.isBearish = this.liveCandle.close < this.liveCandle.open;
+        this.startCountdown();
+        this.draw();
+      }
+    });
+    observeLocal(this, "state.priceRange", () => {
+      console.log("PriceAxis: priceRange observer triggered");
+      const newPriceRange = xin[`${this._chartId}.priceRange`] as PriceRange;
+      console.log("PriceAxis: New price range:", newPriceRange);
+      this.priceRange = newPriceRange;
       this.draw();
     });
   }
 
   // Track mouse movements at the document level
   private handleDocumentMouseMove = (e: MouseEvent) => {
-    if (!this.isConnected) return;
+    if (!this.isConnected || !this.priceRange) return;
 
     // Get our component's position
     const rect = this.getBoundingClientRect();
@@ -101,7 +140,7 @@ export class PriceAxis extends CanvasBase {
     }
     this.mobileMediaQuery.removeEventListener(
       "change",
-      this.handleMobileChange
+      this.handleMobileChange,
     );
 
     document.removeEventListener("mousemove", this.handleDocumentMouseMove);
@@ -113,7 +152,7 @@ export class PriceAxis extends CanvasBase {
   }
 
   override draw(): void {
-    if (!this.canvas || !this.ctx) return;
+    if (!this.canvas || !this.ctx || !this.priceRange) return;
 
     const dpr = window.devicePixelRatio ?? 1;
     const ctx = this.ctx;
@@ -220,7 +259,7 @@ export class PriceAxis extends CanvasBase {
         },
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   }
 
@@ -235,7 +274,7 @@ export class PriceAxis extends CanvasBase {
     const seconds = totalSeconds % 60;
 
     const granularityMs = granularityToMs(
-      xin["state.granularity"] as Granularity
+      xin[`${this._chartId}.granularity`] as Granularity,
     );
     const showHours = granularityMs >= 24 * 60 * 60 * 1000;
 
@@ -251,11 +290,11 @@ export class PriceAxis extends CanvasBase {
   }
 
   private updateCountdown() {
-    if (!this.liveCandle) return;
+    if (!this.liveCandle || !this.priceRange) return;
 
     const now = Date.now();
     const granularityMs = granularityToMs(
-      xin["state.granularity"] as Granularity
+      xin[`${this._chartId}.granularity`] as Granularity,
     );
 
     // Calculate the start of the current candle period
@@ -268,21 +307,23 @@ export class PriceAxis extends CanvasBase {
     this.timeLeft = this.formatTimeLeft(msLeft);
 
     if (msLeft <= 1000) {
-      const state = xin["state"] as ChartState;
-      // dispatch event to fetch new candle
-      this.dispatchEvent(
-        new CustomEvent("fetch-next-candle", {
-          detail: {
-            granularity: state.granularity,
-            timeRange: {
-              start: state.timeRange.end + 1000,
-              end: state.timeRange.end + granularityMs * 2,
+      const state = xin[this._chartId] as ChartState;
+      if (state && state.timeRange) {
+        // dispatch event to fetch new candle
+        this.dispatchEvent(
+          new CustomEvent("fetch-next-candle", {
+            detail: {
+              granularity: state.granularity,
+              timeRange: {
+                start: state.timeRange.end + 1000,
+                end: state.timeRange.end + granularityMs * 2,
+              },
             },
-          },
-          bubbles: true,
-          composed: true,
-        })
-      );
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      }
     }
 
     if (!this.canvas) return;
@@ -304,7 +345,7 @@ export class PriceAxis extends CanvasBase {
     this.updateCountdown();
     this.countdownInterval = window.setInterval(
       () => this.updateCountdown(),
-      1000
+      1000,
     );
   }
 
@@ -317,7 +358,7 @@ export class PriceAxis extends CanvasBase {
       this.isZooming = true;
       this.lastTouchDistance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+        e.touches[0].clientY - e.touches[1].clientY,
       );
     } else if (e.touches.length === 1) {
       // Single touch for dragging
@@ -333,7 +374,7 @@ export class PriceAxis extends CanvasBase {
       // Handle pinch-to-zoom
       const currentDistance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+        e.touches[0].clientY - e.touches[1].clientY,
       );
 
       const deltaDistance = currentDistance - this.lastTouchDistance;
@@ -394,7 +435,7 @@ export class PriceAxis extends CanvasBase {
       <div
         class="live-price-label"
         style="
-          top: ${top}; 
+          top: ${top};
           border-color: ${priceColor};
         "
       >

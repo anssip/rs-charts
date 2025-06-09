@@ -84,12 +84,12 @@ export class CandlestickStrategy implements Drawable {
         if (!candle) return;
 
         if (
-          `${candle.granularity}` !== `${xin["state.granularity"] as string}`
+          `${candle.granularity}` !== `${data.getGranularity()}`
         ) {
           throw new Error(
             `CandlestickStrategy: Candle granularity does not match state granularity: ${
               candle.granularity
-            } !== ${xin["state.granularity"] as string}`
+            } !== ${data.getGranularity()}`
           );
         }
 

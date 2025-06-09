@@ -6,9 +6,10 @@ import {
   iterateTimeline,
   getTimelineMarks,
 } from "../../util/chart-util";
-import { observe, xin } from "xinjs";
+import { xin } from "xinjs";
 import { TimeRange } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
 
 const dpr = window.devicePixelRatio ?? 1;
 
@@ -20,6 +21,7 @@ export class Timeline extends CanvasBase {
   private isZooming = false;
   private timeRange: TimeRange = { start: 0, end: 0 };
   private animationFrameId: number | null = null;
+  private _chartId: string = "state";
 
   override getId(): string {
     return "chart-timeline";
@@ -32,14 +34,37 @@ export class Timeline extends CanvasBase {
   connectedCallback() {
     super.connectedCallback();
 
-    observe("state.timeRange", (path) => {
-      this.timeRange = xin[path] as TimeRange;
-      this.draw();
+    // Initialize with safe defaults
+    this.timeRange = { start: 0, end: 0 };
+    
+    // Defer state initialization until component is properly connected
+    requestAnimationFrame(() => {
+      this.initializeState();
+    });
+  }
+
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    // Initialize timeRange with actual state data
+    const stateData = xin[this._chartId] as ChartState;
+    if (stateData?.timeRange) {
+      this.timeRange = stateData.timeRange;
+    }
+
+    // Set up observers
+    observeLocal(this, "state.timeRange", () => {
+      const stateData = xin[this._chartId] as ChartState;
+      if (stateData?.timeRange) {
+        this.timeRange = stateData.timeRange;
+        this.draw();
+      }
     });
   }
 
   draw() {
-    if (!this.canvas || !this.ctx) {
+    if (!this.canvas || !this.ctx || !this.timeRange) {
       return;
     }
 
@@ -48,13 +73,13 @@ export class Timeline extends CanvasBase {
       cancelAnimationFrame(this.animationFrameId);
     }
 
-    // Schedule the actual drawing
     this.animationFrameId = requestAnimationFrame(() => {
       const viewportStartTimestamp = this.timeRange.start;
       const viewportEndTimestamp = this.timeRange.end;
       const canvasWidth = this.canvas!.width / dpr;
 
-      const state = xin["state"] as ChartState;
+      const state = xin[this._chartId] as ChartState;
+      if (!state) return;
 
       const ctx = this.ctx!;
       ctx.clearRect(0, 0, this.canvas!.width, this.canvas!.height);

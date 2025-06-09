@@ -2,6 +2,7 @@ import { html, LitElement, css } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
 import { observe, xinValue } from "xinjs";
 import { xin } from "xinjs";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { formatPrice } from "../../util/price-util";
 import {
@@ -37,8 +38,7 @@ export class PriceInfo extends LitElement {
   showVolume = false;
 
   @property({ type: String })
-  granularity: Granularity = (xin["state.granularity"] ??
-    "ONE_HOUR") as Granularity;
+  granularity: Granularity = "ONE_HOUR" as Granularity;
 
   @state()
   private liveCandle: LiveCandle | null = null;
@@ -50,7 +50,9 @@ export class PriceInfo extends LitElement {
   private granularityMenuPosition = { x: 0, y: 0 };
 
   @state()
-  private _state: ChartState = xin["state"] as ChartState;
+  private _state: ChartState | null = null;
+
+  private _chartId: string = "state";
 
   @state()
   private isMobile = false;
@@ -61,17 +63,15 @@ export class PriceInfo extends LitElement {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
   firstUpdated() {
-    observe("state.liveCandle", () => {
-      this.liveCandle = xinValue(xin["state.liveCandle"]) as LiveCandle;
-    });
-    observe("state.granularity", () => {
-      this.granularity = xinValue(xin["state.granularity"]) as Granularity;
-    });
-    observe("state.symbol", () => {
-      this.symbol = xinValue(xin["state.symbol"]) as string;
-    });
-    observe("state", () => {
-      this._state = xin["state"] as ChartState;
+    // Initialize with safe defaults
+    this.granularity = "ONE_HOUR";
+    this.symbol = "";
+    this.liveCandle = null;
+    this._state = null;
+    
+    // Defer state initialization until component is properly connected
+    requestAnimationFrame(() => {
+      this.initializeState();
     });
 
     // Add media query listener
@@ -81,6 +81,33 @@ export class PriceInfo extends LitElement {
     document.addEventListener("click", this.handleClickOutside);
     window.addEventListener("keydown", this.handleKeyPress);
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
+  }
+
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    // Initialize state with actual data
+    this._state = xin[this._chartId] as ChartState;
+    if (this._state) {
+      this.granularity = this._state.granularity || "ONE_HOUR";
+      this.symbol = this._state.symbol || "";
+      this.liveCandle = this._state.liveCandle;
+    }
+
+    // Set up observers
+    observeLocal(this, "state.liveCandle", () => {
+      this.liveCandle = xinValue(xin[`${this._chartId}.liveCandle`]) as LiveCandle;
+    });
+    observeLocal(this, "state.granularity", () => {
+      this.granularity = xinValue(xin[`${this._chartId}.granularity`]) as Granularity;
+    });
+    observeLocal(this, "state.symbol", () => {
+      this.symbol = xinValue(xin[`${this._chartId}.symbol`]) as string;
+    });
+    observeLocal(this, "state", () => {
+      this._state = xin[this._chartId] as ChartState;
+    });
   }
 
   disconnectedCallback() {
@@ -137,6 +164,7 @@ export class PriceInfo extends LitElement {
   };
 
   private handleGranularityChange(newGranularity: Granularity) {
+    if (!this._state) return;
     const currentTimeRange = this._state.timeRange;
     const candleCount = this._state.priceHistory.getCandlesInRange(
       currentTimeRange.start,
@@ -173,6 +201,7 @@ export class PriceInfo extends LitElement {
   }
 
   private handleProductChange(e: CustomEvent) {
+    if (!this._state) return;
     this._state.symbol = e.detail.product;
   }
 

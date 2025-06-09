@@ -3,7 +3,7 @@ import { FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { App } from "./app";
 import { ChartState } from "."; // Assuming ChartState is defined in index.ts or similar
-import { xinProxy } from "xinjs";
+import { xinProxy, xin } from "xinjs";
 import { PriceRangeImpl } from "./util/price-range";
 import { SimplePriceHistory } from "../server/services/price-data/price-history-model";
 import { logger } from "./util/logger";
@@ -43,18 +43,50 @@ export function initChart(
 
   const firestore = firestoreInstance || getFirestore(firebaseApp);
 
-  // Create the reactive state
+  // Create a unique chart ID for this instance
+  const chartId = `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Create the reactive state with the chart ID as namespace
   const initialChartState = {
     ...createInitialChartState(),
     ...initialState, // Allow overriding parts of the initial state
   };
-  const { state } = xinProxy({ state: initialChartState }, true);
+
+  // Use global state but namespace with chart ID
+  const stateConfig = { [chartId]: initialChartState };
+  const { [chartId]: state } = xinProxy(stateConfig, true);
+
+  // Debug logging
+  logger.info(`Created chart with ID: ${chartId}`);
+  logger.info(`Initial state symbol: ${initialChartState.symbol}`);
+  logger.info(`Initial state granularity: ${initialChartState.granularity}`);
+
   chartContainerElement.state = state;
 
+  // Store the chart ID on the container for components to access
+  (chartContainerElement as any)._chartId = chartId;
+  chartContainerElement.setAttribute('data-chart-id', chartId);
+  console.log(`initChart: Assigned chartId ${chartId} to chart container`);
+  console.log(
+    `initChart: Chart container tagName:`,
+    chartContainerElement.tagName,
+  );
+  console.log(
+    `initChart: Chart container _chartId:`,
+    (chartContainerElement as any)._chartId,
+  );
+  console.log(`initChart: All xin keys:`, Object.keys(xin));
+  console.log(`initChart: Chart state in xin[${chartId}]:`, xin[chartId]);
+
   // Make state globally accessible for potential debugging or integration
-  // Consider if this is truly needed for the library use case
   if (typeof window !== "undefined") {
-    window.app = state;
+    // Store each chart state with a unique identifier to avoid conflicts
+    if (!window.chartStates) {
+      window.chartStates = new Map();
+    }
+    window.chartStates.set(chartId, state);
+    // Store the chart ID on the element for debugging purposes
+    chartContainerElement.setAttribute("data-chart-id", chartId);
   }
 
   // Instantiate the main application controller, passing the element
@@ -83,9 +115,9 @@ export function initChart(
   return chartApp;
 }
 
-// --- Global type declaration --- needed if window.app is used
+// --- Global type declaration --- needed if window.chartStates is used
 declare global {
   interface Window {
-    app: ChartState; // Define the type for window.app
+    chartStates?: Map<string, ChartState>; // Define the type for window.chartStates
   }
 }

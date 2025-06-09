@@ -83,40 +83,68 @@ const firebaseConfig = {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  const parentContainer = document.querySelector(
-    ".chart-container",
-  ) as HTMLElement;
-  if (!parentContainer) {
-    logger.error(
-      "Chart container parent element (.chart-container) not found in the DOM.",
-    );
+  const chartContainer1 = document.querySelector("#chart-1") as HTMLElement;
+  const chartContainer2 = document.querySelector("#chart-2") as HTMLElement;
+  
+  if (!chartContainer1) {
+    logger.error("Chart container element (#chart-1) not found in the DOM.");
     return;
   }
 
-  const chartContainerElement: ChartContainer = elements.chartContainer();
-
-  if (parentContainer.hasAttribute("data-spotcanvas-require-activation")) {
-    chartContainerElement.setAttribute("require-activation", "");
+  // Initialize first chart
+  const chartContainerElement1: ChartContainer = elements.chartContainer();
+  if (chartContainer1.hasAttribute("data-spotcanvas-require-activation")) {
+    chartContainerElement1.setAttribute("require-activation", "");
   }
-
-  parentContainer.innerHTML = "";
-  parentContainer.append(chartContainerElement);
-  logger.info("Chart container element created and appended.");
+  chartContainer1.innerHTML = "";
+  chartContainer1.append(chartContainerElement1);
 
   const firebaseApp = initializeApp(firebaseConfig);
-  initChart(chartContainerElement, firebaseApp);
-  logger.info("Chart application started via initChart.");
+  
+  // Initialize first chart
+  logger.info("Initializing first chart with BTC-USD");
+  initChart(chartContainerElement1, firebaseApp, { symbol: "BTC-USD" });
+  logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
+  
+  // Initialize second chart if it exists
+  let chartContainerElement2: ChartContainer | null = null;
+  if (chartContainer2) {
+    chartContainerElement2 = elements.chartContainer();
+    if (chartContainer2.hasAttribute("data-spotcanvas-require-activation")) {
+      chartContainerElement2!.setAttribute("require-activation", "");
+    }
+    chartContainer2.innerHTML = "";
+    chartContainer2.append(chartContainerElement2!);
+    logger.info("Initializing second chart with ETH-USD");
+    initChart(chartContainerElement2!, firebaseApp, { symbol: "ETH-USD" });
+    logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
+  }
 
-  const updateChartHeight = () => {
-    const computedStyle = getComputedStyle(parentContainer);
-    parentContainer.style.setProperty(
+  logger.info(`Chart ${chartContainer2 ? 'containers' : 'container'} created and ${chartContainer2 ? 'applications' : 'application'} started.`);
+
+  const updateChartHeight = (container: HTMLElement) => {
+    const computedStyle = getComputedStyle(container);
+    container.style.setProperty(
       "--spotcanvas-chart-height",
       computedStyle.height,
     );
   };
-  updateChartHeight();
-  const resizeObserver = new ResizeObserver(updateChartHeight);
-  resizeObserver.observe(parentContainer);
+  
+  updateChartHeight(chartContainer1);
+  if (chartContainer2) {
+    updateChartHeight(chartContainer2);
+  }
+  
+  const resizeObserver = new ResizeObserver(() => {
+    updateChartHeight(chartContainer1);
+    if (chartContainer2) {
+      updateChartHeight(chartContainer2);
+    }
+  });
+  resizeObserver.observe(chartContainer1);
+  if (chartContainer2) {
+    resizeObserver.observe(chartContainer2);
+  }
 
   const popup = document.querySelector(".upgrade-popup") as HTMLElement | null;
   const backdrop = document.querySelector(
@@ -136,10 +164,18 @@ window.addEventListener("DOMContentLoaded", () => {
       backdrop.classList.add("show");
     };
 
-    chartContainerElement.addEventListener("spotcanvas-upgrade", () => {
-      logger.debug("Received spotcanvas-upgrade event, showing popup.");
+    // Listen for upgrade events from charts
+    chartContainerElement1.addEventListener("spotcanvas-upgrade", () => {
+      logger.debug("Received spotcanvas-upgrade event from chart 1, showing popup.");
       showPopup();
     });
+    
+    if (chartContainerElement2) {
+      chartContainerElement2.addEventListener("spotcanvas-upgrade", () => {
+        logger.debug("Received spotcanvas-upgrade event from chart 2, showing popup.");
+        showPopup();
+      });
+    }
 
     backdrop.addEventListener("click", hidePopup);
     upgradeButton.addEventListener("click", () => {

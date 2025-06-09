@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Isolation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #181818;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #555;
+            margin: 10px 0;
+            position: relative;
+        }
+        button {
+            background: #5d5bed;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .state-info {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chart State Isolation Test</h1>
+    
+    <div class="test-section">
+        <h2>Chart 1 (BTC-USD)</h2>
+        <div class="chart-container" id="chart-1"></div>
+        <button onclick="changeSymbol1()">Change to ETH-USD</button>
+        <button onclick="changeGranularity1()">Change to 1D</button>
+        <div class="state-info" id="state-info-1">Loading...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Chart 2 (ETH-USD)</h2>
+        <div class="chart-container" id="chart-2"></div>
+        <button onclick="changeSymbol2()">Change to BTC-USD</button>
+        <button onclick="changeGranularity2()">Change to 4H</button>
+        <div class="state-info" id="state-info-2">Loading...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Global State Debug</h2>
+        <button onclick="debugStates()">Debug All States</button>
+        <button onclick="showXinGlobal()">Show xin Global</button>
+        <div class="state-info" id="debug-info">Click debug buttons to see state information</div>
+    </div>
+
+    <script type="module">
+        import { elements } from "./dist/client/index.js";
+        
+        let chart1Container, chart2Container;
+        let chart1App, chart2App;
+
+        async function initCharts() {
+            // Mock Firebase config for testing
+            const mockFirebaseApp = {
+                name: 'test',
+                options: {}
+            };
+
+            const chartContainer1 = document.querySelector("#chart-1");
+            const chartContainer2 = document.querySelector("#chart-2");
+
+            if (!chartContainer1 || !chartContainer2) {
+                console.error("Chart containers not found");
+                return;
+            }
+
+            try {
+                // Create chart elements
+                chart1Container = elements.chartContainer();
+                chart2Container = elements.chartContainer();
+
+                // Append to DOM
+                chartContainer1.appendChild(chart1Container);
+                chartContainer2.appendChild(chart2Container);
+
+                // Import and initialize charts
+                const { initChart } = await import('./dist/client/index.js');
+                
+                chart1App = initChart(chart1Container, mockFirebaseApp, { symbol: "BTC-USD" });
+                chart2App = initChart(chart2Container, mockFirebaseApp, { symbol: "ETH-USD" });
+
+                console.log("Charts initialized");
+                console.log("Chart 1 state key:", chart1Container._stateKey);
+                console.log("Chart 2 state key:", chart2Container._stateKey);
+
+                // Set up periodic state monitoring
+                setInterval(updateStateInfo, 1000);
+            } catch (error) {
+                console.error("Error initializing charts:", error);
+                document.getElementById('debug-info').textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function updateStateInfo() {
+            try {
+                const stateInfo1 = document.getElementById('state-info-1');
+                const stateInfo2 = document.getElementById('state-info-2');
+
+                if (chart1Container && chart1Container._stateKey) {
+                    const state1 = window.xin?.[chart1Container._stateKey];
+                    if (state1) {
+                        stateInfo1.textContent = `Symbol: ${state1.symbol}, Granularity: ${state1.granularity}, State Key: ${chart1Container._stateKey}`;
+                    } else {
+                        stateInfo1.textContent = `State not found for key: ${chart1Container._stateKey}`;
+                    }
+                }
+
+                if (chart2Container && chart2Container._stateKey) {
+                    const state2 = window.xin?.[chart2Container._stateKey];
+                    if (state2) {
+                        stateInfo2.textContent = `Symbol: ${state2.symbol}, Granularity: ${state2.granularity}, State Key: ${chart2Container._stateKey}`;
+                    } else {
+                        stateInfo2.textContent = `State not found for key: ${chart2Container._stateKey}`;
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating state info:", error);
+            }
+        }
+
+        // Global functions for buttons
+        window.changeSymbol1 = function() {
+            if (chart1Container && chart1Container._stateKey && window.xin) {
+                const state = window.xin[chart1Container._stateKey];
+                if (state) {
+                    state.symbol = "ETH-USD";
+                    console.log("Changed chart 1 symbol to ETH-USD");
+                }
+            }
+        };
+
+        window.changeGranularity1 = function() {
+            if (chart1Container && chart1Container._stateKey && window.xin) {
+                const state = window.xin[chart1Container._stateKey];
+                if (state) {
+                    state.granularity = "ONE_DAY";
+                    console.log("Changed chart 1 granularity to ONE_DAY");
+                }
+            }
+        };
+
+        window.changeSymbol2 = function() {
+            if (chart2Container && chart2Container._stateKey && window.xin) {
+                const state = window.xin[chart2Container._stateKey];
+                if (state) {
+                    state.symbol = "BTC-USD";
+                    console.log("Changed chart 2 symbol to BTC-USD");
+                }
+            }
+        };
+
+        window.changeGranularity2 = function() {
+            if (chart2Container && chart2Container._stateKey && window.xin) {
+                const state = window.xin[chart2Container._stateKey];
+                if (state) {
+                    state.granularity = "FOUR_HOUR";
+                    console.log("Changed chart 2 granularity to FOUR_HOUR");
+                }
+            }
+        };
+
+        window.debugStates = function() {
+            const debugInfo = document.getElementById('debug-info');
+            let info = "=== STATE DEBUG ===\n";
+            
+            if (window.chartStates) {
+                info += `Window.chartStates has ${window.chartStates.size} entries:\n`;
+                window.chartStates.forEach((state, id) => {
+                    info += `  ${id}: ${state.symbol} (${state.granularity})\n`;
+                });
+            } else {
+                info += "Window.chartStates not found\n";
+            }
+
+            if (window.xin) {
+                info += "\nXin global state keys:\n";
+                Object.keys(window.xin).forEach(key => {
+                    if (key.startsWith('state')) {
+                        const state = window.xin[key];
+                        info += `  ${key}: ${state?.symbol || 'undefined'} (${state?.granularity || 'undefined'})\n`;
+                    }
+                });
+            } else {
+                info += "\nWindow.xin not found\n";
+            }
+
+            debugInfo.textContent = info;
+        };
+
+        window.showXinGlobal = function() {
+            console.log("Window.xin:", window.xin);
+            console.log("Window.chartStates:", window.chartStates);
+            if (chart1Container) console.log("Chart 1 state key:", chart1Container._stateKey);
+            if (chart2Container) console.log("Chart 2 state key:", chart2Container._stateKey);
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initCharts);
+    </script>
+</body>
+</html>
