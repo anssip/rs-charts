@@ -12,6 +12,7 @@ import { getLogger, LogLevel } from "../../../util/logger";
 import { HairlineGrid } from "../grid";
 import { DrawingContext } from "../drawing-strategy";
 import { PriceRangeImpl } from "../../../util/price-range";
+import { getLocalChartId, observeLocal } from "../../../util/state-context";
 
 // Create a logger specific to this component
 const logger = getLogger("MarketIndicator");
@@ -59,6 +60,7 @@ export class MarketIndicator extends CanvasBase {
   oscillatorConfig?: OscillatorConfig;
 
   private _state: ChartState | null = null;
+  private _chartId: string = "state";
   private grid = new HairlineGrid();
   // Track when the value range is manually set by user zooming
   private manualRangeSet = false;
@@ -115,45 +117,12 @@ export class MarketIndicator extends CanvasBase {
     super.firstUpdated();
     logger.debug("MarketIndicator firstUpdated called", this.indicatorId);
 
-    // Initialize state observation
-    observe("state", () => {
-      this._state = xin["state"] as ChartState;
-      logger.debug("State updated for indicator", this.indicatorId);
-
-      // Check scale and update value range if needed
-      if (this.scale === ScaleType.Price) {
-        logger.debug("Updating from price range", this._state.priceRange);
-        this.localValueRange = {
-          min: this._state.priceRange.min,
-          max: this._state.priceRange.max,
-          range: this._state.priceRange.max - this._state.priceRange.min,
-        };
-      }
-      this.draw();
-    });
-
-    // Observe price range changes when using price scale
-    observe("state.priceRange", () => {
-      const state = xin["state"] as ChartState;
-      if (this.scale === ScaleType.Price && state) {
-        this.localValueRange = {
-          min: xinValue(state.priceRange.min),
-          max: xinValue(state.priceRange.max),
-          range:
-            xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
-        };
-
-        // Update state snapshot with new value range
-        this._state = state;
-
-        this.draw();
-      }
-    });
-
-    observe("state.timeRange", () => {
-      // Update state snapshot before drawing
-      this._state = xin["state"] as ChartState;
-      this.draw();
+    // Initialize with safe defaults
+    this._state = null;
+    
+    // Defer state initialization until component is properly connected
+    requestAnimationFrame(() => {
+      this.initializeState();
     });
 
     this.addEventListener("value-range-change", ((
@@ -194,6 +163,55 @@ export class MarketIndicator extends CanvasBase {
     }) as EventListener);
   }
 
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    // Initialize state with actual data
+    this._state = xin[this._chartId] as ChartState;
+    
+    // Set up observers for chart-specific state
+    observeLocal(this, "state", () => {
+      this._state = xin[this._chartId] as ChartState;
+      logger.debug("State updated for indicator", this.indicatorId);
+
+      // Check scale and update value range if needed
+      if (this.scale === ScaleType.Price && this._state) {
+        logger.debug("Updating from price range", this._state.priceRange);
+        this.localValueRange = {
+          min: this._state.priceRange.min,
+          max: this._state.priceRange.max,
+          range: this._state.priceRange.max - this._state.priceRange.min,
+        };
+      }
+      this.draw();
+    });
+
+    // Observe price range changes when using price scale
+    observeLocal(this, "state.priceRange", () => {
+      const state = xin[this._chartId] as ChartState;
+      if (this.scale === ScaleType.Price && state) {
+        this.localValueRange = {
+          min: xinValue(state.priceRange.min),
+          max: xinValue(state.priceRange.max),
+          range:
+            xinValue(state.priceRange.max) - xinValue(state.priceRange.min),
+        };
+
+        // Update state snapshot with new value range
+        this._state = state;
+
+        this.draw();
+      }
+    });
+
+    observeLocal(this, "state.timeRange", () => {
+      // Update state snapshot before drawing
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+  }
+
   updated(changedProperties: PropertyValues) {
     super.updated(changedProperties);
     if (changedProperties.has("showAxis")) {
@@ -230,7 +248,7 @@ export class MarketIndicator extends CanvasBase {
     // Try to initialize state if not already done
     if (!this._state) {
       try {
-        this._state = xin["state"] as ChartState;
+        this._state = xin[this._chartId] as ChartState;
       } catch (err) {
         logger.error("MarketIndicator.draw: Failed to get state from xin", err);
       }
