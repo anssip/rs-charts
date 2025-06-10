@@ -5,6 +5,7 @@ import { ChartState } from "../index";
 import { Granularity, getAllGranularities } from "../../server/services/price-data/price-history-model";
 import { IndicatorConfig, DisplayType, ScaleType, GridStyle } from "../components/chart/indicators/indicator-types";
 import { logger } from "../util/logger";
+import { config as chartConfig } from "../config";
 
 export interface ChartApiOptions {
   container: ChartContainer;
@@ -163,23 +164,51 @@ export class ChartApi {
   showIndicator(config: ApiIndicatorConfig): void {
     logger.info(`ChartApi: Showing indicator ${config.id}`);
     
-    const indicatorConfig: IndicatorConfig = {
-      display: DisplayType.Bottom,
-      scale: ScaleType.Value,
-      skipFetch: false,
-      gridStyle: GridStyle.Standard,
-      ...config,
-      visible: true
-    };
-
-    this.container.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
-      detail: indicatorConfig
-    }));
-
-    this.emitEvent('indicatorChange', {
-      action: 'show',
-      indicator: indicatorConfig
+    // Get built-in indicator configuration if available
+    const builtInIndicators = chartConfig.getBuiltInIndicators(this.container);
+    const builtInIndicator = builtInIndicators.find((item: any) => {
+      // Match by ID or label (case insensitive)
+      const label = item.label?.toLowerCase().replace(/\s+/g, '-');
+      const id = config.id.toLowerCase();
+      return label === id || 
+             item.label?.toLowerCase() === config.name?.toLowerCase() ||
+             (id === 'volume' && item.label === 'Volume') ||
+             (id === 'rsi' && item.label === 'RSI') ||
+             (id === 'macd' && item.label === 'MACD') ||
+             (id === 'bollinger-bands' && item.label === 'Bollinger Bands') ||
+             (id === 'moving-averages' && item.label === 'Moving Averages') ||
+             (id === 'stochastic' && item.label === 'Stochastic') ||
+             (id === 'atr' && item.label === 'ATR');
     });
+
+    if (builtInIndicator && builtInIndicator.action) {
+      // Use the built-in indicator action which has proper configuration
+      builtInIndicator.action();
+      
+      this.emitEvent('indicatorChange', {
+        action: 'show',
+        indicator: { ...config, visible: true }
+      });
+    } else {
+      // Fallback to manual configuration
+      const indicatorConfig: IndicatorConfig = {
+        display: DisplayType.Bottom,
+        scale: ScaleType.Value,
+        skipFetch: false,
+        gridStyle: GridStyle.Standard,
+        ...config,
+        visible: true
+      };
+
+      this.container.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
+        detail: indicatorConfig
+      }));
+
+      this.emitEvent('indicatorChange', {
+        action: 'show',
+        indicator: indicatorConfig
+      });
+    }
   }
 
   /**
@@ -213,13 +242,41 @@ export class ChartApi {
     if (isVisible) {
       this.hideIndicator(indicatorId);
     } else {
-      const indicatorConfig: ApiIndicatorConfig = {
-        id: indicatorId,
-        name: config?.name || indicatorId,
-        visible: true,
-        ...config
-      };
-      this.showIndicator(indicatorConfig);
+      // Get built-in indicator configuration if available
+      const builtInIndicators = chartConfig.getBuiltInIndicators(this.container);
+      const builtInIndicator = builtInIndicators.find((item: any) => {
+        // Match by ID or label (case insensitive)
+        const label = item.label?.toLowerCase().replace(/\s+/g, '-');
+        const id = indicatorId.toLowerCase();
+        return label === id || 
+               item.label?.toLowerCase() === config?.name?.toLowerCase() ||
+               (id === 'volume' && item.label === 'Volume') ||
+               (id === 'rsi' && item.label === 'RSI') ||
+               (id === 'macd' && item.label === 'MACD') ||
+               (id === 'bollinger-bands' && item.label === 'Bollinger Bands') ||
+               (id === 'moving-averages' && item.label === 'Moving Averages') ||
+               (id === 'stochastic' && item.label === 'Stochastic') ||
+               (id === 'atr' && item.label === 'ATR');
+      });
+
+      if (builtInIndicator && builtInIndicator.action) {
+        // Use the built-in indicator action which has proper configuration
+        builtInIndicator.action();
+        
+        this.emitEvent('indicatorChange', {
+          action: 'show',
+          indicator: { id: indicatorId, name: config?.name || indicatorId, visible: true, ...config }
+        });
+      } else {
+        // Fallback to manual configuration
+        const indicatorConfig: ApiIndicatorConfig = {
+          id: indicatorId,
+          name: config?.name || indicatorId,
+          visible: true,
+          ...config
+        };
+        this.showIndicator(indicatorConfig);
+      }
     }
   }
 
