@@ -5,7 +5,7 @@ import "./components/chart/timeline";
 import { ChartContainer } from "./components/chart/chart-container";
 import { IndicatorConfig } from "./components/chart/indicators/indicator-types";
 import { logger, setProductionLogging } from "./util/logger";
-import { initChart } from "./init";
+import { initChartWithApi } from "./init";
 import {
   PriceRange,
   PriceHistory,
@@ -103,11 +103,12 @@ window.addEventListener("DOMContentLoaded", () => {
   
   // Initialize first chart
   logger.info("Initializing first chart with BTC-USD");
-  initChart(chartContainerElement1, firebaseApp, { symbol: "BTC-USD" });
+  const chart1Result = initChartWithApi(chartContainerElement1, firebaseApp, { symbol: "BTC-USD" });
   logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
   
   // Initialize second chart if it exists
   let chartContainerElement2: ChartContainer | null = null;
+  let chart2Result: any = null;
   if (chartContainer2) {
     chartContainerElement2 = elements.chartContainer();
     if (chartContainer2.hasAttribute("data-spotcanvas-require-activation")) {
@@ -116,7 +117,7 @@ window.addEventListener("DOMContentLoaded", () => {
     chartContainer2.innerHTML = "";
     chartContainer2.append(chartContainerElement2!);
     logger.info("Initializing second chart with ETH-USD");
-    initChart(chartContainerElement2!, firebaseApp, { symbol: "ETH-USD" });
+    chart2Result = initChartWithApi(chartContainerElement2!, firebaseApp, { symbol: "ETH-USD" });
     logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
   }
 
@@ -175,6 +176,14 @@ window.addEventListener("DOMContentLoaded", () => {
         logger.debug("Received spotcanvas-upgrade event from chart 2, showing popup.");
         showPopup();
       });
+    }
+
+    // Make chart APIs globally accessible for debugging/external control
+    if (typeof window !== "undefined") {
+      (window as any).chartApi1 = chart1Result.api;
+      if (chartContainerElement2) {
+        (window as any).chartApi2 = chart2Result.api;
+      }
     }
 
     backdrop.addEventListener("click", hidePopup);

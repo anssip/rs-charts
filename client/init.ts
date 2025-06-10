@@ -8,6 +8,7 @@ import { PriceRangeImpl } from "./util/price-range";
 import { SimplePriceHistory } from "../server/services/price-data/price-history-model";
 import { logger } from "./util/logger";
 import { ChartContainer } from "./components/chart/chart-container"; // Import ChartContainer type
+import { ChartApi, createChartApi } from "./api/chart-api";
 
 // Define a default initial state creation function or constant
 const createInitialChartState = (): ChartState => ({
@@ -24,21 +25,50 @@ const createInitialChartState = (): ChartState => ({
 });
 
 /**
+ * Result object returned by initChartWithApi function
+ */
+export interface InitChartResult {
+  app: App;
+  api: ChartApi;
+}
+
+/**
  * Initializes the chart application with a Firebase app instance,
  * creates the application state proxy, instantiates the main App controller,
- * and returns the App instance.
+ * and returns the App instance for backward compatibility.
  *
  * @param chartContainerElement The chart-container DOM element.
  * @param firebaseApp Firebase app instance.
  * @param initialState Optional initial state override.
  * @returns The initialized App instance.
+ * @deprecated Use initChartWithApi for full API access
  */
 export function initChart(
-  chartContainerElement: ChartContainer, // Add chart element parameter
+  chartContainerElement: ChartContainer,
   firebaseApp: FirebaseApp,
   initialState?: Partial<ChartState>,
   firestoreInstance?: Firestore,
 ): App {
+  const result = initChartWithApi(chartContainerElement, firebaseApp, initialState, firestoreInstance);
+  return result.app;
+}
+
+/**
+ * Initializes the chart application with a Firebase app instance,
+ * creates the application state proxy, instantiates the main App controller,
+ * and returns both the App instance and ChartApi for external control.
+ *
+ * @param chartContainerElement The chart-container DOM element.
+ * @param firebaseApp Firebase app instance.
+ * @param initialState Optional initial state override.
+ * @returns Object containing the initialized App instance and ChartApi.
+ */
+export function initChartWithApi(
+  chartContainerElement: ChartContainer, // Add chart element parameter
+  firebaseApp: FirebaseApp,
+  initialState?: Partial<ChartState>,
+  firestoreInstance?: Firestore,
+): InitChartResult {
   logger.info("Initializing SpotCanvas Chart App...");
 
   const firestore = firestoreInstance || getFirestore(firebaseApp);
@@ -93,10 +123,15 @@ export function initChart(
   const chartApp = new App(chartContainerElement, firestore, state);
   logger.info("Chart application controller initialized.");
 
+  // Create the Chart API for external control
+  const chartApi = createChartApi(chartContainerElement, chartApp);
+  logger.info("Chart API initialized.");
+
   // Add event listeners for lifecycle management (optional, could be handled by consumer)
   if (typeof window !== "undefined") {
     window.addEventListener("pagehide", () => {
       chartApp.cleanup();
+      chartApi.dispose();
       logger.debug("App cleanup triggered on page hide");
     });
 
@@ -112,7 +147,7 @@ export function initChart(
     });
   }
 
-  return chartApp;
+  return { app: chartApp, api: chartApi };
 }
 
 // --- Global type declaration --- needed if window.chartStates is used

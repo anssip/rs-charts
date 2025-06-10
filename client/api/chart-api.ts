@@ -1,0 +1,489 @@
+// client/api/chart-api.ts
+import { ChartContainer } from "../components/chart/chart-container";
+import { App } from "../app";
+import { ChartState } from "../index";
+import { Granularity, getAllGranularities } from "../../server/services/price-data/price-history-model";
+import { IndicatorConfig, DisplayType, ScaleType, GridStyle } from "../components/chart/indicators/indicator-types";
+import { logger } from "../util/logger";
+
+export interface ChartApiOptions {
+  container: ChartContainer;
+  app: App;
+}
+
+export interface ApiIndicatorConfig {
+  id: string;
+  name: string;
+  visible: boolean;
+  display?: DisplayType;
+  scale?: ScaleType;
+  params?: any;
+  skipFetch?: boolean;
+  gridStyle?: GridStyle;
+}
+
+export interface SymbolChangeOptions {
+  symbol: string;
+  /** Whether to refetch data immediately. Default: true */
+  refetch?: boolean;
+}
+
+export interface GranularityChangeOptions {
+  granularity: Granularity;
+  /** Whether to refetch data immediately. Default: true */
+  refetch?: boolean;
+}
+
+/**
+ * Chart API for external control of chart functionality
+ * Provides methods to control symbol, granularity, indicators, and fullscreen modes
+ */
+export class ChartApi {
+  private container: ChartContainer;
+  private app: App;
+  private state: ChartState;
+  private eventListeners: Map<string, Set<Function>> = new Map();
+
+  constructor(options: ChartApiOptions) {
+    this.container = options.container;
+    this.app = options.app;
+    this.state = options.app.getState();
+    
+    logger.info("ChartApi: Initialized with container and app");
+  }
+
+  // ============================================================================
+  // Symbol Control
+  // ============================================================================
+
+  /**
+   * Get the current symbol
+   */
+  getSymbol(): string {
+    return this.state.symbol;
+  }
+
+  /**
+   * Set the chart symbol (e.g., "BTC-USD", "ETH-USD")
+   * @param options Symbol and options
+   * @returns Promise that resolves when symbol change is complete
+   */
+  async setSymbol(options: string | SymbolChangeOptions): Promise<void> {
+    const config = typeof options === 'string' 
+      ? { symbol: options, refetch: true }
+      : { refetch: true, ...options };
+
+    logger.info(`ChartApi: Setting symbol to ${config.symbol}`);
+    
+    const oldSymbol = this.state.symbol;
+    this.state.symbol = config.symbol;
+    
+    this.emitEvent('symbolChange', {
+      oldSymbol,
+      newSymbol: config.symbol,
+      refetch: config.refetch
+    });
+
+    if (config.refetch) {
+      // The App class observers will handle the refetch automatically
+      await new Promise(resolve => setTimeout(resolve, 100)); // Allow observers to trigger
+    }
+  }
+
+  // ============================================================================
+  // Granularity Control
+  // ============================================================================
+
+  /**
+   * Get the current granularity
+   */
+  getGranularity(): Granularity {
+    return this.state.granularity;
+  }
+
+  /**
+   * Get all available granularities
+   */
+  getAvailableGranularities(): Granularity[] {
+    return getAllGranularities();
+  }
+
+  /**
+   * Set the chart granularity (e.g., "ONE_HOUR", "ONE_DAY")
+   * @param options Granularity and options
+   * @returns Promise that resolves when granularity change is complete
+   */
+  async setGranularity(options: Granularity | GranularityChangeOptions): Promise<void> {
+    const config = typeof options === 'string' 
+      ? { granularity: options, refetch: true }
+      : { refetch: true, ...options };
+
+    logger.info(`ChartApi: Setting granularity to ${config.granularity}`);
+    
+    const oldGranularity = this.state.granularity;
+    this.state.granularity = config.granularity;
+    
+    this.emitEvent('granularityChange', {
+      oldGranularity,
+      newGranularity: config.granularity,
+      refetch: config.refetch
+    });
+
+    if (config.refetch) {
+      // The App class observers will handle the refetch automatically
+      await new Promise(resolve => setTimeout(resolve, 100)); // Allow observers to trigger
+    }
+  }
+
+  // ============================================================================
+  // Indicator Control
+  // ============================================================================
+
+  /**
+   * Get all currently visible indicators
+   */
+  getVisibleIndicators(): IndicatorConfig[] {
+    return this.state.indicators || [];
+  }
+
+  /**
+   * Check if a specific indicator is visible
+   */
+  isIndicatorVisible(indicatorId: string): boolean {
+    if (indicatorId === 'volume') {
+      return this.container.isIndicatorVisible('volume');
+    }
+    return this.container.isIndicatorVisible(indicatorId);
+  }
+
+  /**
+   * Show an indicator
+   * @param config Indicator configuration
+   */
+  showIndicator(config: ApiIndicatorConfig): void {
+    logger.info(`ChartApi: Showing indicator ${config.id}`);
+    
+    const indicatorConfig: IndicatorConfig = {
+      display: DisplayType.Bottom,
+      scale: ScaleType.Value,
+      skipFetch: false,
+      gridStyle: GridStyle.Standard,
+      ...config,
+      visible: true
+    };
+
+    this.container.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
+      detail: indicatorConfig
+    }));
+
+    this.emitEvent('indicatorChange', {
+      action: 'show',
+      indicator: indicatorConfig
+    });
+  }
+
+  /**
+   * Hide an indicator
+   * @param indicatorId The ID of the indicator to hide
+   */
+  hideIndicator(indicatorId: string): void {
+    logger.info(`ChartApi: Hiding indicator ${indicatorId}`);
+    
+    this.container.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
+      detail: {
+        id: indicatorId,
+        visible: false
+      }
+    }));
+
+    this.emitEvent('indicatorChange', {
+      action: 'hide',
+      indicatorId
+    });
+  }
+
+  /**
+   * Toggle an indicator's visibility
+   * @param indicatorId The ID of the indicator to toggle
+   * @param config Optional configuration for when showing the indicator
+   */
+  toggleIndicator(indicatorId: string, config?: Partial<ApiIndicatorConfig>): void {
+    const isVisible = this.isIndicatorVisible(indicatorId);
+    
+    if (isVisible) {
+      this.hideIndicator(indicatorId);
+    } else {
+      const indicatorConfig: ApiIndicatorConfig = {
+        id: indicatorId,
+        name: config?.name || indicatorId,
+        visible: true,
+        ...config
+      };
+      this.showIndicator(indicatorConfig);
+    }
+  }
+
+  /**
+   * Set multiple indicators at once
+   * @param indicators Array of indicator configurations
+   */
+  setIndicators(indicators: ApiIndicatorConfig[]): void {
+    logger.info(`ChartApi: Setting ${indicators.length} indicators`);
+    
+    // First hide all current indicators
+    const currentIndicators = this.getVisibleIndicators();
+    currentIndicators.forEach(indicator => {
+      this.hideIndicator(indicator.id);
+    });
+
+    // Show the new indicators
+    indicators.forEach(indicator => {
+      if (indicator.visible) {
+        this.showIndicator(indicator);
+      }
+    });
+  }
+
+  // ============================================================================
+  // Fullscreen Control
+  // ============================================================================
+
+  /**
+   * Check if chart is in fullscreen mode
+   */
+  isFullscreen(): boolean {
+    return document.fullscreenElement === this.container;
+  }
+
+  /**
+   * Enter fullscreen mode
+   * @returns Promise that resolves when fullscreen is entered
+   */
+  async enterFullscreen(): Promise<void> {
+    if (this.isFullscreen()) {
+      logger.info("ChartApi: Already in fullscreen");
+      return;
+    }
+
+    logger.info("ChartApi: Entering fullscreen");
+    
+    try {
+      await this.container.requestFullscreen();
+      this.emitEvent('fullscreenChange', { 
+        isFullscreen: true, 
+        type: 'fullscreen' 
+      });
+    } catch (error) {
+      logger.error("ChartApi: Failed to enter fullscreen:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Exit fullscreen mode
+   * @returns Promise that resolves when fullscreen is exited
+   */
+  async exitFullscreen(): Promise<void> {
+    if (!this.isFullscreen()) {
+      logger.info("ChartApi: Not in fullscreen");
+      return;
+    }
+
+    logger.info("ChartApi: Exiting fullscreen");
+    
+    try {
+      await document.exitFullscreen();
+      this.emitEvent('fullscreenChange', { 
+        isFullscreen: false, 
+        type: 'fullscreen' 
+      });
+    } catch (error) {
+      logger.error("ChartApi: Failed to exit fullscreen:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle fullscreen mode
+   * @returns Promise that resolves when fullscreen toggle is complete
+   */
+  async toggleFullscreen(): Promise<void> {
+    if (this.isFullscreen()) {
+      await this.exitFullscreen();
+    } else {
+      await this.enterFullscreen();
+    }
+  }
+
+  // ============================================================================
+  // Full Window Control
+  // ============================================================================
+
+  /**
+   * Check if chart is in full window mode
+   */
+  isFullWindow(): boolean {
+    return this.container.classList.contains('full-window');
+  }
+
+  /**
+   * Enter full window mode
+   */
+  enterFullWindow(): void {
+    if (this.isFullWindow()) {
+      logger.info("ChartApi: Already in full window");
+      return;
+    }
+
+    logger.info("ChartApi: Entering full window");
+    this.container.classList.add('full-window');
+    
+    // Trigger the container's toggle method to handle internal state
+    (this.container as any).toggleFullWindow?.();
+    
+    this.emitEvent('fullscreenChange', { 
+      isFullWindow: true, 
+      type: 'fullwindow' 
+    });
+  }
+
+  /**
+   * Exit full window mode
+   */
+  exitFullWindow(): void {
+    if (!this.isFullWindow()) {
+      logger.info("ChartApi: Not in full window");
+      return;
+    }
+
+    logger.info("ChartApi: Exiting full window");
+    this.container.classList.remove('full-window');
+    
+    // Trigger the container's toggle method to handle internal state
+    (this.container as any).toggleFullWindow?.();
+    
+    this.emitEvent('fullscreenChange', { 
+      isFullWindow: false, 
+      type: 'fullwindow' 
+    });
+  }
+
+  /**
+   * Toggle full window mode
+   */
+  toggleFullWindow(): void {
+    if (this.isFullWindow()) {
+      this.exitFullWindow();
+    } else {
+      this.enterFullWindow();
+    }
+  }
+
+  // ============================================================================
+  // State Access
+  // ============================================================================
+
+  /**
+   * Get the current chart state
+   */
+  getState(): ChartState {
+    return this.state;
+  }
+
+  /**
+   * Get loading state
+   */
+  isLoading(): boolean {
+    return this.state.loading || false;
+  }
+
+  /**
+   * Force a redraw of the chart
+   */
+  redraw(): void {
+    logger.info("ChartApi: Forcing chart redraw");
+    this.container.draw();
+  }
+
+  /**
+   * Get chart container element
+   */
+  getContainer(): ChartContainer {
+    return this.container;
+  }
+
+  /**
+   * Get app instance
+   */
+  getApp(): App {
+    return this.app;
+  }
+
+  // ============================================================================
+  // Event System
+  // ============================================================================
+
+  /**
+   * Add event listener
+   * @param event Event name
+   * @param callback Event callback
+   */
+  on(event: string, callback: Function): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set());
+    }
+    this.eventListeners.get(event)!.add(callback);
+  }
+
+  /**
+   * Remove event listener
+   * @param event Event name
+   * @param callback Event callback
+   */
+  off(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.delete(callback);
+    }
+  }
+
+  /**
+   * Emit an event
+   * @param event Event name
+   * @param data Event data
+   */
+  private emitEvent(event: string, data: any): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          logger.error(`ChartApi: Error in event listener for ${event}:`, error);
+        }
+      });
+    }
+  }
+
+  // ============================================================================
+  // Cleanup
+  // ============================================================================
+
+  /**
+   * Clean up the API instance
+   */
+  dispose(): void {
+    logger.info("ChartApi: Disposing");
+    this.eventListeners.clear();
+  }
+}
+
+/**
+ * Create a Chart API instance
+ * @param container Chart container element
+ * @param app App instance
+ * @returns ChartApi instance
+ */
+export function createChartApi(container: ChartContainer, app: App): ChartApi {
+  return new ChartApi({ container, app });
+}

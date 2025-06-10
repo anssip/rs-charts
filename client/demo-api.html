@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Chart API Demo</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+
+            .demo-container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .controls {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .control-group {
+                margin-bottom: 15px;
+            }
+
+            .control-group label {
+                display: inline-block;
+                width: 120px;
+                font-weight: bold;
+                color: #333;
+            }
+
+            .control-group button {
+                margin: 5px;
+                padding: 8px 16px;
+                border: 1px solid #ddd;
+                background: #fff;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .control-group button:hover {
+                background: #f0f0f0;
+                border-color: #bbb;
+            }
+
+            .control-group button.active {
+                background: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+
+            .chart-container {
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                height: 600px;
+            }
+
+            .status {
+                margin-top: 20px;
+                padding: 15px;
+                background: #e9ecef;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 14px;
+            }
+
+            .event-log {
+                margin-top: 20px;
+                background: white;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            .event-log h3 {
+                margin-top: 0;
+                color: #333;
+            }
+
+            .event-item {
+                padding: 8px;
+                margin: 5px 0;
+                background: #f8f9fa;
+                border-left: 4px solid #007bff;
+                font-family: monospace;
+                font-size: 12px;
+            }
+
+            .loading {
+                opacity: 0.6;
+                pointer-events: none;
+            }
+
+            h1 {
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .error {
+                background: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+                padding: 10px;
+                border-radius: 4px;
+                margin: 10px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="demo-container">
+            <h1>Chart API Demo</h1>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Symbol:</label>
+                    <button
+                        onclick="changeSymbol('BTC-USD')"
+                        data-symbol="BTC-USD"
+                    >
+                        BTC-USD
+                    </button>
+                    <button
+                        onclick="changeSymbol('ETH-USD')"
+                        data-symbol="ETH-USD"
+                    >
+                        ETH-USD
+                    </button>
+                    <button
+                        onclick="changeSymbol('SOL-USD')"
+                        data-symbol="SOL-USD"
+                    >
+                        SOL-USD
+                    </button>
+                    <button
+                        onclick="changeSymbol('AVAX-USD')"
+                        data-symbol="AVAX-USD"
+                    >
+                        AVAX-USD
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <button
+                        onclick="changeGranularity('ONE_MINUTE')"
+                        data-granularity="ONE_MINUTE"
+                    >
+                        1m
+                    </button>
+                    <button
+                        onclick="changeGranularity('FIVE_MINUTE')"
+                        data-granularity="FIVE_MINUTE"
+                    >
+                        5m
+                    </button>
+                    <button
+                        onclick="changeGranularity('FIFTEEN_MINUTE')"
+                        data-granularity="FIFTEEN_MINUTE"
+                    >
+                        15m
+                    </button>
+                    <button
+                        onclick="changeGranularity('THIRTY_MINUTE')"
+                        data-granularity="THIRTY_MINUTE"
+                    >
+                        30m
+                    </button>
+                    <button
+                        onclick="changeGranularity('ONE_HOUR')"
+                        data-granularity="ONE_HOUR"
+                    >
+                        1h
+                    </button>
+                    <button
+                        onclick="changeGranularity('SIX_HOUR')"
+                        data-granularity="SIX_HOUR"
+                    >
+                        6h
+                    </button>
+                    <button
+                        onclick="changeGranularity('ONE_DAY')"
+                        data-granularity="ONE_DAY"
+                    >
+                        1d
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <label>Indicators:</label>
+                    <button
+                        onclick="toggleIndicator('volume')"
+                        data-indicator="volume"
+                    >
+                        Volume
+                    </button>
+                    <button
+                        onclick="toggleIndicator('rsi')"
+                        data-indicator="rsi"
+                    >
+                        RSI
+                    </button>
+                    <button
+                        onclick="toggleIndicator('macd')"
+                        data-indicator="macd"
+                    >
+                        MACD
+                    </button>
+                    <button onclick="toggleIndicator('bb')" data-indicator="bb">
+                        Bollinger Bands
+                    </button>
+                    <button
+                        onclick="toggleIndicator('sma')"
+                        data-indicator="sma"
+                    >
+                        SMA
+                    </button>
+                    <button
+                        onclick="toggleIndicator('ema')"
+                        data-indicator="ema"
+                    >
+                        EMA
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <label>Display:</label>
+                    <button onclick="toggleFullWindow()">
+                        Toggle Full Window
+                    </button>
+                    <button onclick="toggleFullscreen()">
+                        Toggle Fullscreen
+                    </button>
+                    <button onclick="forceRedraw()">Force Redraw</button>
+                </div>
+            </div>
+
+            <div class="chart-container" id="chart-container">
+                <!-- Chart will be inserted here -->
+            </div>
+
+            <div class="status" id="status">Initializing chart...</div>
+
+            <div class="event-log">
+                <h3>Event Log</h3>
+                <div id="event-log-content">
+                    <!-- Events will be logged here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Import the chart library -->
+        <script type="module">
+            import { 
+                initChartWithApi, 
+                createChartContainer, 
+                getAllGranularities 
+            } from './client/lib.js';
+
+            let chartApi = null;
+            let chartApp = null;
+            const eventLog = [];
+
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyDkDBUUnxUqV3YZBm9GOrkcULZjBT4azyc",
+                authDomain: "spotcanvas-prod.firebaseapp.com",
+                projectId: "spotcanvas-prod",
+                storageBucket: "spotcanvas-prod.firebasestorage.app",
+                messagingSenderId: "346028322665",
+                appId: "1:346028322665:web:f278b8364243d165f8d7f8",
+            };
+
+            function logEvent(message, data = null) {
+                const timestamp = new Date().toLocaleTimeString();
+                const eventItem = document.createElement("div");
+                eventItem.className = "event-item";
+                eventItem.innerHTML = `<strong>${timestamp}:</strong> ${message} ${data ? JSON.stringify(data, null, 2) : ""}`;
+
+                const logContent = document.getElementById("event-log-content");
+                logContent.insertBefore(eventItem, logContent.firstChild);
+
+                // Keep only last 20 events
+                while (logContent.children.length > 20) {
+                    logContent.removeChild(logContent.lastChild);
+                }
+            }
+
+            function updateStatus() {
+                if (!chartApi) return;
+
+                const status = document.getElementById("status");
+                const state = chartApi.getState();
+
+                status.innerHTML = `
+                <strong>Current State:</strong><br>
+                Symbol: ${chartApi.getSymbol()}<br>
+                Granularity: ${chartApi.getGranularity()}<br>
+                Loading: ${chartApi.isLoading()}<br>
+                Fullscreen: ${chartApi.isFullscreen()}<br>
+                Full Window: ${chartApi.isFullWindow()}<br>
+                Visible Indicators: ${
+                    chartApi
+                        .getVisibleIndicators()
+                        .map((i) => i.id)
+                        .join(", ") || "None"
+                }
+            `;
+
+                // Update active buttons
+                updateActiveButtons();
+            }
+
+            function updateActiveButtons() {
+                if (!chartApi) return;
+
+                // Update symbol buttons
+                document.querySelectorAll("[data-symbol]").forEach((btn) => {
+                    btn.classList.toggle(
+                        "active",
+                        btn.dataset.symbol === chartApi.getSymbol(),
+                    );
+                });
+
+                // Update granularity buttons
+                document
+                    .querySelectorAll("[data-granularity]")
+                    .forEach((btn) => {
+                        btn.classList.toggle(
+                            "active",
+                            btn.dataset.granularity ===
+                                chartApi.getGranularity(),
+                        );
+                    });
+
+                // Update indicator buttons
+                document.querySelectorAll("[data-indicator]").forEach((btn) => {
+                    btn.classList.toggle(
+                        "active",
+                        chartApi.isIndicatorVisible(btn.dataset.indicator),
+                    );
+                });
+            }
+
+            async function initializeChart() {
+                try {
+                    logEvent("Initializing chart...");
+
+                    // Create chart container
+                    const chartContainer = createChartContainer();
+                    const containerElement =
+                        document.getElementById("chart-container");
+                    containerElement.appendChild(chartContainer);
+
+                    // Initialize chart with API
+                    const result = await initChartWithApi(
+                        chartContainer,
+                        firebaseConfig,
+                        {
+                            symbol: "BTC-USD",
+                            granularity: "ONE_HOUR",
+                        },
+                    );
+
+                    chartApi = result.api;
+                    chartApp = result.app;
+
+                    // Set up event listeners
+                    chartApi.on("symbolChange", (data) => {
+                        logEvent("Symbol changed", data);
+                        updateStatus();
+                    });
+
+                    chartApi.on("granularityChange", (data) => {
+                        logEvent("Granularity changed", data);
+                        updateStatus();
+                    });
+
+                    chartApi.on("indicatorChange", (data) => {
+                        logEvent("Indicator changed", data);
+                        updateStatus();
+                    });
+
+                    chartApi.on("fullscreenChange", (data) => {
+                        logEvent("Fullscreen changed", data);
+                        updateStatus();
+                    });
+
+                    // Make API globally accessible for debugging
+                    window.chartApi = chartApi;
+                    window.chartApp = chartApp;
+
+                    logEvent("Chart initialized successfully");
+                    updateStatus();
+                } catch (error) {
+                    logEvent("Error initializing chart", error.message);
+                    console.error("Chart initialization error:", error);
+
+                    const errorDiv = document.createElement("div");
+                    errorDiv.className = "error";
+                    errorDiv.textContent = `Error: ${error.message}`;
+                    document
+                        .getElementById("chart-container")
+                        .appendChild(errorDiv);
+                }
+            }
+
+            // API control functions
+            window.changeSymbol = async function (symbol) {
+                if (!chartApi) return;
+
+                try {
+                    document.body.classList.add("loading");
+                    await chartApi.setSymbol(symbol);
+                    logEvent(`Symbol changed to ${symbol}`);
+                } catch (error) {
+                    logEvent("Error changing symbol", error.message);
+                } finally {
+                    document.body.classList.remove("loading");
+                    updateStatus();
+                }
+            };
+
+            window.changeGranularity = async function (granularity) {
+                if (!chartApi) return;
+
+                try {
+                    document.body.classList.add("loading");
+                    await chartApi.setGranularity(granularity);
+                    logEvent(`Granularity changed to ${granularity}`);
+                } catch (error) {
+                    logEvent("Error changing granularity", error.message);
+                } finally {
+                    document.body.classList.remove("loading");
+                    updateStatus();
+                }
+            };
+
+            window.toggleIndicator = function (indicatorId) {
+                if (!chartApi) return;
+
+                try {
+                    const isVisible = chartApi.isIndicatorVisible(indicatorId);
+
+                    if (isVisible) {
+                        chartApi.hideIndicator(indicatorId);
+                        logEvent(`Indicator ${indicatorId} hidden`);
+                    } else {
+                        chartApi.showIndicator({
+                            id: indicatorId,
+                            name: indicatorId.toUpperCase(),
+                            visible: true,
+                        });
+                        logEvent(`Indicator ${indicatorId} shown`);
+                    }
+
+                    updateStatus();
+                } catch (error) {
+                    logEvent("Error toggling indicator", error.message);
+                }
+            };
+
+            window.toggleFullWindow = function () {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.toggleFullWindow();
+                    logEvent("Full window toggled");
+                    updateStatus();
+                } catch (error) {
+                    logEvent("Error toggling full window", error.message);
+                }
+            };
+
+            window.toggleFullscreen = async function () {
+                if (!chartApi) return;
+
+                try {
+                    await chartApi.toggleFullscreen();
+                    logEvent("Fullscreen toggled");
+                    updateStatus();
+                } catch (error) {
+                    logEvent("Error toggling fullscreen", error.message);
+                }
+            };
+
+            window.forceRedraw = function () {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.redraw();
+                    logEvent("Chart redrawn");
+                } catch (error) {
+                    logEvent("Error redrawing chart", error.message);
+                }
+            };
+
+            // Initialize when page loads
+            document.addEventListener("DOMContentLoaded", initializeChart);
+
+            // Log available granularities
+            console.log("Available granularities:", getAllGranularities());
+        </script>
+    </body>
+</html>

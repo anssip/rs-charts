@@ -38,13 +38,15 @@
     "predev": "bun run build",
     "build:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define \"import.meta.env={\\\"API_BASE_URL\\\":\\\"${API_BASE_URL}\\\"}\"",
     "build:server": "bun build ./server/index.ts --outdir ./dist/server --target bun",
-    "build:app": "mkdir -p dist/client && bun run build:client && bun run build:server && cp client/*.html client/*.css ./dist/client",
+    "build:app": "mkdir -p dist/client && bun run build:client && bun run build:server && cp client/*.html client/*.css ./dist/client && mkdir -p dist/client/client && cp dist/lib/lib.js dist/client/client/lib.js",
+    "demo": "bun run build && bun run demo-dev",
     "start": "bun run ./dist/server/index.js",
+    "demo-dev": "PORT=3000 bun run ./dist/server/index.js",
     "test": "bun test",
     "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs --external @use-gesture/vanilla ",
     "build:lib:types": "tsc --project tsconfig.lib.json --emitDeclarationOnly --outDir dist/lib",
     "build:lib": "rm -rf dist/lib && npm run build:lib:js && npm run build:lib:types",
-    "build": "npm run build:lib",
+    "build": "npm run build:lib && npm run build:app",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
