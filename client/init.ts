@@ -1,5 +1,5 @@
 // client/init.ts
-import { FirebaseApp } from "firebase/app";
+import { FirebaseApp, initializeApp, FirebaseOptions } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { App } from "./app";
 import { ChartState } from "."; // Assuming ChartState is defined in index.ts or similar
@@ -9,6 +9,9 @@ import { SimplePriceHistory } from "../server/services/price-data/price-history-
 import { logger } from "./util/logger";
 import { ChartContainer } from "./components/chart/chart-container"; // Import ChartContainer type
 import { ChartApi, createChartApi } from "./api/chart-api";
+
+// Type for Firebase config or app
+export type FirebaseConfigOrApp = FirebaseOptions | FirebaseApp;
 
 // Define a default initial state creation function or constant
 const createInitialChartState = (): ChartState => ({
@@ -45,12 +48,17 @@ export interface InitChartResult {
  */
 export function initChart(
   chartContainerElement: ChartContainer,
-  firebaseApp: FirebaseApp,
+  firebaseConfigOrApp: FirebaseConfigOrApp,
   initialState?: Partial<ChartState>,
   firestoreInstance?: Firestore,
 ): App {
-  const result = initChartWithApi(chartContainerElement, firebaseApp, initialState, firestoreInstance);
-  return result.app;
+  try {
+    const result = initChartWithApi(chartContainerElement, firebaseConfigOrApp, initialState, firestoreInstance);
+    return result.app;
+  } catch (error) {
+    logger.error("Failed to initialize chart:", error);
+    throw error;
+  }
 }
 
 /**
@@ -65,13 +73,56 @@ export function initChart(
  */
 export function initChartWithApi(
   chartContainerElement: ChartContainer, // Add chart element parameter
-  firebaseApp: FirebaseApp,
+  firebaseConfigOrApp: FirebaseConfigOrApp,
   initialState?: Partial<ChartState>,
   firestoreInstance?: Firestore,
 ): InitChartResult {
   logger.info("Initializing SpotCanvas Chart App...");
 
-  const firestore = firestoreInstance || getFirestore(firebaseApp);
+  // Validate Firebase config or app instance
+  if (!firebaseConfigOrApp) {
+    throw new Error("Firebase config or app instance is required but not provided");
+  }
+
+  // Determine if we have a config object or Firebase app instance
+  let firebaseApp: FirebaseApp;
+  
+  // Type guard to check if it's a Firebase app instance
+  function isFirebaseApp(obj: any): obj is FirebaseApp {
+    return obj && typeof obj === 'object' && 'name' in obj && 'options' in obj;
+  }
+  
+  // Type guard to check if it's a Firebase config object
+  function isFirebaseConfig(obj: any): obj is FirebaseOptions {
+    return obj && typeof obj === 'object' && 'projectId' in obj;
+  }
+  
+  if (isFirebaseApp(firebaseConfigOrApp)) {
+    // This is already a Firebase app instance
+    firebaseApp = firebaseConfigOrApp;
+    logger.info("Using provided Firebase app instance");
+  } else if (isFirebaseConfig(firebaseConfigOrApp)) {
+    // This is a Firebase config object, initialize the app
+    try {
+      firebaseApp = initializeApp(firebaseConfigOrApp);
+      logger.info("Initialized Firebase app from config");
+    } catch (error) {
+      logger.error("Failed to initialize Firebase app from config:", error);
+      throw new Error(`Failed to initialize Firebase app: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  } else {
+    logger.error("Invalid Firebase config or app instance:", firebaseConfigOrApp);
+    throw new Error("Invalid Firebase config or app instance - must be either a Firebase config object with projectId or initialized Firebase app");
+  }
+
+  let firestore: Firestore;
+  try {
+    firestore = firestoreInstance || getFirestore(firebaseApp);
+    logger.info("Firestore initialized successfully");
+  } catch (error) {
+    logger.error("Failed to initialize Firestore:", error);
+    throw new Error(`Failed to initialize Firestore: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   // Create a unique chart ID for this instance
   const chartId = `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

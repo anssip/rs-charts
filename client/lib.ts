@@ -19,7 +19,7 @@ export {
 
 // Export initialization function and App class
 export { initChart, initChartWithApi } from "./init";
-export type { InitChartResult } from "./init";
+export type { InitChartResult, FirebaseConfigOrApp } from "./init";
 export { App } from "./app";
 
 // Export Chart API
