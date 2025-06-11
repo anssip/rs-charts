@@ -33,7 +33,6 @@ export const getStyles = (
   .container {
     display: grid;
     grid-template-areas:
-      "price-info"
       "indicators-top"
       "chart-area"
       "timeline";
@@ -61,18 +60,12 @@ export const getStyles = (
     pointer-events: auto;
   }
 
-  .price-info {
-    grid-area: price-info;
-    background: var(--color-primary-dark);
-    border-radius: 12px;
-    margin: 8px 0;
-    padding: 12px 16px;
-    border: 1px solid rgba(143, 143, 143, 0.2);
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    box-sizing: border-box;
-    min-width: 0;
+  .chart-toolbar {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    pointer-events: auto;
   }
 
   .chart {
@@ -233,9 +226,7 @@ export const getStyles = (
     pointer-events: auto;
   }
 
-  [grid-area="price-info"] {
-    z-index: 10;
-  }
+
 
   [grid-area="timeline"] {
     height: ${timelineHeight}px;
