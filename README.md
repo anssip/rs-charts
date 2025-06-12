@@ -374,15 +374,131 @@ The Chart API provides programmatic control over chart functionality, perfect fo
 - `getApp()` - Get app instance
 
 #### Event System
-- `on(event, callback)` - Add event listener
-- `off(event, callback)` - Remove event listener
 
-### Available Events
+The Chart API provides a type-safe event system for monitoring chart state changes:
 
-- `symbolChange` - Fired when symbol changes
-- `granularityChange` - Fired when granularity changes  
-- `indicatorChange` - Fired when indicators change
-- `fullscreenChange` - Fired when fullscreen/fullwindow state changes
+```typescript
+import { 
+  ChartApi, 
+  ChartApiEventMap, 
+  SymbolChangeEvent, 
+  GranularityChangeEvent,
+  IndicatorChangeEvent,
+  FullscreenChangeEvent
+} from '@anssipiirainen/sc-charts';
+
+// Type-safe event listeners
+api.on('symbolChange', (data: SymbolChangeEvent) => {
+  console.log(`Symbol changed from ${data.oldSymbol} to ${data.newSymbol}`);
+});
+
+api.on('granularityChange', (data: GranularityChangeEvent) => {
+  console.log(`Granularity changed from ${data.oldGranularity} to ${data.newGranularity}`);
+});
+
+api.on('indicatorChange', (data: IndicatorChangeEvent) => {
+  console.log(`Indicator ${data.action}: ${data.indicator?.name || data.indicatorId}`);
+});
+
+api.on('fullscreenChange', (data: FullscreenChangeEvent) => {
+  console.log(`${data.type} mode: ${data.isFullscreen || data.isFullWindow}`);
+});
+```
+
+**Methods:**
+- `on<T>(event: T, callback: ChartApiEventCallback<T>)` - Add type-safe event listener
+- `off<T>(event: T, callback: ChartApiEventCallback<T>)` - Remove event listener
+
+### Available Events & Types
+
+#### `symbolChange: SymbolChangeEvent`
+Fired when the trading pair symbol changes.
+```typescript
+interface SymbolChangeEvent {
+  oldSymbol: string;        // Previous symbol (e.g., "BTC-USD")
+  newSymbol: string;        // New symbol (e.g., "ETH-USD")
+  refetch: boolean;         // Whether data will be refetched
+}
+```
+
+#### `granularityChange: GranularityChangeEvent`
+Fired when the chart timeframe changes.
+```typescript
+interface GranularityChangeEvent {
+  oldGranularity: Granularity;  // Previous timeframe
+  newGranularity: Granularity;  // New timeframe (e.g., "ONE_HOUR")
+  refetch: boolean;             // Whether data will be refetched
+}
+```
+
+#### `indicatorChange: IndicatorChangeEvent`
+Fired when technical indicators are shown, hidden, or toggled.
+```typescript
+interface IndicatorChangeEvent {
+  action: 'show' | 'hide';      // Action performed
+  indicator?: ApiIndicatorConfig; // Full indicator config (when showing)
+  indicatorId?: string;         // Indicator ID (when hiding)
+}
+```
+
+#### `fullscreenChange: FullscreenChangeEvent`
+Fired when fullscreen or full window mode changes.
+```typescript
+interface FullscreenChangeEvent {
+  isFullscreen?: boolean;       // True if in browser fullscreen
+  isFullWindow?: boolean;       // True if in full window mode
+  type: 'fullscreen' | 'fullwindow'; // Which mode changed
+}
+```
+
+### Event Type Exports
+
+All event types are exported for external use:
+```typescript
+import type {
+  ChartApiEventMap,         // Map of all event names to their data types
+  ChartApiEventName,        // Union type of all event names
+  ChartApiEventCallback,    // Generic callback type
+  SymbolChangeEvent,
+  GranularityChangeEvent,
+  IndicatorChangeEvent,
+  FullscreenChangeEvent
+} from '@anssipiirainen/sc-charts';
+```
+
+## Development & Testing
+
+### Running Tests
+
+```bash
+# Run the main Chart API test suite
+bun test
+
+# Run all tests (including potentially unstable ones)
+bun test:all
+```
+
+### Test Coverage
+
+The test suite includes:
+- ✅ Type-safe event system validation
+- ✅ Symbol and granularity control functionality
+- ✅ Indicator management operations
+- ✅ Event listener lifecycle management
+- ✅ Error handling and cleanup
+
+### Building the Library
+
+```bash
+# Build library for distribution
+bun run build:lib
+
+# Build complete application
+bun run build
+
+# Development mode with hot reload
+bun run dev
+```
 
 ## Browser Compatibility
 

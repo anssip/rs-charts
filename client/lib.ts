@@ -29,6 +29,13 @@ export type {
   ApiIndicatorConfig,
   SymbolChangeOptions,
   GranularityChangeOptions,
+  SymbolChangeEvent,
+  GranularityChangeEvent,
+  IndicatorChangeEvent,
+  FullscreenChangeEvent,
+  ChartApiEventMap,
+  ChartApiEventName,
+  ChartApiEventCallback,
 } from "./api/chart-api";
 
 // Export types and utilities from server-side models

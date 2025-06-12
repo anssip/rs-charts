@@ -35,6 +35,54 @@ export interface GranularityChangeOptions {
   refetch?: boolean;
 }
 
+// ============================================================================
+// Event Types
+// ============================================================================
+
+export interface SymbolChangeEvent {
+  oldSymbol: string;
+  newSymbol: string;
+  refetch: boolean;
+}
+
+export interface GranularityChangeEvent {
+  oldGranularity: Granularity;
+  newGranularity: Granularity;
+  refetch: boolean;
+}
+
+export interface IndicatorChangeEvent {
+  action: 'show' | 'hide';
+  indicator?: ApiIndicatorConfig;
+  indicatorId?: string;
+}
+
+export interface FullscreenChangeEvent {
+  isFullscreen?: boolean;
+  isFullWindow?: boolean;
+  type: 'fullscreen' | 'fullwindow';
+}
+
+/**
+ * Map of Chart API event names to their corresponding event data types
+ */
+export interface ChartApiEventMap {
+  symbolChange: SymbolChangeEvent;
+  granularityChange: GranularityChangeEvent;
+  indicatorChange: IndicatorChangeEvent;
+  fullscreenChange: FullscreenChangeEvent;
+}
+
+/**
+ * Valid event names for the Chart API
+ */
+export type ChartApiEventName = keyof ChartApiEventMap;
+
+/**
+ * Event listener callback type for Chart API events
+ */
+export type ChartApiEventCallback<T extends ChartApiEventName> = (data: ChartApiEventMap[T]) => void;
+
 /**
  * Chart API for external control of chart functionality
  * Provides methods to control symbol, granularity, indicators, and fullscreen modes
@@ -485,7 +533,7 @@ export class ChartApi {
    * @param event Event name
    * @param callback Event callback
    */
-  on(event: string, callback: Function): void {
+  on<T extends ChartApiEventName>(event: T, callback: ChartApiEventCallback<T>): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
     }
@@ -497,7 +545,7 @@ export class ChartApi {
    * @param event Event name
    * @param callback Event callback
    */
-  off(event: string, callback: Function): void {
+  off<T extends ChartApiEventName>(event: T, callback: ChartApiEventCallback<T>): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.delete(callback);

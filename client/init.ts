@@ -186,15 +186,15 @@ export function initChartWithApi(
       logger.debug("App cleanup triggered on page hide");
     });
 
+    // More intelligent visibility handling that doesn't stop live candles
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        chartApp.cleanup();
-        logger.debug("App cleanup triggered on visibility change to hidden");
-      }
       if (document.visibilityState === "visible") {
+        // When page becomes visible, refresh data gaps but don't restart everything
         chartApp.fetchGaps();
         logger.debug("Fetching data gaps on visibility change to visible");
       }
+      // Note: We don't cleanup on "hidden" to keep live candles running
+      // Live candle subscriptions have their own connection monitoring
     });
   }
 

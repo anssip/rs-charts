@@ -1,11 +1,43 @@
 // client/api/__tests__/chart-api.test.ts
 import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
-import { ChartApi, createChartApi } from "../chart-api";
-import { ChartContainer } from "../../components/chart/chart-container";
-import { App } from "../../app";
-import { ChartState } from "../../index";
-import { PriceRangeImpl } from "../../util/price-range";
-import { SimplePriceHistory } from "../../../server/services/price-data/price-history-model";
+import { 
+  ChartApi, 
+  createChartApi,
+  SymbolChangeEvent,
+  GranularityChangeEvent,
+  IndicatorChangeEvent,
+  FullscreenChangeEvent,
+  ChartApiEventMap,
+  ChartApiEventName,
+  ChartApiEventCallback
+} from "../chart-api";
+
+// Create minimal mocks for types only - avoid importing actual components
+interface MockChartContainer {
+  isIndicatorVisible: any;
+  handleIndicatorToggle: any;
+  classList: any;
+  requestFullscreen: any;
+  draw: any;
+}
+
+interface MockApp {
+  getState: any;
+  cleanup: any;
+}
+
+interface MockChartState {
+  priceRange: any;
+  priceHistory: any;
+  timeRange: any;
+  liveCandle: any;
+  canvasWidth: number;
+  canvasHeight: number;
+  symbol: string;
+  granularity: string;
+  loading: boolean;
+  indicators: any[];
+}
 
 // Mock document for fullscreen tests
 const mockDocument = {
@@ -14,7 +46,7 @@ const mockDocument = {
 };
 
 // Mock dependencies
-const mockChartContainer = {
+const mockChartContainer: MockChartContainer = {
   isIndicatorVisible: mock(() => false),
   handleIndicatorToggle: mock(() => {}),
   classList: {
@@ -24,13 +56,13 @@ const mockChartContainer = {
   },
   requestFullscreen: mock(() => Promise.resolve()),
   draw: mock(() => {}),
-} as unknown as ChartContainer;
+};
 
-let mockState: ChartState;
+let mockState: MockChartState;
 
-const createMockState = (): ChartState => ({
-  priceRange: new PriceRangeImpl(0, 100),
-  priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
+const createMockState = (): MockChartState => ({
+  priceRange: { min: 0, max: 100 },
+  priceHistory: { granularity: "ONE_HOUR", candles: new Map() },
   timeRange: { start: 0, end: 0 },
   liveCandle: null,
   canvasWidth: 0,
@@ -41,10 +73,10 @@ const createMockState = (): ChartState => ({
   indicators: [],
 });
 
-const mockApp = {
+const mockApp: MockApp = {
   getState: mock(() => mockState),
   cleanup: mock(() => {}),
-} as unknown as App;
+};
 
 describe("ChartApi", () => {
   let api: ChartApi;
@@ -72,7 +104,7 @@ describe("ChartApi", () => {
     (globalThis as any).document = mockDocument;
 
     // Create API instance
-    api = createChartApi(mockChartContainer, mockApp);
+    api = createChartApi(mockChartContainer as any, mockApp as any);
   });
 
   afterEach(() => {
@@ -365,6 +397,174 @@ describe("ChartApi", () => {
     });
   });
 
+  describe("Type-Safe Event System", () => {
+    test("symbolChange event has correct type structure", async () => {
+      let eventData: SymbolChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'symbolChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('symbolChange', handler);
+      await api.setSymbol({ symbol: "ETH-USD", refetch: false });
+
+      expect(eventData).toEqual({
+        oldSymbol: "BTC-USD",
+        newSymbol: "ETH-USD",
+        refetch: false
+      });
+      
+      // TypeScript should enforce correct types
+      expect(typeof eventData?.oldSymbol).toBe('string');
+      expect(typeof eventData?.newSymbol).toBe('string');
+      expect(typeof eventData?.refetch).toBe('boolean');
+    });
+
+    test("granularityChange event has correct type structure", async () => {
+      let eventData: GranularityChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'granularityChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('granularityChange', handler);
+      await api.setGranularity({ granularity: "ONE_DAY", refetch: true });
+
+      expect(eventData).toEqual({
+        oldGranularity: "ONE_HOUR",
+        newGranularity: "ONE_DAY", 
+        refetch: true
+      });
+      
+      expect(typeof eventData?.oldGranularity).toBe('string');
+      expect(typeof eventData?.newGranularity).toBe('string');
+      expect(typeof eventData?.refetch).toBe('boolean');
+    });
+
+    test("indicatorChange event has correct type structure for show action", () => {
+      let eventData: IndicatorChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'indicatorChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('indicatorChange', handler);
+      api.showIndicator({
+        id: "rsi",
+        name: "RSI",
+        visible: true
+      });
+
+      expect(eventData?.action).toBe('show');
+      expect(eventData?.indicator).toBeDefined();
+      expect(eventData?.indicator?.id).toBe('rsi');
+      expect(eventData?.indicator?.name).toBe('RSI');
+      expect(eventData?.indicator?.visible).toBe(true);
+    });
+
+    test("indicatorChange event has correct type structure for hide action", () => {
+      let eventData: IndicatorChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'indicatorChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('indicatorChange', handler);
+      api.hideIndicator("volume");
+
+      expect(eventData?.action).toBe('hide');
+      expect(eventData?.indicatorId).toBe('volume');
+      expect(eventData?.indicator).toBeUndefined();
+    });
+
+    test("fullscreenChange event has correct type structure", async () => {
+      let eventData: FullscreenChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'fullscreenChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('fullscreenChange', handler);
+      
+      // Test fullscreen mode
+      mockDocument.fullscreenElement = null;
+      await api.enterFullscreen();
+
+      expect(eventData?.type).toBe('fullscreen');
+      expect(eventData?.isFullscreen).toBe(true);
+      expect(typeof eventData?.isFullscreen).toBe('boolean');
+    });
+
+    test("fullscreenChange event works for full window mode", () => {
+      let eventData: FullscreenChangeEvent | null = null;
+      const handler: ChartApiEventCallback<'fullscreenChange'> = (data) => {
+        eventData = data;
+      };
+      
+      api.on('fullscreenChange', handler);
+      
+      // Test full window mode
+      mockChartContainer.classList.contains = mock(() => false);
+      api.enterFullWindow();
+
+      expect(eventData?.type).toBe('fullwindow');
+      expect(eventData?.isFullWindow).toBe(true);
+      expect(typeof eventData?.isFullWindow).toBe('boolean');
+    });
+
+    test("event listeners can be removed with correct typing", () => {
+      const symbolHandler: ChartApiEventCallback<'symbolChange'> = mock(() => {});
+      const granularityHandler: ChartApiEventCallback<'granularityChange'> = mock(() => {});
+      
+      // Add listeners
+      api.on('symbolChange', symbolHandler);
+      api.on('granularityChange', granularityHandler);
+      
+      // Remove listeners
+      api.off('symbolChange', symbolHandler);
+      api.off('granularityChange', granularityHandler);
+      
+      // Emit events - handlers should not be called
+      (api as any).emitEvent('symbolChange', { oldSymbol: 'A', newSymbol: 'B', refetch: true });
+      (api as any).emitEvent('granularityChange', { oldGranularity: 'ONE_HOUR', newGranularity: 'ONE_DAY', refetch: true });
+      
+      expect(symbolHandler).not.toHaveBeenCalled();
+      expect(granularityHandler).not.toHaveBeenCalled();
+    });
+
+    test("multiple event listeners of same type work correctly", async () => {
+      const handler1: ChartApiEventCallback<'symbolChange'> = mock(() => {});
+      const handler2: ChartApiEventCallback<'symbolChange'> = mock(() => {});
+      
+      api.on('symbolChange', handler1);
+      api.on('symbolChange', handler2);
+      
+      await api.setSymbol('SOL-USD');
+      
+      expect(handler1).toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalled();
+    });
+
+    test("generic event handling with ChartApiEventMap works", () => {
+      // Test that the event map types work for generic handlers
+      const createGenericHandler = <T extends ChartApiEventName>(
+        eventName: T
+      ): ChartApiEventCallback<T> => {
+        return (data: ChartApiEventMap[T]) => {
+          // This should compile without type errors
+          console.log(`Event ${eventName}:`, data);
+        };
+      };
+
+      const symbolHandler = createGenericHandler('symbolChange');
+      const indicatorHandler = createGenericHandler('indicatorChange');
+      
+      api.on('symbolChange', symbolHandler);
+      api.on('indicatorChange', indicatorHandler);
+      
+      // These should work without runtime errors
+      expect(() => {
+        api.off('symbolChange', symbolHandler);
+        api.off('indicatorChange', indicatorHandler);
+      }).not.toThrow();
+    });
+  });
+
   describe("Cleanup", () => {
     test("dispose clears event listeners", () => {
       const handler = mock(() => {});
@@ -382,7 +582,7 @@ describe("ChartApi", () => {
 
 describe("createChartApi", () => {
   test("creates ChartApi instance", () => {
-    const api = createChartApi(mockChartContainer, mockApp);
+    const api = createChartApi(mockChartContainer as any, mockApp as any);
     expect(api).toBeInstanceOf(ChartApi);
     api.dispose();
   });

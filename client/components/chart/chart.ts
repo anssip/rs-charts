@@ -56,11 +56,16 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     maxCandleWidth: 100,
   };
 
-  private drawingStrategy: Drawable = new CandlestickStrategy();
+  private drawingStrategy: CandlestickStrategy = new CandlestickStrategy();
 
   constructor() {
     super();
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+    
+    // Set up redraw callback for live candle updates
+    this.drawingStrategy.setRedrawCallback(() => {
+      this.draw();
+    });
   }
 
   bindEventListeners(_: HTMLCanvasElement): void {
@@ -84,6 +89,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       "change",
       this.handleMobileChange
     );
+    
+    // Clean up drawing strategy
+    if (this.drawingStrategy && typeof this.drawingStrategy.destroy === 'function') {
+      this.drawingStrategy.destroy();
+    }
   }
 
   @property({ type: Object })
@@ -118,6 +128,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.initializeState();
     
+    // Ensure canvas has chart ID for drawing strategy
+    if (this.canvas && this._chartId) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
+    }
+    
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
         bubbles: true,
@@ -129,6 +145,12 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   private initializeState() {
     // Get the local chart ID for this chart instance
     this._chartId = getLocalChartId(this);
+    
+    // Pass chart ID to the canvas element for drawing strategy identification
+    if (this.canvas) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
+    }
     
     // Initialize state with actual data
     this._state = xin[this._chartId] as ChartState;
@@ -150,11 +172,21 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       this._state = xin[this._chartId] as ChartState;
       this.draw();
     });
+    observeLocal(this, "state.liveCandle", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
   }
 
   public drawWithContext(context: DrawingContext) {
     if (!this.ctx || !this.canvas) {
       return;
+    }
+
+    // Ensure canvas has chart ID before drawing
+    if (this._chartId) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
