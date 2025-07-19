@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    // Type Checking
+    "strict": true,
+    "skipLibCheck": true, // Skip type checking of declaration files (saves time)
+
+    // Modules
+    "module": "ESNext", // Use modern module format
+    "moduleResolution": "bundler", // Align with modern bundlers (like bun, vite, webpack)
+    "resolveJsonModule": true, // Allow importing JSON files
+
+    // Emit
+    "declaration": true, // Generate .d.ts files
+    "emitDeclarationOnly": true, // Only emit .d.ts files (JS is handled by bun)
+    "outDir": "./dist/lib", // Output directory for declaration files
+    "declarationMap": true, // Generate source maps for declarations (good for DX)
+
+    // JavaScript Support
+    "allowJs": true, // Allow JavaScript files to be included
+    "checkJs": false, // Do not type check JavaScript files
+
+    // Language and Environment
+    "target": "ESNext", // Target modern JavaScript features
+    "lib": ["ESNext", "DOM", "DOM.Iterable"], // Include standard libraries
+    "experimentalDecorators": true, // Needed for Lit decorators
+    "useDefineForClassFields": false, // Lit compatibility - important!
+
+    // Interop Constraints
+    "esModuleInterop": true, // Enable interoperability between CommonJS and ES Modules
+    "forceConsistentCasingInFileNames": true, // Ensure consistent file casing
+
+    // Project Structure
+    // "rootDir": "./client" // Removed rootDir constraint to allow imports from outside client/
+  },
+  "include": [
+    "client/**/*.ts" // Include all TypeScript files in the client directory
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "server", // Exclude server code
+    "**/*.test.ts", // Exclude tests
+    "client/index.ts" // Exclude the application entry point
+  ]
+} 

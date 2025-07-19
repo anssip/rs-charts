@@ -6,6 +6,7 @@ import { iterateTimeline } from "../../../util/chart-util";
 import { PropertyValues } from "lit";
 import { css } from "lit";
 import { logger } from "../../../util/logger";
+import { getLocalChartId, observeLocal } from "../../../util/state-context";
 
 @customElement("volume-chart")
 export class VolumeChart extends CanvasBase {
@@ -34,6 +35,7 @@ export class VolumeChart extends CanvasBase {
   private readonly MIN_BAR_WIDTH = 1; // pixels
   private readonly MAX_BAR_WIDTH = 500; // pixels
   private _state: ChartState | null = null;
+  private _chartId: string = "state";
 
   override getId(): string {
     return "volume-chart";
@@ -46,8 +48,11 @@ export class VolumeChart extends CanvasBase {
   firstUpdated() {
     super.firstUpdated();
 
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
     // Get initial state
-    this._state = xin["state"] as ChartState;
+    this._state = xin[this._chartId] as ChartState;
 
     // Wait for canvas and state to be ready
     if (this.canvas && this._state) {
@@ -56,14 +61,14 @@ export class VolumeChart extends CanvasBase {
       });
     }
 
-    // Only observe state changes when the component is actually in the DOM
+    // Set up state observers
     if (this.isConnected) {
-      observe("state", () => {
-        this._state = xin["state"] as ChartState;
+      observeLocal(this, "state", () => {
+        this._state = xin[this._chartId] as ChartState;
         this.draw();
       });
-      observe("state.liveCandle", () => {
-        this._state = xin["state"] as ChartState;
+      observeLocal(this, "state.liveCandle", () => {
+        this._state = xin[this._chartId] as ChartState;
         this.draw();
       });
     }

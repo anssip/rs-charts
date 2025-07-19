@@ -79,12 +79,12 @@ export class ChartInteractionController {
     this.eventTarget.addEventListener("touchend", this.handleTouchEnd);
     this.eventTarget.addEventListener("touchcancel", this.handleTouchEnd);
 
-    // Add timeline and price axis zoom listeners
-    window.addEventListener(
+    // Add timeline and price axis zoom listeners on the chart container
+    this.eventTarget.addEventListener(
       "timeline-zoom",
       this.handleTimelineZoom as EventListener
     );
-    window.addEventListener(
+    this.eventTarget.addEventListener(
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
@@ -112,11 +112,11 @@ export class ChartInteractionController {
       "contextmenu",
       this.handleContextMenu as EventListener
     );
-    window.removeEventListener(
+    this.eventTarget.removeEventListener(
       "timeline-zoom",
       this.handleTimelineZoom as EventListener
     );
-    window.removeEventListener(
+    this.eventTarget.removeEventListener(
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener
     );
@@ -347,6 +347,11 @@ export class ChartInteractionController {
   }
 
   handleTimelineZoom = (event: CustomEvent) => {
+    console.log("InteractionController: Received timeline-zoom event", {
+      deltaX: event.detail.deltaX,
+      target: event.target,
+      currentTarget: event.currentTarget
+    });
     const { deltaX, clientX, rect, isTrackpad } = event.detail;
     const { state } = this.options;
 
@@ -391,6 +396,11 @@ export class ChartInteractionController {
   };
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
+    console.log("InteractionController: Received price-axis-zoom event", {
+      deltaY: event.detail.deltaY,
+      target: event.target,
+      currentTarget: event.currentTarget
+    });
     const { deltaY, isTrackpad } = event.detail;
     const { state } = this.options;
     const zoomCenter = 0.5;

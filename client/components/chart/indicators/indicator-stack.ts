@@ -53,7 +53,7 @@ export class IndicatorStack extends LitElement {
     /* When we have chart and indicators stacked together */
     .stack-item {
       position: relative;
-      border-top: 0.5px solid var(--color-gray-300, #363c4e);
+      border-top: 0.5px solid var(--color-gray-500, #363c4e);
       pointer-events: auto;
     }
 
@@ -189,15 +189,15 @@ export class IndicatorStack extends LitElement {
     e.preventDefault();
 
     logger.debug(
-      `IndicatorStack: Starting resize for handle with index ${index}`
+      `IndicatorStack: Starting resize for handle with index ${index}`,
     );
 
     // Store current item heights
     const stackItems = this.renderRoot.querySelectorAll(
-      ".stack-item:not([style*='display: none'])"
+      ".stack-item:not([style*='display: none'])",
     );
     logger.debug(
-      `IndicatorStack: Found ${stackItems.length} visible stack items`
+      `IndicatorStack: Found ${stackItems.length} visible stack items`,
     );
     this.itemHeights = Array.from(stackItems).map((item) => item.clientHeight);
 
@@ -224,7 +224,7 @@ export class IndicatorStack extends LitElement {
 
     // Mark the handle as resizing
     const handle = this.renderRoot.querySelector(
-      `.resize-handle[data-index="${index}"]`
+      `.resize-handle[data-index="${index}"]`,
     );
     if (handle) {
       handle.classList.add("resizing");
@@ -261,7 +261,7 @@ export class IndicatorStack extends LitElement {
 
     // Remove the resizing class
     const handle = this.renderRoot.querySelector(
-      `.resize-handle[data-index="${this.resizingIndex}"]`
+      `.resize-handle[data-index="${this.resizingIndex}"]`,
     );
     if (handle) {
       handle.classList.remove("resizing");
@@ -292,8 +292,8 @@ export class IndicatorStack extends LitElement {
     // Get only the visible stack items
     const stackItems = Array.from(
       this.renderRoot.querySelectorAll(
-        ".stack-item:not([style*='display: none'])"
-      )
+        ".stack-item:not([style*='display: none'])",
+      ),
     ) as HTMLElement[];
 
     if (stackItems.length < 2) return;
@@ -306,7 +306,7 @@ export class IndicatorStack extends LitElement {
     const aboveIndex = this.resizingIndex; // The item above the handle (in DOM order)
 
     logger.debug(
-      `IndicatorStack: Resizing items ${aboveIndex} and ${currentIndex}`
+      `IndicatorStack: Resizing items ${aboveIndex} and ${currentIndex}`,
     );
 
     // Get the elements being resized
@@ -315,13 +315,13 @@ export class IndicatorStack extends LitElement {
 
     if (!currentItem || !aboveItem) {
       logger.warn(
-        `IndicatorStack: Can't find items to resize: current=${!!currentItem}, above=${!!aboveItem}`
+        `IndicatorStack: Can't find items to resize: current=${!!currentItem}, above=${!!aboveItem}`,
       );
       return;
     }
 
     logger.debug(
-      `IndicatorStack: Resizing ${aboveItem.className} and ${currentItem.className}`
+      `IndicatorStack: Resizing ${aboveItem.className} and ${currentItem.className}`,
     );
 
     // Get the current heights
@@ -333,7 +333,7 @@ export class IndicatorStack extends LitElement {
     const isAboveChart = aboveItem.classList.contains("chart-item");
 
     logger.debug(
-      `IndicatorStack: Current is chart: ${isCurrentChart}, Above is chart: ${isAboveChart}`
+      `IndicatorStack: Current is chart: ${isCurrentChart}, Above is chart: ${isAboveChart}`,
     );
 
     // Minimum height for items
@@ -343,7 +343,7 @@ export class IndicatorStack extends LitElement {
       // Don't resize the chart, only adjust the current item
       const newCurrentHeight = Math.max(minHeight, currentHeight - deltaY);
       logger.debug(
-        `IndicatorStack: Setting current height to ${newCurrentHeight}px`
+        `IndicatorStack: Setting current height to ${newCurrentHeight}px`,
       );
 
       currentItem.style.height = `${newCurrentHeight}px`;
@@ -353,7 +353,7 @@ export class IndicatorStack extends LitElement {
       // Don't resize the chart, only adjust the item above
       const newAboveHeight = Math.max(minHeight, aboveHeight + deltaY);
       logger.debug(
-        `IndicatorStack: Setting above height to ${newAboveHeight}px`
+        `IndicatorStack: Setting above height to ${newAboveHeight}px`,
       );
 
       aboveItem.style.height = `${newAboveHeight}px`;
@@ -365,7 +365,7 @@ export class IndicatorStack extends LitElement {
       const newAboveHeight = Math.max(minHeight, aboveHeight + deltaY);
 
       logger.debug(
-        `IndicatorStack: Setting current height to ${newCurrentHeight}px, above height to ${newAboveHeight}px`
+        `IndicatorStack: Setting current height to ${newCurrentHeight}px, above height to ${newAboveHeight}px`,
       );
 
       currentItem.style.height = `${newCurrentHeight}px`;
@@ -388,7 +388,7 @@ export class IndicatorStack extends LitElement {
     if (!slot) {
       logger.warn(
         "IndicatorStack: No slot found in item to resize:",
-        item.className
+        item.className,
       );
       return;
     }
@@ -399,14 +399,14 @@ export class IndicatorStack extends LitElement {
       "width:",
       item.clientWidth,
       "height:",
-      item.clientHeight
+      item.clientHeight,
     );
 
     // Get assigned elements from slot
     const elements = (slot as HTMLSlotElement).assignedElements();
     logger.debug(
       `IndicatorStack: Slot has ${elements.length} assigned elements:`,
-      elements.map((el) => el.tagName)
+      elements.map((el) => el.tagName),
     );
 
     // Send resize event to each assigned element
@@ -414,7 +414,7 @@ export class IndicatorStack extends LitElement {
       if (element instanceof HTMLElement) {
         logger.debug(
           "IndicatorStack: Sending force-redraw to element:",
-          element.tagName
+          element.tagName,
         );
         element.dispatchEvent(
           new CustomEvent("force-redraw", {
@@ -424,7 +424,7 @@ export class IndicatorStack extends LitElement {
               width: item.clientWidth,
               height: item.clientHeight,
             },
-          })
+          }),
         );
       }
     }
@@ -448,7 +448,7 @@ export class IndicatorStack extends LitElement {
       // Log all slots in the shadow DOM
       const slots = this.shadowRoot?.querySelectorAll("slot");
       logger.debug(
-        `IndicatorStack: Found ${slots?.length} slots in shadow DOM:`
+        `IndicatorStack: Found ${slots?.length} slots in shadow DOM:`,
       );
       slots?.forEach((slot) => {
         const name = slot.getAttribute("name") || "default";
@@ -458,7 +458,7 @@ export class IndicatorStack extends LitElement {
         const elements = (slot as HTMLSlotElement).assignedElements();
         logger.debug(
           `IndicatorStack: Initial slot "${name}" has ${elements.length} elements:`,
-          elements.map((el) => el.tagName)
+          elements.map((el) => el.tagName),
         );
 
         // Add slot change listener to update indicator names
@@ -477,7 +477,7 @@ export class IndicatorStack extends LitElement {
         new CustomEvent("rendered", {
           bubbles: true,
           composed: true,
-        })
+        }),
       );
     }, 10);
   }
@@ -488,7 +488,7 @@ export class IndicatorStack extends LitElement {
     const elements = slot.assignedElements();
     logger.debug(
       `IndicatorStack: Slot "${slotName}" changed, now has ${elements.length} elements:`,
-      elements.map((el) => el.tagName)
+      elements.map((el) => el.tagName),
     );
 
     // Update indicator names
@@ -509,7 +509,7 @@ export class IndicatorStack extends LitElement {
           slot: slotName,
           elements: elements.map((el) => el.tagName),
         },
-      })
+      }),
     );
   };
 
@@ -534,7 +534,7 @@ export class IndicatorStack extends LitElement {
           const indicatorName = (element as any).name;
           if (indicatorName) {
             logger.debug(
-              `Found indicator "${indicatorName}" in slot "${slotName}"`
+              `Found indicator "${indicatorName}" in slot "${slotName}"`,
             );
             nameMap.set(slotName, indicatorName);
           }
@@ -545,7 +545,7 @@ export class IndicatorStack extends LitElement {
     this.indicatorNames = nameMap;
     logger.debug(
       "Updated indicator names:",
-      Object.fromEntries(this.indicatorNames)
+      Object.fromEntries(this.indicatorNames),
     );
   }
 
@@ -587,11 +587,11 @@ export class IndicatorStack extends LitElement {
 
     // First try to get elements assigned to named slots
     const namedSlots = Array.from(
-      this.shadowRoot?.querySelectorAll("slot[name]") || []
+      this.shadowRoot?.querySelectorAll("slot[name]") || [],
     );
     logger.debug(
       "IndicatorStack: Found named slots:",
-      namedSlots.map((s) => s.getAttribute("name"))
+      namedSlots.map((s) => s.getAttribute("name")),
     );
 
     const assignedElements: HTMLElement[] = [];
@@ -603,7 +603,7 @@ export class IndicatorStack extends LitElement {
         `IndicatorStack: Slot "${namedSlot.getAttribute("name")}" has ${
           slottedElements.length
         } elements:`,
-        slottedElements.map((el) => el.tagName)
+        slottedElements.map((el) => el.tagName),
       );
       if (slottedElements.length > 0) {
         assignedElements.push(slottedElements[0] as HTMLElement);
@@ -614,7 +614,7 @@ export class IndicatorStack extends LitElement {
     if (assignedElements.length > 0) {
       logger.debug(
         "IndicatorStack: Using named slots with elements:",
-        assignedElements.map((el) => el.tagName)
+        assignedElements.map((el) => el.tagName),
       );
       return assignedElements;
     }
@@ -625,7 +625,7 @@ export class IndicatorStack extends LitElement {
     ).assignedElements() as HTMLElement[];
     logger.debug(
       "IndicatorStack: Using default slot with elements:",
-      defaultElements.map((el) => el.tagName)
+      defaultElements.map((el) => el.tagName),
     );
     return defaultElements;
   }
@@ -677,7 +677,7 @@ export class IndicatorStack extends LitElement {
 
       <!-- Render 10 indicator slots -->
       ${Array.from({ length: 10 }, (_, i) => i + 1).map((index) =>
-        this.renderIndicatorSlot(index)
+        this.renderIndicatorSlot(index),
       )}
 
       <!-- Default slot for backward compatibility -->
@@ -691,14 +691,14 @@ export class IndicatorStack extends LitElement {
   private hasSlottedIndicator(index: number): boolean {
     // First check if we can find the slot in shadowRoot
     const slot = this.shadowRoot?.querySelector(
-      `slot[name="indicator-${index}"]`
+      `slot[name="indicator-${index}"]`,
     );
     if (!slot) return false;
 
     // Then check if any elements are assigned to this slot
     const assignedElements = (slot as HTMLSlotElement).assignedElements();
     logger.debug(
-      `IndicatorStack: Checking slot indicator-${index}, has ${assignedElements.length} elements`
+      `IndicatorStack: Checking slot indicator-${index}, has ${assignedElements.length} elements`,
     );
     return assignedElements.length > 0;
   }

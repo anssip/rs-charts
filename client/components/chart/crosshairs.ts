@@ -5,6 +5,7 @@ import { customElement } from "lit/decorators.js";
 import { drawTimeLabel, getLocalAlignedTimestamp } from "../../util/chart-util";
 import { ChartState } from "../..";
 import { TIMELINE_HEIGHT } from "./chart-container";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
@@ -12,6 +13,7 @@ export class Crosshairs extends CanvasBase {
   private mouseY: number = -1;
   private cursorTime: number = 0;
   private snappedX: number = -1;
+  private _chartId: string = "state";
 
   override getId(): string {
     return "chart-crosshairs";
@@ -24,8 +26,11 @@ export class Crosshairs extends CanvasBase {
   firstUpdated() {
     super.firstUpdated();
 
-    observe("state.timeRange", () => this.draw());
-    observe("state.priceRange", () => this.draw());
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    observeLocal(this, "state.timeRange", () => this.draw());
+    observeLocal(this, "state.priceRange", () => this.draw());
   }
 
   private handleMouseMove = (event: MouseEvent) => {
@@ -33,7 +38,9 @@ export class Crosshairs extends CanvasBase {
 
     const rect = this.canvas.getBoundingClientRect();
 
-    const state = xin["state"] as ChartState;
+    const state = xin[this._chartId] as ChartState;
+    if (!state || !state.timeRange) return;
+    
     const timeRange = state.timeRange;
 
     this.mouseX = event.clientX - rect.left;

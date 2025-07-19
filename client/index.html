@@ -1,128 +1,513 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <title>SpotCanvas - Chart API Demo</title>
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpotCanvas</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+            rel="stylesheet"
+        />
 
-    <link rel="stylesheet" href="styles.css">
-    <script type="module" src="index.js"></script>
+        <link rel="stylesheet" href="styles.css" />
+        <script type="module" src="index.js"></script>
 
-    <style>
-        .upgrade-popup {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--color-primary-dark);
-            padding: 24px;
-            border-radius: 12px;
-            border: 1px solid rgba(143, 143, 143, 0.2);
-            text-align: center;
-            z-index: 10000;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-        }
-
-        .upgrade-popup.show {
-            display: block;
-        }
-
-        .upgrade-popup-text {
-            color: var(--color-accent-2);
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-
-        .upgrade-button {
-            background: var(--color-primary);
-            color: var(--color-accent-2);
-            border: none;
-            padding: 8px 24px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: transform 0.2s ease, background-color 0.2s ease;
-            font-family: var(--font-primary);
-        }
-
-        .upgrade-button:hover {
-            transform: scale(1.05);
-            background: var(--color-primary);
-            opacity: 0.9;
-        }
-
-        .upgrade-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
-            z-index: 9999;
-        }
-
-        .upgrade-backdrop.show {
-            display: block !important;
-        }
-
-        .upgrade-popup.show {
-            display: block !important;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="chart-container">
-    </div>
-
-    <div class="upgrade-backdrop"></div>
-    <div class="upgrade-popup">
-        <div class="upgrade-popup-text">Upgrade to enable all features</div>
-        <button class="upgrade-button">Upgrade</button>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const popup = document.querySelector('.upgrade-popup');
-            const backdrop = document.querySelector('.upgrade-backdrop');
-            const upgradeButton = document.querySelector('.upgrade-button');
-            const chartContainer = document.querySelector('chart-container');
-
-            function hidePopup() {
-                popup.classList.remove('show');
-                backdrop.classList.remove('show');
+        <style>
+            .upgrade-popup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--color-primary-dark);
+                padding: 24px;
+                border-radius: 12px;
+                border: 1px solid rgba(143, 143, 143, 0.2);
+                text-align: center;
+                z-index: 10000;
+                backdrop-filter: blur(8px);
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
             }
 
-            function showPopup() {
-                popup.classList.add('show');
-                backdrop.classList.add('show');
+            .upgrade-popup.show {
+                display: block;
             }
 
-            chartContainer.addEventListener('spotcanvas-upgrade', () => {
-                showPopup();
-            });
+            .upgrade-popup-text {
+                color: var(--color-accent-2);
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
 
-            backdrop.addEventListener('click', hidePopup);
-            upgradeButton.addEventListener('click', () => {
-                hidePopup();
-                // Add actual upgrade logic here
-                if (window.spotcanvas?.log) {
-                    window.spotcanvas.log('info', 'Upgrade clicked');
-                } else {
-                    console.log('Upgrade clicked');
+            .upgrade-button {
+                background: var(--color-primary);
+                color: var(--color-accent-2);
+                border: none;
+                padding: 8px 24px;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+                transition:
+                    transform 0.2s ease,
+                    background-color 0.2s ease;
+                font-family: var(--font-primary);
+            }
+
+            .upgrade-button:hover {
+                transform: scale(1.05);
+                background: var(--color-primary);
+                opacity: 0.9;
+            }
+
+            .upgrade-backdrop {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(2px);
+                z-index: 9999;
+            }
+
+            .upgrade-backdrop.show {
+                display: block !important;
+            }
+
+            .upgrade-popup.show {
+                display: block !important;
+            }
+
+            /* Demo Controls Styles */
+            .demo-controls {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--color-primary-dark);
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid rgba(143, 143, 143, 0.2);
+                z-index: 1000;
+                backdrop-filter: blur(8px);
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+                max-width: 300px;
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+
+            .demo-controls h3 {
+                color: var(--color-accent-2);
+                margin: 0 0 15px 0;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .control-group {
+                margin-bottom: 15px;
+            }
+
+            .control-group label {
+                display: block;
+                color: var(--color-accent-2);
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 8px;
+            }
+
+            .control-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+
+            .control-button {
+                padding: 6px 12px;
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--color-accent-2);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-family: var(--font-primary);
+                transition: all 0.2s;
+            }
+
+            .control-button:hover {
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(143, 143, 143, 0.5);
+            }
+
+            .control-button.active {
+                background: var(--color-primary);
+                border-color: var(--color-primary);
+                color: white;
+            }
+
+            .control-button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .demo-status {
+                margin-top: 15px;
+                padding: 10px;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 6px;
+                font-size: 12px;
+                color: var(--color-accent-2);
+                font-family: 'Courier New', monospace;
+            }
+
+            .chart-selector {
+                margin-bottom: 15px;
+            }
+
+            .chart-selector select {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--color-accent-2);
+                border-radius: 6px;
+                font-family: var(--font-primary);
+                font-size: 14px;
+            }
+
+            .toggle-controls {
+                position: fixed;
+                top: 20px;
+                right: 340px;
+                background: var(--color-primary);
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-family: var(--font-primary);
+                font-size: 14px;
+                z-index: 1001;
+            }
+
+            .demo-controls.hidden {
+                display: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <button class="toggle-controls" onclick="toggleDemoControls()">
+            Toggle API Demo
+        </button>
+
+        <div class="demo-controls" id="demo-controls">
+            <h3>Chart API Demo</h3>
+            
+            <div class="chart-selector">
+                <label>Select Chart:</label>
+                <select id="chart-select" onchange="selectChart()">
+                    <option value="1">Chart 1 (BTC-USD)</option>
+                    <option value="2">Chart 2 (ETH-USD)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Symbol:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="changeSymbol('BTC-USD')">BTC-USD</button>
+                    <button class="control-button" onclick="changeSymbol('ETH-USD')">ETH-USD</button>
+                    <button class="control-button" onclick="changeSymbol('SOL-USD')">SOL-USD</button>
+                    <button class="control-button" onclick="changeSymbol('AVAX-USD')">AVAX-USD</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Timeframe:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="changeGranularity('ONE_MINUTE')">1m</button>
+                    <button class="control-button" onclick="changeGranularity('FIVE_MINUTE')">5m</button>
+                    <button class="control-button" onclick="changeGranularity('FIFTEEN_MINUTE')">15m</button>
+                    <button class="control-button" onclick="changeGranularity('ONE_HOUR')">1h</button>
+                    <button class="control-button" onclick="changeGranularity('SIX_HOUR')">6h</button>
+                    <button class="control-button" onclick="changeGranularity('ONE_DAY')">1d</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Indicators:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="toggleIndicator('volume', 'Volume')">Volume</button>
+                    <button class="control-button" onclick="toggleIndicator('rsi', 'RSI')">RSI</button>
+                    <button class="control-button" onclick="toggleIndicator('macd', 'MACD')">MACD</button>
+                    <button class="control-button" onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')">BB</button>
+                    <button class="control-button" onclick="toggleIndicator('moving-averages', 'Moving Averages')">MA</button>
+                    <button class="control-button" onclick="toggleIndicator('stochastic', 'Stochastic')">Stoch</button>
+                    <button class="control-button" onclick="toggleIndicator('atr', 'ATR')">ATR</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Display:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="toggleFullWindow()">Full Window</button>
+                    <button class="control-button" onclick="toggleFullscreen()">Fullscreen</button>
+                    <button class="control-button" onclick="forceRedraw()">Redraw</button>
+                </div>
+            </div>
+
+            <div class="demo-status" id="demo-status">
+                Select a chart to start...
+            </div>
+        </div>
+
+        <div class="charts-wrapper">
+            <div class="chart-container" id="chart-1"></div>
+            <div class="chart-container" id="chart-2"></div>
+        </div>
+
+        <div class="upgrade-backdrop"></div>
+        <div class="upgrade-popup">
+            <div class="upgrade-popup-text">Upgrade to enable all features</div>
+            <button class="upgrade-button">Upgrade</button>
+        </div>
+
+        <script>
+            // Chart API Demo functionality
+            let currentChart = 1;
+            let chart1Api = null;
+            let chart2Api = null;
+
+            function toggleDemoControls() {
+                const controls = document.getElementById('demo-controls');
+                controls.classList.toggle('hidden');
+            }
+
+            function selectChart() {
+                const select = document.getElementById('chart-select');
+                currentChart = parseInt(select.value);
+                updateStatus();
+                updateActiveButtons();
+            }
+
+            function getCurrentApi() {
+                return currentChart === 1 ? chart1Api : chart2Api;
+            }
+
+            async function changeSymbol(symbol) {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    updateStatus('Changing symbol...');
+                    await api.setSymbol(symbol);
+                    updateStatus(`Symbol changed to ${symbol}`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
                 }
-            });
-        });
-    </script>
-</body>
+            }
 
+            async function changeGranularity(granularity) {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    updateStatus('Changing timeframe...');
+                    await api.setGranularity(granularity);
+                    updateStatus(`Timeframe changed to ${granularity}`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function toggleIndicator(id, name) {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    api.toggleIndicator(id, { name });
+                    updateStatus(`Toggled ${name} indicator`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            async function toggleFullscreen() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    await api.toggleFullscreen();
+                    updateStatus('Toggled fullscreen');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function toggleFullWindow() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    api.toggleFullWindow();
+                    updateStatus('Toggled full window');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function forceRedraw() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    api.redraw();
+                    updateStatus('Chart redrawn');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function updateStatus(message) {
+                const api = getCurrentApi();
+                const statusEl = document.getElementById('demo-status');
+                
+                if (!api) {
+                    statusEl.textContent = 'No chart API available';
+                    return;
+                }
+                
+                if (message) {
+                    statusEl.textContent = message;
+                    return;
+                }
+                
+                try {
+                    const state = api.getState();
+                    const status = `Chart ${currentChart}:
+Symbol: ${api.getSymbol()}
+Timeframe: ${api.getGranularity()}
+Loading: ${api.isLoading()}
+Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
+                    statusEl.textContent = status;
+                } catch (error) {
+                    statusEl.textContent = `Error getting status: ${error.message}`;
+                }
+            }
+
+            function updateActiveButtons() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    // Update symbol buttons
+                    document.querySelectorAll('.control-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    const currentSymbol = api.getSymbol();
+                    const currentGranularity = api.getGranularity();
+                    
+                    // Find and activate current symbol button
+                    document.querySelectorAll('.control-button').forEach(btn => {
+                        const text = btn.textContent.trim();
+                        if (text === currentSymbol || 
+                            (text === '1m' && currentGranularity === 'ONE_MINUTE') ||
+                            (text === '5m' && currentGranularity === 'FIVE_MINUTE') ||
+                            (text === '15m' && currentGranularity === 'FIFTEEN_MINUTE') ||
+                            (text === '1h' && currentGranularity === 'ONE_HOUR') ||
+                            (text === '6h' && currentGranularity === 'SIX_HOUR') ||
+                            (text === '1d' && currentGranularity === 'ONE_DAY')) {
+                            btn.classList.add('active');
+                        }
+                    });
+                    
+                    // Update indicator buttons
+                    const indicators = api.getVisibleIndicators();
+                    document.querySelectorAll('.control-button').forEach(btn => {
+                        const onclick = btn.getAttribute('onclick');
+                        if (onclick && onclick.includes('toggleIndicator')) {
+                            const match = onclick.match(/toggleIndicator\('([^']+)'/);
+                            if (match) {
+                                const indicatorId = match[1];
+                                if (api.isIndicatorVisible(indicatorId)) {
+                                    btn.classList.add('active');
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error updating buttons:', error);
+                }
+            }
+
+            // Initialize demo when charts are ready
+            window.addEventListener('load', () => {
+                // Wait a bit for charts to initialize
+                setTimeout(() => {
+                    if (window.chartApi1) {
+                        chart1Api = window.chartApi1;
+                        console.log('Chart 1 API connected');
+                    }
+                    if (window.chartApi2) {
+                        chart2Api = window.chartApi2;
+                        console.log('Chart 2 API connected');
+                    }
+                    updateStatus();
+                    updateActiveButtons();
+
+                    // Set up event listeners
+                    if (chart1Api) {
+                        chart1Api.on('symbolChange', () => {
+                            if (currentChart === 1) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                        chart1Api.on('granularityChange', () => {
+                            if (currentChart === 1) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                        chart1Api.on('indicatorChange', () => {
+                            if (currentChart === 1) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                    }
+
+                    if (chart2Api) {
+                        chart2Api.on('symbolChange', () => {
+                            if (currentChart === 2) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                        chart2Api.on('granularityChange', () => {
+                            if (currentChart === 2) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                        chart2Api.on('indicatorChange', () => {
+                            if (currentChart === 2) {
+                                updateStatus();
+                                updateActiveButtons();
+                            }
+                        });
+                    }
+                }, 2000);
+            });
+        </script>
+    </body>
 </html>

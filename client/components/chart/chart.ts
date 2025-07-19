@@ -9,6 +9,7 @@ import {
 import { xin } from "xinjs";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
+import { getLocalChartId, observeLocal } from "../../util/state-context";
 import "./price-axis";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
@@ -39,6 +40,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
   private _state: ChartState | null = null;
+  private _chartId: string = "state";
   private _padding: {
     top: number;
     right: number;
@@ -54,11 +56,16 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     maxCandleWidth: 100,
   };
 
-  private drawingStrategy: Drawable = new CandlestickStrategy();
+  private drawingStrategy: CandlestickStrategy = new CandlestickStrategy();
 
   constructor() {
     super();
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+    
+    // Set up redraw callback for live candle updates
+    this.drawingStrategy.setRedrawCallback(() => {
+      this.draw();
+    });
   }
 
   bindEventListeners(_: HTMLCanvasElement): void {
@@ -82,6 +89,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       "change",
       this.handleMobileChange
     );
+    
+    // Clean up drawing strategy
+    if (this.drawingStrategy && typeof this.drawingStrategy.destroy === 'function') {
+      this.drawingStrategy.destroy();
+    }
   }
 
   @property({ type: Object })
@@ -112,7 +124,16 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   override async firstUpdated() {
     await super.firstUpdated();
 
+    // Initialize state management
     await new Promise((resolve) => setTimeout(resolve, 0));
+    this.initializeState();
+    
+    // Ensure canvas has chart ID for drawing strategy
+    if (this.canvas && this._chartId) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
+    }
+    
     this.dispatchEvent(
       new CustomEvent("chart-ready", {
         bubbles: true,
@@ -121,9 +142,51 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     );
   }
 
+  private initializeState() {
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this);
+    
+    // Pass chart ID to the canvas element for drawing strategy identification
+    if (this.canvas) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
+    }
+    
+    // Initialize state with actual data
+    this._state = xin[this._chartId] as ChartState;
+    
+    // Set up observers for state changes
+    observeLocal(this, "state", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.priceHistory", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.timeRange", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.priceRange", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+    observeLocal(this, "state.liveCandle", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
+  }
+
   public drawWithContext(context: DrawingContext) {
     if (!this.ctx || !this.canvas) {
       return;
+    }
+
+    // Ensure canvas has chart ID before drawing
+    if (this._chartId) {
+      (this.canvas as any).chartId = this._chartId;
+      this.canvas.setAttribute('data-chart-id', this._chartId);
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -132,9 +195,9 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   override draw() {
     if (!this._state) {
-      this._state = xin["state"] as ChartState;
+      this._state = xin[this._chartId] as ChartState;
     }
-    if (!this.ctx || !this.canvas) {
+    if (!this.ctx || !this.canvas || !this._state) {
       return;
     }
     const context: DrawingContext = {

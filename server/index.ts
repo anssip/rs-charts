@@ -3,6 +3,35 @@ import { CoinbasePriceDataService } from "./services/price-data/coinbase";
 import dotenv from "dotenv";
 import { Granularity } from "./services/price-data/price-history-model";
 
+// MIME type mapping
+function getMimeType(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'mjs':
+      return 'text/javascript';
+    case 'ts':
+      return 'text/typescript';
+    case 'html':
+      return 'text/html';
+    case 'css':
+      return 'text/css';
+    case 'json':
+      return 'application/json';
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'ico':
+      return 'image/x-icon';
+    default:
+      return 'text/plain';
+  }
+}
+
 dotenv.config();
 
 const CB_API_KEY = process.env.COINBASE_API_KEY;
@@ -48,6 +77,7 @@ const server = serve({
 
     const url = new URL(req.url);
     let filePath = url.pathname;
+    console.log(`filePath: ${filePath}`);
 
     if (filePath.startsWith("/api")) {
       if (filePath === "/api/candles") {
@@ -59,7 +89,7 @@ const server = serve({
                 ...corsHeaders,
                 "Content-Type": "application/json",
               } as HeadersInit,
-            }
+            },
           );
         }
         try {
@@ -86,7 +116,7 @@ const server = serve({
                 ...corsHeaders,
                 "Content-Type": "application/json",
               } as HeadersInit,
-            }
+            },
           );
         }
       }
@@ -101,11 +131,44 @@ const server = serve({
     }
 
     try {
-      const clientFile = Bun.file(`dist/client${filePath}`);
+      // Try client files first
+      let clientFile = Bun.file(`dist/client${filePath}`);
       if (await clientFile.exists()) {
+        const mimeType = getMimeType(filePath);
         return new Response(clientFile, {
-          headers: corsHeaders as HeadersInit,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': mimeType,
+          } as HeadersInit,
         });
+      }
+
+      // Try lib files for the API demo
+      if (filePath.startsWith('/client/lib.js') || filePath === '/client/lib.js') {
+        clientFile = Bun.file(`dist/lib/lib.js`);
+        if (await clientFile.exists()) {
+          return new Response(clientFile, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/javascript',
+            } as HeadersInit,
+          });
+        }
+      }
+
+      // Try root client files (for demo-api.html imports)
+      if (filePath.startsWith('/client/')) {
+        const rootPath = filePath.replace('/client/', '/');
+        clientFile = Bun.file(`dist/client${rootPath}`);
+        if (await clientFile.exists()) {
+          const mimeType = getMimeType(rootPath);
+          return new Response(clientFile, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': mimeType,
+            } as HeadersInit,
+          });
+        }
       }
 
       return new Response("Not Found", {

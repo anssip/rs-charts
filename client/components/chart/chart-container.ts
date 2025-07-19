@@ -9,7 +9,6 @@ import "./chart";
 import "./timeline";
 import "./live-decorators";
 import "./crosshairs";
-import "./price-info";
 import "./indicators/volume-chart";
 import "./context-menu";
 import { CandlestickChart, ChartOptions } from "./chart";
@@ -527,7 +526,6 @@ export class ChartContainer extends LitElement {
 
     // Calculate grid template rows based on number of stacked indicators
     const gridTemplateRows = `
-      auto
       ${
         stackTopIndicators.length
           ? `${stackTopIndicators.length * INDICATOR_HEIGHT}px`
@@ -548,24 +546,7 @@ export class ChartContainer extends LitElement {
           grid-template-rows: ${gridTemplateRows};
         "
       >
-        <div
-          class="price-info"
-          @connectedCallback=${(e: HTMLElement) =>
-            e.setAttribute("grid-area", "price-info")}
-        >
-          <price-info
-            .product=${this._state.liveCandle?.productId}
-            .symbols=${this.products}
-            .isFullscreen=${this.isFullscreen}
-            .isFullWindow=${this.isFullWindow}
-            .showVolume=${this.isIndicatorVisible("volume")}
-            .container=${this}
-            @toggle-fullscreen=${this.handleFullScreenToggle}
-            @toggle-fullwindow=${this.toggleFullWindow}
-            @toggle-indicator=${this.handleIndicatorToggle}
-            @upgrade-click=${this.dispatchUpgrade}
-          ></price-info>
-        </div>
+
 
         ${stackTopIndicators.length > 0
           ? html`
@@ -585,6 +566,17 @@ export class ChartContainer extends LitElement {
           @connectedCallback=${(e: HTMLElement) =>
             e.setAttribute("grid-area", "chart-area")}
         >
+          <!-- Chart toolbar positioned in top-left corner -->
+          <chart-toolbar
+            class="chart-toolbar"
+            .isFullscreen=${this.isFullscreen}
+            .isFullWindow=${this.isFullWindow}
+            .showVolume=${this.isIndicatorVisible("volume")}
+            .container=${this}
+            @toggle-fullscreen=${this.handleFullScreenToggle}
+            @toggle-fullwindow=${this.toggleFullWindow}
+            @toggle-indicator=${this.handleIndicatorToggle}
+          ></chart-toolbar>
           <div class="chart">
             ${bottomIndicators.map(
               (indicator) => html`
@@ -910,7 +902,7 @@ export class ChartContainer extends LitElement {
 
     this.interactionController = new ChartInteractionController({
       chart: this.chart,
-      container: this.renderRoot.querySelector(".chart-area") as HTMLElement,
+      container: this as HTMLElement,
       state: this._state,
       onStateChange: (updates) => {
         this._state = Object.assign(this._state, updates);
