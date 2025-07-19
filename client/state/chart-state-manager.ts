@@ -7,6 +7,7 @@ import {
 import { LiveCandle } from "../api/live-candle-subscription";
 import { PriceRange } from "../../server/services/price-data/price-history-model";
 import { SimplePriceHistory } from "../../server/services/price-data/price-history-model";
+import { IndicatorConfig } from "../components/chart/indicators/indicator-types";
 
 export class ChartStateManager {
   constructor() {
@@ -93,6 +94,9 @@ export class ChartStateManager {
       priceHistory: this.priceHistory,
       liveCandle: this.liveCandle,
       loading: this.loading,
+      canvasWidth: Number(xin["state.canvasWidth"]) || 0,
+      canvasHeight: Number(xin["state.canvasHeight"]) || 0,
+      indicators: (xin["state.indicators"] as IndicatorConfig[]) || [],
     };
   }
 }

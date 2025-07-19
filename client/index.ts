@@ -1,22 +1,19 @@
-import { elements, xinProxy } from "xinjs";
+import { elements } from "xinjs";
 import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
-import { App } from "./app";
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { PriceRangeImpl } from "./util/price-range";
-import {
-  Granularity,
-  PriceHistory,
-  PriceRange,
-  SimplePriceHistory,
-  TimeRange,
-} from "../server/services/price-data/price-history-model";
-import { LiveCandle } from "./api/live-candle-subscription";
 import { ChartContainer } from "./components/chart/chart-container";
 import { IndicatorConfig } from "./components/chart/indicators/indicator-types";
 import { logger, setProductionLogging } from "./util/logger";
+import { initChartWithApi } from "./init";
+import {
+  PriceRange,
+  PriceHistory,
+  TimeRange,
+  Granularity,
+} from "../server/services/price-data/price-history-model";
+import { LiveCandle } from "./api/live-candle-subscription";
+import { initializeApp } from "firebase/app";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -31,29 +28,8 @@ export type ChartState = {
   indicators?: IndicatorConfig[];
 };
 
-const chartState: ChartState = {
-  priceRange: new PriceRangeImpl(0, 100),
-  priceHistory: new SimplePriceHistory("ONE_HOUR", new Map()),
-  timeRange: { start: 0, end: 0 },
-  liveCandle: null,
-  canvasWidth: 0,
-  canvasHeight: 0,
-  symbol: "BTC-USD",
-  granularity: "ONE_HOUR",
-  loading: false,
-  indicators: [],
-};
-
-const { state } = xinProxy(
-  {
-    state: chartState,
-  },
-  true
-);
-
 declare global {
   interface Window {
-    app: typeof chartState;
     spotcanvas?: {
       setProductionMode: (isProduction: boolean) => void;
       log: (level: string, message: string, ...args: any[]) => void;
@@ -61,7 +37,6 @@ declare global {
   }
 }
 
-// Initialize logger settings
 if (process.env.NODE_ENV === "production") {
   setProductionLogging();
   logger.info("Running in production mode - minimal logging enabled");
@@ -69,7 +44,6 @@ if (process.env.NODE_ENV === "production") {
   logger.info("Running in development mode - verbose logging enabled");
 }
 
-// Make logger settings available globally
 window.spotcanvas = {
   setProductionMode: (isProduction) => {
     if (isProduction) {
@@ -99,75 +73,130 @@ window.spotcanvas = {
   },
 };
 
-window.app = state;
-
 const firebaseConfig = {
-  projectId: "spotcanvas-prod",
-  apiKey: "AIzaSyB6H5Fy06K_iiOjpJdU9xaR57Kia31ribM",
+  apiKey: "AIzaSyDkDBUUnxUqV3YZBm9GOrkcULZjBT4azyc",
   authDomain: "spotcanvas-prod.firebaseapp.com",
+  projectId: "spotcanvas-prod",
+  storageBucket: "spotcanvas-prod.firebasestorage.app",
+  messagingSenderId: "346028322665",
+  appId: "1:346028322665:web:f278b8364243d165f8d7f8",
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const firestore = getFirestore(firebaseApp);
-
 window.addEventListener("DOMContentLoaded", () => {
-  const chartApp = new App(firestore, state);
-  logger.info("Chart application initialized");
+  const chartContainer1 = document.querySelector("#chart-1") as HTMLElement;
+  const chartContainer2 = document.querySelector("#chart-2") as HTMLElement;
+  
+  if (!chartContainer1) {
+    logger.error("Chart container element (#chart-1) not found in the DOM.");
+    return;
+  }
 
-  window.addEventListener("pagehide", () => {
-    chartApp.cleanup();
-    logger.debug("Application cleanup triggered on page hide");
-  });
+  // Initialize first chart
+  const chartContainerElement1: ChartContainer = elements.chartContainer();
+  if (chartContainer1.hasAttribute("data-spotcanvas-require-activation")) {
+    chartContainerElement1.setAttribute("require-activation", "");
+  }
+  chartContainer1.innerHTML = "";
+  chartContainer1.append(chartContainerElement1);
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") {
-      chartApp.cleanup();
-      logger.debug(
-        "Application cleanup triggered on visibility change to hidden"
-      );
+  const firebaseApp = initializeApp(firebaseConfig);
+  
+  // Initialize first chart
+  logger.info("Initializing first chart with BTC-USD");
+  const chart1Result = initChartWithApi(chartContainerElement1, firebaseApp, { symbol: "BTC-USD" });
+  logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
+  
+  // Initialize second chart if it exists
+  let chartContainerElement2: ChartContainer | null = null;
+  let chart2Result: any = null;
+  if (chartContainer2) {
+    chartContainerElement2 = elements.chartContainer();
+    if (chartContainer2.hasAttribute("data-spotcanvas-require-activation")) {
+      chartContainerElement2!.setAttribute("require-activation", "");
     }
-    if (document.visibilityState === "visible") {
-      chartApp.fetchGaps();
-      logger.debug("Fetching data gaps on visibility change to visible");
-    }
-  });
-});
+    chartContainer2.innerHTML = "";
+    chartContainer2.append(chartContainerElement2!);
+    logger.info("Initializing second chart with ETH-USD");
+    chart2Result = initChartWithApi(chartContainerElement2!, firebaseApp, { symbol: "ETH-USD" });
+    logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
+  }
 
-const container = document.querySelector(".chart-container") as HTMLElement;
-const existingChart = container?.querySelector(
-  "chart-container"
-) as ChartContainer;
+  logger.info(`Chart ${chartContainer2 ? 'containers' : 'container'} created and ${chartContainer2 ? 'applications' : 'application'} started.`);
 
-if (container) {
-  // Set chart height from computed style and observe changes
-  const updateChartHeight = () => {
+  const updateChartHeight = (container: HTMLElement) => {
     const computedStyle = getComputedStyle(container);
     container.style.setProperty(
       "--spotcanvas-chart-height",
-      computedStyle.height
+      computedStyle.height,
     );
   };
-
-  // Initial height set
-  updateChartHeight();
-
-  // Observe container size changes
-  const resizeObserver = new ResizeObserver(updateChartHeight);
-  resizeObserver.observe(container);
-
-  if (!existingChart) {
-    const chartContainerElement: ChartContainer = elements.chartContainer();
-    if (container.hasAttribute("data-spotcanvas-require-activation")) {
-      chartContainerElement.setAttribute("require-activation", "");
-    }
-    chartContainerElement.state = state;
-    container.append(chartContainerElement);
-    logger.info("New chart container created and appended");
-  } else {
-    if (container.hasAttribute("data-spotcanvas-require-activation")) {
-      existingChart.setAttribute("require-activation", "");
-    }
-    existingChart.state = state;
-    logger.info("Using existing chart container");
+  
+  updateChartHeight(chartContainer1);
+  if (chartContainer2) {
+    updateChartHeight(chartContainer2);
   }
-}
+  
+  const resizeObserver = new ResizeObserver(() => {
+    updateChartHeight(chartContainer1);
+    if (chartContainer2) {
+      updateChartHeight(chartContainer2);
+    }
+  });
+  resizeObserver.observe(chartContainer1);
+  if (chartContainer2) {
+    resizeObserver.observe(chartContainer2);
+  }
+
+  const popup = document.querySelector(".upgrade-popup") as HTMLElement | null;
+  const backdrop = document.querySelector(
+    ".upgrade-backdrop",
+  ) as HTMLElement | null;
+  const upgradeButton = document.querySelector(
+    ".upgrade-button",
+  ) as HTMLElement | null;
+
+  if (popup && backdrop && upgradeButton) {
+    const hidePopup = () => {
+      popup.classList.remove("show");
+      backdrop.classList.remove("show");
+    };
+    const showPopup = () => {
+      popup.classList.add("show");
+      backdrop.classList.add("show");
+    };
+
+    // Listen for upgrade events from charts
+    chartContainerElement1.addEventListener("spotcanvas-upgrade", () => {
+      logger.debug("Received spotcanvas-upgrade event from chart 1, showing popup.");
+      showPopup();
+    });
+    
+    if (chartContainerElement2) {
+      chartContainerElement2.addEventListener("spotcanvas-upgrade", () => {
+        logger.debug("Received spotcanvas-upgrade event from chart 2, showing popup.");
+        showPopup();
+      });
+    }
+
+    // Make chart APIs globally accessible for debugging/external control
+    if (typeof window !== "undefined") {
+      (window as any).chartApi1 = chart1Result.api;
+      if (chartContainerElement2) {
+        (window as any).chartApi2 = chart2Result.api;
+      }
+    }
+
+    backdrop.addEventListener("click", hidePopup);
+    upgradeButton.addEventListener("click", () => {
+      hidePopup();
+      if (window.spotcanvas?.log) {
+        window.spotcanvas.log("info", "Upgrade clicked");
+      } else {
+        console.log("Upgrade clicked");
+      }
+    });
+    logger.info("Upgrade popup listeners initialized.");
+  } else {
+    logger.error("Upgrade popup elements not found in the DOM.");
+  }
+});

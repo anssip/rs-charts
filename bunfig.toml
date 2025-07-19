@@ -1,0 +1,36 @@
+[test]
+# Setup file to run before tests
+preload = ["./test-setup.ts"]
+
+# Test environment configuration
+env = "test"
+
+# Timeout for tests (in milliseconds)
+timeout = 10000
+
+# Coverage configuration
+coverage = false
+
+# Mock modules for better test isolation
+mock = {
+  "firebase" = "empty",
+  "firebase/app" = "empty",
+  "firebase/auth" = "empty",
+  "firebase/firestore" = "empty",
+  "lit" = "empty",
+  "lit-element" = "empty",
+  "lit-html" = "empty",
+  "xinjs" = "empty",
+  "@use-gesture/vanilla" = "empty"
+}
+
+# Test file patterns
+root = "."
+include = ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js"]
+exclude = ["**/node_modules/**", "**/dist/**", "**/build/**", "**/chart-api.test.ts"]
+
+# Disable hot module reloading in tests
+hot = false
+
+# Use faster resolver for tests
+resolver = "fast"

@@ -257,6 +257,10 @@ export class SimplePriceHistory implements PriceHistory {
    * @returns The start timestamp.
    */
   get startTimestamp(): number {
+    console.log(
+      "startTimestamp, candlesSortedByTimestamp",
+      this.candlesSortedByTimestamp
+    );
     return this.candlesSortedByTimestamp[0][0];
   }
 

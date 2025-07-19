@@ -18,9 +18,14 @@ import { observe, xinValue } from "xinjs";
 import { getCandleInterval } from "./util/chart-util";
 import { config } from "./config";
 import { CandleRepository } from "./api/candle-repository";
+import { getLogger, LogLevel } from "./util/logger";
+import { getLocalChartId } from "./util/state-context";
+
+const logger = getLogger("App");
+logger.setLoggerLevel("App", LogLevel.DEBUG);
 
 export class App {
-  private chartContainer: ChartContainer | null = null;
+  private chartContainer: ChartContainer;
   private readonly API_BASE_URL = config.apiBaseUrl;
   private candleRepository: CandleRepository;
   private liveCandleSubscription: LiveCandleSubscription;
@@ -29,25 +34,39 @@ export class App {
   private isInitializing = true;
   private observersInitialized = false;
   private chartReadyHandled = false;
+  private _chartId: string = "state";
 
-  constructor(private firestore: Firestore, state: ChartState) {
+  constructor(
+    chartContainerElement: ChartContainer,
+    private firestore: Firestore,
+    state: ChartState,
+  ) {
     this.state = state;
-    this.chartContainer = document.querySelector("chart-container");
+    this.chartContainer = chartContainerElement;
+    this.chartContainer = chartContainerElement;
     this.candleRepository = new CandleRepository(this.API_BASE_URL);
     this.liveCandleSubscription = new LiveCandleSubscription(this.firestore);
     this.firestoreClient = new FirestoreClient(this.firestore);
+
+    if (!this.chartContainer) {
+      logger.error(
+        "App constructor received an invalid chart container element.",
+      );
+      return;
+    }
+
+    // Get the local chart ID for this chart instance
+    this._chartId = getLocalChartId(this.chartContainer);
+
     this.initialize();
     this.setupObservers();
-    if (!this.chartContainer) {
-      console.error("chart container not found");
-    }
   }
 
   private hasIndicatorData() {
     const activeIndicators = xinValue(this.state.indicators) || [];
     const visibleCandles = this.state.priceHistory.getCandlesInRange(
       this.state.timeRange.start,
-      this.state.timeRange.end
+      this.state.timeRange.end,
     );
 
     // Get the first candle to check for evaluations
@@ -56,7 +75,7 @@ export class App {
 
     // Filter out indicators that have skipFetch set to true
     const indicatorsRequiringData = activeIndicators.filter(
-      (indicator) => !indicator.skipFetch
+      (indicator) => !indicator.skipFetch,
     );
     return indicatorsRequiringData.length === 0;
   }
@@ -64,13 +83,21 @@ export class App {
   private setupObservers() {
     if (this.observersInitialized) return;
 
-    observe("state.symbol", (_) => {
-      if (!this.isInitializing) this.refetchData();
+    observe(`${this._chartId}.symbol`, (_) => {
+      if (!this.isInitializing) {
+        this.refetchData();
+        // Restart live subscription with new symbol
+        this.startLiveCandleSubscription(this.state.symbol, this.state.granularity);
+      }
     });
-    observe("state.granularity", (_) => {
-      if (!this.isInitializing) this.refetchData();
+    observe(`${this._chartId}.granularity`, (_) => {
+      if (!this.isInitializing) {
+        this.refetchData();
+        // Restart live subscription with new granularity
+        this.startLiveCandleSubscription(this.state.symbol, this.state.granularity);
+      }
     });
-    observe("state.indicators", (_) => {
+    observe(`${this._chartId}.indicators`, (_) => {
       if (!this.isInitializing) {
         if (!this.hasIndicatorData()) {
           this.refetchData();
@@ -83,6 +110,8 @@ export class App {
 
   async initialize() {
     if (!this.chartContainer) {
+      logger.error("Initialization skipped: Chart container not available.");
+      logger.error("Initialization skipped: Chart container not available.");
       return;
     }
 
@@ -100,17 +129,20 @@ export class App {
 
     this.chartContainer.addEventListener(
       "chart-ready",
-      this.handleChartReady as unknown as EventListener
+      this.handleChartReady as unknown as EventListener,
     );
     this.chartContainer.addEventListener(
       "chart-pan",
-      this.handlePan as unknown as EventListener
+      this.handlePan as unknown as EventListener,
     );
     this.chartContainer.addEventListener(
       "fetch-next-candle",
-      this.handleFetchNextCandle as unknown as EventListener
+      this.handleFetchNextCandle as unknown as EventListener,
     );
-    this.startLiveCandleSubscription("BTC-USD", "ONE_HOUR");
+    this.startLiveCandleSubscription(
+      xinValue(this.state.symbol) || "BTC-USD", 
+      xinValue(this.state.granularity) || "ONE_HOUR"
+    );
   }
 
   getInitialTimeRange(): TimeRange {
@@ -123,7 +155,7 @@ export class App {
   }
 
   private handleChartReady = async (
-    _: CustomEvent<{ visibleCandles: number }>
+    _: CustomEvent<{ visibleCandles: number }>,
   ) => {
     if (this.chartReadyHandled) {
       return;
@@ -142,9 +174,10 @@ export class App {
     });
 
     if (candles.size > 0) {
+      logger.debug("App: setting price history with candles: ", candles.size);
       this.state.priceHistory = new SimplePriceHistory(
         xinValue(this.state.granularity),
-        new Map(candles.entries())
+        new Map(candles.entries()),
       );
 
       const visibleCandles = this.chartContainer!.calculateVisibleCandles();
@@ -165,7 +198,7 @@ export class App {
 
       this.state.priceRange = this.state.priceHistory.getPriceRange(
         viewportStartTimestamp,
-        viewportEndTimestamp
+        viewportEndTimestamp,
       );
       if (!this.chartContainer) {
         console.error("chart container not found");
@@ -176,34 +209,11 @@ export class App {
       const products = await this.firestoreClient.getMinimalProducts();
       this.chartContainer!.products = products;
     }
-    observe("state.symbol", (_) => {
-      this.refetchData();
-    });
-    observe("state.granularity", (_) => {
-      // TODO: we need to fetch the data when we have both granularity and time range
-      // TODO: combine these in the state
-      this.refetchData();
-    });
-    observe("state.indicators", (_) => {
-      // Check if we need to refetch by checking if all active indicators have evaluations
-      const activeIndicators = xinValue(this.state.indicators) || [];
-      const visibleCandles = this.state.priceHistory.getCandlesInRange(
-        this.state.timeRange.start,
-        this.state.timeRange.end
-      );
-
-      // Check if any visible candle is missing evaluations for any active indicator
-      const needsRefetch = visibleCandles.some(([_, candle]) => {
-        if (!candle.evaluations) return true;
-        return activeIndicators.some(
-          (indicator) => !candle.evaluations.find((e) => e.id === indicator.id)
-        );
-      });
-
-      if (needsRefetch) {
-        this.refetchData();
-      }
-    });
+    // Start live subscription with the chart's actual symbol and granularity
+    this.startLiveCandleSubscription(
+      xinValue(this.state.symbol),
+      xinValue(this.state.granularity)
+    );
     this.isInitializing = false;
     setTimeout(() => {
       const candleInterval = getCandleInterval(this.state.granularity);
@@ -217,23 +227,23 @@ export class App {
       this.state.granularity,
       this.state.timeRange,
       false,
-      "refetch-data"
+      "refetch-data",
     );
     if (newCandles) {
       this.state.priceHistory = new SimplePriceHistory(
         this.state.granularity,
-        newCandles
+        newCandles,
       );
       this.state.priceRange = this.state.priceHistory.getPriceRange(
         xinValue(this.state.timeRange.start),
-        xinValue(this.state.timeRange.end)
+        xinValue(this.state.timeRange.end),
       );
       this.chartContainer!.state = this.state;
       this.chartContainer!.draw();
 
       this.startLiveCandleSubscription(
         this.state.symbol,
-        this.state.granularity
+        this.state.granularity,
       );
     }
   }
@@ -249,12 +259,12 @@ export class App {
         this.state.granularity,
         timeRange,
         false,
-        "handle-pan"
+        "handle-pan",
       );
       if (newCandles) {
         this.state.priceHistory = new SimplePriceHistory(
           this.state.granularity,
-          newCandles
+          newCandles,
         );
         this.chartContainer.state = this.state;
       }
@@ -268,7 +278,7 @@ export class App {
       granularity,
       timeRange,
       false,
-      "fetch-next-candle"
+      "fetch-next-candle",
     );
     if (newCandles) {
       this.state.priceHistory = new SimplePriceHistory(granularity, newCandles);
@@ -281,12 +291,12 @@ export class App {
     granularity: Granularity,
     timeRange: TimeRange,
     skipCache: boolean = false,
-    source: string = "unknown"
+    source: string = "unknown",
   ): Promise<CandleDataByTimestamp | null> {
     const candleCount = numCandlesInRange(
       granularity,
       timeRange.start,
-      timeRange.end
+      timeRange.end,
     );
     const MAX_CANDLES = 300;
     const adjustedTimeRange =
@@ -317,7 +327,7 @@ export class App {
 
   private startLiveCandleSubscription(
     symbol: string,
-    granularity: Granularity
+    granularity: Granularity,
   ): void {
     this.liveCandleSubscription.subscribe(
       symbol,
@@ -326,14 +336,14 @@ export class App {
         if (this.chartContainer?.updateLiveCandle(liveCandle)) {
           this.state.liveCandle = liveCandle;
         }
-      }
+      },
     );
   }
 
   public async fetchGaps(): Promise<void> {
     const gaps = this.state.priceHistory.getGaps(
       this.state.timeRange.start,
-      this.state.timeRange.end
+      this.state.timeRange.end,
     );
     if (gaps.length === 0) {
       return;
@@ -350,9 +360,9 @@ export class App {
           this.state.granularity,
           widenGap(gap),
           true, // skip cache to make sure we get also partially filled live candles
-          "fetch-gaps"
-        )
-      )
+          "fetch-gaps",
+        ),
+      ),
     );
     // The last result is the new candles. The CandleRepository always returns
     // all accumulated candles, that it has ever fetched and we can pop the latest one.
@@ -360,7 +370,7 @@ export class App {
 
     this.state.priceHistory = new SimplePriceHistory(
       this.state.granularity,
-      new Map(newCandles)
+      new Map(newCandles),
     );
     if (this.chartContainer) {
       this.chartContainer.state = this.state;
@@ -369,8 +379,29 @@ export class App {
   }
 
   public cleanup(): void {
-    // @ts-ignore
-    // TODO: Make the subscription handle cleanup on page hide
-    this.liveCandleSubscription!.unsubscribe();
+    // Clean up live candle subscription completely
+    if (this.liveCandleSubscription) {
+      this.liveCandleSubscription.dispose();
+    }
+    
+    // Remove event listeners
+    if (this.chartContainer) {
+      this.chartContainer.removeEventListener(
+        "chart-ready",
+        this.handleChartReady as unknown as EventListener,
+      );
+      this.chartContainer.removeEventListener(
+        "chart-pan",
+        this.handlePan as unknown as EventListener,
+      );
+      this.chartContainer.removeEventListener(
+        "fetch-next-candle",
+        this.handleFetchNextCandle as unknown as EventListener,
+      );
+    }
+  }
+
+  public getState(): ChartState {
+    return this.state;
   }
 }
