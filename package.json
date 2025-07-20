@@ -50,6 +50,7 @@
     "build:lib:types": "tsc --project tsconfig.lib.json --emitDeclarationOnly --outDir dist/lib",
     "build:lib": "rm -rf dist/lib && npm run build:lib:js && npm run build:lib:types",
     "build:lib:with-bundled": "npm run build:lib && npm run build:lib:bundled",
+    "preupdate:linked": "bun run build",
     "update:linked": "bun run build:lib:bundled && echo 'Bundled build complete - linked projects can now see changes'",
     "build": "npm run build:lib && npm run build:app",
     "prepublishOnly": "npm run build"
