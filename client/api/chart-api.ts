@@ -63,10 +63,17 @@ export interface FullscreenChangeEvent {
   type: 'fullscreen' | 'fullwindow';
 }
 
+export interface ReadyEvent {
+  timestamp: number;
+  symbol: string;
+  granularity: Granularity;
+}
+
 /**
  * Map of Chart API event names to their corresponding event data types
  */
 export interface ChartApiEventMap {
+  ready: ReadyEvent;
   symbolChange: SymbolChangeEvent;
   granularityChange: GranularityChangeEvent;
   indicatorChange: IndicatorChangeEvent;
@@ -99,6 +106,16 @@ export class ChartApi {
     this.state = options.app.getState();
     
     logger.info("ChartApi: Initialized with container and app");
+    
+    // Listen for chart-ready event from the container and emit ready event
+    this.container.addEventListener('chart-ready', () => {
+      logger.info("ChartApi: Chart is ready, emitting ready event");
+      this.emitEvent('ready', {
+        timestamp: Date.now(),
+        symbol: this.state.symbol,
+        granularity: this.state.granularity
+      });
+    });
   }
 
   // ============================================================================

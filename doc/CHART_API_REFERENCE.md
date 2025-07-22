@@ -300,7 +300,19 @@ api.dispose(); // Call when unmounting/destroying chart
 
 ### Event Types
 
-#### 1. `SymbolChangeEvent`
+#### 1. `ReadyEvent`
+
+Emitted when the chart has been completely initialized and the API is ready to be called.
+
+```typescript
+interface ReadyEvent {
+  timestamp: number; // When the chart became ready (Date.now())
+  symbol: string; // Current trading pair symbol
+  granularity: Granularity; // Current timeframe
+}
+```
+
+#### 2. `SymbolChangeEvent`
 
 Emitted when the trading pair symbol changes.
 
@@ -312,7 +324,7 @@ interface SymbolChangeEvent {
 }
 ```
 
-#### 2. `GranularityChangeEvent`
+#### 3. `GranularityChangeEvent`
 
 Emitted when the chart timeframe changes.
 
@@ -324,7 +336,7 @@ interface GranularityChangeEvent {
 }
 ```
 
-#### 3. `IndicatorChangeEvent`
+#### 4. `IndicatorChangeEvent`
 
 Emitted when indicators are shown or hidden.
 
@@ -336,7 +348,7 @@ interface IndicatorChangeEvent {
 }
 ```
 
-#### 4. `FullscreenChangeEvent`
+#### 5. `FullscreenChangeEvent`
 
 Emitted when display mode changes.
 
@@ -355,6 +367,13 @@ interface FullscreenChangeEvent {
 Add an event listener with type-safe callback.
 
 ```typescript
+// Listen for when chart is ready
+api.on("ready", (data) => {
+  console.log(`Chart ready at ${data.timestamp} for ${data.symbol}`);
+  // Now safe to call other API methods like showIndicator()
+});
+
+// Listen for symbol changes  
 api.on("symbolChange", (data) => {
   console.log(`Symbol changed: ${data.oldSymbol} → ${data.newSymbol}`);
 });
@@ -450,6 +469,13 @@ function TradingChart({ initialSymbol = "BTC-USD" }) {
   useEffect(() => {
     if (!api) return;
 
+    // Ready handler - chart is initialized and API is safe to use
+    const handleReady = (data: ReadyEvent) => {
+      setLoading(false);
+      console.log(`Chart ready for ${data.symbol} at ${data.granularity}`);
+      // Safe to call API methods like showIndicator() here
+    };
+
     // Symbol change handler
     const handleSymbolChange = (data: SymbolChangeEvent) => {
       setSymbol(data.newSymbol);
@@ -463,11 +489,13 @@ function TradingChart({ initialSymbol = "BTC-USD" }) {
     };
 
     // Subscribe to events
+    api.on('ready', handleReady);
     api.on('symbolChange', handleSymbolChange);
     api.on('granularityChange', handleGranularityChange);
 
     // Cleanup
     return () => {
+      api.off('ready', handleReady);
       api.off('symbolChange', handleSymbolChange);
       api.off('granularityChange', handleGranularityChange);
     };
@@ -520,6 +548,12 @@ const app = container.getApp();
 const api = createChartApi(container, app);
 
 // Set up event listeners
+api.on("ready", (data) => {
+  console.log(`Chart initialized for ${data.symbol}`);
+  hideLoadingSpinner();
+  // Now safe to show indicators or perform other API operations
+});
+
 api.on("symbolChange", (data) => {
   document.getElementById("symbol-display").textContent = data.newSymbol;
   if (data.refetch) {
@@ -666,6 +700,7 @@ Always use TypeScript types for better development experience:
 ```typescript
 import type {
   ChartApi,
+  ReadyEvent,
   SymbolChangeEvent,
   ApiIndicatorConfig,
   Granularity,
@@ -692,6 +727,7 @@ export {
   createChartApi,
 
   // Event Types
+  ReadyEvent,
   SymbolChangeEvent,
   GranularityChangeEvent,
   IndicatorChangeEvent,
