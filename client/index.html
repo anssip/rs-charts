@@ -449,22 +449,42 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                 }
             }
 
-            // Initialize demo when charts are ready
-            window.addEventListener('load', () => {
-                // Wait a bit for charts to initialize
-                setTimeout(() => {
-                    if (window.chartApi1) {
-                        chart1Api = window.chartApi1;
-                        console.log('Chart 1 API connected');
-                    }
-                    if (window.chartApi2) {
-                        chart2Api = window.chartApi2;
-                        console.log('Chart 2 API connected');
-                    }
+            // Function to set up chart API event listeners
+            function setupChartEventListeners() {
+                if (window.chartApi1) {
+                    chart1Api = window.chartApi1;
+                    console.log('Chart 1 API connected');
+                    
+                    // Chart ready event handler - just update UI, don't auto-enable indicators
+                    chart1Api.on('ready', (data) => {
+                        console.log(`Chart 1 ready for ${data.symbol}`);
+                        updateStatus(`Chart 1 ready`);
+                        updateActiveButtons();
+                    });
+                }
+                if (window.chartApi2) {
+                    chart2Api = window.chartApi2;
+                    console.log('Chart 2 API connected');
+                    
+                    // Chart ready event handler - just update UI, don't auto-enable indicators
+                    chart2Api.on('ready', (data) => {
+                        console.log(`Chart 2 ready for ${data.symbol}`);
+                        if (currentChart === 2) {
+                            updateStatus(`Chart 2 ready`);
+                            updateActiveButtons();
+                        }
+                    });
+                }
+            }
+
+            // Try to set up listeners immediately, then retry periodically if needed
+            function initializeDemo() {
+                if (window.chartApi1 || window.chartApi2) {
+                    setupChartEventListeners();
                     updateStatus();
                     updateActiveButtons();
 
-                    // Set up event listeners
+                    // Set up other event listeners
                     if (chart1Api) {
                         chart1Api.on('symbolChange', () => {
                             if (currentChart === 1) {
@@ -506,7 +526,22 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                             }
                         });
                     }
-                }, 2000);
+                    return true; // Successfully initialized
+                }
+                return false; // APIs not ready yet
+            }
+
+            // Initialize demo when charts are ready
+            window.addEventListener('load', () => {
+                // Try to initialize immediately
+                if (!initializeDemo()) {
+                    // If APIs aren't ready yet, poll every 100ms
+                    const pollInterval = setInterval(() => {
+                        if (initializeDemo()) {
+                            clearInterval(pollInterval);
+                        }
+                    }, 100);
+                }
             });
         </script>
     </body>

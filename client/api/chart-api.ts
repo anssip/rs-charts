@@ -99,6 +99,8 @@ export class ChartApi {
   private app: App;
   private state: ChartState;
   private eventListeners: Map<string, Set<Function>> = new Map();
+  private isReady: boolean = false;
+  private readyData: ReadyEvent | null = null;
 
   constructor(options: ChartApiOptions) {
     this.container = options.container;
@@ -110,11 +112,13 @@ export class ChartApi {
     // Listen for chart-ready event from the container and emit ready event
     this.container.addEventListener('chart-ready', () => {
       logger.info("ChartApi: Chart is ready, emitting ready event");
-      this.emitEvent('ready', {
+      this.isReady = true;
+      this.readyData = {
         timestamp: Date.now(),
         symbol: this.state.symbol,
         granularity: this.state.granularity
-      });
+      };
+      this.emitEvent('ready', this.readyData);
     });
   }
 
@@ -247,8 +251,15 @@ export class ChartApi {
     });
 
     if (builtInIndicator && builtInIndicator.action) {
-      // Use the built-in indicator action which has proper configuration
-      builtInIndicator.action();
+      // Check if indicator is already visible to avoid toggling it off
+      const isAlreadyVisible = this.isIndicatorVisible(config.id);
+      
+      if (isAlreadyVisible) {
+        logger.info(`ChartApi: Indicator ${config.id} already visible, skipping action`);
+      } else {
+        // Use the built-in indicator action which has proper configuration
+        builtInIndicator.action();
+      }
       
       this.emitEvent('indicatorChange', {
         action: 'show',
@@ -520,6 +531,13 @@ export class ChartApi {
   }
 
   /**
+   * Check if chart is ready for API calls
+   */
+  isChartReady(): boolean {
+    return this.isReady;
+  }
+
+  /**
    * Force a redraw of the chart
    */
   redraw(): void {
@@ -555,6 +573,18 @@ export class ChartApi {
       this.eventListeners.set(event, new Set());
     }
     this.eventListeners.get(event)!.add(callback);
+    
+    // If this is a 'ready' event listener and the chart is already ready, emit immediately
+    if (event === 'ready' && this.isReady && this.readyData) {
+      logger.info("ChartApi: Chart already ready, emitting ready event immediately for new listener");
+      setTimeout(() => {
+        try {
+          (callback as ChartApiEventCallback<'ready'>)(this.readyData!);
+        } catch (error) {
+          logger.error("ChartApi: Error in ready event callback:", error);
+        }
+      }, 0);
+    }
   }
 
   /**
