@@ -43,6 +43,7 @@
     "start": "bun run ./dist/server/index.js",
     "demo-dev": "PORT=3000 bun run ./dist/server/index.js",
     "test": "bun test",
+    "add-indicators": "bun run ./scripts/add-indicators-to-firestore-admin.ts",
     "test:api": "bun test client/api/__tests__/chart-api-simple.test.ts",
     "test:models": "bun test server/services/price-data/__tests__/price-history-model.test.ts",
     "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs --external @use-gesture/vanilla ",
@@ -73,6 +74,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "coinbase-api": "^1.0.2",
     "dotenv": "^16.4.5",
+    "firebase-admin": "^12.0.0",
     "jsonwebtoken": "^9.0.2"
   },
   "publishConfig": {

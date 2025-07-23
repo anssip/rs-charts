@@ -1,6 +1,7 @@
 # Rekt Sense Charts Development Guide
 
 ## Build & Run Commands
+
 ```bash
 bun install             # Install dependencies
 bun run dev             # Run development server with watch mode
@@ -10,7 +11,12 @@ bun test                # Run all tests
 bun test server/services/price-data/__tests__/price-history-model.test.ts  # Run specific test
 ```
 
+## Important files
+
+- `doc/CHART_API_REFERENCE.md`
+
 ## Code Style Guidelines
+
 - **Naming**: Classes/Interfaces (PascalCase), Variables/Methods (camelCase), Constants (UPPER_SNAKE_CASE), Components (kebab-case)
 - **Files**: Use kebab-case for filenames (e.g., `price-history-model.ts`)
 - **Imports**: Group third-party libraries first, followed by app imports, then utilities
