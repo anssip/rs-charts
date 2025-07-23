@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart API Ready Event Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .loading { background: #fff3cd; border: 1px solid #ffeaa7; }
+        .ready { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+        chart-container { width: 100%; height: 400px; display: block; border: 1px solid #ccc; }
+        button { margin: 5px; padding: 8px 16px; }
+        #log { max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Chart API Ready Event Test</h1>
+    
+    <div id="status" class="loading">
+        Chart initializing...
+    </div>
+    
+    <div>
+        <button id="show-rsi" disabled>Show RSI (should fail before ready)</button>
+        <button id="show-volume" disabled>Show Volume (should fail before ready)</button>
+        <button id="change-symbol" disabled>Change Symbol (should fail before ready)</button>
+    </div>
+    
+    <div id="log"></div>
+    
+    <chart-container></chart-container>
+
+    <script type="module">
+        import { initChartWithApi } from './dist/client/index.js';
+
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        const showRsiBtn = document.getElementById('show-rsi');
+        const showVolumeBtn = document.getElementById('show-volume');
+        const changeSymbolBtn = document.getElementById('change-symbol');
+
+        let chartReady = false;
+        let api = null;
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `${timestamp}: ${message}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, className) {
+            statusEl.textContent = message;
+            statusEl.className = className;
+        }
+
+        // Test calling API before ready (should fail gracefully or be ignored)
+        function testEarlyApiCalls() {
+            log("Testing API calls before chart is ready...");
+            
+            if (api) {
+                try {
+                    api.showIndicator({ id: 'rsi', name: 'RSI', visible: true });
+                    log("⚠️ showIndicator() called before ready - this might cause issues");
+                } catch (error) {
+                    log("✅ showIndicator() properly handled before ready: " + error.message);
+                }
+            }
+        }
+
+        async function initChart() {
+            try {
+                log("Initializing chart...");
+                updateStatus("Initializing chart...", "loading");
+
+                const container = document.querySelector('chart-container');
+                const result = await initChartWithApi(container, {
+                    symbol: 'BTC-USD',
+                    granularity: 'ONE_HOUR'
+                });
+                
+                api = result.api;
+                log("Chart API created");
+
+                // Test early API calls
+                testEarlyApiCalls();
+
+                // Set up ready event listener
+                api.on('ready', (data) => {
+                    chartReady = true;
+                    log(`🎉 Chart ready event received!`);
+                    log(`  Symbol: ${data.symbol}`);
+                    log(`  Granularity: ${data.granularity}`);
+                    log(`  Timestamp: ${data.timestamp}`);
+                    
+                    updateStatus(`Chart ready for ${data.symbol} at ${data.granularity}`, "ready");
+                    
+                    // Enable buttons now that chart is ready
+                    showRsiBtn.disabled = false;
+                    showVolumeBtn.disabled = false;
+                    changeSymbolBtn.disabled = false;
+                });
+
+                // Set up other event listeners
+                api.on('symbolChange', (data) => {
+                    log(`Symbol changed: ${data.oldSymbol} → ${data.newSymbol}`);
+                });
+
+                api.on('indicatorChange', (data) => {
+                    if (data.action === 'show') {
+                        log(`Indicator shown: ${data.indicator?.name || data.indicator?.id}`);
+                    } else {
+                        log(`Indicator hidden: ${data.indicatorId}`);
+                    }
+                });
+
+                // Button event handlers
+                showRsiBtn.addEventListener('click', () => {
+                    if (chartReady) {
+                        log("Showing RSI indicator...");
+                        api.showIndicator({ id: 'rsi', name: 'RSI', visible: true });
+                    } else {
+                        log("❌ Cannot show RSI - chart not ready yet");
+                    }
+                });
+
+                showVolumeBtn.addEventListener('click', () => {
+                    if (chartReady) {
+                        log("Showing Volume indicator...");
+                        api.showIndicator({ id: 'volume', name: 'Volume', visible: true });
+                    } else {
+                        log("❌ Cannot show Volume - chart not ready yet");
+                    }
+                });
+
+                changeSymbolBtn.addEventListener('click', () => {
+                    if (chartReady) {
+                        log("Changing symbol to ETH-USD...");
+                        api.setSymbol('ETH-USD');
+                    } else {
+                        log("❌ Cannot change symbol - chart not ready yet");
+                    }
+                });
+
+            } catch (error) {
+                log("❌ Error initializing chart: " + error.message);
+                updateStatus("Error initializing chart", "error");
+                console.error(error);
+            }
+        }
+
+        // Initialize chart
+        initChart();
+    </script>
+</body>
+</html>
