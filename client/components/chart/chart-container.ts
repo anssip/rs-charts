@@ -18,7 +18,6 @@ import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { CoinbaseProduct } from "../../api/firestore-client";
-import "./logo";
 import { MenuItem } from "./context-menu";
 import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
@@ -681,7 +680,6 @@ export class ChartContainer extends LitElement {
           <chart-timeline></chart-timeline>
         </div>
 
-        <chart-logo></chart-logo>
         <chart-context-menu
           .show=${this.showContextMenu}
           .position=${this.contextMenuPosition}
