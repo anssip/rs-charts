@@ -348,7 +348,21 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   set state(state: ChartState) {
+    const isInitialState = this._state.symbol === "BTC-USD" && this._state.granularity === "ONE_HOUR" && this.indicators.size === 0;
     this._state = state;
+    
+    // Process indicators from initial state if this is the first time setting state
+    if (isInitialState && state.indicators && state.indicators.length > 0) {
+      logger.debug(`ChartContainer: Processing ${state.indicators.length} indicators from initial state`);
+      state.indicators.forEach(indicator => {
+        if (indicator.visible) {
+          logger.debug(`ChartContainer: Auto-showing indicator ${indicator.id} from initial state`);
+          this.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
+            detail: indicator
+          }));
+        }
+      });
+    }
   }
 
   private dispatchUpgrade() {
