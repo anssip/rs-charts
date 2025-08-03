@@ -14,25 +14,19 @@ export class ProductSelect extends LitElement {
   @property({ type: Boolean })
   compact = false;
 
+  @property({ type: Array })
+  starredSymbols: string[] = [];
+
   @state()
   private isOpen = false;
-
-  @state()
-  private searchQuery = "";
-
-  @state()
-  private selectedTab = "Crypto";
 
   @state()
   private selectedIndex = -1;
 
   updated(changedProperties: Map<string, any>) {
     if (changedProperties.has("isOpen") && this.isOpen) {
-      // Focus the input field when modal opens
-      const input = this.renderRoot.querySelector("input");
-      if (input) {
-        input.focus();
-      }
+      // Reset selection when opening
+      this.selectedIndex = 0;
     }
   }
 
@@ -40,14 +34,15 @@ export class ProductSelect extends LitElement {
     if (!this.isOpen) return;
 
     e.stopPropagation(); // Prevent event from bubbling up
-    const products = this.filteredProducts;
+    const products = this.starredProducts;
+    const totalItems = products.length + 1; // +1 for "Manage Symbols"
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
         this.selectedIndex = Math.min(
           this.selectedIndex + 1,
-          products.length - 1
+          totalItems - 1
         );
         this.scrollToSelected();
         break;
@@ -58,7 +53,10 @@ export class ProductSelect extends LitElement {
         break;
       case "Enter":
         e.preventDefault();
-        if (this.selectedIndex >= 0 && this.selectedIndex < products.length) {
+        if (this.selectedIndex === products.length) {
+          // Selected "Manage Symbols"
+          this.handleManageSymbols();
+        } else if (this.selectedIndex >= 0 && this.selectedIndex < products.length) {
           this.handleProductSelect(products[this.selectedIndex]);
         }
         break;
@@ -102,13 +100,7 @@ export class ProductSelect extends LitElement {
 
   private handleClose() {
     this.isOpen = false;
-    this.searchQuery = "";
     this.selectedIndex = -1;
-  }
-
-  private handleSearch(e: InputEvent) {
-    this.searchQuery = (e.target as HTMLInputElement).value;
-    this.selectedIndex = 0; // Reset selection when searching
   }
 
   private handleProductSelect(product: CoinbaseProduct) {
@@ -124,71 +116,23 @@ export class ProductSelect extends LitElement {
     this.handleClose();
   }
 
-  private get filteredProducts() {
+  private get starredProducts() {
     return this.products.filter((product) => {
-      const searchLower = this.searchQuery.toLowerCase();
-      return (
-        product.baseCurrency.toLowerCase().includes(searchLower) ||
-        product.quoteCurrency.toLowerCase().includes(searchLower) ||
-        `${product.baseCurrency}-${product.quoteCurrency}`
-          .toLowerCase()
-          .includes(searchLower)
-      );
+      const symbol = `${product.baseCurrency}-${product.quoteCurrency}`;
+      return this.starredSymbols.includes(symbol);
     });
   }
 
-  private highlightMatches(text: string): string | TemplateResult {
-    if (!this.searchQuery) return text;
-
-    const searchLower = this.searchQuery.toLowerCase();
-    const textLower = text.toLowerCase();
-    const index = textLower.indexOf(searchLower);
-
-    if (index === -1) return text;
-
-    return html`${text.slice(0, index)}<span class="highlight"
-        >${text.slice(index, index + this.searchQuery.length)}</span
-      >${text.slice(index + this.searchQuery.length)}`;
+  private handleManageSymbols() {
+    this.handleClose();
+    this.dispatchEvent(new CustomEvent("manage-symbols", {
+      bubbles: true,
+      composed: true
+    }));
   }
 
-  private get resultsContent() {
-    if (this.selectedTab === "Stocks" || this.selectedTab === "Forex") {
-      return html`
-        <div class="coming-soon">
-          <div class="coming-soon-message">${this.selectedTab} coming soon</div>
-        </div>
-      `;
-    }
 
-    return html`
-      <div class="results">
-        ${this.filteredProducts.map(
-          (product, index) => html`
-            <div
-              class="result-item ${index === this.selectedIndex
-                ? "selected"
-                : ""}"
-              @click=${() => this.handleProductSelect(product)}
-              @mouseover=${() => (this.selectedIndex = index)}
-            >
-              <div class="symbol">
-                ${this.highlightMatches(
-                  `${product.baseCurrency}-${product.quoteCurrency}`
-                )}
-              </div>
-              <div class="exchange">Coinbase</div>
-            </div>
-          `
-        )}
-      </div>
-    `;
-  }
 
-  public openWithSearch(initialChar: string) {
-    this.isOpen = true;
-    this.searchQuery = initialChar;
-    this.selectedIndex = 0;
-  }
 
   render() {
     return html`
@@ -203,77 +147,45 @@ export class ProductSelect extends LitElement {
 
         ${this.isOpen
           ? html`
-              <div class="modal-backdrop" part="backdrop">
-                <div
-                  class="modal ${this.compact ? "compact" : ""}"
-                  part="modal"
-                  tabindex="0"
+              <div class="dropdown-backdrop" @click=${this.handleClose}>
+                <div 
+                  class="dropdown-menu"
+                  @click=${(e: Event) => e.stopPropagation()}
+                  @keydown=${this.handleKeyDown}
                 >
-                  <div class="modal-header" part="header">
-                    <h2>Symbol Search</h2>
-                    <button
-                      class="close-button"
-                      @click=${this.handleClose}
-                      part="close"
-                    >
-                      ×
-                    </button>
+                  <div class="dropdown-content">
+                    ${this.starredProducts.length === 0 
+                      ? html`
+                          <div class="empty-state">
+                            <p>No symbols added yet</p>
+                            <p class="empty-hint">Click "Manage Symbols" to add symbols</p>
+                          </div>
+                        `
+                      : html`
+                          ${this.starredProducts.map((product, index) => html`
+                            <div
+                              class="dropdown-item ${index === this.selectedIndex ? "selected" : ""}"
+                              @click=${() => this.handleProductSelect(product)}
+                              @mouseover=${() => (this.selectedIndex = index)}
+                            >
+                              <div class="symbol-name">
+                                ${product.baseCurrency}-${product.quoteCurrency}
+                              </div>
+                              <div class="exchange-name">Coinbase</div>
+                            </div>
+                          `)}
+                        `
+                    }
                   </div>
-
-                  <div class="search-container" part="search">
-                    <input
-                      type="text"
-                      placeholder="Search"
-                      .value=${this.searchQuery}
-                      @input=${this.handleSearch}
-                      @keydown=${this.handleKeyDown}
-                      autofocus
-                      part="input"
-                    />
-                  </div>
-
-                  <div class="tabs" part="tabs">
-                    <button
-                      class=${this.selectedTab === "All" ? "active" : ""}
-                      @click=${() => (this.selectedTab = "All")}
-                      part="tab"
+                  <div class="dropdown-footer">
+                    <div
+                      class="dropdown-item manage-symbols ${this.selectedIndex === this.starredProducts.length ? "selected" : ""}"
+                      @click=${this.handleManageSymbols}
+                      @mouseover=${() => (this.selectedIndex = this.starredProducts.length)}
                     >
-                      All
-                    </button>
-                    <button
-                      class=${this.selectedTab === "Stocks" ? "active" : ""}
-                      @click=${() => (this.selectedTab = "Stocks")}
-                      part="tab"
-                    >
-                      Stocks
-                    </button>
-                    <button
-                      class=${this.selectedTab === "Crypto" ? "active" : ""}
-                      @click=${() => (this.selectedTab = "Crypto")}
-                      part="tab"
-                    >
-                      Crypto
-                    </button>
-                    <button
-                      class=${this.selectedTab === "Forex" ? "active" : ""}
-                      @click=${() => (this.selectedTab = "Forex")}
-                      part="tab"
-                    >
-                      Forex
-                    </button>
-                  </div>
-
-                  <div class="filter-row" part="filter">
-                    <select class="source-select" disabled part="select">
-                      <option>All sources</option>
-                      <option selected>Coinbase</option>
-                    </select>
-                    <div class="coming-soon-badge" part="badge">
-                      More exchanges coming soon
+                      <div class="manage-symbols-text">⚙️ Manage Symbols</div>
                     </div>
                   </div>
-
-                  ${this.resultsContent}
                 </div>
               </div>
             `
@@ -289,234 +201,112 @@ export class ProductSelect extends LitElement {
       width: 100%;
     }
 
-    .product-select.compact spot-button::part(label) {
-      display: none;
-    }
-
-    .modal-backdrop {
+    .dropdown-backdrop {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--color-modal-backdrop);
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding-top: 100px;
-      z-index: 1000;
-      isolation: isolate;
+      z-index: 999;
     }
 
-    .modal {
-      position: relative;
-      z-index: 1001;
-      background: var(--color-primary-dark-50);
-      border-radius: 8px;
-      width: 500px;
-      max-width: 90vw;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-      border: 1px solid var(--color-background-secondary-20);
-    }
-
-    .modal.compact {
-      width: 300px;
-    }
-
-    .modal::before {
-      content: "";
+    .dropdown-menu {
       position: absolute;
-      inset: 0;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
       background: var(--color-primary-dark-50);
-      border-radius: inherit;
-      z-index: -1;
+      border: 1px solid var(--color-background-secondary-20);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      z-index: 1000;
+      min-width: 250px;
     }
 
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      border-bottom: 1px solid var(--color-background-secondary-20);
-      background: var(--color-primary-dark-98);
-    }
-
-    .modal-header h2 {
-      margin: 0;
-      color: var(--color-accent-2);
-      font-size: 18px;
-    }
-
-    .close-button {
-      background: none;
-      border: none;
-      color: var(--color-accent-2);
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .close-button:hover {
-      color: var(--color-accent-1);
-    }
-
-    .search-container {
-      padding: 16px;
-      border-bottom: 1px solid var(--color-background-secondary-20);
-      background: var(--color-primary-dark-98);
-    }
-
-    input {
-      width: calc(100% - 32px);
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 14px;
-      border: 1px solid var(--color-background-secondary-30);
-      background: var(--color-primary-dark-98);
-      color: var(--color-accent-2);
-    }
-
-    input:focus {
-      outline: none;
-      border-color: var(--color-accent-1);
-      box-shadow: 0 0 0 2px var(--color-accent-1);
-    }
-
-    .tabs {
-      display: flex;
-      padding: 8px 16px;
-      gap: 8px;
-      border-bottom: 1px solid var(--color-background-secondary-20);
-      background: var(--color-primary-dark-98);
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .tabs::-webkit-scrollbar {
-      display: none;
-    }
-
-    .tabs button {
-      padding: 4px 12px;
-      border: none;
-      background: none;
-      color: var(--color-accent-2);
-      cursor: pointer;
-      border-radius: 4px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .tabs button:hover {
-      background: var(--color-background-secondary);
-    }
-
-    .tabs button.active {
-      background: var(--color-accent-1);
-      color: var(--color-primary-dark);
-    }
-
-    .filter-row {
-      display: flex;
-      align-items: center;
-      padding: 8px 16px;
-      gap: 8px;
-      border-bottom: 1px solid var(--color-background-secondary-20);
-      background: var(--color-primary-dark-98);
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .filter-row::-webkit-scrollbar {
-      display: none;
-    }
-
-    .compact .filter-row {
-      flex-wrap: wrap;
-    }
-
-    .source-select {
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--color-background-secondary-30);
-      background: var(--color-primary-dark-98);
-      color: var(--color-accent-2);
-    }
-
-    .coming-soon-badge {
-      font-size: 12px;
-      color: var(--color-background-secondary);
-    }
-
-    .results {
+    .dropdown-content {
       max-height: 300px;
       overflow-y: auto;
-      scroll-behavior: smooth;
       scrollbar-width: thin;
-      scrollbar-color: var(--color-background-secondary)
-        var(--color-primary-dark-98);
-      background: var(--color-primary-dark-98);
+      scrollbar-color: var(--color-background-secondary) var(--color-primary-dark-98);
     }
 
-    .results::-webkit-scrollbar {
+    .dropdown-content::-webkit-scrollbar {
       width: 8px;
     }
 
-    .results::-webkit-scrollbar-track {
+    .dropdown-content::-webkit-scrollbar-track {
       background: var(--color-primary-dark-98);
     }
 
-    .results::-webkit-scrollbar-thumb {
+    .dropdown-content::-webkit-scrollbar-thumb {
       background-color: var(--color-background-secondary);
       border-radius: 4px;
-      border: 2px solid var(--color-primary-dark);
     }
 
-    .result-item {
+    .dropdown-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 16px;
+      padding: 10px 16px;
       cursor: pointer;
-      color: var(--color-accent-2);
       transition: background-color 0.2s ease;
     }
 
-    .result-item:hover:not(.selected) {
-      background: rgba(var(--color-background-secondary-rgb), 0.2);
+    .dropdown-item:hover:not(.selected) {
+      background: rgba(143, 143, 143, 0.1);
     }
 
-    .result-item.selected {
-      background: rgba(var(--color-background-secondary-rgb), 0.3);
+    .dropdown-item.selected {
+      background: rgba(93, 91, 237, 0.15);
     }
 
-    .symbol {
-      font-weight: bold;
-    }
-
-    .exchange {
-      color: var(--color-background-secondary);
+    .symbol-name {
+      color: var(--color-accent-2);
+      font-weight: 500;
       font-size: 14px;
     }
 
-    .highlight {
-      background: var(--color-accent-1);
-      color: var(--color-primary-dark);
-      padding: 0 2px;
-      border-radius: 2px;
+    .exchange-name {
+      color: var(--color-background-secondary);
+      font-size: 12px;
     }
 
-    .coming-soon {
-      padding: 32px;
+    .dropdown-footer {
+      border-top: 1px solid var(--color-background-secondary-20);
+      background: var(--color-primary-dark-98);
+    }
+
+    .manage-symbols {
+      border-top: none;
+    }
+
+    .manage-symbols-text {
+      color: var(--color-accent-2);
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .empty-state {
+      padding: 20px;
       text-align: center;
       color: var(--color-background-secondary);
     }
 
-    .coming-soon-message {
-      font-size: 18px;
-      margin-bottom: 8px;
+    .empty-state p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+
+    .empty-state .empty-hint {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    /* Keyboard navigation highlight */
+    .dropdown-item.selected .symbol-name,
+    .dropdown-item.selected .manage-symbols-text {
+      color: var(--color-accent-1);
     }
   `;
 }

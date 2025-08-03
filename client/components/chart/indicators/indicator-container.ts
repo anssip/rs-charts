@@ -104,7 +104,7 @@ export class IndicatorContainer extends LitElement {
             ? html`<div class="indicator-name">${this.name}</div>`
             : ""}
           ${this.childIndicatorNames.map(
-            (name) => html`<div class="indicator-name">${name}</div>`
+            (name) => html`<div class="indicator-name">${name}</div>`,
           )}
         </div>
         <slot @slotchange=${this.handleSlotChange}></slot>
@@ -131,7 +131,7 @@ export class IndicatorContainer extends LitElement {
     .indicator-names {
       position: absolute;
       top: 8px;
-      left: 8px;
+      right: 100px;
       display: flex;
       flex-direction: column;
       gap: 4px;
