@@ -64,7 +64,7 @@ export const getStyles = (
     position: absolute;
     top: 16px;
     left: 16px;
-    z-index: 20;
+    z-index: 5;
     pointer-events: auto;
   }
 
@@ -225,8 +225,6 @@ export const getStyles = (
     flex: 1;
     pointer-events: auto;
   }
-
-
 
   [grid-area="timeline"] {
     height: ${timelineHeight}px;

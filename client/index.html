@@ -198,13 +198,66 @@
             .demo-controls.hidden {
                 display: none;
             }
+
+            /* App Header Styles */
+            .app-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                background: var(--color-primary-dark);
+                border-bottom: 1px solid var(--color-background-secondary-20);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 20px;
+                z-index: 100;
+            }
+
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .charts-wrapper {
+                margin-top: 60px; /* Account for fixed header */
+            }
+
+            product-select {
+                width: 200px;
+            }
+
+            .toggle-controls {
+                position: static;
+            }
+
+            .demo-controls {
+                top: 80px; /* Move down to avoid header */
+            }
         </style>
     </head>
 
     <body>
-        <button class="toggle-controls" onclick="toggleDemoControls()">
-            Toggle API Demo
-        </button>
+        <div class="app-header">
+            <div class="header-left">
+                <product-select id="symbol-selector"></product-select>
+            </div>
+            <div class="header-right">
+                <button class="toggle-controls" onclick="toggleDemoControls()">
+                    Toggle API Demo
+                </button>
+            </div>
+        </div>
+
+        <symbol-manager id="symbol-manager"></symbol-manager>
 
         <div class="demo-controls" id="demo-controls">
             <h3>Chart API Demo</h3>

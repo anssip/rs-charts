@@ -39,6 +39,10 @@ export class FirestoreClient {
     ]);
   }
 
+  async getAllProducts(): Promise<CoinbaseProduct[]> {
+    return this.getProducts("coinbase", "online");
+  }
+
   async getProducts(
     exchange: Exchange,
     status: ProductStatus,
@@ -74,4 +78,10 @@ export class FirestoreClient {
       throw error;
     }
   }
+}
+
+// Standalone function for convenience
+export async function getAllProducts(firestore: Firestore): Promise<CoinbaseProduct[]> {
+  const client = new FirestoreClient(firestore);
+  return client.getAllProducts();
 }
