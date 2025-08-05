@@ -147,10 +147,38 @@ export class App {
 
   getInitialTimeRange(): TimeRange {
     const now = Date.now();
-    const hourInMs = 60 * 60 * 1000;
+    const granularity = xinValue(this.state.granularity) || "ONE_HOUR";
+    const intervalMs = granularityToMs(granularity);
+    
+    // Calculate minimum candles needed:
+    // - Base amount for visible viewport (estimate ~100 candles for typical screen)
+    // - Add buffer for panning (2x the visible amount on each side)
+    // This gives us ~5x the visible amount total
+    const visibleCandles = this.chartContainer?.calculateVisibleCandles() || 100;
+    const minCandlesNeeded = visibleCandles * 5;
+    
+    // Use a minimum of 300 candles to ensure good initial coverage
+    // but scale up for larger granularities to ensure adequate time coverage
+    const targetCandles = Math.max(300, minCandlesNeeded);
+    
+    // For daily candles, ensure we have at least 365 days (1 year) of data
+    // For 6-hour candles, ensure at least 90 days
+    // For smaller granularities, the 300 minimum is sufficient
+    let adjustedCandles = targetCandles;
+    if (granularity === "ONE_DAY") {
+      adjustedCandles = Math.max(365, targetCandles);
+    } else if (granularity === "SIX_HOUR") {
+      adjustedCandles = Math.max(360, targetCandles); // 90 days * 4 candles per day
+    } else if (granularity === "TWO_HOUR") {
+      adjustedCandles = Math.max(360, targetCandles); // 30 days * 12 candles per day
+    }
+    
+    // Calculate time range based on the adjusted candle count
+    const totalTimeMs = adjustedCandles * intervalMs;
+    
     return {
-      end: now + hourInMs, // 1 hour into the future
-      start: now - 300 * hourInMs, // 300 hours back
+      end: now + intervalMs, // 1 candle into the future
+      start: now - totalTimeMs, // Calculated candles back
     };
   }
 
