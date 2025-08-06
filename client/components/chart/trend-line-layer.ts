@@ -18,6 +18,9 @@ export class TrendLineLayer extends LitElement {
   @property({ type: Number })
   height = 0;
 
+  @state()
+  private selectedLineId: string | null = null;
+
   static styles = css`
     :host {
       position: absolute;
@@ -112,16 +115,37 @@ export class TrendLineLayer extends LitElement {
     this.updateTrendLine(updatedLine.id, updatedLine);
   }
 
+  private handleTrendLineSelect(event: CustomEvent) {
+    const selectedLine = event.detail.trendLine as TrendLine;
+    this.selectedLineId = selectedLine.id;
+    this.requestUpdate();
+  }
+
+  private handleBackgroundClick = () => {
+    // Deselect when clicking on background
+    if (this.selectedLineId) {
+      this.selectedLineId = null;
+      this.requestUpdate();
+    }
+  }
+
   connectedCallback() {
     super.connectedCallback();
     this.addEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.addEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
+    this.addEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
+    
+    // Listen for clicks on the parent to deselect
+    this.parentElement?.addEventListener('click', this.handleBackgroundClick);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     this.removeEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.removeEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
+    this.removeEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
+    
+    this.parentElement?.removeEventListener('click', this.handleBackgroundClick);
   }
 
   render() {
@@ -140,6 +164,7 @@ export class TrendLineLayer extends LitElement {
             .priceRange="${this.state?.priceRange}"
             .width="${actualWidth}"
             .height="${actualHeight}"
+            .selected="${line.id === this.selectedLineId}"
           ></trend-line>
         `)}
       </div>
