@@ -23,7 +23,7 @@ export class TrendLineLayer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
-      width: calc(100% - var(--price-axis-width, 70px));
+      width: 100%;
       height: 100%;
       pointer-events: none;
       z-index: 10;

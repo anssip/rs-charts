@@ -301,11 +301,14 @@ export class ChartContainer extends LitElement {
   private updateTrendLineLayer() {
     const trendLineLayer = this.renderRoot.querySelector("trend-line-layer") as TrendLineLayer;
     if (trendLineLayer && this.chart?.canvas) {
-      // Get the actual canvas dimensions (which already exclude the price axis)
-      if (this.chart.canvas) {
-        // Use the actual canvas dimensions in CSS pixels (not physical pixels)
+      // Get the chart area dimensions
+      const chartArea = this.renderRoot.querySelector(".chart-area") as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        // Use the chart area width minus price axis (same as what the tool uses)
+        trendLineLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        
+        // Use the actual canvas height
         const dpr = window.devicePixelRatio || 1;
-        trendLineLayer.width = this.chart.canvas.width / dpr;
         trendLineLayer.height = this.chart.canvas.height / dpr;
       }
       
