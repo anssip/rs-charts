@@ -6,6 +6,7 @@ import { Granularity, getAllGranularities } from "../../server/services/price-da
 import { IndicatorConfig, DisplayType, ScaleType, GridStyle } from "../components/chart/indicators/indicator-types";
 import { logger } from "../util/logger";
 import { config as chartConfig } from "../config";
+import { TrendLine, TrendLineEvent } from "../types/trend-line";
 
 export interface ChartApiOptions {
   container: ChartContainer;
@@ -78,6 +79,9 @@ export interface ChartApiEventMap {
   granularityChange: GranularityChangeEvent;
   indicatorChange: IndicatorChangeEvent;
   fullscreenChange: FullscreenChangeEvent;
+  'trend-line-added': TrendLineEvent;
+  'trend-line-updated': TrendLineEvent;
+  'trend-line-removed': TrendLineEvent;
 }
 
 /**
@@ -119,6 +123,22 @@ export class ChartApi {
         granularity: this.state.granularity
       };
       this.emitEvent('ready', this.readyData);
+    });
+    
+    // Listen for trend line events
+    this.container.addEventListener('trend-line-added', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-added', customEvent.detail);
+    });
+    
+    this.container.addEventListener('trend-line-updated', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-updated', customEvent.detail);
+    });
+    
+    this.container.addEventListener('trend-line-removed', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-removed', customEvent.detail);
     });
   }
 
@@ -615,6 +635,127 @@ export class ChartApi {
         }
       });
     }
+  }
+
+  // ============================================================================
+  // Trend Line Control
+  // ============================================================================
+  
+  /**
+   * Add a trend line to the chart
+   * @param trendLine Trend line configuration (without ID)
+   * @returns The ID of the created trend line
+   */
+  addTrendLine(trendLine: Omit<TrendLine, 'id'>): string {
+    const id = `trend-line-${Date.now()}`;
+    const fullTrendLine: TrendLine = { id, ...trendLine };
+    
+    // Access the container's trend line methods
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addTrendLine) {
+      chartContainer.addTrendLine(fullTrendLine);
+    }
+    
+    logger.info(`ChartApi: Added trend line ${id}`);
+    return id;
+  }
+  
+  /**
+   * Remove a trend line from the chart
+   * @param id The ID of the trend line to remove
+   */
+  removeTrendLine(id: string): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      chartContainer.trendLineLayer.removeTrendLine(id);
+    }
+    
+    logger.info(`ChartApi: Removed trend line ${id}`);
+  }
+  
+  /**
+   * Update an existing trend line
+   * @param id The ID of the trend line to update
+   * @param updates Partial trend line updates
+   */
+  updateTrendLine(id: string, updates: Partial<TrendLine>): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      chartContainer.trendLineLayer.updateTrendLine(id, updates);
+    }
+    
+    logger.info(`ChartApi: Updated trend line ${id}`);
+  }
+  
+  /**
+   * Get all trend lines
+   * @returns Array of trend lines
+   */
+  getTrendLines(): TrendLine[] {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLines) {
+      return chartContainer.trendLines;
+    }
+    return [];
+  }
+  
+  /**
+   * Clear all trend lines
+   */
+  clearTrendLines(): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      chartContainer.trendLineLayer.clearTrendLines();
+      chartContainer.trendLines = [];
+    }
+    
+    logger.info("ChartApi: Cleared all trend lines");
+  }
+  
+  /**
+   * Activate the trend line drawing tool
+   */
+  activateTrendLineTool(): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineTool) {
+      chartContainer.trendLineTool.activate();
+      
+      // Update toolbar state
+      const toolbar = chartContainer.renderRoot.querySelector("chart-toolbar") as any;
+      if (toolbar) toolbar.trendLineToolActive = true;
+    }
+    
+    logger.info("ChartApi: Activated trend line tool");
+  }
+  
+  /**
+   * Deactivate the trend line drawing tool
+   */
+  deactivateTrendLineTool(): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineTool) {
+      chartContainer.trendLineTool.deactivate();
+      
+      // Update toolbar state
+      const toolbar = chartContainer.renderRoot.querySelector("chart-toolbar") as any;
+      if (toolbar) toolbar.trendLineToolActive = false;
+    }
+    
+    logger.info("ChartApi: Deactivated trend line tool");
+  }
+  
+  /**
+   * Check if the trend line tool is active
+   * @returns true if the tool is active
+   */
+  isToolActive(tool: 'trendLine'): boolean {
+    if (tool === 'trendLine') {
+      const chartContainer = this.container as any;
+      if (chartContainer && chartContainer.trendLineTool) {
+        return chartContainer.trendLineTool.isToolActive();
+      }
+    }
+    return false;
   }
 
   // ============================================================================

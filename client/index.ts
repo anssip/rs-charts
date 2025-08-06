@@ -27,6 +27,7 @@ import { StarredSymbolsService } from "./api/starred-symbols-service";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { SymbolManager } from "./components/common/symbol-manager";
 import { ProductSelect } from "./components/chart/toolbar/product-select";
+import { TrendLine } from "./types/trend-line";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -39,6 +40,7 @@ export type ChartState = {
   granularity: Granularity;
   loading?: boolean;
   indicators?: IndicatorConfig[];
+  trendLines?: TrendLine[];
 };
 
 declare global {
