@@ -6,6 +6,10 @@ import {
   DocumentData,
 } from "firebase/firestore";
 import { Granularity } from "../../server/services/price-data/price-history-model";
+import { getLogger, LogLevel } from "../util/logger";
+
+const logger = getLogger('live-candle-subscription');
+logger.setLoggerLevel('live-candle-subscription', LogLevel.ERROR);
 
 export interface LiveCandle {
   timestamp: number;
@@ -56,7 +60,7 @@ export class LiveCandleSubscription {
       
       // Only reconnect if we have an active subscription and it's been a while
       if (this._currentSymbol && this._currentGranularity && timeSinceLastCheck > 10000) {
-        console.log(`[${this.instanceId}] Reconnecting after visibility change`);
+        logger.info(`[${this.instanceId}] Reconnecting after visibility change`);
         this.reconnect();
       }
     }
@@ -67,7 +71,7 @@ export class LiveCandleSubscription {
     
     const timeSinceLastUpdate = Date.now() - this._lastUpdateTime;
     if (timeSinceLastUpdate > this.TIMEOUT_MS) {
-      console.log(`[${this.instanceId}] Connection timeout detected, reconnecting...`);
+      logger.info(`[${this.instanceId}] Connection timeout detected, reconnecting...`);
       this.reconnect();
     }
     this._lastCheckTime = Date.now();
@@ -101,14 +105,14 @@ export class LiveCandleSubscription {
     ) {
       // Implement exponential backoff for reconnection attempts
       if (this._reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-        console.warn(`[${this.instanceId}] Max reconnection attempts reached, stopping...`);
+        logger.warn(`[${this.instanceId}] Max reconnection attempts reached, stopping...`);
         return;
       }
       
       const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts), 30000);
       this._reconnectAttempts++;
       
-      console.log(`[${this.instanceId}] Reconnecting attempt ${this._reconnectAttempts}, delay: ${delay}ms`);
+      logger.info(`[${this.instanceId}] Reconnecting attempt ${this._reconnectAttempts}, delay: ${delay}ms`);
       
       if (this._reconnectTimeout) {
         clearTimeout(this._reconnectTimeout);
@@ -132,7 +136,7 @@ export class LiveCandleSubscription {
     onUpdate: (candle: LiveCandle) => void
   ): void {
     if (!this._isActive) {
-      console.warn(`[${this.instanceId}] Cannot subscribe - instance is not active`);
+      logger.warn(`[${this.instanceId}] Cannot subscribe - instance is not active`);
       return;
     }
     
@@ -144,7 +148,7 @@ export class LiveCandleSubscription {
     this._lastUpdateTime = Date.now();
     this._reconnectAttempts = 0; // Reset reconnection attempts on new subscription
 
-    console.log(`[${this.instanceId}] Subscribing to ${symbol}/${granularity}`);
+    logger.info(`[${this.instanceId}] Subscribing to ${symbol}/${granularity}`);
 
     const docRef = doc(
       this.firestore,
@@ -180,7 +184,7 @@ export class LiveCandleSubscription {
       (error) => {
         if (!this._isActive) return;
         
-        console.error(`[${this.instanceId}] Snapshot error:`, error);
+        logger.error(`[${this.instanceId}] Snapshot error:`, error);
         // Start reconnection process on error with delay
         const delay = Math.min(1000 * (this._reconnectAttempts + 1), 5000);
         setTimeout(() => {
@@ -196,7 +200,7 @@ export class LiveCandleSubscription {
 
   unsubscribe(): void {
     if (this._unsubscribe) {
-      console.log(`[${this.instanceId}] Unsubscribing from live candle updates`);
+      logger.info(`[${this.instanceId}] Unsubscribing from live candle updates`);
       this._unsubscribe();
       this._unsubscribe = null;
     }
@@ -220,7 +224,7 @@ export class LiveCandleSubscription {
    * Call this when the chart instance is being destroyed.
    */
   dispose(): void {
-    console.log(`[${this.instanceId}] Disposing live candle subscription`);
+    logger.info(`[${this.instanceId}] Disposing live candle subscription`);
     
     // Mark as inactive to prevent any further operations
     this._isActive = false;

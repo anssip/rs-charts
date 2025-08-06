@@ -6,7 +6,10 @@ import { ChartState } from "."; // Assuming ChartState is defined in index.ts or
 import { xinProxy, xin } from "xinjs";
 import { PriceRangeImpl } from "./util/price-range";
 import { SimplePriceHistory } from "../server/services/price-data/price-history-model";
-import { logger } from "./util/logger";
+import { getLogger, LogLevel } from "./util/logger";
+
+const logger = getLogger('ChartInit');
+logger.setLoggerLevel('ChartInit', LogLevel.ERROR);
 import { ChartContainer } from "./components/chart/chart-container"; // Import ChartContainer type
 import { ChartApi, createChartApi } from "./api/chart-api";
 
@@ -147,17 +150,17 @@ export function initChartWithApi(
   // Store the chart ID on the container for components to access
   (chartContainerElement as any)._chartId = chartId;
   chartContainerElement.setAttribute('data-chart-id', chartId);
-  console.log(`initChart: Assigned chartId ${chartId} to chart container`);
-  console.log(
-    `initChart: Chart container tagName:`,
+  logger.debug(`Assigned chartId ${chartId} to chart container`);
+  logger.debug(
+    `Chart container tagName:`,
     chartContainerElement.tagName,
   );
-  console.log(
-    `initChart: Chart container _chartId:`,
+  logger.debug(
+    `Chart container _chartId:`,
     (chartContainerElement as any)._chartId,
   );
-  console.log(`initChart: All xin keys:`, Object.keys(xin));
-  console.log(`initChart: Chart state in xin[${chartId}]:`, xin[chartId]);
+  logger.debug(`All xin keys:`, Object.keys(xin));
+  logger.debug(`Chart state in xin[${chartId}]:`, xin[chartId]);
 
   // Make state globally accessible for potential debugging or integration
   if (typeof window !== "undefined") {

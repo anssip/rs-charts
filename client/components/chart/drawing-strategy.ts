@@ -10,6 +10,10 @@ import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 import { ChartState } from "../..";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger('CandlestickStrategy');
+logger.setLoggerLevel('CandlestickStrategy', LogLevel.ERROR);
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -196,7 +200,7 @@ export class CandlestickStrategy implements Drawable {
             this.liveCandle.lastUpdate &&
             Date.now() - this.liveCandle.lastUpdate.getTime() < 60000) { // Live data is less than 1 minute old
           
-          console.debug(`CandlestickStrategy[${this.chartId}]: Replacing historical candle with live candle at timestamp ${timestamp}, x=${x}`);
+          logger.debug(`Replacing historical candle with live candle at timestamp ${timestamp}, x=${x}`);
           
           candle = {
             timestamp: this.liveCandle.timestamp,
@@ -255,7 +259,7 @@ export class CandlestickStrategy implements Drawable {
     // Validate candle data
     if (typeof candle.open !== 'number' || typeof candle.close !== 'number' || 
         typeof candle.high !== 'number' || typeof candle.low !== 'number') {
-      console.warn(`CandlestickStrategy: Invalid candle data`, candle);
+      logger.warn(`Invalid candle data`, candle);
       return;
     }
 
@@ -317,7 +321,7 @@ export class CandlestickStrategy implements Drawable {
 
     // Debug log for live candles
     if (isLiveCandle) {
-      console.debug(`CandlestickStrategy: Drew live candle at X=${candleX} with body from ${bodyTop} to ${bodyTop + minBodyHeight} (OHLC: ${candle.open}, ${actualHigh}, ${actualLow}, ${candle.close})`);
+      logger.debug(`Drew live candle at X=${candleX} with body from ${bodyTop} to ${bodyTop + minBodyHeight} (OHLC: ${candle.open}, ${actualHigh}, ${actualLow}, ${candle.close})`);
     }
   }
 
@@ -370,7 +374,7 @@ export class CandlestickStrategy implements Drawable {
       (stateChanged || (currentTime - this.lastLogTime) > this.LOG_THROTTLE_MS);
     
     if (shouldLog) {
-      console.debug(`CandlestickStrategy[${this.chartId}]: Live candle check - inViewport: ${isInViewport}, isRecent: ${isRecent}, timestamp: ${this.liveCandle.timestamp} (${liveCandleTimestampMs}ms), viewport: ${viewportStartTimestamp}-${viewportEndTimestamp}`);
+      logger.debug(`Live candle check - inViewport: ${isInViewport}, isRecent: ${isRecent}, timestamp: ${this.liveCandle.timestamp} (${liveCandleTimestampMs}ms), viewport: ${viewportStartTimestamp}-${viewportEndTimestamp}`);
       this.lastLoggedState = { isInViewport, isRecent, timestamp: this.liveCandle.timestamp };
       this.lastLogTime = currentTime;
     }
@@ -382,7 +386,7 @@ export class CandlestickStrategy implements Drawable {
     const historicalCandle = data.getCandle(liveCandleTimestampMs);
     if (historicalCandle) {
       // Already drawn in the main loop with live data
-      console.debug(`CandlestickStrategy[${this.chartId}]: Live candle already drawn in main loop at timestamp ${this.liveCandle.timestamp} (${liveCandleTimestampMs}ms)`);
+      logger.debug(`Live candle already drawn in main loop at timestamp ${this.liveCandle.timestamp} (${liveCandleTimestampMs}ms)`);
       return;
     }
 
@@ -405,13 +409,13 @@ export class CandlestickStrategy implements Drawable {
       const timeDiff = Math.abs(liveCandleTimestampMs - expectedNextCandleTimestamp);
       if (timeDiff < granularityMs * 0.5) { // Within 50% of granularity
         targetTimestamp = expectedNextCandleTimestamp;
-        console.debug(`CandlestickStrategy[${this.chartId}]: Aligning live candle to expected timeline position - lastHistorical: ${lastHistoricalTimestamp}, expected: ${expectedNextCandleTimestamp}, original: ${liveCandleTimestampMs}`);
+        logger.debug(`Aligning live candle to expected timeline position - lastHistorical: ${lastHistoricalTimestamp}, expected: ${expectedNextCandleTimestamp}, original: ${liveCandleTimestampMs}`);
       }
     }
     
     let x = timeToX(targetTimestamp);
     
-    console.debug(`CandlestickStrategy[${this.chartId}]: Live candle positioning - originalTs: ${this.liveCandle.timestamp}, convertedTs: ${liveCandleTimestampMs}, targetTs: ${targetTimestamp}, granularityMs: ${granularityMs}`);
+    logger.debug(`Live candle positioning - originalTs: ${this.liveCandle.timestamp}, convertedTs: ${liveCandleTimestampMs}, targetTs: ${targetTimestamp}, granularityMs: ${granularityMs}`);
     
     // If the live candle is beyond the viewport, position it at the end
     if (targetTimestamp > viewportEndTimestamp) {
@@ -419,14 +423,14 @@ export class CandlestickStrategy implements Drawable {
       const nextCandleTime = Math.ceil(viewportEndTimestamp / granularityMs) * granularityMs;
       x = timeToX(nextCandleTime);
       if (currentTime - this.lastPositionLogTime > this.LOG_THROTTLE_MS) {
-        console.debug(`CandlestickStrategy[${this.chartId}]: Positioning live candle at next slot: ${nextCandleTime}, X: ${x}`);
+        logger.debug(`Positioning live candle at next slot: ${nextCandleTime}, X: ${x}`);
         this.lastPositionLogTime = currentTime;
       }
     } else {
       // Use the candle's actual timestamp
       x = timeToX(targetTimestamp);
       if (currentTime - this.lastPositionLogTime > this.LOG_THROTTLE_MS) {
-        console.debug(`CandlestickStrategy[${this.chartId}]: Using live candle actual timestamp: ${targetTimestamp}, X: ${x}`);
+        logger.debug(`Using live candle actual timestamp: ${targetTimestamp}, X: ${x}`);
         this.lastPositionLogTime = currentTime;
       }
     }
@@ -434,7 +438,7 @@ export class CandlestickStrategy implements Drawable {
     // Only draw if x position is within canvas bounds
     if (x < 0 || x > canvas.width / dpr) {
       if (currentTime - this.lastBoundsLogTime > this.LOG_THROTTLE_MS) {
-        console.debug(`CandlestickStrategy[${this.chartId}]: Live candle X position ${x} outside canvas bounds (0 to ${canvas.width / dpr})`);
+        logger.debug(`Live candle X position ${x} outside canvas bounds (0 to ${canvas.width / dpr})`);
         this.lastBoundsLogTime = currentTime;
       }
       return;
@@ -453,7 +457,7 @@ export class CandlestickStrategy implements Drawable {
     };
 
     if (currentTime - this.lastDrawLogTime > this.LOG_THROTTLE_MS) {
-      console.debug(`CandlestickStrategy[${this.chartId}]: Drawing live candle at X=${x} with OHLC: O=${liveCandle.open}, H=${liveCandle.high}, L=${liveCandle.low}, C=${liveCandle.close}`);
+      logger.debug(`Drawing live candle at X=${x} with OHLC: O=${liveCandle.open}, H=${liveCandle.high}, L=${liveCandle.low}, C=${liveCandle.close}`);
       this.lastDrawLogTime = currentTime;
     }
     
@@ -463,7 +467,7 @@ export class CandlestickStrategy implements Drawable {
 
   private handleVisibilityChange = () => {
     if (document.visibilityState === "visible" && this.isInitialized && this.chartId) {
-      console.debug(`CandlestickStrategy[${this.chartId}]: Page became visible, updating live candle immediately`);
+      logger.debug(`Page became visible, updating live candle immediately`);
       
       // Force immediate update of live candle data when page becomes visible
       const newLiveCandle = xin[`${this.chartId}.liveCandle`] as LiveCandle;
@@ -472,7 +476,7 @@ export class CandlestickStrategy implements Drawable {
         const oldTimestamp = this.liveCandle?.timestamp || 0;
         this.liveCandle = newLiveCandle;
         
-        console.debug(`CandlestickStrategy[${this.chartId}]: Updated live candle on visibility change`, {
+        logger.debug(`Updated live candle on visibility change`, {
           oldTimestamp,
           newTimestamp: newLiveCandle.timestamp,
           price: newLiveCandle.close
@@ -480,10 +484,10 @@ export class CandlestickStrategy implements Drawable {
         
         // Force immediate redraw - try multiple approaches to ensure it works
         if (this.redrawCallback) {
-          console.debug(`CandlestickStrategy[${this.chartId}]: Triggering redraw via callback`);
+          logger.debug(`Triggering redraw via callback`);
           this.requestRedraw();
         } else {
-          console.warn(`CandlestickStrategy[${this.chartId}]: No redraw callback available, trying alternative redraw methods`);
+          logger.warn(`No redraw callback available, trying alternative redraw methods`);
           
           // Try to find and trigger chart container redraw directly
           try {
@@ -491,16 +495,16 @@ export class CandlestickStrategy implements Drawable {
             chartContainers.forEach(container => {
               const containerChartId = container.getAttribute('data-chart-id');
               if (containerChartId === this.chartId && typeof (container as any).draw === 'function') {
-                console.debug(`CandlestickStrategy[${this.chartId}]: Triggering direct container redraw`);
+                logger.debug(`Triggering direct container redraw`);
                 (container as any).draw();
               }
             });
           } catch (error) {
-            console.error(`CandlestickStrategy[${this.chartId}]: Failed to trigger direct redraw:`, error);
+            logger.error(`Failed to trigger direct redraw:`, error);
           }
         }
       } else {
-        console.debug(`CandlestickStrategy[${this.chartId}]: No live candle available on visibility change`);
+        logger.debug(`No live candle available on visibility change`);
       }
     }
   };

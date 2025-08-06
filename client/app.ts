@@ -22,7 +22,7 @@ import { getLogger, LogLevel } from "./util/logger";
 import { getLocalChartId } from "./util/state-context";
 
 const logger = getLogger("App");
-logger.setLoggerLevel("App", LogLevel.DEBUG);
+logger.setLoggerLevel("App", LogLevel.ERROR);
 
 export class App {
   private chartContainer: ChartContainer;
@@ -229,7 +229,7 @@ export class App {
         viewportEndTimestamp,
       );
       if (!this.chartContainer) {
-        console.error("chart container not found");
+        logger.error("chart container not found");
         return;
       }
       this.chartContainer.state = this.state;

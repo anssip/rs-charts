@@ -15,6 +15,10 @@ bun test server/services/price-data/__tests__/price-history-model.test.ts  # Run
 
 - `doc/CHART_API_REFERENCE.md`
 
+## Coding rules
+
+- Use the logger facility to all debug, info and error messages. The logger is in `client/util/logger.ts`.
+
 ## Code Style Guidelines
 
 - **Naming**: Classes/Interfaces (PascalCase), Variables/Methods (camelCase), Constants (UPPER_SNAKE_CASE), Components (kebab-case)

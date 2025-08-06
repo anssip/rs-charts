@@ -7,9 +7,10 @@ import {
   serverTimestamp,
   Firestore
 } from "firebase/firestore";
-import { getLogger } from "../util/logger";
+import { getLogger, LogLevel } from "../util/logger";
 
 const logger = getLogger("StarredSymbolsService");
+logger.setLoggerLevel("StarredSymbolsService", LogLevel.ERROR);
 
 export interface StarredSymbolsData {
   symbols: string[];

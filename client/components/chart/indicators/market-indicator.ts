@@ -17,7 +17,7 @@ import { getLocalChartId, observeLocal } from "../../../util/state-context";
 // Create a logger specific to this component
 const logger = getLogger("MarketIndicator");
 // Set debug level for this logger
-logger.setLoggerLevel("MarketIndicator", LogLevel.DEBUG);
+logger.setLoggerLevel("MarketIndicator", LogLevel.ERROR);
 
 // Add global type for state cache
 declare global {
@@ -431,7 +431,7 @@ export class MarketIndicator extends CanvasBase {
         }
       });
     } catch (err) {
-      console.error("MarketIndicator.draw: Error drawing indicator", err);
+      logger.error("Error drawing indicator", err);
     }
   }
 

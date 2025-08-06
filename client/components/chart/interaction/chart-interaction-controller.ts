@@ -2,7 +2,10 @@ import { ChartState } from "../../..";
 import { getCandleInterval } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
-import { logger } from "../../../util/logger";
+import { getLogger, LogLevel } from "../../../util/logger";
+
+const logger = getLogger('ChartInteractionController');
+logger.setLoggerLevel('ChartInteractionController', LogLevel.ERROR);
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -347,7 +350,7 @@ export class ChartInteractionController {
   }
 
   handleTimelineZoom = (event: CustomEvent) => {
-    console.log("InteractionController: Received timeline-zoom event", {
+    logger.debug("Received timeline-zoom event", {
       deltaX: event.detail.deltaX,
       target: event.target,
       currentTarget: event.currentTarget
@@ -396,7 +399,7 @@ export class ChartInteractionController {
   };
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
-    console.log("InteractionController: Received price-axis-zoom event", {
+    logger.debug("Received price-axis-zoom event", {
       deltaY: event.detail.deltaY,
       target: event.target,
       currentTarget: event.currentTarget

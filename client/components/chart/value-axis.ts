@@ -6,7 +6,7 @@ import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("value-axis");
-logger.setLoggerLevel("value-axis", LogLevel.DEBUG);
+logger.setLoggerLevel("value-axis", LogLevel.ERROR);
 
 // For TypeScript to recognize the MarketIndicator element
 declare global {

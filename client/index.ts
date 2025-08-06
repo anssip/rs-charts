@@ -319,7 +319,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (window.spotcanvas?.log) {
         window.spotcanvas.log("info", "Upgrade clicked");
       } else {
-        console.log("Upgrade clicked");
+        logger.info("Upgrade clicked");
       }
     });
     logger.info("Upgrade popup listeners initialized.");
