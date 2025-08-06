@@ -136,6 +136,7 @@ export class TrendLineElement extends LitElement {
   }
 
   private handleLineClick = (event: MouseEvent) => {
+    console.log('[TrendLine] Line clicked:', this.trendLine.id);
     event.stopPropagation();
     event.preventDefault();
     this.dispatchEvent(new CustomEvent('trend-line-select', {
