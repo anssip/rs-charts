@@ -12,11 +12,13 @@ export class TrendLineTool {
   private escapeHandler: ((event: KeyboardEvent) => void) | null = null;
   private getState: () => ChartState;
   private priceAxisWidth: number;
+  private getChartCanvas: () => HTMLCanvasElement | null;
   
-  constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70) {
+  constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70, getChartCanvas?: () => HTMLCanvasElement | null) {
     this.container = container;
     this.getState = getState;
     this.priceAxisWidth = priceAxisWidth;
+    this.getChartCanvas = getChartCanvas || (() => null);
   }
 
   activate(): void {
@@ -138,8 +140,13 @@ export class TrendLineTool {
     
     // The actual chart drawing area width excludes the price axis
     const chartWidth = rect.width - this.priceAxisWidth;
+    
+    // Use the actual canvas height if available, otherwise fall back to container height
+    const canvas = this.getChartCanvas();
+    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    
     const timestamp = this.xToTime(x, chartWidth, chartState.timeRange);
-    const price = this.yToPrice(y, rect.height, chartState.priceRange);
+    const price = this.yToPrice(y, chartHeight, chartState.priceRange);
     
     return { timestamp, price };
   }
@@ -203,8 +210,13 @@ export class TrendLineTool {
     
     // Use the chart width (excluding price axis) for X coordinate calculation
     const chartWidth = rect.width - this.priceAxisWidth;
+    
+    // Use the actual canvas height if available
+    const canvas = this.getChartCanvas();
+    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    
     const x1 = this.timeToX(this.firstPoint.timestamp, chartWidth, chartState.timeRange);
-    const y1 = this.priceToY(this.firstPoint.price, rect.height, chartState.priceRange);
+    const y1 = this.priceToY(this.firstPoint.price, chartHeight, chartState.priceRange);
     
     this.previewLine.setAttribute('x1', x1.toString());
     this.previewLine.setAttribute('y1', y1.toString());
