@@ -1,5 +1,5 @@
 import { LitElement, html, css, svg } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { TrendLine as TrendLineData, Point } from "../../types/trend-line";
 import { TimeRange, PriceRange } from "../../../server/services/price-data/price-history-model";
 
@@ -19,6 +19,12 @@ export class TrendLineElement extends LitElement {
 
   @property({ type: Number })
   height = 0;
+
+  @property({ type: Boolean })
+  selected = false;
+
+  @state()
+  private hovered = false;
 
   static styles = css`
     :host {
@@ -40,6 +46,7 @@ export class TrendLineElement extends LitElement {
       fill: none;
       pointer-events: stroke;
       cursor: pointer;
+      transition: stroke-width 0.15s ease, opacity 0.15s ease;
     }
 
     .trend-line.solid {
@@ -56,6 +63,7 @@ export class TrendLineElement extends LitElement {
 
     .trend-line:hover {
       stroke-width: 3;
+      opacity: 0.9;
     }
 
     .handle {
@@ -64,6 +72,18 @@ export class TrendLineElement extends LitElement {
       stroke-width: 2;
       cursor: grab;
       pointer-events: all;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     .handle:hover {
@@ -126,6 +146,23 @@ export class TrendLineElement extends LitElement {
     }
 
     return [extendedStart, extendedEnd];
+  }
+
+  private handleLineClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    this.dispatchEvent(new CustomEvent('trend-line-select', {
+      detail: { trendLine: this.trendLine },
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  private handleMouseEnter = () => {
+    this.hovered = true;
+  }
+
+  private handleMouseLeave = () => {
+    this.hovered = false;
   }
 
   private handleDragStart = (handle: 'start' | 'end', event: MouseEvent) => {
@@ -211,9 +248,13 @@ export class TrendLineElement extends LitElement {
 
     const lineColor = this.trendLine.color || '#2962ff';
     const lineStyle = this.trendLine.style || 'solid';
+    const showHandles = this.hovered || this.selected;
 
     return html`
-      <svg>
+      <svg
+        @mouseenter="${this.handleMouseEnter}"
+        @mouseleave="${this.handleMouseLeave}"
+      >
         <line
           class="trend-line ${lineStyle}"
           x1="${extendedStart.x}"
@@ -222,23 +263,26 @@ export class TrendLineElement extends LitElement {
           y2="${extendedEnd.y}"
           stroke="${lineColor}"
           stroke-width="${this.trendLine.lineWidth || 2}"
+          @click="${this.handleLineClick}"
         />
-        <circle
-          class="handle"
-          cx="${handleStart.x}"
-          cy="${handleStart.y}"
-          r="5"
-          stroke="${lineColor}"
-          @mousedown="${(e: MouseEvent) => this.handleDragStart('start', e)}"
-        />
-        <circle
-          class="handle"
-          cx="${handleEnd.x}"
-          cy="${handleEnd.y}"
-          r="5"
-          stroke="${lineColor}"
-          @mousedown="${(e: MouseEvent) => this.handleDragStart('end', e)}"
-        />
+        ${showHandles ? html`
+          <circle
+            class="handle"
+            cx="${handleStart.x}"
+            cy="${handleStart.y}"
+            r="5"
+            stroke="${lineColor}"
+            @mousedown="${(e: MouseEvent) => this.handleDragStart('start', e)}"
+          />
+          <circle
+            class="handle"
+            cx="${handleEnd.x}"
+            cy="${handleEnd.y}"
+            r="5"
+            stroke="${lineColor}"
+            @mousedown="${(e: MouseEvent) => this.handleDragStart('end', e)}"
+          />
+        ` : ''}
       </svg>
     `;
   }
