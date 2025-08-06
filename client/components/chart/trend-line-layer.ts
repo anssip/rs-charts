@@ -124,30 +124,26 @@ export class TrendLineLayer extends LitElement {
     this.requestUpdate();
   }
 
-  private handleParentClick = (event: MouseEvent) => {
-    // Check if the click is inside a trend line
-    const composedPath = event.composedPath();
+  private handleDocumentClick = (event: MouseEvent) => {
+    // Check if we have a selection
+    if (!this.selectedLineId) return;
     
-    // Check if any element in the path is a trend-line element or its children
-    const clickedOnTrendLine = composedPath.some(el => {
-      if (el instanceof HTMLElement) {
-        // Check if it's a trend-line element or within one
-        return el.tagName?.toLowerCase() === 'trend-line' || 
-               el.closest?.('trend-line') !== null;
-      }
-      return false;
-    });
+    // Check if the click is inside a trend line
+    const target = event.target as HTMLElement;
+    
+    // Check if clicked on a trend line or its children (SVG elements)
+    const clickedElement = target.closest('trend-line');
+    const clickedOnSvg = target.closest('svg')?.closest('trend-line');
+    const clickedOnTrendLine = clickedElement || clickedOnSvg;
     
     // If not clicked on a trend line, deselect
     if (!clickedOnTrendLine) {
-      console.log('Clicked outside trend line, deselecting');
       this.deselectAll();
     }
   }
 
   private handleEscKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
-      console.log('ESC key pressed, deselecting');
       this.deselectAll();
     }
   }
@@ -170,11 +166,11 @@ export class TrendLineLayer extends LitElement {
     this.addEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.addEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
     
-    // Listen for clicks on the parent chart-area element
-    const chartArea = this.closest('.chart-area');
-    if (chartArea) {
-      chartArea.addEventListener('click', this.handleParentClick as EventListener);
-    }
+    // Listen for clicks at the document level for better event capture
+    // Use a slight delay to avoid capturing the same click that created a selection
+    setTimeout(() => {
+      document.addEventListener('click', this.handleDocumentClick);
+    }, 100);
     
     // Listen for ESC key
     document.addEventListener('keydown', this.handleEscKey);
@@ -186,11 +182,8 @@ export class TrendLineLayer extends LitElement {
     this.removeEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.removeEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
     
-    // Remove click listener from parent
-    const chartArea = this.closest('.chart-area');
-    if (chartArea) {
-      chartArea.removeEventListener('click', this.handleParentClick as EventListener);
-    }
+    // Remove document click listener
+    document.removeEventListener('click', this.handleDocumentClick);
     
     document.removeEventListener('keydown', this.handleEscKey);
   }
