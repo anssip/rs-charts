@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <title>SpotCanvas - Single Chart Test</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+            rel="stylesheet"
+        />
+
+        <link rel="stylesheet" href="styles.css" />
+        <script type="module" src="index.js"></script>
+
+        <style>
+            .upgrade-popup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--color-primary-dark);
+                padding: 24px;
+                border-radius: 12px;
+                border: 1px solid rgba(143, 143, 143, 0.2);
+                text-align: center;
+                z-index: 10000;
+                backdrop-filter: blur(8px);
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+            }
+
+            .upgrade-popup.show {
+                display: block;
+            }
+
+            .upgrade-popup-text {
+                color: var(--color-accent-2);
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+
+            .upgrade-button {
+                background: var(--color-primary);
+                color: var(--color-accent-2);
+                border: none;
+                padding: 8px 24px;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+                transition:
+                    transform 0.2s ease,
+                    background-color 0.2s ease;
+                font-family: var(--font-primary);
+            }
+
+            .upgrade-button:hover {
+                transform: scale(1.05);
+                background: var(--color-primary);
+                opacity: 0.9;
+            }
+
+            .upgrade-backdrop {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(2px);
+                z-index: 9999;
+            }
+
+            .upgrade-backdrop.show {
+                display: block !important;
+            }
+
+            .upgrade-popup.show {
+                display: block !important;
+            }
+
+            /* App Header Styles */
+            .app-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                background: var(--color-primary-dark);
+                border-bottom: 1px solid var(--color-background-secondary-20);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 20px;
+                z-index: 100;
+            }
+
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .charts-wrapper {
+                margin-top: 60px; /* Account for fixed header */
+            }
+
+            product-select {
+                width: 200px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="app-header">
+            <div class="header-left">
+                <product-select id="symbol-selector"></product-select>
+            </div>
+            <div class="header-right">
+                <span style="color: var(--color-accent-2);">Single Chart Test</span>
+            </div>
+        </div>
+
+        <symbol-manager id="symbol-manager"></symbol-manager>
+
+        <div class="charts-wrapper">
+            <div class="chart-container" id="chart-1"></div>
+        </div>
+
+        <div class="upgrade-backdrop"></div>
+        <div class="upgrade-popup">
+            <div class="upgrade-popup-text">Upgrade to enable all features</div>
+            <button class="upgrade-button">Upgrade</button>
+        </div>
+
+        <script>
+            // Simple chart API setup for testing
+            let chart1Api = null;
+
+            // Function to set up chart API event listeners
+            function setupChartEventListeners() {
+                if (window.chartApi1) {
+                    chart1Api = window.chartApi1;
+                    console.log('Chart API connected');
+                    
+                    // Chart ready event handler
+                    chart1Api.on('ready', (data) => {
+                        console.log(`Chart ready for ${data.symbol}`);
+                    });
+                }
+            }
+
+            // Try to set up listeners immediately, then retry periodically if needed
+            function initializeDemo() {
+                if (window.chartApi1) {
+                    setupChartEventListeners();
+                    return true; // Successfully initialized
+                }
+                return false; // API not ready yet
+            }
+
+            // Initialize demo when chart is ready
+            window.addEventListener('load', () => {
+                // Try to initialize immediately
+                if (!initializeDemo()) {
+                    // If API isn't ready yet, poll every 100ms
+                    const pollInterval = setInterval(() => {
+                        if (initializeDemo()) {
+                            clearInterval(pollInterval);
+                        }
+                    }, 100);
+                }
+            });
+        </script>
+    </body>
+</html>

@@ -120,13 +120,19 @@ export class TrendLineLayer extends LitElement {
   private handleTrendLineSelect(event: CustomEvent) {
     event.stopPropagation();
     const selectedLine = event.detail.trendLine as TrendLine;
+    console.log('[TrendLineLayer] Selecting line:', selectedLine.id);
     this.selectedLineId = selectedLine.id;
     this.requestUpdate();
   }
 
   private handleDocumentClick = (event: MouseEvent) => {
+    console.log('[TrendLineLayer] Document click, selected:', this.selectedLineId, 'target:', event.target);
+    
     // Check if we have a selection
-    if (!this.selectedLineId) return;
+    if (!this.selectedLineId) {
+      console.log('[TrendLineLayer] No selection, ignoring click');
+      return;
+    }
     
     // Check if the click is inside a trend line
     const target = event.target as HTMLElement;
@@ -136,19 +142,25 @@ export class TrendLineLayer extends LitElement {
     const clickedOnSvg = target.closest('svg')?.closest('trend-line');
     const clickedOnTrendLine = clickedElement || clickedOnSvg;
     
+    console.log('[TrendLineLayer] Clicked on trend line?', !!clickedOnTrendLine);
+    
     // If not clicked on a trend line, deselect
     if (!clickedOnTrendLine) {
+      console.log('[TrendLineLayer] Deselecting due to outside click');
       this.deselectAll();
     }
   }
 
   private handleEscKey = (event: KeyboardEvent) => {
+    console.log('[TrendLineLayer] Key pressed:', event.key);
     if (event.key === 'Escape') {
+      console.log('[TrendLineLayer] ESC pressed, deselecting');
       this.deselectAll();
     }
   }
 
   public deselectAll() {
+    console.log('[TrendLineLayer] deselectAll called, current selection:', this.selectedLineId);
     if (this.selectedLineId) {
       this.selectedLineId = null;
       this.requestUpdate();
@@ -162,6 +174,8 @@ export class TrendLineLayer extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    console.log('[TrendLineLayer] Connected, setting up event listeners');
+    
     this.addEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.addEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.addEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
@@ -169,10 +183,12 @@ export class TrendLineLayer extends LitElement {
     // Listen for clicks at the document level for better event capture
     // Use a slight delay to avoid capturing the same click that created a selection
     setTimeout(() => {
+      console.log('[TrendLineLayer] Adding document click listener');
       document.addEventListener('click', this.handleDocumentClick);
     }, 100);
     
     // Listen for ESC key
+    console.log('[TrendLineLayer] Adding ESC key listener');
     document.addEventListener('keydown', this.handleEscKey);
   }
 
