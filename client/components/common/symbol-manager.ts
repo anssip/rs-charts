@@ -1,9 +1,10 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CoinbaseProduct } from "../../api/firestore-client";
-import { getLogger } from "../../util/logger";
+import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("SymbolManager");
+logger.setLoggerLevel("SymbolManager", LogLevel.ERROR);
 
 export interface StarredSymbol {
   symbol: string;

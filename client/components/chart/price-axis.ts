@@ -14,7 +14,10 @@ import { granularityToMs } from "../../../server/services/price-data/price-histo
 import { ChartState } from "../..";
 import { css, html } from "lit";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
-import { logger } from "../../util/logger";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger('PriceAxis');
+logger.setLoggerLevel('PriceAxis', LogLevel.ERROR);
 
 @customElement("price-axis")
 export class PriceAxis extends CanvasBase {
@@ -74,16 +77,16 @@ export class PriceAxis extends CanvasBase {
   private initializeState() {
     // Get the local chart ID for this chart instance
     this._chartId = getLocalChartId(this);
-    console.log("PriceAxis: Got chart ID:", this._chartId);
-    console.log("PriceAxis: Available xin keys:", Object.keys(xin));
+    logger.debug("Got chart ID:", this._chartId);
+    logger.debug("Available xin keys:", Object.keys(xin));
     
     // Initialize state with actual data
     const stateData = xin[this._chartId] as ChartState;
-    console.log("PriceAxis: State data:", stateData);
+    logger.debug("State data:", stateData);
     if (stateData && typeof stateData === 'object') {
       this.priceRange = stateData.priceRange || new PriceRangeImpl(0, 100);
       this.liveCandle = stateData.liveCandle || null;
-      console.log("PriceAxis: Initialized priceRange:", this.priceRange);
+      logger.debug("Initialized priceRange:", this.priceRange);
       if (this.liveCandle) {
         this.currentPrice = this.liveCandle.close;
         this.isBearish = this.liveCandle.close < this.liveCandle.open;
@@ -91,9 +94,9 @@ export class PriceAxis extends CanvasBase {
     }
 
     // Set up observers
-    console.log("PriceAxis: Setting up observers for chart:", this._chartId);
+    logger.debug("Setting up observers for chart:", this._chartId);
     observeLocal(this, "state.liveCandle", () => {
-      console.log("PriceAxis: liveCandle observer triggered");
+      logger.debug("liveCandle observer triggered");
       this.liveCandle = xin[`${this._chartId}.liveCandle`] as LiveCandle;
       if (this.liveCandle) {
         this.currentPrice = this.liveCandle.close;
@@ -103,9 +106,9 @@ export class PriceAxis extends CanvasBase {
       }
     });
     observeLocal(this, "state.priceRange", () => {
-      console.log("PriceAxis: priceRange observer triggered");
+      logger.debug("priceRange observer triggered");
       const newPriceRange = xin[`${this._chartId}.priceRange`] as PriceRange;
-      console.log("PriceAxis: New price range:", newPriceRange);
+      logger.debug("New price range:", newPriceRange);
       this.priceRange = newPriceRange;
       this.draw();
     });

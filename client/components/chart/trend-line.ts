@@ -1,7 +1,14 @@
 import { LitElement, html, css, svg } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { TrendLine as TrendLineData, Point } from "../../types/trend-line";
-import { TimeRange, PriceRange } from "../../../server/services/price-data/price-history-model";
+import {
+  TimeRange,
+  PriceRange,
+} from "../../../server/services/price-data/price-history-model";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger("trend-line");
+logger.setLoggerLevel("trend-line", LogLevel.DEBUG);
 
 @customElement("trend-line")
 export class TrendLineElement extends LitElement {
@@ -45,7 +52,9 @@ export class TrendLineElement extends LitElement {
       fill: none;
       pointer-events: stroke;
       cursor: pointer;
-      transition: stroke-width 0.15s ease, opacity 0.15s ease;
+      transition:
+        stroke-width 0.15s ease,
+        opacity 0.15s ease;
     }
 
     .trend-line.solid {
@@ -96,17 +105,20 @@ export class TrendLineElement extends LitElement {
 
   private calculateExtendedPoints(): [Point, Point] {
     if (!this.trendLine || !this.timeRange || !this.priceRange) {
-      return [{ x: 0, y: 0 }, { x: 0, y: 0 }];
+      return [
+        { x: 0, y: 0 },
+        { x: 0, y: 0 },
+      ];
     }
 
     const start = {
       x: this.timeToX(this.trendLine.startPoint.timestamp),
-      y: this.priceToY(this.trendLine.startPoint.price)
+      y: this.priceToY(this.trendLine.startPoint.price),
     };
 
     const end = {
       x: this.timeToX(this.trendLine.endPoint.timestamp),
-      y: this.priceToY(this.trendLine.endPoint.price)
+      y: this.priceToY(this.trendLine.endPoint.price),
     };
 
     let extendedStart = { ...start };
@@ -136,78 +148,84 @@ export class TrendLineElement extends LitElement {
   }
 
   private handleLineClick = (event: MouseEvent) => {
-    console.log('[TrendLine] Line clicked:', this.trendLine.id);
+    logger.debug("Line clicked:", this.trendLine.id);
     event.stopPropagation();
     event.preventDefault();
-    this.dispatchEvent(new CustomEvent('trend-line-select', {
-      detail: { trendLine: this.trendLine },
-      bubbles: true,
-      composed: true
-    }));
-  }
+    this.dispatchEvent(
+      new CustomEvent("trend-line-select", {
+        detail: { trendLine: this.trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
 
   private handleMouseEnter = () => {
     this.hovered = true;
     this.requestUpdate();
-  }
+  };
 
   private handleMouseLeave = () => {
     this.hovered = false;
     this.requestUpdate();
-  }
+  };
 
-  private handleDragStart = (handle: 'start' | 'end', event: MouseEvent) => {
+  private handleDragStart = (handle: "start" | "end", event: MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
-    
+
     const handleElement = event.target as SVGElement;
-    handleElement.classList.add('dragging');
-    
+    handleElement.classList.add("dragging");
+
     const onMouseMove = (e: MouseEvent) => {
       this.handleDragMove(handle, e);
     };
-    
+
     const onMouseUp = () => {
-      handleElement.classList.remove('dragging');
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      handleElement.classList.remove("dragging");
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
       this.handleDragEnd();
     };
-    
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }
 
-  private handleDragMove(handle: 'start' | 'end', event: MouseEvent) {
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  private handleDragMove(handle: "start" | "end", event: MouseEvent) {
     const rect = this.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     // Convert pixel coordinates to price/time
     const timestamp = this.xToTime(x);
     const price = this.yToPrice(y);
-    
+
     // Emit update event
     const updatedLine = { ...this.trendLine };
-    if (handle === 'start') {
+    if (handle === "start") {
       updatedLine.startPoint = { timestamp, price };
     } else {
       updatedLine.endPoint = { timestamp, price };
     }
-    
-    this.dispatchEvent(new CustomEvent('trend-line-update', {
-      detail: { trendLine: updatedLine },
-      bubbles: true,
-      composed: true
-    }));
+
+    this.dispatchEvent(
+      new CustomEvent("trend-line-update", {
+        detail: { trendLine: updatedLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private handleDragEnd() {
-    this.dispatchEvent(new CustomEvent('trend-line-update-complete', {
-      detail: { trendLine: this.trendLine },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("trend-line-update-complete", {
+        detail: { trendLine: this.trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private xToTime(x: number): number {
@@ -223,27 +241,35 @@ export class TrendLineElement extends LitElement {
   }
 
   render() {
-    if (!this.trendLine || !this.timeRange || !this.priceRange || this.width === 0 || this.height === 0) {
+    if (
+      !this.trendLine ||
+      !this.timeRange ||
+      !this.priceRange ||
+      this.width === 0 ||
+      this.height === 0
+    ) {
       return html``;
     }
 
     const [extendedStart, extendedEnd] = this.calculateExtendedPoints();
     const handleStart = {
       x: this.timeToX(this.trendLine.startPoint.timestamp),
-      y: this.priceToY(this.trendLine.startPoint.price)
+      y: this.priceToY(this.trendLine.startPoint.price),
     };
     const handleEnd = {
       x: this.timeToX(this.trendLine.endPoint.timestamp),
-      y: this.priceToY(this.trendLine.endPoint.price)
+      y: this.priceToY(this.trendLine.endPoint.price),
     };
 
-    const lineColor = this.trendLine.color || '#2962ff';
-    const lineStyle = this.trendLine.style || 'solid';
+    const lineColor = this.trendLine.color || "#2962ff";
+    const lineStyle = this.trendLine.style || "solid";
     const showHandles = this.hovered || this.selected;
 
     return html`
       <svg
-        class="${this.hovered ? 'hovered' : ''} ${this.selected ? 'selected' : ''}"
+        class="${this.hovered ? "hovered" : ""} ${this.selected
+          ? "selected"
+          : ""}"
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
@@ -263,9 +289,9 @@ export class TrendLineElement extends LitElement {
           cy="${handleStart.y}"
           r="5"
           stroke="${lineColor}"
-          opacity="${showHandles ? '1' : '0'}"
-          style="pointer-events: ${showHandles ? 'all' : 'none'}"
-          @mousedown="${(e: MouseEvent) => this.handleDragStart('start', e)}"
+          opacity="${showHandles ? "1" : "0"}"
+          style="pointer-events: ${showHandles ? "all" : "none"}"
+          @mousedown="${(e: MouseEvent) => this.handleDragStart("start", e)}"
         />
         <circle
           class="handle handle-end"
@@ -273,9 +299,9 @@ export class TrendLineElement extends LitElement {
           cy="${handleEnd.y}"
           r="5"
           stroke="${lineColor}"
-          opacity="${showHandles ? '1' : '0'}"
-          style="pointer-events: ${showHandles ? 'all' : 'none'}"
-          @mousedown="${(e: MouseEvent) => this.handleDragStart('end', e)}"
+          opacity="${showHandles ? "1" : "0"}"
+          style="pointer-events: ${showHandles ? "all" : "none"}"
+          @mousedown="${(e: MouseEvent) => this.handleDragStart("end", e)}"
         />
       </svg>
     `;

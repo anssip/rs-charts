@@ -1,4 +1,8 @@
 import { LitElement, html } from "lit";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger('CanvasBase');
+logger.setLoggerLevel('CanvasBase', LogLevel.ERROR);
 
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
@@ -28,8 +32,8 @@ export abstract class CanvasBase extends LitElement {
         // Find canvas element
         this.canvas = this.renderRoot.querySelector("canvas");
         if (!this.canvas) {
-          console.warn(
-            `${this.getId()}: No canvas element found, creating one`
+          logger.warn(
+            `No canvas element found, creating one`
           );
           // If no canvas exists, create one and append it to the render root
           const canvasElement = document.createElement("canvas");
@@ -41,7 +45,7 @@ export abstract class CanvasBase extends LitElement {
         // Get 2D context
         this.ctx = this.canvas.getContext("2d");
         if (!this.ctx) {
-          console.warn(`${this.getId()}: Could not get 2D context`);
+          logger.warn(`Could not get 2D context`);
           return;
         }
 
@@ -95,7 +99,7 @@ export abstract class CanvasBase extends LitElement {
           }, delay);
         });
       } catch (err) {
-        console.error(`${this.getId()}: Error initializing canvas`, err);
+        logger.error(`Error initializing canvas`, err);
       }
     });
   }

@@ -8,6 +8,10 @@ import {
 } from "../../util/chart-util";
 import { xin } from "xinjs";
 import { TimeRange } from "../../../server/services/price-data/price-history-model";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger('timeline');
+logger.setLoggerLevel('timeline', LogLevel.ERROR);
 import { ChartState } from "../..";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 
@@ -156,14 +160,14 @@ export class Timeline extends CanvasBase {
 
   private handleWheel = (e: WheelEvent) => {
     e.preventDefault(); // Prevent page scrolling
-    console.log("Timeline: Wheel event", { deltaX: e.deltaX, deltaY: e.deltaY });
+    logger.debug("Wheel event", { deltaX: e.deltaX, deltaY: e.deltaY });
     const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
     const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     this.dispatchZoom(delta, e.clientX, isTrackpad);
   };
 
   private dispatchZoom(deltaX: number, clientX: number, isTrackpad: boolean) {
-    console.log("Timeline: Dispatching timeline-zoom event", {
+    logger.debug("Dispatching timeline-zoom event", {
       deltaX,
       clientX,
       isTrackpad,

@@ -6,6 +6,10 @@ import {
   TimeRange,
 } from "../../server/services/price-data/price-history-model";
 import { ApiCache, CacheKey } from "./api-cache";
+import { getLogger, LogLevel } from "../util/logger";
+
+const logger = getLogger('candle-repository');
+logger.setLoggerLevel('candle-repository', LogLevel.ERROR);
 
 export interface FetchCandlesOptions {
   symbol: string;
@@ -196,7 +200,7 @@ export class CandleRepository {
         ])
       );
     } catch (error) {
-      console.error("Error fetching candles:", error);
+      logger.error("Error fetching candles:", error);
       return new Map();
     }
   }

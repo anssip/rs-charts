@@ -8,6 +8,10 @@ import { priceToY } from "../../util/chart-util";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 import { ChartState } from "../..";
 import { css } from "lit";
+import { getLogger, LogLevel } from "../../util/logger";
+
+const logger = getLogger('LiveDecorators');
+logger.setLoggerLevel('LiveDecorators', LogLevel.ERROR);
 
 @customElement("live-decorators")
 export class LiveDecorators extends CanvasBase {
@@ -129,8 +133,8 @@ export class LiveDecorators extends CanvasBase {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error(
-        `LiveDecorators[${this._chartId}]: Error initializing state:`,
+      logger.error(
+        `Error initializing state:`,
         error,
       );
     }
@@ -252,8 +256,8 @@ export class LiveDecorators extends CanvasBase {
       try {
         this.draw();
       } catch (error) {
-        console.error(
-          `LiveDecorators[${this._chartId}]: Error during draw:`,
+        logger.error(
+          `Error during draw:`,
           error,
         );
       }
@@ -266,16 +270,16 @@ export class LiveDecorators extends CanvasBase {
 
   draw() {
     if (!this.canvas) {
-      console.warn(`LiveDecorators[${this._chartId}]: Canvas not initialized`);
+      logger.warn(`Canvas not initialized`);
       return;
     }
     if (!this.ctx) {
-      console.warn(`LiveDecorators[${this._chartId}]: Context not initialized`);
+      logger.warn(`Context not initialized`);
       return;
     }
     if (!this.liveCandle) {
-      console.warn(
-        `LiveDecorators[${this._chartId}]: Live candle not initialized`,
+      logger.warn(
+        `Live candle not initialized`,
       );
       return;
     }
@@ -303,8 +307,8 @@ export class LiveDecorators extends CanvasBase {
       typeof latestPriceRange.min === "undefined" ||
       typeof latestPriceRange.max === "undefined"
     ) {
-      console.warn(
-        `LiveDecorators[${this._chartId}]: No valid price range available in state`,
+      logger.warn(
+        `No valid price range available in state`,
         latestPriceRange,
       );
       return;

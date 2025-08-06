@@ -39,7 +39,7 @@ import { TrendLineLayer } from "./trend-line-layer";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
-logger.setLoggerLevel("ChartContainer", LogLevel.DEBUG);
+logger.setLoggerLevel("ChartContainer", LogLevel.ERROR);
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;

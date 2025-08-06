@@ -1,5 +1,9 @@
 import { Firestore, doc, getDoc } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
+import { getLogger, LogLevel } from "../util/logger";
+
+const logger = getLogger('firestore-client');
+logger.setLoggerLevel('firestore-client', LogLevel.ERROR);
 
 export type Exchange = "coinbase";
 
@@ -74,7 +78,7 @@ export class FirestoreClient {
           lastUpdated: new Date(product.last_updated),
         }));
     } catch (error) {
-      console.error("Error fetching products:", error);
+      logger.error("Error fetching products:", error);
       throw error;
     }
   }

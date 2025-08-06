@@ -4,7 +4,7 @@ import "../indicators/indicator-container";
 import { getLogger, LogLevel } from "../../../util/logger";
 
 const logger = getLogger("IndicatorStack");
-logger.setLoggerLevel("IndicatorStack", LogLevel.INFO);
+logger.setLoggerLevel("IndicatorStack", LogLevel.ERROR);
 
 @customElement("indicator-stack")
 export class IndicatorStack extends LitElement {

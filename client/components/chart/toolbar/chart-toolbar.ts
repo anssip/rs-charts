@@ -1,6 +1,10 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { ChartContainer } from "../chart-container";
+import { getLogger, LogLevel } from "../../../util/logger";
+
+const logger = getLogger('ChartToolbar');
+logger.setLoggerLevel('ChartToolbar', LogLevel.ERROR);
 
 @customElement("chart-toolbar")
 export class ChartToolbar extends LitElement {
@@ -70,7 +74,7 @@ export class ChartToolbar extends LitElement {
 
   render() {
     if (!this.container) {
-      console.warn("ChartToolbar: No container provided");
+      logger.warn("No container provided");
       return html``;
     }
 
