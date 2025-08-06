@@ -118,17 +118,44 @@ export class TrendLineLayer extends LitElement {
   }
 
   private handleTrendLineSelect(event: CustomEvent) {
+    event.stopPropagation();
     const selectedLine = event.detail.trendLine as TrendLine;
     this.selectedLineId = selectedLine.id;
     this.requestUpdate();
   }
 
-  private handleBackgroundClick = () => {
-    // Deselect when clicking on background
+  private handleContainerClick = (event: MouseEvent) => {
+    // Check if the click target is the container itself (not a child element)
+    const target = event.target as HTMLElement;
+    const composedPath = event.composedPath();
+    
+    // Check if any element in the path is a trend-line element
+    const clickedOnTrendLine = composedPath.some(el => {
+      return el instanceof HTMLElement && el.tagName?.toLowerCase() === 'trend-line';
+    });
+    
+    // If not clicked on a trend line, deselect
+    if (!clickedOnTrendLine) {
+      this.deselectAll();
+    }
+  }
+
+  private handleEscKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      this.deselectAll();
+    }
+  }
+
+  public deselectAll() {
     if (this.selectedLineId) {
       this.selectedLineId = null;
       this.requestUpdate();
     }
+  }
+
+  public selectLine(lineId: string) {
+    this.selectedLineId = lineId;
+    this.requestUpdate();
   }
 
   connectedCallback() {
@@ -136,9 +163,10 @@ export class TrendLineLayer extends LitElement {
     this.addEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.addEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.addEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
+    this.addEventListener('click', this.handleContainerClick as EventListener);
     
-    // Listen for clicks on the parent to deselect
-    this.parentElement?.addEventListener('click', this.handleBackgroundClick);
+    // Listen for ESC key
+    document.addEventListener('keydown', this.handleEscKey);
   }
 
   disconnectedCallback() {
@@ -146,8 +174,9 @@ export class TrendLineLayer extends LitElement {
     this.removeEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.removeEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.removeEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
+    this.removeEventListener('click', this.handleContainerClick as EventListener);
     
-    this.parentElement?.removeEventListener('click', this.handleBackgroundClick);
+    document.removeEventListener('keydown', this.handleEscKey);
   }
 
   render() {
@@ -158,7 +187,7 @@ export class TrendLineLayer extends LitElement {
     const actualHeight = this.height || this.clientHeight || 0;
 
     return html`
-      <div class="trend-line-container">
+      <div class="trend-line-container" @click="${this.handleContainerClick}">
         ${visibleLines.map(line => html`
           <trend-line
             .trendLine="${line}"
