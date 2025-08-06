@@ -11,10 +11,12 @@ export class TrendLineTool {
   private moveHandler: ((event: MouseEvent) => void) | null = null;
   private escapeHandler: ((event: KeyboardEvent) => void) | null = null;
   private getState: () => ChartState;
+  private priceAxisWidth: number;
   
-  constructor(container: HTMLElement, getState: () => ChartState) {
+  constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70) {
     this.container = container;
     this.getState = getState;
+    this.priceAxisWidth = priceAxisWidth;
   }
 
   activate(): void {
@@ -134,7 +136,9 @@ export class TrendLineTool {
       throw new Error('Chart state not available');
     }
     
-    const timestamp = this.xToTime(x, rect.width, chartState.timeRange);
+    // The actual chart drawing area width excludes the price axis
+    const chartWidth = rect.width - this.priceAxisWidth;
+    const timestamp = this.xToTime(x, chartWidth, chartState.timeRange);
     const price = this.yToPrice(y, rect.height, chartState.priceRange);
     
     return { timestamp, price };
@@ -167,7 +171,7 @@ export class TrendLineTool {
     this.previewSvg.style.position = 'absolute';
     this.previewSvg.style.top = '0';
     this.previewSvg.style.left = '0';
-    this.previewSvg.style.width = '100%';
+    this.previewSvg.style.width = `calc(100% - ${this.priceAxisWidth}px)`;
     this.previewSvg.style.height = '100%';
     this.previewSvg.style.pointerEvents = 'none';
     this.previewSvg.style.zIndex = '1000';
@@ -197,7 +201,9 @@ export class TrendLineTool {
     const chartState = this.getState();
     if (!chartState || !chartState.timeRange || !chartState.priceRange) return;
     
-    const x1 = this.timeToX(this.firstPoint.timestamp, rect.width, chartState.timeRange);
+    // Use the chart width (excluding price axis) for X coordinate calculation
+    const chartWidth = rect.width - this.priceAxisWidth;
+    const x1 = this.timeToX(this.firstPoint.timestamp, chartWidth, chartState.timeRange);
     const y1 = this.priceToY(this.firstPoint.price, rect.height, chartState.priceRange);
     
     this.previewLine.setAttribute('x1', x1.toString());

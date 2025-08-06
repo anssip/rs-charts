@@ -972,8 +972,8 @@ export class ChartContainer extends LitElement {
       return;
     }
     
-    // Pass a function to get the current state
-    this.trendLineTool = new TrendLineTool(chartArea, () => this._state);
+    // Pass a function to get the current state and the price axis width
+    this.trendLineTool = new TrendLineTool(chartArea, () => this._state, this.priceAxisWidth);
     
     // Listen for trend line creation
     chartArea.addEventListener("trend-line-created", (event: Event) => {
