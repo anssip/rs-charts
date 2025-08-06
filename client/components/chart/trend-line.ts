@@ -33,7 +33,6 @@ export class TrendLineElement extends LitElement {
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
     }
 
     svg {
@@ -71,19 +70,7 @@ export class TrendLineElement extends LitElement {
       stroke: currentColor;
       stroke-width: 2;
       cursor: grab;
-      pointer-events: all;
-      animation: fadeIn 0.2s ease;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.8);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      transition: opacity 0.2s ease;
     }
 
     .handle:hover {
@@ -159,10 +146,12 @@ export class TrendLineElement extends LitElement {
 
   private handleMouseEnter = () => {
     this.hovered = true;
+    this.requestUpdate();
   }
 
   private handleMouseLeave = () => {
     this.hovered = false;
+    this.requestUpdate();
   }
 
   private handleDragStart = (handle: 'start' | 'end', event: MouseEvent) => {
@@ -252,6 +241,7 @@ export class TrendLineElement extends LitElement {
 
     return html`
       <svg
+        class="${this.hovered ? 'hovered' : ''} ${this.selected ? 'selected' : ''}"
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
@@ -265,24 +255,26 @@ export class TrendLineElement extends LitElement {
           stroke-width="${this.trendLine.lineWidth || 2}"
           @click="${this.handleLineClick}"
         />
-        ${showHandles ? html`
-          <circle
-            class="handle"
-            cx="${handleStart.x}"
-            cy="${handleStart.y}"
-            r="5"
-            stroke="${lineColor}"
-            @mousedown="${(e: MouseEvent) => this.handleDragStart('start', e)}"
-          />
-          <circle
-            class="handle"
-            cx="${handleEnd.x}"
-            cy="${handleEnd.y}"
-            r="5"
-            stroke="${lineColor}"
-            @mousedown="${(e: MouseEvent) => this.handleDragStart('end', e)}"
-          />
-        ` : ''}
+        <circle
+          class="handle handle-start"
+          cx="${handleStart.x}"
+          cy="${handleStart.y}"
+          r="5"
+          stroke="${lineColor}"
+          opacity="${showHandles ? '1' : '0'}"
+          style="pointer-events: ${showHandles ? 'all' : 'none'}"
+          @mousedown="${(e: MouseEvent) => this.handleDragStart('start', e)}"
+        />
+        <circle
+          class="handle handle-end"
+          cx="${handleEnd.x}"
+          cy="${handleEnd.y}"
+          r="5"
+          stroke="${lineColor}"
+          opacity="${showHandles ? '1' : '0'}"
+          style="pointer-events: ${showHandles ? 'all' : 'none'}"
+          @mousedown="${(e: MouseEvent) => this.handleDragStart('end', e)}"
+        />
       </svg>
     `;
   }
