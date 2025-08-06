@@ -32,6 +32,10 @@ import {
   IndicatorConfig,
   ScaleType,
 } from "./indicators/indicator-types";
+import "./trend-line-layer";
+import { TrendLineTool } from "./tools/trend-line-tool";
+import { TrendLine } from "../../types/trend-line";
+import { TrendLineLayer } from "./trend-line-layer";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -112,7 +116,12 @@ export class ChartContainer extends LitElement {
   @state()
   private indicators: Map<string, IndicatorConfig> = new Map();
 
+  @state()
+  private trendLines: TrendLine[] = [];
+
   private interactionController?: ChartInteractionController;
+  private trendLineTool?: TrendLineTool;
+  private trendLineLayer?: TrendLineLayer;
 
   constructor() {
     super();
@@ -173,6 +182,18 @@ export class ChartContainer extends LitElement {
         "x",
         height
       );
+    }
+    
+    // Initialize trend line tool
+    this.initializeTrendLineTool();
+    
+    // Get trend line layer reference and set initial dimensions
+    this.trendLineLayer = this.renderRoot.querySelector("trend-line-layer") as TrendLineLayer;
+    if (this.trendLineLayer) {
+      // Set initial dimensions after a small delay to ensure chart is ready
+      setTimeout(() => {
+        this.updateTrendLineLayer();
+      }, 100);
     }
 
     // Wait for components to initialize
@@ -271,9 +292,29 @@ export class ChartContainer extends LitElement {
 
     // Force redraw on indicators
     this.redrawIndicators();
+    
+    // Update trend line layer with current state
+    this.updateTrendLineLayer();
   }
 
   // Helper method to force redraw of all indicators
+  private updateTrendLineLayer() {
+    const trendLineLayer = this.renderRoot.querySelector("trend-line-layer") as TrendLineLayer;
+    if (trendLineLayer && this.chart?.canvas) {
+      // Get the actual canvas dimensions (which already exclude the price axis)
+      if (this.chart.canvas) {
+        // Use the actual canvas dimensions in CSS pixels (not physical pixels)
+        const dpr = window.devicePixelRatio || 1;
+        trendLineLayer.width = this.chart.canvas.width / dpr;
+        trendLineLayer.height = this.chart.canvas.height / dpr;
+      }
+      
+      // Update the state to ensure trend lines recalculate positions
+      trendLineLayer.state = this._state;
+      trendLineLayer.requestUpdate();
+    }
+  }
+
   private redrawIndicators() {
     logger.debug("ChartContainer: Redrawing indicators");
 
@@ -589,7 +630,19 @@ export class ChartContainer extends LitElement {
             @toggle-fullscreen=${this.handleFullScreenToggle}
             @toggle-fullwindow=${this.toggleFullWindow}
             @toggle-indicator=${this.handleIndicatorToggle}
+            @toggle-trend-line-tool=${this.handleTrendLineToolToggle}
           ></chart-toolbar>
+          
+          <!-- Trend line layer -->
+          <trend-line-layer
+            .trendLines=${this.trendLines}
+            .state=${this._state}
+            style="--price-axis-width: ${this.priceAxisWidth}px"
+            @trend-line-add=${this.handleTrendLineAdd}
+            @trend-line-update=${this.handleTrendLineUpdate}
+            @trend-line-remove=${this.handleTrendLineRemove}
+          ></trend-line-layer>
+          
           <div class="chart">
             ${bottomIndicators.map(
               (indicator) => html`
@@ -721,6 +774,9 @@ export class ChartContainer extends LitElement {
       };
       this.draw();
     }
+    
+    // Update trend line layer after resize
+    this.updateTrendLineLayer();
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {
@@ -907,6 +963,104 @@ export class ChartContainer extends LitElement {
     );
 
     return chartElement;
+  }
+
+  private initializeTrendLineTool() {
+    const chartArea = this.renderRoot.querySelector(".chart-area") as HTMLElement;
+    if (!chartArea) {
+      logger.error("Chart area not found for trend line tool");
+      return;
+    }
+    
+    // Pass a function to get the current state
+    this.trendLineTool = new TrendLineTool(chartArea, () => this._state);
+    
+    // Listen for trend line creation
+    chartArea.addEventListener("trend-line-created", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const trendLineData = customEvent.detail.trendLine;
+      const trendLine: TrendLine = {
+        id: `trend-line-${Date.now()}`,
+        ...trendLineData
+      };
+      
+      this.addTrendLine(trendLine);
+    });
+  }
+  
+  private handleTrendLineToolToggle = () => {
+    if (!this.trendLineTool) return;
+    
+    const toolbar = this.renderRoot.querySelector("chart-toolbar") as any;
+    
+    if (this.trendLineTool.isToolActive()) {
+      this.trendLineTool.deactivate();
+      if (toolbar) toolbar.trendLineToolActive = false;
+    } else {
+      this.trendLineTool.activate();
+      if (toolbar) toolbar.trendLineToolActive = true;
+    }
+  }
+  
+  private addTrendLine(trendLine: TrendLine) {
+    this.trendLines = [...this.trendLines, trendLine];
+    
+    // Force update to trigger re-render with new trend line
+    this.requestUpdate();
+    
+    // Update state
+    this._state.trendLines = this.trendLines;
+    touch("state.trendLines");
+    
+    // Emit API event
+    this.dispatchEvent(new CustomEvent("trend-line-added", {
+      detail: { trendLine },
+      bubbles: true,
+      composed: true
+    }));
+  }
+  
+  private handleTrendLineAdd = (event: CustomEvent) => {
+    // This is already handled by the layer itself
+  }
+  
+  private handleTrendLineUpdate = (event: CustomEvent) => {
+    const { trendLine } = event.detail;
+    const index = this.trendLines.findIndex(l => l.id === trendLine.id);
+    if (index !== -1) {
+      this.trendLines = [
+        ...this.trendLines.slice(0, index),
+        trendLine,
+        ...this.trendLines.slice(index + 1)
+      ];
+      
+      // Update state
+      this._state.trendLines = this.trendLines;
+      touch("state.trendLines");
+      
+      // Emit API event
+      this.dispatchEvent(new CustomEvent("trend-line-updated", {
+        detail: event.detail,
+        bubbles: true,
+        composed: true
+      }));
+    }
+  }
+  
+  private handleTrendLineRemove = (event: CustomEvent) => {
+    const { trendLine } = event.detail;
+    this.trendLines = this.trendLines.filter(l => l.id !== trendLine.id);
+    
+    // Update state
+    this._state.trendLines = this.trendLines;
+    touch("state.trendLines");
+    
+    // Emit API event
+    this.dispatchEvent(new CustomEvent("trend-line-removed", {
+      detail: event.detail,
+      bubbles: true,
+      composed: true
+    }));
   }
 
   private initializeInteractionController() {

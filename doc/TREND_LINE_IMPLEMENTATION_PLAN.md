@@ -75,7 +75,7 @@ class TrendLine extends LitElement {
   @property() trendLine: TrendLine;
   @property() timeRange: TimeRange;
   @property() priceRange: PriceRange;
-  
+
   private renderLine(): void;
   private renderHandles(): void;
   private calculateExtendedPoints(): [Point, Point];
@@ -100,7 +100,7 @@ class TrendLine extends LitElement {
 class TrendLineLayer extends LitElement {
   @property() trendLines: TrendLine[] = [];
   @property() state: ChartState;
-  
+
   addTrendLine(line: TrendLine): void;
   removeTrendLine(id: string): void;
   updateTrendLine(id: string, updates: Partial<TrendLine>): void;
@@ -123,7 +123,7 @@ class TrendLineLayer extends LitElement {
 class TrendLineTool {
   private isActive: boolean = false;
   private firstPoint: TrendLinePoint | null = null;
-  
+
   activate(): void;
   deactivate(): void;
   handleClick(event: MouseEvent): void;
@@ -141,7 +141,7 @@ class TrendLineTool {
 - Optional snap-to-candle functionality
 
 #### 2.2 Coordinate Transformation
-- Implement pixel ↔ price/time conversion utilities
+- Implement pixel ↔ price/time conversion utilities: Existing ones for canvas drawing exist in `client/util/chart-util.ts`
 - Update line positions on pan/zoom
 - Handle viewport clipping for extended lines
 - Optimize rendering for off-screen lines
@@ -183,7 +183,7 @@ interface ChartApi {
   updateTrendLine(id: string, updates: Partial<TrendLine>): void;
   getTrendLines(): TrendLine[];
   clearTrendLines(): void;
-  
+
   // Tool Methods
   activateTrendLineTool(): void;
   deactivateTrendLineTool(): void;
@@ -239,7 +239,7 @@ savedLines.forEach(line => api.addTrendLine(line));
 
 ## Rendering Strategy
 
-### SVG Approach (Recommended)
+### SVG Approach (Recommended and chosen)
 - **Pros:** Precise rendering, easy event handling, CSS styling
 - **Cons:** Performance with many lines (>100)
 

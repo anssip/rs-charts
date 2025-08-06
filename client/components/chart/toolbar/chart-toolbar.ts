@@ -13,6 +13,9 @@ export class ChartToolbar extends LitElement {
   @property({ type: Boolean })
   showVolume = false;
 
+  @property({ type: Boolean })
+  trendLineToolActive = false;
+
   @property({ type: Object })
   container?: ChartContainer;
 
@@ -138,6 +141,51 @@ export class ChartToolbar extends LitElement {
               </div>
             `
           : ""}
+
+        <div class="tooltip-wrapper">
+          <button
+            class="toolbar-button ${this.trendLineToolActive ? "active" : ""}"
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              e.preventDefault();
+              this.hideTooltips();
+              this.dispatchEvent(
+                new CustomEvent("toggle-trend-line-tool", {
+                  bubbles: true,
+                  composed: true,
+                })
+              );
+            }}
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 20L20 4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <circle
+                cx="4"
+                cy="20"
+                r="2"
+                fill="currentColor"
+              />
+              <circle
+                cx="20"
+                cy="4"
+                r="2"
+                fill="currentColor"
+              />
+            </svg>
+            <span class="tooltip">Trend Line</span>
+          </button>
+        </div>
 
       </div>
     `;
