@@ -1011,6 +1011,11 @@ export class ChartContainer extends LitElement {
   }
   
   private addTrendLine(trendLine: TrendLine) {
+    // Deselect any existing selection when adding a new line
+    if (this.trendLineLayer) {
+      this.trendLineLayer.deselectAll();
+    }
+    
     this.trendLines = [...this.trendLines, trendLine];
     
     // Force update to trigger re-render with new trend line
