@@ -126,6 +126,10 @@ export class TrendLineLayer extends LitElement {
 
   render() {
     const visibleLines = this.getVisibleTrendLines();
+    
+    // Use clientWidth/clientHeight if width/height are not set
+    const actualWidth = this.width || this.clientWidth || 0;
+    const actualHeight = this.height || this.clientHeight || 0;
 
     return html`
       <div class="trend-line-container">
@@ -134,8 +138,8 @@ export class TrendLineLayer extends LitElement {
             .trendLine="${line}"
             .timeRange="${this.state?.timeRange}"
             .priceRange="${this.state?.priceRange}"
-            .width="${this.width}"
-            .height="${this.height}"
+            .width="${actualWidth}"
+            .height="${actualHeight}"
           ></trend-line>
         `)}
       </div>

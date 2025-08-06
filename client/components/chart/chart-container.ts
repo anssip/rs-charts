@@ -1012,6 +1012,12 @@ export class ChartContainer extends LitElement {
     this._state.trendLines = this.trendLines;
     touch("state.trendLines");
     
+    // Ensure trend line layer has correct dimensions after adding line
+    // Use requestAnimationFrame to wait for render to complete
+    requestAnimationFrame(() => {
+      this.updateTrendLineLayer();
+    });
+    
     // Emit API event
     this.dispatchEvent(new CustomEvent("trend-line-added", {
       detail: { trendLine },
