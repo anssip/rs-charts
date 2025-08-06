@@ -124,24 +124,30 @@ export class TrendLineLayer extends LitElement {
     this.requestUpdate();
   }
 
-  private handleContainerClick = (event: MouseEvent) => {
-    // Check if the click target is the container itself (not a child element)
-    const target = event.target as HTMLElement;
+  private handleParentClick = (event: MouseEvent) => {
+    // Check if the click is inside a trend line
     const composedPath = event.composedPath();
     
-    // Check if any element in the path is a trend-line element
+    // Check if any element in the path is a trend-line element or its children
     const clickedOnTrendLine = composedPath.some(el => {
-      return el instanceof HTMLElement && el.tagName?.toLowerCase() === 'trend-line';
+      if (el instanceof HTMLElement) {
+        // Check if it's a trend-line element or within one
+        return el.tagName?.toLowerCase() === 'trend-line' || 
+               el.closest?.('trend-line') !== null;
+      }
+      return false;
     });
     
     // If not clicked on a trend line, deselect
     if (!clickedOnTrendLine) {
+      console.log('Clicked outside trend line, deselecting');
       this.deselectAll();
     }
   }
 
   private handleEscKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
+      console.log('ESC key pressed, deselecting');
       this.deselectAll();
     }
   }
@@ -163,7 +169,12 @@ export class TrendLineLayer extends LitElement {
     this.addEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.addEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.addEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
-    this.addEventListener('click', this.handleContainerClick as EventListener);
+    
+    // Listen for clicks on the parent chart-area element
+    const chartArea = this.closest('.chart-area');
+    if (chartArea) {
+      chartArea.addEventListener('click', this.handleParentClick as EventListener);
+    }
     
     // Listen for ESC key
     document.addEventListener('keydown', this.handleEscKey);
@@ -174,7 +185,12 @@ export class TrendLineLayer extends LitElement {
     this.removeEventListener('trend-line-update', this.handleTrendLineUpdate as EventListener);
     this.removeEventListener('trend-line-update-complete', this.handleTrendLineUpdateComplete as EventListener);
     this.removeEventListener('trend-line-select', this.handleTrendLineSelect as EventListener);
-    this.removeEventListener('click', this.handleContainerClick as EventListener);
+    
+    // Remove click listener from parent
+    const chartArea = this.closest('.chart-area');
+    if (chartArea) {
+      chartArea.removeEventListener('click', this.handleParentClick as EventListener);
+    }
     
     document.removeEventListener('keydown', this.handleEscKey);
   }
@@ -187,7 +203,7 @@ export class TrendLineLayer extends LitElement {
     const actualHeight = this.height || this.clientHeight || 0;
 
     return html`
-      <div class="trend-line-container" @click="${this.handleContainerClick}">
+      <div class="trend-line-container">
         ${visibleLines.map(line => html`
           <trend-line
             .trendLine="${line}"
