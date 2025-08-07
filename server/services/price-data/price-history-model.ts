@@ -116,7 +116,7 @@ export interface PriceHistory {
   length: number;
   getCandlesInRange(
     startTimestamp: number,
-    endTimestamp: number
+    endTimestamp: number,
   ): [number, Candle][];
   findNearestCandleIndex(timestamp: number): number;
   getPriceRange(startTimestamp: number, endTimestamp: number): PriceRange;
@@ -151,10 +151,10 @@ export function granularityToMs(granularity: Granularity): number {
 export function numCandlesInRange(
   granularity: Granularity,
   startTimestamp: number,
-  endTimestamp: number
+  endTimestamp: number,
 ): number {
   return Math.ceil(
-    (endTimestamp - startTimestamp) / granularityToMs(granularity)
+    (endTimestamp - startTimestamp) / granularityToMs(granularity),
   );
 }
 
@@ -169,7 +169,7 @@ export class SimplePriceHistory implements PriceHistory {
     this.candles = candles;
     // Convert map entries to sorted array for binary search
     this.candlesSortedByTimestamp = Array.from(this.candles.entries()).sort(
-      ([timestampA], [timestampB]) => timestampA - timestampB
+      ([timestampA], [timestampB]) => timestampA - timestampB,
     );
   }
 
@@ -257,10 +257,6 @@ export class SimplePriceHistory implements PriceHistory {
    * @returns The start timestamp.
    */
   get startTimestamp(): number {
-    console.log(
-      "startTimestamp, candlesSortedByTimestamp",
-      this.candlesSortedByTimestamp
-    );
     return this.candlesSortedByTimestamp[0][0];
   }
 
@@ -301,14 +297,14 @@ export class SimplePriceHistory implements PriceHistory {
    */
   getCandlesInRange(
     startTimestamp: number,
-    endTimestamp: number
+    endTimestamp: number,
   ): [number, Candle][] {
     const startIdx = this.findNearestCandleIndex(startTimestamp);
     const endIdx = this.findNearestCandleIndex(endTimestamp);
 
     return this.candlesSortedByTimestamp.slice(
       Math.max(0, startIdx),
-      Math.min(endIdx + 1, this.candlesSortedByTimestamp.length)
+      Math.min(endIdx + 1, this.candlesSortedByTimestamp.length),
     );
   }
 
@@ -433,7 +429,7 @@ export class SimplePriceHistory implements PriceHistory {
         }
         return gaps;
       },
-      []
+      [],
     );
   }
 }

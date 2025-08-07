@@ -149,15 +149,22 @@ export class TrendLineLayer extends LitElement {
       return;
     }
 
-    // Check if the click is inside a trend line
-    const target = event.target as HTMLElement;
+    // Check if the click is inside a trend line using composedPath for shadow DOM
+    const path = event.composedPath();
+    let clickedOnTrendLine = false;
+    
+    // Check if any element in the path is a trend line or part of one
+    for (const element of path) {
+      if (element instanceof HTMLElement) {
+        if (element.tagName?.toLowerCase() === 'trend-line' || 
+            element.closest?.('trend-line')) {
+          clickedOnTrendLine = true;
+          break;
+        }
+      }
+    }
 
-    // Check if clicked on a trend line or its children (SVG elements)
-    const clickedElement = target.closest("trend-line");
-    const clickedOnSvg = target.closest("svg")?.closest("trend-line");
-    const clickedOnTrendLine = clickedElement || clickedOnSvg;
-
-    logger.debug("Clicked on trend line?", !!clickedOnTrendLine);
+    logger.debug("Clicked on trend line?", clickedOnTrendLine);
 
     // If not clicked on a trend line, deselect
     if (!clickedOnTrendLine) {
@@ -178,7 +185,18 @@ export class TrendLineLayer extends LitElement {
     logger.debug("deselectAll called, current selection:", this.selectedLineId);
     if (this.selectedLineId) {
       this.selectedLineId = null;
+      // Force update and ensure trend-line components update their selected state
       this.requestUpdate();
+      // Wait for the update to complete, then ensure child components are updated
+      this.updateComplete.then(() => {
+        if (this.shadowRoot) {
+          const trendLines = this.shadowRoot.querySelectorAll('trend-line');
+          trendLines.forEach((line: any) => {
+            // Force the trend-line to update its render
+            line.requestUpdate('selected');
+          });
+        }
+      });
     }
   }
 
