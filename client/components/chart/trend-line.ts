@@ -67,11 +67,17 @@ export class TrendLineElement extends LitElement {
     .trend-line {
       stroke-width: 2;
       fill: none;
-      pointer-events: stroke;
-      cursor: pointer;
+      pointer-events: none;
       transition:
         stroke-width 0.15s ease,
         opacity 0.15s ease;
+    }
+    
+    .trend-line-hit-area {
+      stroke: transparent;
+      fill: none;
+      pointer-events: stroke;
+      cursor: pointer;
     }
 
     .trend-line.solid {
@@ -196,11 +202,21 @@ export class TrendLineElement extends LitElement {
       this.handleDragMove(handle, e);
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (e: MouseEvent) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
       handleElement.classList.remove("dragging");
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       this.handleDragEnd();
+      
+      // Prevent the trend line tool from interpreting this as a click
+      // Add a small delay to ensure event doesn't propagate
+      setTimeout(() => {
+        // Reset any state that might have been affected
+      }, 10);
     };
 
     document.addEventListener("mousemove", onMouseMove);
@@ -237,6 +253,14 @@ export class TrendLineElement extends LitElement {
     this.dispatchEvent(
       new CustomEvent("trend-line-update-complete", {
         detail: { trendLine: this.trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    
+    // Dispatch event to notify that dragging has ended
+    this.dispatchEvent(
+      new CustomEvent("trend-line-drag-end", {
         bubbles: true,
         composed: true,
       }),
@@ -288,6 +312,18 @@ export class TrendLineElement extends LitElement {
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
+        <!-- Invisible hit area for easier selection -->
+        <line
+          class="trend-line-hit-area"
+          x1="${extendedStart.x}"
+          y1="${extendedStart.y}"
+          x2="${extendedEnd.x}"
+          y2="${extendedEnd.y}"
+          stroke="transparent"
+          stroke-width="15"
+          @click="${this.handleLineClick}"
+        />
+        <!-- Visible trend line -->
         <line
           class="trend-line ${lineStyle}"
           x1="${extendedStart.x}"
@@ -296,7 +332,7 @@ export class TrendLineElement extends LitElement {
           y2="${extendedEnd.y}"
           stroke="${lineColor}"
           stroke-width="${this.trendLine.lineWidth || 2}"
-          @click="${this.handleLineClick}"
+          pointer-events="none"
         />
         <circle
           class="handle handle-start"

@@ -10,9 +10,11 @@ export class TrendLineTool {
   private clickHandler: ((event: MouseEvent) => void) | null = null;
   private moveHandler: ((event: MouseEvent) => void) | null = null;
   private escapeHandler: ((event: KeyboardEvent) => void) | null = null;
+  private dragEndHandler: (() => void) | null = null;
   private getState: () => ChartState;
   private priceAxisWidth: number;
   private getChartCanvas: () => HTMLCanvasElement | null;
+  private ignoreNextClick = false;
   
   constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70, getChartCanvas?: () => HTMLCanvasElement | null) {
     this.container = container;
@@ -36,6 +38,12 @@ export class TrendLineTool {
     this.container.addEventListener('click', this.clickHandler);
     this.container.addEventListener('mousemove', this.moveHandler);
     document.addEventListener('keydown', this.escapeHandler);
+    
+    // Listen for drag end events from trend lines
+    this.dragEndHandler = () => {
+      this.setIgnoreNextClick();
+    };
+    this.container.addEventListener('trend-line-drag-end', this.dragEndHandler);
     
     // Change cursor
     this.container.style.cursor = 'crosshair';
@@ -65,6 +73,10 @@ export class TrendLineTool {
       document.removeEventListener('keydown', this.escapeHandler);
     }
     
+    if (this.dragEndHandler) {
+      this.container.removeEventListener('trend-line-drag-end', this.dragEndHandler);
+    }
+    
     // Reset cursor
     this.container.style.cursor = '';
     
@@ -78,9 +90,23 @@ export class TrendLineTool {
   isToolActive(): boolean {
     return this.isActive;
   }
+  
+  setIgnoreNextClick(): void {
+    this.ignoreNextClick = true;
+    // Reset after a short delay as a fallback
+    setTimeout(() => {
+      this.ignoreNextClick = false;
+    }, 100);
+  }
 
   private handleClick(event: MouseEvent): void {
     if (!this.isActive) return;
+    
+    // Check if we should ignore this click (e.g., after dragging a handle)
+    if (this.ignoreNextClick) {
+      this.ignoreNextClick = false;
+      return;
+    }
     
     event.preventDefault();
     event.stopPropagation();
