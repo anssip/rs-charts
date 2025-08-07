@@ -3,7 +3,6 @@ import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
 import "./components/chart/toolbar/product-select";
-import "./components/common/symbol-manager";
 import { ChartContainer } from "./components/chart/chart-container";
 import {
   IndicatorConfig,
@@ -23,9 +22,7 @@ import {
 import { LiveCandle } from "./api/live-candle-subscription";
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { StarredSymbolsService } from "./api/starred-symbols-service";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { SymbolManager } from "./components/common/symbol-manager";
 import { ProductSelect } from "./components/chart/toolbar/product-select";
 import { TrendLine } from "./types/trend-line";
 
@@ -144,77 +141,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const firebaseApp = initializeApp(firebaseConfig);
   const firestore = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
-
-  // Initialize starred symbols service
-  let starredSymbolsService: StarredSymbolsService | null = null;
-  let currentUserEmail = "demo@example.com"; // Default for demo
-
-  // Initialize symbol management
-  const symbolSelector = document.querySelector(
-    "#symbol-selector",
-  ) as ProductSelect;
-  const symbolManager = document.querySelector(
-    "#symbol-manager",
-  ) as SymbolManager;
-
-  if (symbolSelector && symbolManager) {
-    // Initialize starred symbols service
-    starredSymbolsService = new StarredSymbolsService(
-      firestore,
-      currentUserEmail,
-    );
-
-    // Load initial starred symbols
-    starredSymbolsService.initializeDefaultSymbols().then(async () => {
-      const starredSymbols = await starredSymbolsService!.getStarredSymbols();
-
-      // Get all products from Firestore
-      const { getAllProducts } = await import("./api/firestore-client");
-      const allProducts = await getAllProducts(firestore);
-
-      // Update components
-      symbolSelector.products = allProducts;
-      symbolSelector.starredSymbols = starredSymbols;
-
-      symbolManager.allProducts = allProducts;
-      symbolManager.starredSymbols = starredSymbols;
-      symbolManager.userEmail = currentUserEmail;
-    });
-
-    // Handle product selection
-    symbolSelector.addEventListener("product-changed", (e: Event) => {
-      const { product } = (e as CustomEvent).detail;
-      if (chart1Result?.api) {
-        chart1Result.api.setSymbol(product);
-      }
-    });
-
-    // Handle manage symbols button
-    symbolSelector.addEventListener("manage-symbols", () => {
-      symbolManager.open = true;
-    });
-
-    // Handle star toggling in symbol manager
-    symbolManager.addEventListener("toggle-star", async (e: Event) => {
-      const { symbol, starred } = (e as CustomEvent).detail;
-
-      if (starred) {
-        await starredSymbolsService!.addStarredSymbol(symbol);
-      } else {
-        await starredSymbolsService!.removeStarredSymbol(symbol);
-      }
-
-      // Update starred symbols in both components
-      const updatedStarred = await starredSymbolsService!.getStarredSymbols();
-      symbolSelector.starredSymbols = updatedStarred;
-      symbolManager.starredSymbols = updatedStarred;
-    });
-
-    // Handle symbol manager close
-    symbolManager.addEventListener("close", () => {
-      symbolManager.open = false;
-    });
-  }
 
   // Initialize first chart
   logger.info("Initializing first chart with BTC-USD");

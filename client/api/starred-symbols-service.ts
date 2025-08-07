@@ -1,16 +1,15 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
   updateDoc,
   serverTimestamp,
   Firestore
 } from "firebase/firestore";
-import { getLogger, LogLevel } from "../util/logger";
+import { getLogger } from "../util/logger";
 
 const logger = getLogger("StarredSymbolsService");
-logger.setLoggerLevel("StarredSymbolsService", LogLevel.ERROR);
 
 export interface StarredSymbolsData {
   symbols: string[];
@@ -63,7 +62,7 @@ export class StarredSymbolsService {
   async addStarredSymbol(symbol: string): Promise<boolean> {
     try {
       const currentSymbols = await this.getStarredSymbols();
-      
+
       if (currentSymbols.includes(symbol)) {
         logger.debug(`Symbol ${symbol} already starred`);
         return true;
@@ -71,7 +70,7 @@ export class StarredSymbolsService {
 
       const updatedSymbols = [...currentSymbols, symbol];
       await this.updateStarredSymbols(updatedSymbols);
-      
+
       this.cache = updatedSymbols;
       logger.debug(`Added ${symbol} to starred symbols`);
       return true;
@@ -87,7 +86,7 @@ export class StarredSymbolsService {
   async removeStarredSymbol(symbol: string): Promise<boolean> {
     try {
       const currentSymbols = await this.getStarredSymbols();
-      
+
       if (!currentSymbols.includes(symbol)) {
         logger.debug(`Symbol ${symbol} not in starred list`);
         return true;
@@ -95,7 +94,7 @@ export class StarredSymbolsService {
 
       const updatedSymbols = currentSymbols.filter(s => s !== symbol);
       await this.updateStarredSymbols(updatedSymbols);
-      
+
       this.cache = updatedSymbols;
       logger.debug(`Removed ${symbol} from starred symbols`);
       return true;
@@ -126,7 +125,7 @@ export class StarredSymbolsService {
    */
   private async updateStarredSymbols(symbols: string[]): Promise<void> {
     const docRef = doc(this.firestore, "settings", this.userEmail, "symbols", "starred");
-    
+
     const data: StarredSymbolsData = {
       symbols,
       lastUpdated: serverTimestamp()
@@ -162,7 +161,7 @@ export class StarredSymbolsService {
    */
   async initializeDefaultSymbols(): Promise<void> {
     const currentSymbols = await this.getStarredSymbols();
-    
+
     if (currentSymbols.length === 0) {
       const defaultSymbols = StarredSymbolsService.getDefaultSymbols();
       await this.updateStarredSymbols(defaultSymbols);
