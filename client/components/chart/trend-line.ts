@@ -27,11 +27,27 @@ export class TrendLineElement extends LitElement {
   @property({ type: Number })
   height = 0;
 
-  @property({ type: Boolean })
+  @property({ type: Boolean, reflect: true })
   selected = false;
 
   @state()
   private hovered = false;
+
+  connectedCallback() {
+    super.connectedCallback();
+    // Don't override the selected property if it's being set from parent
+    if (this.selected === undefined) {
+      this.selected = false;
+    }
+    this.hovered = false;
+  }
+  
+  updated(changedProperties: Map<string, any>) {
+    super.updated(changedProperties);
+    if (changedProperties.has('selected')) {
+      logger.debug(`Trend line ${this.trendLine?.id} selected state changed to:`, this.selected);
+    }
+  }
 
   static styles = css`
     :host {
@@ -45,6 +61,7 @@ export class TrendLineElement extends LitElement {
     svg {
       width: 100%;
       height: 100%;
+      pointer-events: none;
     }
 
     .trend-line {
@@ -162,12 +179,10 @@ export class TrendLineElement extends LitElement {
 
   private handleMouseEnter = () => {
     this.hovered = true;
-    this.requestUpdate();
   };
 
   private handleMouseLeave = () => {
     this.hovered = false;
-    this.requestUpdate();
   };
 
   private handleDragStart = (handle: "start" | "end", event: MouseEvent) => {

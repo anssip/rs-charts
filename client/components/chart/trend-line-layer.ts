@@ -49,7 +49,7 @@ export class TrendLineLayer extends LitElement {
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: auto;
+      pointer-events: none;
     }
   `;
 
@@ -183,21 +183,23 @@ export class TrendLineLayer extends LitElement {
 
   public deselectAll() {
     logger.debug("deselectAll called, current selection:", this.selectedLineId);
-    if (this.selectedLineId) {
-      this.selectedLineId = null;
-      // Force update and ensure trend-line components update their selected state
-      this.requestUpdate();
-      // Wait for the update to complete, then ensure child components are updated
-      this.updateComplete.then(() => {
-        if (this.shadowRoot) {
-          const trendLines = this.shadowRoot.querySelectorAll('trend-line');
-          trendLines.forEach((line: any) => {
-            // Force the trend-line to update its render
+    this.selectedLineId = null;
+    // Force update and ensure trend-line components update their selected state
+    this.requestUpdate();
+    // Wait for the update to complete, then ensure child components are updated
+    this.updateComplete.then(() => {
+      if (this.shadowRoot) {
+        const trendLines = this.shadowRoot.querySelectorAll('trend-line');
+        trendLines.forEach((line: any) => {
+          // Explicitly set selected to false and force update
+          if (line.selected === true) {
+            logger.debug(`Forcing deselect on trend-line:`, line.trendLine?.id);
+            line.selected = false;
             line.requestUpdate('selected');
-          });
-        }
-      });
-    }
+          }
+        });
+      }
+    });
   }
 
   public selectLine(lineId: string) {
