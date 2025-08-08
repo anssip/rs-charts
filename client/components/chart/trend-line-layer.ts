@@ -164,23 +164,38 @@ export class TrendLineLayer extends LitElement {
     // Check if the click is inside a trend line using composedPath for shadow DOM
     const path = event.composedPath();
     let clickedOnTrendLine = false;
+    let clickedOnChart = false;
     
-    // Check if any element in the path is a trend line or part of one
+    // Check if any element in the path is a trend line or part of the chart
     for (const element of path) {
       if (element instanceof HTMLElement) {
-        if (element.tagName?.toLowerCase() === 'trend-line' || 
-            element.closest?.('trend-line')) {
+        const tagName = element.tagName?.toLowerCase();
+        
+        // Check if clicked on trend line
+        if (tagName === 'trend-line' || element.closest?.('trend-line')) {
           clickedOnTrendLine = true;
-          break;
+        }
+        
+        // Check if clicked within chart-container or chart-related elements
+        if (tagName === 'chart-container' || 
+            tagName === 'chart' ||
+            tagName === 'chart-canvas' ||
+            tagName === 'market-indicator' ||
+            tagName === 'indicator-container' ||
+            tagName === 'trend-line-layer' ||
+            tagName === 'live-decorators' ||
+            element.closest?.('chart-container')) {
+          clickedOnChart = true;
         }
       }
     }
 
-    logger.debug("Clicked on trend line?", clickedOnTrendLine);
+    logger.debug("Clicked on trend line?", clickedOnTrendLine, "Clicked on chart?", clickedOnChart);
 
-    // If not clicked on a trend line, deselect
-    if (!clickedOnTrendLine) {
-      logger.debug("Deselecting due to outside click");
+    // Only deselect if clicked on chart area but not on a trend line
+    // Clicks outside the chart (like on settings panels) won't deselect
+    if (!clickedOnTrendLine && clickedOnChart) {
+      logger.debug("Deselecting due to click on chart area");
       this.deselectAll();
     }
   };

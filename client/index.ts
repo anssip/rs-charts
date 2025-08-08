@@ -253,3 +253,4 @@ window.addEventListener("DOMContentLoaded", () => {
     logger.error("Upgrade popup elements not found in the DOM.");
   }
 });
+// trigger rebuild
