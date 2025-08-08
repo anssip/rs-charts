@@ -142,11 +142,68 @@ window.addEventListener("DOMContentLoaded", () => {
   const firestore = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
 
+  // Calculate timestamps for trend lines (using recent dates)
+  const now = Date.now();
+  const hourInMs = 60 * 60 * 1000;
+  
+  // Create initial trend lines for testing - using recent times and realistic BTC prices
+  const initialTrendLines = [
+    {
+      id: "initial-trend-btc-1",
+      startPoint: { 
+        timestamp: now - (24 * hourInMs), // 24 hours ago
+        price: 98000 
+      },
+      endPoint: { 
+        timestamp: now - (6 * hourInMs), // 6 hours ago
+        price: 102000 
+      },
+      color: "#2962ff",
+      lineWidth: 3,
+      style: "solid" as const,
+      extendLeft: false,
+      extendRight: true
+    },
+    {
+      id: "initial-trend-btc-2",
+      startPoint: { 
+        timestamp: now - (18 * hourInMs), // 18 hours ago
+        price: 103000 
+      },
+      endPoint: { 
+        timestamp: now - (3 * hourInMs), // 3 hours ago
+        price: 99000 
+      },
+      color: "#ff6b6b",
+      lineWidth: 2,
+      style: "dashed" as const,
+      extendLeft: true,
+      extendRight: false
+    },
+    {
+      id: "initial-trend-btc-support",
+      startPoint: { 
+        timestamp: now - (20 * hourInMs), // 20 hours ago
+        price: 97500 
+      },
+      endPoint: { 
+        timestamp: now - (1 * hourInMs), // 1 hour ago
+        price: 97500 
+      },
+      color: "#4ade80",
+      lineWidth: 2,
+      style: "dotted" as const,
+      extendLeft: true,
+      extendRight: true
+    }
+  ];
+
   // Initialize first chart
-  logger.info("Initializing first chart with BTC-USD");
+  logger.info("Initializing first chart with BTC-USD and initial trend lines");
   const chart1Result = initChartWithApi(chartContainerElement1, firebaseApp, {
     symbol: "BTC-USD",
     indicators: defaultIndicators,
+    trendLines: initialTrendLines,
   });
   logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
 
@@ -160,10 +217,64 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     chartContainer2.innerHTML = "";
     chartContainer2.append(chartContainerElement2!);
-    logger.info("Initializing second chart with ETH-USD");
+    
+    // Create different trend lines for ETH chart with realistic prices
+    const ethTrendLines = [
+      {
+        id: "initial-trend-eth-1",
+        startPoint: { 
+          timestamp: now - (20 * hourInMs), // 20 hours ago
+          price: 3600 
+        },
+        endPoint: { 
+          timestamp: now - (4 * hourInMs), // 4 hours ago
+          price: 3850 
+        },
+        color: "#a855f7",
+        lineWidth: 3,
+        style: "solid" as const,
+        extendLeft: false,
+        extendRight: true
+      },
+      {
+        id: "initial-trend-eth-resistance",
+        startPoint: { 
+          timestamp: now - (22 * hourInMs), // 22 hours ago
+          price: 3900 
+        },
+        endPoint: { 
+          timestamp: now - (2 * hourInMs), // 2 hours ago
+          price: 3900 
+        },
+        color: "#fbbf24",
+        lineWidth: 2,
+        style: "dashed" as const,
+        extendLeft: true,
+        extendRight: true
+      },
+      {
+        id: "initial-trend-eth-support",
+        startPoint: { 
+          timestamp: now - (18 * hourInMs), // 18 hours ago
+          price: 3700 
+        },
+        endPoint: { 
+          timestamp: now - (1 * hourInMs), // 1 hour ago
+          price: 3650 
+        },
+        color: "#22d3ee",
+        lineWidth: 2,
+        style: "dotted" as const,
+        extendLeft: false,
+        extendRight: true
+      }
+    ];
+    
+    logger.info("Initializing second chart with ETH-USD and initial trend lines");
     chart2Result = initChartWithApi(chartContainerElement2!, firebaseApp, {
       symbol: "ETH-USD",
       indicators: defaultIndicators,
+      trendLines: ethTrendLines,
     });
     logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
   }

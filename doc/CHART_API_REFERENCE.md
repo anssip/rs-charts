@@ -42,6 +42,38 @@ const app = container.getApp();
 const api = createChartApi(container, app);
 ```
 
+### Initial Configuration
+
+You can pass trend lines and other configuration options when initializing the chart:
+
+```typescript
+import { initChartWithApi } from "@anssipiirainen/sc-charts";
+
+const chartContainer = document.createElement("chart-container");
+const initialState = {
+  symbol: "BTC-USD",
+  granularity: "ONE_HOUR",
+  indicators: [
+    { id: "volume", name: "Volume", visible: true },
+    { id: "rsi", name: "RSI", visible: true, params: { period: 14 } }
+  ],
+  trendLines: [
+    {
+      id: "trend-1",
+      startPoint: { timestamp: 1704067200000, price: 45000 },
+      endPoint: { timestamp: 1704153600000, price: 46500 },
+      color: "#2962ff",
+      lineWidth: 2,
+      style: "solid",
+      extendLeft: false,
+      extendRight: true
+    }
+  ]
+};
+
+const { app, api } = initChartWithApi(chartContainer, firebaseConfig, initialState);
+```
+
 ## API Methods
 
 ### Symbol Control
@@ -632,6 +664,15 @@ interface SymbolChangeOptions {
 interface GranularityChangeOptions {
   granularity: Granularity; // New granularity
   refetch?: boolean; // Refetch data (default: true)
+}
+
+// Initial state configuration that can be passed when creating a chart
+interface ChartState {
+  symbol?: string; // Trading pair symbol (e.g., "BTC-USD")
+  granularity?: Granularity; // Chart timeframe
+  indicators?: IndicatorConfig[]; // Initial indicators to display
+  trendLines?: TrendLine[]; // Initial trend lines to display
+  // ... other optional state properties
 }
 ```
 

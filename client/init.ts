@@ -28,6 +28,7 @@ const createInitialChartState = (): ChartState => ({
   granularity: "ONE_HOUR",
   loading: false,
   indicators: [],
+  trendLines: [],
 });
 
 /**
