@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Line Test - Simple</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #0d0d0d;
+            border-radius: 8px;
+        }
+        
+        .controls button {
+            margin-right: 10px;
+            padding: 8px 16px;
+            background: #2962ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .controls button:hover {
+            background: #1e88e5;
+        }
+        
+        .chart-container {
+            height: 600px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            padding: 15px;
+            background: #0d0d0d;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+    <script type="module" src="index.js"></script>
+</head>
+<body>
+    <h1>Trend Line Test - Simple</h1>
+    
+    <div class="controls">
+        <button onclick="activateTrendLine()">Draw Trend Line</button>
+        <button onclick="clearTrendLines()">Clear All Lines</button>
+        <button onclick="testSelection()">Test Selection Events</button>
+    </div>
+    
+    <div class="chart-container" id="chart-1"></div>
+    
+    <div class="status" id="status">
+        Waiting for chart to initialize...
+    </div>
+
+    <script>
+        let chartApi = null;
+        let selectedLineId = null;
+        
+        function updateStatus(message) {
+            const status = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            status.innerHTML = `[${timestamp}] ${message}<br>` + status.innerHTML;
+        }
+        
+        function activateTrendLine() {
+            if (!chartApi) {
+                updateStatus('Chart API not ready');
+                return;
+            }
+            chartApi.activateTrendLineTool();
+            updateStatus('Trend line tool activated - click twice on chart to draw');
+        }
+        
+        function clearTrendLines() {
+            if (!chartApi) {
+                updateStatus('Chart API not ready');
+                return;
+            }
+            chartApi.clearTrendLines();
+            updateStatus('All trend lines cleared');
+        }
+        
+        function testSelection() {
+            if (!chartApi) {
+                updateStatus('Chart API not ready');
+                return;
+            }
+            
+            // Add a test trend line
+            const lineId = chartApi.addTrendLine({
+                startPoint: { timestamp: Date.now() - 3600000, price: 45000 },
+                endPoint: { timestamp: Date.now(), price: 46500 },
+                color: '#ff0000',
+                lineWidth: 3,
+                style: 'solid',
+                extendLeft: false,
+                extendRight: true
+            });
+            
+            updateStatus(`Added test trend line with ID: ${lineId}`);
+        }
+        
+        // Wait for chart API to be available
+        function waitForApi() {
+            if (window.chartApi1) {
+                chartApi = window.chartApi1;
+                updateStatus('Chart API ready!');
+                
+                // Set up event listeners
+                chartApi.on('ready', (data) => {
+                    updateStatus(`Chart ready for ${data.symbol}`);
+                });
+                
+                chartApi.on('trend-line-selected', (data) => {
+                    selectedLineId = data.trendLineId;
+                    updateStatus(`SELECTED: Line ${data.trendLineId}`);
+                    updateStatus(`Settings: color=${data.trendLine.color}, width=${data.trendLine.lineWidth}`);
+                });
+                
+                chartApi.on('trend-line-deselected', (data) => {
+                    selectedLineId = null;
+                    updateStatus(`DESELECTED: Line ${data.trendLineId || 'unknown'}`);
+                });
+                
+                return;
+            }
+            setTimeout(waitForApi, 100);
+        }
+        
+        window.addEventListener('load', () => {
+            waitForApi();
+        });
+    </script>
+</body>
+</html>
