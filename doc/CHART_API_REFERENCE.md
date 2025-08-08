@@ -296,6 +296,90 @@ Clean up the API instance and remove all event listeners.
 api.dispose(); // Call when unmounting/destroying chart
 ```
 
+### Trend Line Control
+
+#### `addTrendLine(trendLine: Omit<TrendLine, 'id'>): string`
+
+Add a new trend line to the chart.
+
+```typescript
+const trendLineId = api.addTrendLine({
+  startPoint: { timestamp: 1704067200000, price: 45000 },
+  endPoint: { timestamp: 1704153600000, price: 46500 },
+  color: '#2962ff',
+  lineWidth: 2,
+  style: 'solid',
+  extendLeft: false,
+  extendRight: true
+});
+// Returns: "trend-line-1704153600000"
+```
+
+#### `getTrendLine(id: string): TrendLine | null`
+
+Get a specific trend line by its ID.
+
+```typescript
+const trendLine = api.getTrendLine('trend-line-1704153600000');
+// Returns: TrendLine object or null if not found
+```
+
+#### `getTrendLines(): TrendLine[]`
+
+Get all trend lines currently on the chart.
+
+```typescript
+const allTrendLines = api.getTrendLines();
+// Returns: Array of TrendLine objects
+```
+
+#### `updateTrendLineSettings(id: string, settings: TrendLineSettings): void`
+
+Update visual settings of an existing trend line.
+
+```typescript
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  color: '#ff0000',
+  lineWidth: 3,
+  style: 'dashed',
+  extendLeft: true,
+  extendRight: false
+});
+```
+
+#### `removeTrendLine(id: string): void`
+
+Remove a specific trend line from the chart.
+
+```typescript
+api.removeTrendLine('trend-line-1704153600000');
+```
+
+#### `clearTrendLines(): void`
+
+Remove all trend lines from the chart.
+
+```typescript
+api.clearTrendLines();
+```
+
+#### `activateTrendLineTool(): void`
+
+Activate the trend line drawing tool.
+
+```typescript
+api.activateTrendLineTool();
+// User can now click twice on the chart to draw a trend line
+```
+
+#### `deactivateTrendLineTool(): void`
+
+Deactivate the trend line drawing tool.
+
+```typescript
+api.deactivateTrendLineTool();
+```
+
 ## Event System
 
 ### Event Types
@@ -360,6 +444,27 @@ interface FullscreenChangeEvent {
 }
 ```
 
+#### 6. `TrendLineSelectedEvent`
+
+Emitted when a trend line is selected by the user.
+
+```typescript
+interface TrendLineSelectedEvent {
+  trendLineId: string; // ID of the selected trend line
+  trendLine: TrendLine; // Complete trend line object with all settings
+}
+```
+
+#### 7. `TrendLineDeselectedEvent`
+
+Emitted when all trend lines are deselected.
+
+```typescript
+interface TrendLineDeselectedEvent {
+  trendLineId: string | null; // ID of the previously selected trend line
+}
+```
+
 ### Event Methods
 
 #### `on<T extends ChartApiEventName>(event: T, callback: ChartApiEventCallback<T>): void`
@@ -388,6 +493,66 @@ const handler = (data: SymbolChangeEvent) => console.log(data);
 api.on("symbolChange", handler);
 // Later...
 api.off("symbolChange", handler);
+```
+
+### Trend Line Event Examples
+
+```typescript
+// Listen for trend line selection
+api.on("trend-line-selected", (data) => {
+  console.log(`Trend line ${data.trendLineId} selected`);
+  console.log("Current settings:", {
+    color: data.trendLine.color,
+    lineWidth: data.trendLine.lineWidth,
+    style: data.trendLine.style,
+    extendLeft: data.trendLine.extendLeft,
+    extendRight: data.trendLine.extendRight
+  });
+  
+  // Update UI controls to show current settings
+  updateColorPicker(data.trendLine.color);
+  updateLineWidthSlider(data.trendLine.lineWidth);
+  updateStyleSelector(data.trendLine.style);
+});
+
+// Listen for trend line deselection
+api.on("trend-line-deselected", (data) => {
+  console.log("Trend lines deselected");
+  // Hide settings UI controls
+  hideSettingsPanel();
+});
+
+// Example: Update selected trend line settings
+let selectedLineId: string | null = null;
+
+api.on("trend-line-selected", (data) => {
+  selectedLineId = data.trendLineId;
+  showSettingsPanel(data.trendLine);
+});
+
+api.on("trend-line-deselected", () => {
+  selectedLineId = null;
+  hideSettingsPanel();
+});
+
+// Update settings when user changes them
+function onColorChange(newColor: string) {
+  if (selectedLineId) {
+    api.updateTrendLineSettings(selectedLineId, { color: newColor });
+  }
+}
+
+function onLineWidthChange(newWidth: number) {
+  if (selectedLineId) {
+    api.updateTrendLineSettings(selectedLineId, { lineWidth: newWidth });
+  }
+}
+
+function onStyleChange(newStyle: 'solid' | 'dashed' | 'dotted') {
+  if (selectedLineId) {
+    api.updateTrendLineSettings(selectedLineId, { style: newStyle });
+  }
+}
 ```
 
 ## Type Definitions
@@ -732,6 +897,8 @@ export {
   GranularityChangeEvent,
   IndicatorChangeEvent,
   FullscreenChangeEvent,
+  TrendLineSelectedEvent,
+  TrendLineDeselectedEvent,
   ChartApiEventMap,
   ChartApiEventName,
   ChartApiEventCallback,
@@ -740,6 +907,12 @@ export {
   ApiIndicatorConfig,
   SymbolChangeOptions,
   GranularityChangeOptions,
+  TrendLineSettings,
+
+  // Trend Line Types
+  TrendLine,
+  TrendLinePoint,
+  TrendLineEvent,
 
   // Enums
   DisplayType,

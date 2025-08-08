@@ -70,6 +70,23 @@ export interface ReadyEvent {
   granularity: Granularity;
 }
 
+export interface TrendLineSelectedEvent {
+  trendLineId: string;
+  trendLine: TrendLine;
+}
+
+export interface TrendLineDeselectedEvent {
+  trendLineId: string | null;
+}
+
+export interface TrendLineSettings {
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
+
 /**
  * Map of Chart API event names to their corresponding event data types
  */
@@ -82,6 +99,8 @@ export interface ChartApiEventMap {
   'trend-line-added': TrendLineEvent;
   'trend-line-updated': TrendLineEvent;
   'trend-line-removed': TrendLineEvent;
+  'trend-line-selected': TrendLineSelectedEvent;
+  'trend-line-deselected': TrendLineDeselectedEvent;
 }
 
 /**
@@ -139,6 +158,16 @@ export class ChartApi {
     this.container.addEventListener('trend-line-removed', (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent('trend-line-removed', customEvent.detail);
+    });
+    
+    this.container.addEventListener('trend-line-selected', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-selected', customEvent.detail);
+    });
+    
+    this.container.addEventListener('trend-line-deselected', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-deselected', customEvent.detail);
     });
   }
 
@@ -697,6 +726,26 @@ export class ChartApi {
       return chartContainer.trendLines;
     }
     return [];
+  }
+  
+  /**
+   * Get a specific trend line by ID
+   * @param id The ID of the trend line
+   * @returns The trend line or null if not found
+   */
+  getTrendLine(id: string): TrendLine | null {
+    const trendLines = this.getTrendLines();
+    return trendLines.find(line => line.id === id) || null;
+  }
+  
+  /**
+   * Update trend line settings
+   * @param id The ID of the trend line to update
+   * @param settings The settings to update
+   */
+  updateTrendLineSettings(id: string, settings: TrendLineSettings): void {
+    this.updateTrendLine(id, settings);
+    logger.info(`ChartApi: Updated settings for trend line ${id}`);
   }
   
   /**

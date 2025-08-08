@@ -133,6 +133,18 @@ export class TrendLineLayer extends LitElement {
     logger.debug("Selecting line:", selectedLine.id);
     this.selectedLineId = selectedLine.id;
     this.requestUpdate();
+    
+    // Emit selection event for external listeners
+    this.dispatchEvent(
+      new CustomEvent("trend-line-selected", {
+        detail: { 
+          trendLineId: selectedLine.id,
+          trendLine: selectedLine 
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   private handleDocumentClick = (event: MouseEvent) => {
@@ -183,7 +195,22 @@ export class TrendLineLayer extends LitElement {
 
   public deselectAll() {
     logger.debug("deselectAll called, current selection:", this.selectedLineId);
+    const previousSelection = this.selectedLineId;
     this.selectedLineId = null;
+    
+    // Emit deselection event if there was a selection
+    if (previousSelection) {
+      this.dispatchEvent(
+        new CustomEvent("trend-line-deselected", {
+          detail: { 
+            trendLineId: previousSelection 
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+    
     // Force update and ensure trend-line components update their selected state
     this.requestUpdate();
     // Wait for the update to complete, then ensure child components are updated
