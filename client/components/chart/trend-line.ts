@@ -117,13 +117,17 @@ export class TrendLineElement extends LitElement {
   private timeToX(timestamp: number): number {
     if (!this.timeRange || this.width === 0) return 0;
     const range = this.timeRange.end - this.timeRange.start;
-    return ((timestamp - this.timeRange.start) / range) * this.width;
+    if (range === 0) return 0;
+    const x = ((timestamp - this.timeRange.start) / range) * this.width;
+    return isFinite(x) ? x : 0;
   }
 
   private priceToY(price: number): number {
     if (!this.priceRange || this.height === 0) return 0;
     const range = this.priceRange.max - this.priceRange.min;
-    return this.height - ((price - this.priceRange.min) / range) * this.height;
+    if (range === 0) return this.height / 2;
+    const y = this.height - ((price - this.priceRange.min) / range) * this.height;
+    return isFinite(y) ? y : this.height / 2;
   }
 
   private calculateExtendedPoints(): [Point, Point] {
@@ -144,6 +148,19 @@ export class TrendLineElement extends LitElement {
       y: this.priceToY(this.trendLine.endPoint.price),
     };
 
+    // Validate start and end points
+    if (!isFinite(start.x) || !isFinite(start.y) || !isFinite(end.x) || !isFinite(end.y)) {
+      logger.warn("Invalid coordinates detected in trend line points", {
+        start,
+        end,
+        trendLine: this.trendLine,
+      });
+      return [
+        { x: 0, y: 0 },
+        { x: 0, y: 0 },
+      ];
+    }
+
     let extendedStart = { ...start };
     let extendedEnd = { ...end };
 
@@ -158,12 +175,26 @@ export class TrendLineElement extends LitElement {
       if (this.trendLine.extendLeft) {
         extendedStart.x = 0;
         extendedStart.y = start.y - slope * start.x;
+        
+        // Clamp y values to viewport bounds
+        if (!isFinite(extendedStart.y)) {
+          extendedStart.y = extendedStart.y > 0 ? this.height : 0;
+        } else {
+          extendedStart.y = Math.max(0, Math.min(this.height, extendedStart.y));
+        }
       }
 
       // Extend right
       if (this.trendLine.extendRight) {
         extendedEnd.x = this.width;
         extendedEnd.y = end.y + slope * (this.width - end.x);
+        
+        // Clamp y values to viewport bounds
+        if (!isFinite(extendedEnd.y)) {
+          extendedEnd.y = extendedEnd.y > 0 ? this.height : 0;
+        } else {
+          extendedEnd.y = Math.max(0, Math.min(this.height, extendedEnd.y));
+        }
       }
     }
 
@@ -268,15 +299,19 @@ export class TrendLineElement extends LitElement {
   }
 
   private xToTime(x: number): number {
-    if (!this.timeRange || this.width === 0) return 0;
+    if (!this.timeRange || this.width === 0) return Date.now();
     const range = this.timeRange.end - this.timeRange.start;
-    return this.timeRange.start + (x / this.width) * range;
+    if (range === 0) return this.timeRange.start;
+    const timestamp = this.timeRange.start + (x / this.width) * range;
+    return isFinite(timestamp) ? timestamp : this.timeRange.start;
   }
 
   private yToPrice(y: number): number {
     if (!this.priceRange || this.height === 0) return 0;
     const range = this.priceRange.max - this.priceRange.min;
-    return this.priceRange.min + ((this.height - y) / this.height) * range;
+    if (range === 0) return this.priceRange.min;
+    const price = this.priceRange.min + ((this.height - y) / this.height) * range;
+    return isFinite(price) ? price : this.priceRange.min;
   }
 
   render() {
