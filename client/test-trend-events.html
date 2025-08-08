@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trend Line Events Test</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Load the main index.js which will set up the chart infrastructure -->
+    <script type="module" src="index.js"></script>
     <style>
         body {
             margin: 0;
@@ -211,7 +213,6 @@
             background: #45a049;
         }
     </style>
-    <script type="module" src="index.js"></script>
 </head>
 <body>
     <div class="test-header">
@@ -285,6 +286,7 @@
         </div>
     </div>
     
+    <!-- Chart container must be empty for index.js to initialize properly -->
     <div class="chart-container" id="chart-1"></div>
     
     <h3>Event Log</h3>
@@ -369,8 +371,9 @@
         
         // Wait for chart API to be available
         function waitForApi() {
-            if (window.chartApi1) {
-                chartApi = window.chartApi1;
+            // Check for chartApi1 (from index.js) or testChartApi
+            if (window.chartApi1 || window.testChartApi) {
+                chartApi = window.chartApi1 || window.testChartApi;
                 elements.apiStatus.textContent = 'Ready';
                 elements.apiStatus.style.color = '#4caf50';
                 
