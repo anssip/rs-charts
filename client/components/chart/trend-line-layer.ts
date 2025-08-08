@@ -205,6 +205,32 @@ export class TrendLineLayer extends LitElement {
     if (event.key === "Escape") {
       logger.debug("ESC pressed, deselecting");
       this.deselectAll();
+    } else if ((event.key === "Backspace" || event.key === "Delete") && this.selectedLineId) {
+      logger.debug("Backspace/Delete pressed with selection:", this.selectedLineId);
+      
+      // Prevent default browser behavior (e.g., navigating back)
+      event.preventDefault();
+      
+      // Store the ID before removal
+      const deletedLineId = this.selectedLineId;
+      
+      // Remove the trend line
+      this.removeTrendLine(this.selectedLineId);
+      
+      // Emit deletion event
+      this.dispatchEvent(
+        new CustomEvent("trend-line-deleted", {
+          detail: { 
+            trendLineId: deletedLineId 
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+      
+      // Clear selection
+      this.selectedLineId = null;
+      this.requestUpdate();
     }
   };
 

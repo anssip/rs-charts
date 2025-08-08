@@ -690,6 +690,17 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                             updateStatus('Trend line deselected');
                         }
                     });
+                    
+                    chart1Api.on('trend-line-deleted', (data) => {
+                        if (currentChart === 1) {
+                            // If the deleted line was selected, clear selection
+                            if (selectedTrendLineId === data.trendLineId) {
+                                selectedTrendLineId = null;
+                                document.getElementById('trend-line-settings').style.display = 'none';
+                            }
+                            updateStatus(`Trend line deleted: ${data.trendLineId.substring(0, 20)}...`);
+                        }
+                    });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
@@ -719,6 +730,17 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                             selectedTrendLineId = null;
                             document.getElementById('trend-line-settings').style.display = 'none';
                             updateStatus('Trend line deselected');
+                        }
+                    });
+                    
+                    chart2Api.on('trend-line-deleted', (data) => {
+                        if (currentChart === 2) {
+                            // If the deleted line was selected, clear selection
+                            if (selectedTrendLineId === data.trendLineId) {
+                                selectedTrendLineId = null;
+                                document.getElementById('trend-line-settings').style.display = 'none';
+                            }
+                            updateStatus(`Trend line deleted: ${data.trendLineId.substring(0, 20)}...`);
                         }
                     });
                 }

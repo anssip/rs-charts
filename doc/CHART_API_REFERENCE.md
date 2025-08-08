@@ -349,10 +349,18 @@ api.updateTrendLineSettings('trend-line-1704153600000', {
 
 #### `removeTrendLine(id: string): void`
 
-Remove a specific trend line from the chart.
+Remove a specific trend line from the chart. This will emit a `trend-line-deleted` event.
 
 ```typescript
+// Remove a trend line by ID
 api.removeTrendLine('trend-line-1704153600000');
+
+// Listen for deletion events
+api.on('trend-line-deleted', (data) => {
+  console.log('Trend line deleted:', data.trendLineId);
+});
+
+// Note: Users can also delete selected lines with Backspace key
 ```
 
 #### `clearTrendLines(): void`
@@ -462,6 +470,16 @@ Emitted when all trend lines are deselected.
 ```typescript
 interface TrendLineDeselectedEvent {
   trendLineId: string | null; // ID of the previously selected trend line
+}
+```
+
+#### 8. `TrendLineDeletedEvent`
+
+Emitted when a trend line is deleted (via API call or Backspace key).
+
+```typescript
+interface TrendLineDeletedEvent {
+  trendLineId: string; // ID of the deleted trend line
 }
 ```
 
@@ -899,6 +917,7 @@ export {
   FullscreenChangeEvent,
   TrendLineSelectedEvent,
   TrendLineDeselectedEvent,
+  TrendLineDeletedEvent,
   ChartApiEventMap,
   ChartApiEventName,
   ChartApiEventCallback,
