@@ -79,6 +79,10 @@ export interface TrendLineDeselectedEvent {
   trendLineId: string | null;
 }
 
+export interface TrendLineDeletedEvent {
+  trendLineId: string;
+}
+
 export interface TrendLineSettings {
   color?: string;
   lineWidth?: number;
@@ -101,6 +105,7 @@ export interface ChartApiEventMap {
   'trend-line-removed': TrendLineEvent;
   'trend-line-selected': TrendLineSelectedEvent;
   'trend-line-deselected': TrendLineDeselectedEvent;
+  'trend-line-deleted': TrendLineDeletedEvent;
 }
 
 /**
@@ -168,6 +173,11 @@ export class ChartApi {
     this.container.addEventListener('trend-line-deselected', (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent('trend-line-deselected', customEvent.detail);
+    });
+    
+    this.container.addEventListener('trend-line-deleted', (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent('trend-line-deleted', customEvent.detail);
     });
   }
 
@@ -697,6 +707,9 @@ export class ChartApi {
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.trendLineLayer) {
       chartContainer.trendLineLayer.removeTrendLine(id);
+      
+      // Emit deletion event
+      this.emitEvent('trend-line-deleted', { trendLineId: id });
     }
     
     logger.info(`ChartApi: Removed trend line ${id}`);
