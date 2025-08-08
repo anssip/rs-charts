@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Line Events Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        .test-header {
+            margin-bottom: 20px;
+        }
+        
+        .test-header h1 {
+            color: #e0e0e0;
+            margin: 0 0 10px 0;
+        }
+        
+        #controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #0d0d0d;
+            border-radius: 8px;
+        }
+        
+        #settings-panel {
+            display: none;
+            padding: 20px;
+            background: #0d0d0d;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #2962ff;
+        }
+        
+        #settings-panel.visible {
+            display: block;
+        }
+        
+        #settings-panel h3 {
+            margin-top: 0;
+            color: #2962ff;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .settings-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .settings-row label {
+            width: 120px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+        
+        .settings-row input[type="color"] {
+            width: 60px;
+            height: 35px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .settings-row input[type="number"] {
+            width: 80px;
+        }
+        
+        .settings-row select {
+            width: 120px;
+        }
+        
+        .settings-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #2962ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #1e88e5;
+        }
+        
+        button:disabled {
+            background: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        input, select {
+            padding: 8px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        
+        #selected-line-info {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        #event-log {
+            padding: 15px;
+            background: #0d0d0d;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px 8px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            border-left: 3px solid #333;
+        }
+        
+        .log-entry.selected {
+            background: #1e3a8a;
+            border-left-color: #2962ff;
+        }
+        
+        .log-entry.deselected {
+            background: #4a1a1a;
+            border-left-color: #ff5252;
+        }
+        
+        .log-entry.info {
+            border-left-color: #4caf50;
+        }
+        
+        .log-entry.update {
+            background: #1a3a1a;
+            border-left-color: #4caf50;
+        }
+        
+        .chart-container {
+            height: 600px;
+            margin-bottom: 20px;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 10px 15px;
+            background: #0d0d0d;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .status-item {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #888;
+        }
+        
+        .status-value {
+            color: #2962ff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .test-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        
+        .test-actions button {
+            background: #4caf50;
+        }
+        
+        .test-actions button:hover {
+            background: #45a049;
+        }
+    </style>
+    <script type="module" src="index.js"></script>
+</head>
+<body>
+    <div class="test-header">
+        <h1>Trend Line Events Test</h1>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-label">API Status:</span>
+            <span class="status-value" id="api-status">Initializing...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Selected Line:</span>
+            <span class="status-value" id="selected-line-id">None</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Total Lines:</span>
+            <span class="status-value" id="total-lines">0</span>
+        </div>
+    </div>
+    
+    <div id="controls">
+        <button id="draw-line-btn" disabled>Draw Trend Line</button>
+        <button id="clear-lines-btn" disabled>Clear All Lines</button>
+        <button id="add-test-line-btn" disabled>Add Test Line</button>
+    </div>
+    
+    <div id="settings-panel">
+        <h3>Trend Line Settings</h3>
+        
+        <div id="selected-line-info">
+            Line ID: <span id="line-id-display">-</span>
+        </div>
+        
+        <div class="settings-row">
+            <label>Color:</label>
+            <input type="color" id="color-input" value="#2962ff">
+            <span id="color-preview" style="margin-left: 10px;"></span>
+        </div>
+        
+        <div class="settings-row">
+            <label>Line Width:</label>
+            <input type="number" id="width-input" min="1" max="10" value="2">
+            <span style="margin-left: 10px; color: #888;">pixels</span>
+        </div>
+        
+        <div class="settings-row">
+            <label>Style:</label>
+            <select id="style-input">
+                <option value="solid">Solid ——————</option>
+                <option value="dashed">Dashed - - - - -</option>
+                <option value="dotted">Dotted · · · · ·</option>
+            </select>
+        </div>
+        
+        <div class="settings-row">
+            <label>Extend Left:</label>
+            <input type="checkbox" id="extend-left-input">
+            <span style="margin-left: 10px; color: #888;">Extend line to the left edge</span>
+        </div>
+        
+        <div class="settings-row">
+            <label>Extend Right:</label>
+            <input type="checkbox" id="extend-right-input">
+            <span style="margin-left: 10px; color: #888;">Extend line to the right edge</span>
+        </div>
+        
+        <div class="test-actions">
+            <button id="apply-settings-btn">Apply All Settings</button>
+            <button id="delete-line-btn">Delete This Line</button>
+        </div>
+    </div>
+    
+    <div class="chart-container" id="chart-1"></div>
+    
+    <h3>Event Log</h3>
+    <div id="event-log"></div>
+
+    <script>
+        // Global variables
+        let chartApi = null;
+        let selectedLineId = null;
+        let isUpdatingUI = false; // Prevent feedback loops
+        
+        // DOM elements
+        const elements = {
+            apiStatus: document.getElementById('api-status'),
+            selectedLineIdSpan: document.getElementById('selected-line-id'),
+            totalLines: document.getElementById('total-lines'),
+            settingsPanel: document.getElementById('settings-panel'),
+            eventLog: document.getElementById('event-log'),
+            lineIdDisplay: document.getElementById('line-id-display'),
+            colorInput: document.getElementById('color-input'),
+            colorPreview: document.getElementById('color-preview'),
+            widthInput: document.getElementById('width-input'),
+            styleInput: document.getElementById('style-input'),
+            extendLeftInput: document.getElementById('extend-left-input'),
+            extendRightInput: document.getElementById('extend-right-input'),
+            drawLineBtn: document.getElementById('draw-line-btn'),
+            clearLinesBtn: document.getElementById('clear-lines-btn'),
+            addTestLineBtn: document.getElementById('add-test-line-btn'),
+            applySettingsBtn: document.getElementById('apply-settings-btn'),
+            deleteLineBtn: document.getElementById('delete-line-btn')
+        };
+        
+        function logEvent(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            elements.eventLog.insertBefore(entry, elements.eventLog.firstChild);
+            
+            // Keep only last 50 entries
+            while (elements.eventLog.children.length > 50) {
+                elements.eventLog.removeChild(elements.eventLog.lastChild);
+            }
+        }
+        
+        function updateLineCount() {
+            if (chartApi) {
+                const lines = chartApi.getTrendLines();
+                elements.totalLines.textContent = lines.length;
+            }
+        }
+        
+        function updateSettingsUI(trendLine) {
+            isUpdatingUI = true;
+            
+            elements.lineIdDisplay.textContent = trendLine.id;
+            elements.colorInput.value = trendLine.color || '#2962ff';
+            elements.colorPreview.textContent = trendLine.color || '#2962ff';
+            elements.colorPreview.style.color = trendLine.color || '#2962ff';
+            elements.widthInput.value = trendLine.lineWidth || 2;
+            elements.styleInput.value = trendLine.style || 'solid';
+            elements.extendLeftInput.checked = trendLine.extendLeft || false;
+            elements.extendRightInput.checked = trendLine.extendRight || false;
+            
+            isUpdatingUI = false;
+        }
+        
+        function applySettings() {
+            if (!selectedLineId || !chartApi || isUpdatingUI) return;
+            
+            const settings = {
+                color: elements.colorInput.value,
+                lineWidth: parseInt(elements.widthInput.value),
+                style: elements.styleInput.value,
+                extendLeft: elements.extendLeftInput.checked,
+                extendRight: elements.extendRightInput.checked
+            };
+            
+            chartApi.updateTrendLineSettings(selectedLineId, settings);
+            logEvent(`Applied settings to line ${selectedLineId}`, 'update');
+        }
+        
+        // Wait for chart API to be available
+        function waitForApi() {
+            if (window.chartApi1) {
+                chartApi = window.chartApi1;
+                elements.apiStatus.textContent = 'Ready';
+                elements.apiStatus.style.color = '#4caf50';
+                
+                // Enable buttons
+                elements.drawLineBtn.disabled = false;
+                elements.clearLinesBtn.disabled = false;
+                elements.addTestLineBtn.disabled = false;
+                
+                logEvent('Chart API initialized successfully', 'info');
+                setupEventListeners();
+                updateLineCount();
+                return;
+            }
+            setTimeout(waitForApi, 100);
+        }
+        
+        function setupEventListeners() {
+            // Chart API events
+            chartApi.on('ready', (data) => {
+                logEvent(`Chart ready for ${data.symbol}`, 'info');
+            });
+            
+            chartApi.on('trend-line-selected', (data) => {
+                selectedLineId = data.trendLineId;
+                elements.selectedLineIdSpan.textContent = data.trendLineId.substring(0, 20) + '...';
+                elements.settingsPanel.classList.add('visible');
+                
+                // Update settings inputs with current values
+                updateSettingsUI(data.trendLine);
+                
+                logEvent(`Selected: ${data.trendLineId}`, 'selected');
+                logEvent(`Current: color=${data.trendLine.color}, width=${data.trendLine.lineWidth}, style=${data.trendLine.style}`, 'info');
+            });
+            
+            chartApi.on('trend-line-deselected', (data) => {
+                selectedLineId = null;
+                elements.selectedLineIdSpan.textContent = 'None';
+                elements.settingsPanel.classList.remove('visible');
+                
+                logEvent(`Deselected: ${data.trendLineId || 'all lines'}`, 'deselected');
+            });
+            
+            // Button click handlers
+            elements.drawLineBtn.addEventListener('click', () => {
+                chartApi.activateTrendLineTool();
+                logEvent('Trend line tool activated - click twice on chart', 'info');
+            });
+            
+            elements.clearLinesBtn.addEventListener('click', () => {
+                chartApi.clearTrendLines();
+                selectedLineId = null;
+                elements.selectedLineIdSpan.textContent = 'None';
+                elements.settingsPanel.classList.remove('visible');
+                updateLineCount();
+                logEvent('All trend lines cleared', 'info');
+            });
+            
+            elements.addTestLineBtn.addEventListener('click', () => {
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                const styles = ['solid', 'dashed', 'dotted'];
+                
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+                const randomWidth = Math.floor(Math.random() * 4) + 1;
+                
+                const lineId = chartApi.addTrendLine({
+                    startPoint: { 
+                        timestamp: Date.now() - (3600000 * (2 + Math.random() * 2)), 
+                        price: 94000 + Math.random() * 4000 
+                    },
+                    endPoint: { 
+                        timestamp: Date.now() - (3600000 * Math.random()), 
+                        price: 94000 + Math.random() * 4000 
+                    },
+                    color: randomColor,
+                    lineWidth: randomWidth,
+                    style: randomStyle,
+                    extendLeft: Math.random() > 0.5,
+                    extendRight: Math.random() > 0.5
+                });
+                
+                updateLineCount();
+                logEvent(`Added test line: ${lineId}`, 'info');
+                logEvent(`Style: ${randomColor}, ${randomWidth}px, ${randomStyle}`, 'info');
+            });
+            
+            elements.applySettingsBtn.addEventListener('click', () => {
+                applySettings();
+            });
+            
+            elements.deleteLineBtn.addEventListener('click', () => {
+                if (selectedLineId && chartApi) {
+                    chartApi.removeTrendLine(selectedLineId);
+                    logEvent(`Deleted line: ${selectedLineId}`, 'info');
+                    selectedLineId = null;
+                    elements.selectedLineIdSpan.textContent = 'None';
+                    elements.settingsPanel.classList.remove('visible');
+                    updateLineCount();
+                }
+            });
+            
+            // Real-time setting updates
+            elements.colorInput.addEventListener('input', (e) => {
+                if (!isUpdatingUI) {
+                    elements.colorPreview.textContent = e.target.value;
+                    elements.colorPreview.style.color = e.target.value;
+                }
+            });
+            
+            elements.colorInput.addEventListener('change', (e) => {
+                if (selectedLineId && !isUpdatingUI) {
+                    chartApi.updateTrendLineSettings(selectedLineId, { color: e.target.value });
+                    logEvent(`Color → ${e.target.value}`, 'update');
+                }
+            });
+            
+            elements.widthInput.addEventListener('change', (e) => {
+                if (selectedLineId && !isUpdatingUI) {
+                    const width = parseInt(e.target.value);
+                    chartApi.updateTrendLineSettings(selectedLineId, { lineWidth: width });
+                    logEvent(`Width → ${width}px`, 'update');
+                }
+            });
+            
+            elements.styleInput.addEventListener('change', (e) => {
+                if (selectedLineId && !isUpdatingUI) {
+                    chartApi.updateTrendLineSettings(selectedLineId, { style: e.target.value });
+                    logEvent(`Style → ${e.target.value}`, 'update');
+                }
+            });
+            
+            elements.extendLeftInput.addEventListener('change', (e) => {
+                if (selectedLineId && !isUpdatingUI) {
+                    chartApi.updateTrendLineSettings(selectedLineId, { extendLeft: e.target.checked });
+                    logEvent(`Extend left → ${e.target.checked}`, 'update');
+                }
+            });
+            
+            elements.extendRightInput.addEventListener('change', (e) => {
+                if (selectedLineId && !isUpdatingUI) {
+                    chartApi.updateTrendLineSettings(selectedLineId, { extendRight: e.target.checked });
+                    logEvent(`Extend right → ${e.target.checked}`, 'update');
+                }
+            });
+        }
+        
+        // Start initialization when page loads
+        window.addEventListener('load', () => {
+            logEvent('Page loaded, waiting for Chart API...', 'info');
+            waitForApi();
+        });
+    </script>
+</body>
+</html>
