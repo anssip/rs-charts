@@ -391,7 +391,7 @@ export class ChartContainer extends LitElement {
 
   @property({ type: Object })
   set state(state: ChartState) {
-    const isInitialState = this._state.symbol === "BTC-USD" && this._state.granularity === "ONE_HOUR" && this.indicators.size === 0;
+    const isInitialState = this._state.symbol === "BTC-USD" && this._state.granularity === "ONE_HOUR" && this.indicators.size === 0 && this.trendLines.length === 0;
     this._state = state;
     
     // Process indicators from initial state if this is the first time setting state
@@ -404,6 +404,21 @@ export class ChartContainer extends LitElement {
             detail: indicator
           }));
         }
+      });
+    }
+    
+    // Process trend lines from initial state if this is the first time setting state
+    if (isInitialState && state.trendLines && state.trendLines.length > 0) {
+      logger.debug(`ChartContainer: Processing ${state.trendLines.length} trend lines from initial state`);
+      this.trendLines = [...state.trendLines];
+      this._state.trendLines = this.trendLines;
+      
+      // Force update to render trend lines
+      this.requestUpdate();
+      
+      // Ensure trend line layer gets updated after render
+      requestAnimationFrame(() => {
+        this.updateTrendLineLayer();
       });
     }
   }
