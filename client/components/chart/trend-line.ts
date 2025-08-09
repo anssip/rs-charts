@@ -168,33 +168,43 @@ export class TrendLineElement extends LitElement {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
 
-    if (dx !== 0) {
+    if (Math.abs(dx) > 0.001) {  // Avoid division by very small numbers
       const slope = dy / dx;
-
+      
       // Extend left
+      // Using point-slope form: y - y1 = m(x - x1)
+      // Rearranged: y = y1 + m(x - x1)
       if (this.trendLine.extendLeft) {
-        extendedStart.x = 0;
-        extendedStart.y = start.y - slope * start.x;
+        const targetX = 0;
+        // Use the start point as reference for left extension
+        extendedStart.x = targetX;
+        extendedStart.y = start.y + slope * (targetX - start.x);
         
-        // Clamp y values to viewport bounds
+        // Clamp y values to viewport bounds if they're invalid
         if (!isFinite(extendedStart.y)) {
           extendedStart.y = extendedStart.y > 0 ? this.height : 0;
-        } else {
-          extendedStart.y = Math.max(0, Math.min(this.height, extendedStart.y));
         }
       }
 
       // Extend right
+      // Use the end point as reference for right extension
       if (this.trendLine.extendRight) {
-        extendedEnd.x = this.width;
-        extendedEnd.y = end.y + slope * (this.width - end.x);
+        const targetX = this.width;
+        extendedEnd.x = targetX;
+        extendedEnd.y = end.y + slope * (targetX - end.x);
         
-        // Clamp y values to viewport bounds
+        // Clamp y values to viewport bounds if they're invalid
         if (!isFinite(extendedEnd.y)) {
           extendedEnd.y = extendedEnd.y > 0 ? this.height : 0;
-        } else {
-          extendedEnd.y = Math.max(0, Math.min(this.height, extendedEnd.y));
         }
+      }
+    } else {
+      // Nearly vertical line
+      if (this.trendLine.extendLeft) {
+        extendedStart.y = 0;
+      }
+      if (this.trendLine.extendRight) {
+        extendedEnd.y = this.height;
       }
     }
 
