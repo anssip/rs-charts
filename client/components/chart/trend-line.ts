@@ -47,6 +47,16 @@ export class TrendLineElement extends LitElement {
     if (changedProperties.has('selected')) {
       logger.debug(`Trend line ${this.trendLine?.id} selected state changed to:`, this.selected);
     }
+    if (changedProperties.has('trendLine')) {
+      const oldValue = changedProperties.get('trendLine');
+      logger.debug(`Trend line ${this.trendLine?.id} data updated:`, {
+        old: oldValue,
+        new: this.trendLine,
+        lineWidth: this.trendLine?.lineWidth,
+        color: this.trendLine?.color,
+        style: this.trendLine?.style
+      });
+    }
   }
 
   static styles = css`
@@ -65,7 +75,7 @@ export class TrendLineElement extends LitElement {
     }
 
     .trend-line {
-      stroke-width: 2;
+      /* stroke-width is set inline based on lineWidth property */
       fill: none;
       pointer-events: none;
       transition:
@@ -376,7 +386,7 @@ export class TrendLineElement extends LitElement {
           x2="${extendedEnd.x}"
           y2="${extendedEnd.y}"
           stroke="${lineColor}"
-          stroke-width="${this.trendLine.lineWidth || 2}"
+          style="stroke-width: ${this.trendLine.lineWidth || 2}px"
           pointer-events="none"
         />
         <circle
