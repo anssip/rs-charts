@@ -18,6 +18,7 @@ bun test server/services/price-data/__tests__/price-history-model.test.ts  # Run
 ## Coding rules
 
 - Use the logger facility to all debug, info and error messages. The logger is in `client/util/logger.ts`.
+- The state in this app is an ES proxy and string comparisons can fail if the proxy values are not first converted to strings.
 
 ## Code Style Guidelines
 

@@ -1064,7 +1064,9 @@ export class ChartContainer extends LitElement {
   private handleTrendLineUpdate = (event: CustomEvent) => {
     logger.debug(`ChartContainer: handleTrendLineUpdate called`, event.detail);
     const { trendLine } = event.detail;
-    const index = this.trendLines.findIndex(l => l.id === trendLine.id);
+    // Convert Proxy IDs to strings for comparison
+    const index = this.trendLines.findIndex(l => String(l.id) === String(trendLine.id));
+    logger.debug(`ChartContainer: Looking for trend line with ID ${String(trendLine.id)}, found at index: ${index}`);
     if (index !== -1) {
       this.trendLines = [
         ...this.trendLines.slice(0, index),
@@ -1082,6 +1084,8 @@ export class ChartContainer extends LitElement {
         bubbles: true,
         composed: true
       }));
+    } else {
+      logger.warn(`ChartContainer: Could not find trend line with ID ${String(trendLine.id)} to update`);
     }
   }
   
