@@ -82,13 +82,35 @@ export class TrendLineLayer extends LitElement {
   }
 
   updateTrendLine(id: string, updates: Partial<TrendLine>): void {
+    logger.debug(`TrendLineLayer: updateTrendLine called for ID: ${id}`);
+    logger.debug(`TrendLineLayer: Updates:`, updates);
+    logger.debug(`TrendLineLayer: Current trend lines full objects:`, this.trendLines);
+    logger.debug(`TrendLineLayer: Current trend lines IDs:`, this.trendLines.map(l => ({
+      id: l.id,
+      idType: typeof l.id,
+      stringId: String(l.id),
+      hasIdProp: 'id' in l
+    })));
+    
+    // Try different comparison methods
+    logger.debug(`TrendLineLayer: Looking for ID "${id}" (type: ${typeof id})`);
+    this.trendLines.forEach((line, idx) => {
+      logger.debug(`  Line ${idx}: id="${line.id}" (type: ${typeof line.id}), String(id)="${String(line.id)}", equals: ${String(line.id) === id}`);
+    });
+    
     // Convert Proxy IDs to strings for comparison
     const index = this.trendLines.findIndex((l) => String(l.id) === id);
+    logger.debug(`TrendLineLayer: Found at index: ${index}`);
+    
     if (index !== -1) {
       const previousState = this.trendLines[index];
       const updatedLine = { ...previousState, ...updates };
+      logger.debug(`TrendLineLayer: Emitting update event with updated line:`, updatedLine);
       // Don't mutate the local array - just emit the event and let the parent handle it
       this.emitEvent("update", updatedLine, previousState);
+    } else {
+      logger.warn(`TrendLineLayer: Could not find trend line with ID: ${id} to update`);
+      logger.warn(`TrendLineLayer: Available IDs:`, this.trendLines.map(l => String(l.id)));
     }
   }
 
@@ -157,10 +179,11 @@ export class TrendLineLayer extends LitElement {
     this.requestUpdate();
     
     // Emit selection event for external listeners
+    // Convert ID to string to avoid passing Proxy object
     this.dispatchEvent(
       new CustomEvent("trend-line-selected", {
         detail: { 
-          trendLineId: selectedLine.id,
+          trendLineId: String(selectedLine.id),
           trendLine: selectedLine 
         },
         bubbles: true,
@@ -240,6 +263,7 @@ export class TrendLineLayer extends LitElement {
       this.removeTrendLine(deletedLineId);
       
       // Emit deletion event
+      // ID is already a string here (deletedLineId = String(this.selectedLineId))
       this.dispatchEvent(
         new CustomEvent("trend-line-deleted", {
           detail: { 

@@ -721,9 +721,15 @@ export class ChartApi {
    * @param updates Partial trend line updates
    */
   updateTrendLine(id: string, updates: Partial<TrendLine>): void {
+    logger.debug(`ChartApi: updateTrendLine called with id="${id}" (type: ${typeof id})`);
+    logger.debug(`ChartApi: Updates:`, updates);
+    
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.trendLineLayer) {
+      logger.debug(`ChartApi: Found trendLineLayer, calling updateTrendLine`);
       chartContainer.trendLineLayer.updateTrendLine(id, updates);
+    } else {
+      logger.warn(`ChartApi: Could not find trendLineLayer on container`);
     }
     
     logger.info(`ChartApi: Updated trend line ${id}`);

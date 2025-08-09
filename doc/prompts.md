@@ -26,3 +26,25 @@ in TradingView.
 Can you provide a plan first on how to implement this feature?
 
 Let's implement the SVG approach for drawing trend lines. The first step now is to create the first stab at this: Users can draw trend with two clicks. Implement everything needed for this first step: The core components, Interaction system, state management, UI integration.
+
+# Line editing
+
+- Add an event to the chart-api that is emitted when a line is selected. It should include an ID of the line that can be then used to identify the line in later API calls.
+- Then add an API method that can be used to set settings to a line: the color, thickness, line style (solid, dashed, dotted), and whether it is extended in either directions.
+- The ability to extend the line needs to added as well. If the line is extended towardsits end pointing to left, then the line will be visible when the chart is panned to the left. This is similar to how TradingView does it.
+
+We can implement the extended line feature later. Now just add it to the API interface.
+
+# Line deletion
+
+Let's add line deletion.
+
+- Add a API method to delete a line by its ID.
+- Make it possible to delete a line by hitting the backspace key when the line is selected.
+- Add an event to the chart-api that is emitted when a line is deleted. It should include an ID of the line that was deleted.
+
+
+# Line modification
+
+- Add an event to the chart-api that is emitted when a line is modified. It should include an ID of the line that can be then used to identify the line in later API calls.
+- Then add an API method that can be used to modify a line by its ID.
