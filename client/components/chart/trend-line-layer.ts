@@ -158,8 +158,13 @@ export class TrendLineLayer extends LitElement {
     const updatedLine = event.detail.trendLine as TrendLine;
     const index = this.trendLines.findIndex((l) => l.id === updatedLine.id);
     if (index !== -1) {
-      // Update the trend line without triggering a full re-render
-      this.trendLines[index] = updatedLine;
+      // Create a new array to trigger Lit's change detection
+      // Direct mutation doesn't trigger re-render
+      this.trendLines = [
+        ...this.trendLines.slice(0, index),
+        updatedLine,
+        ...this.trendLines.slice(index + 1)
+      ];
       this.requestUpdate();
     }
   }
