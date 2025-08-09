@@ -59,23 +59,35 @@ export class TrendLineLayer extends LitElement {
   }
 
   removeTrendLine(id: string): void {
-    const lineToRemove = this.trendLines.find((l) => l.id === id);
+    logger.debug(`TrendLineLayer: removeTrendLine called for ID: ${id}`);
+    logger.debug(`TrendLineLayer: Current trend lines array:`, this.trendLines.map(l => String(l.id)));
+    logger.debug(`TrendLineLayer: Array length: ${this.trendLines.length}`);
+    
+    // Convert Proxy IDs to strings for comparison
+    const lineToRemove = this.trendLines.find((l) => String(l.id) === id);
     if (lineToRemove) {
-      this.trendLines = this.trendLines.filter((l) => l.id !== id);
+      logger.debug(`TrendLineLayer: Found line to remove: ${String(lineToRemove.id)}`);
+      // Don't mutate the local array - just emit the event and let the parent handle it
       this.emitEvent("remove", lineToRemove);
+      logger.debug(`TrendLineLayer: Emitted remove event for line ${String(lineToRemove.id)}`);
+    } else {
+      logger.warn(`TrendLineLayer: Could not find trend line with ID: ${id} in local array`);
+      logger.warn(`TrendLineLayer: Available IDs:`, this.trendLines.map(l => String(l.id)));
+      
+      // Even if we can't find it locally, emit the remove event with a minimal object
+      // The parent chart-container should have the actual trend line
+      logger.info(`TrendLineLayer: Emitting remove event anyway for ID: ${id}`);
+      this.emitEvent("remove", { id } as TrendLine);
     }
   }
 
   updateTrendLine(id: string, updates: Partial<TrendLine>): void {
-    const index = this.trendLines.findIndex((l) => l.id === id);
+    // Convert Proxy IDs to strings for comparison
+    const index = this.trendLines.findIndex((l) => String(l.id) === id);
     if (index !== -1) {
       const previousState = this.trendLines[index];
       const updatedLine = { ...previousState, ...updates };
-      this.trendLines = [
-        ...this.trendLines.slice(0, index),
-        updatedLine,
-        ...this.trendLines.slice(index + 1),
-      ];
+      // Don't mutate the local array - just emit the event and let the parent handle it
       this.emitEvent("update", updatedLine, previousState);
     }
   }
@@ -89,7 +101,11 @@ export class TrendLineLayer extends LitElement {
   }
 
   clearTrendLines(): void {
-    this.trendLines = [];
+    // Don't mutate the local array - this should be handled by the parent
+    // Emit events for each trend line being cleared
+    this.trendLines.forEach(line => {
+      this.emitEvent("remove", line);
+    });
   }
 
   private emitEvent(
@@ -103,6 +119,8 @@ export class TrendLineLayer extends LitElement {
       previousState,
     };
 
+    logger.debug(`TrendLineLayer: Dispatching event trend-line-${type}`, event);
+    
     this.dispatchEvent(
       new CustomEvent(`trend-line-${type}`, {
         detail: event,
@@ -110,6 +128,8 @@ export class TrendLineLayer extends LitElement {
         composed: true,
       }),
     );
+    
+    logger.debug(`TrendLineLayer: Event dispatched`);
   }
 
   private handleTrendLineUpdate(event: CustomEvent) {
@@ -130,8 +150,10 @@ export class TrendLineLayer extends LitElement {
   private handleTrendLineSelect(event: CustomEvent) {
     event.stopPropagation();
     const selectedLine = event.detail.trendLine as TrendLine;
-    logger.debug("Selecting line:", selectedLine.id);
-    this.selectedLineId = selectedLine.id;
+    // Ensure we store the ID as a string, not a Proxy
+    const lineId = String(selectedLine.id);
+    logger.debug("Selecting line:", lineId);
+    this.selectedLineId = lineId;
     this.requestUpdate();
     
     // Emit selection event for external listeners
@@ -211,11 +233,11 @@ export class TrendLineLayer extends LitElement {
       // Prevent default browser behavior (e.g., navigating back)
       event.preventDefault();
       
-      // Store the ID before removal
-      const deletedLineId = this.selectedLineId;
+      // Store the ID before removal (ensure it's a string)
+      const deletedLineId = String(this.selectedLineId);
       
       // Remove the trend line
-      this.removeTrendLine(this.selectedLineId);
+      this.removeTrendLine(deletedLineId);
       
       // Emit deletion event
       this.dispatchEvent(
@@ -236,7 +258,7 @@ export class TrendLineLayer extends LitElement {
 
   public deselectAll() {
     logger.debug("deselectAll called, current selection:", this.selectedLineId);
-    const previousSelection = this.selectedLineId;
+    const previousSelection = this.selectedLineId ? String(this.selectedLineId) : null;
     this.selectedLineId = null;
     
     // Emit deselection event if there was a selection
@@ -271,13 +293,15 @@ export class TrendLineLayer extends LitElement {
   }
 
   public selectLine(lineId: string) {
-    this.selectedLineId = lineId;
+    // Ensure we store as string
+    this.selectedLineId = String(lineId);
     this.requestUpdate();
   }
 
   connectedCallback() {
     super.connectedCallback();
     logger.debug("Connected, setting up event listeners");
+    logger.debug("Initial trendLines:", this.trendLines?.length || 0, this.trendLines?.map(l => l.id));
 
     this.addEventListener(
       "trend-line-update",
@@ -325,6 +349,18 @@ export class TrendLineLayer extends LitElement {
     document.removeEventListener("keydown", this.handleEscKey);
   }
 
+  updated(changedProperties: Map<string | number | symbol, unknown>) {
+    super.updated(changedProperties);
+    
+    if (changedProperties.has('trendLines')) {
+      logger.debug('Trend lines updated:', {
+        count: this.trendLines.length,
+        trendLines: this.trendLines,
+        previousValue: changedProperties.get('trendLines')
+      });
+    }
+  }
+
   render() {
     const visibleLines = this.getVisibleTrendLines();
 
@@ -342,7 +378,7 @@ export class TrendLineLayer extends LitElement {
               .priceRange="${this.state?.priceRange}"
               .width="${actualWidth}"
               .height="${actualHeight}"
-              .selected="${line.id === this.selectedLineId}"
+              .selected="${String(line.id) === this.selectedLineId}"
             ></trend-line>
           `,
         )}

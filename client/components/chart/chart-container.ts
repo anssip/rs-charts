@@ -410,6 +410,7 @@ export class ChartContainer extends LitElement {
     // Process trend lines from initial state if this is the first time setting state
     if (isInitialState && state.trendLines && state.trendLines.length > 0) {
       logger.debug(`ChartContainer: Processing ${state.trendLines.length} trend lines from initial state`);
+      logger.debug(`ChartContainer: Initial trend line IDs:`, state.trendLines.map(l => l.id));
       this.trendLines = [...state.trendLines];
       this._state.trendLines = this.trendLines;
       
@@ -418,6 +419,7 @@ export class ChartContainer extends LitElement {
       
       // Ensure trend line layer gets updated after render
       requestAnimationFrame(() => {
+        logger.debug(`ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`);
         this.updateTrendLineLayer();
       });
     }
@@ -1055,10 +1057,12 @@ export class ChartContainer extends LitElement {
   }
   
   private handleTrendLineAdd = (event: CustomEvent) => {
+    logger.debug(`ChartContainer: handleTrendLineAdd called (should not be used)`);
     // This is already handled by the layer itself
   }
   
   private handleTrendLineUpdate = (event: CustomEvent) => {
+    logger.debug(`ChartContainer: handleTrendLineUpdate called`, event.detail);
     const { trendLine } = event.detail;
     const index = this.trendLines.findIndex(l => l.id === trendLine.id);
     if (index !== -1) {
@@ -1082,12 +1086,33 @@ export class ChartContainer extends LitElement {
   }
   
   private handleTrendLineRemove = (event: CustomEvent) => {
-    const { trendLine } = event.detail;
-    this.trendLines = this.trendLines.filter(l => l.id !== trendLine.id);
+    logger.debug(`ChartContainer: handleTrendLineRemove called, event:`, event);
+    logger.debug(`ChartContainer: Event detail:`, event.detail);
+    logger.debug(`ChartContainer: Event type:`, event.detail?.type);
+    
+    const eventDetail = event.detail;
+    const trendLine = eventDetail.trendLine || eventDetail;
+    
+    if (!trendLine || !trendLine.id) {
+      logger.error(`ChartContainer: Invalid event detail, cannot find trend line`, eventDetail);
+      return;
+    }
+    
+    const lineId = String(trendLine.id);
+    logger.debug(`ChartContainer: Removing trend line ${lineId}`);
+    logger.debug(`ChartContainer: Before removal, trendLines:`, this.trendLines.map(l => String(l.id)));
+    
+    // Use String conversion for Proxy comparison
+    this.trendLines = this.trendLines.filter(l => String(l.id) !== lineId);
     
     // Update state
     this._state.trendLines = this.trendLines;
     touch("state.trendLines");
+    
+    // Force update to ensure UI reflects the change
+    this.requestUpdate();
+    
+    logger.debug(`ChartContainer: After removal, ${this.trendLines.length} lines remaining:`, this.trendLines.map(l => String(l.id)));
     
     // Emit API event
     this.dispatchEvent(new CustomEvent("trend-line-removed", {
