@@ -1028,11 +1028,6 @@ export class ChartContainer extends LitElement {
   }
   
   private addTrendLine(trendLine: TrendLine) {
-    // Deselect any existing selection when adding a new line
-    if (this.trendLineLayer) {
-      this.trendLineLayer.deselectAll();
-    }
-    
     this.trendLines = [...this.trendLines, trendLine];
     
     // Force update to trigger re-render with new trend line
@@ -1041,6 +1036,11 @@ export class ChartContainer extends LitElement {
     // Update state
     this._state.trendLines = this.trendLines;
     touch("state.trendLines");
+    
+    // Select the newly created trend line
+    if (this.trendLineLayer) {
+      this.trendLineLayer.selectLine(trendLine.id);
+    }
     
     // Ensure trend line layer has correct dimensions after adding line
     // Use requestAnimationFrame to wait for render to complete
