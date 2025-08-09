@@ -10,9 +10,12 @@ import { xin } from "xinjs";
 import { ChartState } from "../..";
 import { priceToY, timeToX } from "../../util/chart-util";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
+import { getLogger } from "../../util/logger";
 import "./price-axis";
 // We store data 5 times the visible range to allow for zooming and panning without fetching more data
 export const BUFFER_MULTIPLIER = 5;
+
+const logger = getLogger("chart");
 
 export interface CandleData {
   timestamp: number;
@@ -128,18 +131,30 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.initializeState();
     
+    // Wait for canvas to be available
+    let retries = 0;
+    while (!this.canvas && retries < 10) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      retries++;
+    }
+    
     // Ensure canvas has chart ID for drawing strategy
     if (this.canvas && this._chartId) {
       (this.canvas as any).chartId = this._chartId;
       this.canvas.setAttribute('data-chart-id', this._chartId);
     }
     
-    this.dispatchEvent(
-      new CustomEvent("chart-ready", {
-        bubbles: true,
-        composed: true,
-      })
-    );
+    // Only dispatch chart-ready if canvas is available
+    if (this.canvas) {
+      this.dispatchEvent(
+        new CustomEvent("chart-ready", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    } else {
+      logger.warn("Chart: Canvas not available after initialization, chart-ready event not dispatched");
+    }
   }
 
   private initializeState() {

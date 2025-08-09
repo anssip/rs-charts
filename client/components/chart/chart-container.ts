@@ -829,9 +829,9 @@ export class ChartContainer extends LitElement {
   }
 
   public calculateVisibleCandles(): number {
-    if (!this.chart) return 0;
+    if (!this.chart || !this.chart.canvas) return 100; // Return reasonable default
     const availableWidth =
-      this.chart.canvas!.width - this.padding.left - this.padding.right;
+      this.chart.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     return Math.floor(
       availableWidth / (totalCandleWidth * window.devicePixelRatio)
