@@ -66,6 +66,7 @@ export class TrendLineElement extends LitElement {
       left: 0;
       width: 100%;
       height: 100%;
+      pointer-events: none;
     }
 
     svg {
@@ -87,7 +88,11 @@ export class TrendLineElement extends LitElement {
       stroke: transparent;
       fill: none;
       pointer-events: stroke;
-      cursor: pointer;
+      cursor: move;
+    }
+    
+    .trend-line-hit-area:active {
+      cursor: grabbing;
     }
 
     .trend-line.solid {
@@ -233,6 +238,94 @@ export class TrendLineElement extends LitElement {
       }),
     );
   };
+
+  private handleLineMouseDown = (event: MouseEvent) => {
+    logger.debug("Line mousedown:", this.trendLine.id);
+    event.stopPropagation();
+    event.preventDefault();
+    
+    // First select the line
+    this.dispatchEvent(
+      new CustomEvent("trend-line-select", {
+        detail: { trendLine: this.trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    
+    // Start dragging the entire line
+    this.handleLineDragStart(event);
+  };
+
+  private handleLineDragStart = (event: MouseEvent) => {
+    const rect = this.getBoundingClientRect();
+    const startX = event.clientX - rect.left;
+    const startY = event.clientY - rect.top;
+    
+    // Store initial positions
+    const initialStartTimestamp = this.trendLine.startPoint.timestamp;
+    const initialStartPrice = this.trendLine.startPoint.price;
+    const initialEndTimestamp = this.trendLine.endPoint.timestamp;
+    const initialEndPrice = this.trendLine.endPoint.price;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      
+      // Calculate the delta in pixels
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+      
+      // Convert pixel deltas to time/price deltas
+      const timeDelta = this.pixelDeltaToTimeDelta(deltaX);
+      const priceDelta = this.pixelDeltaToPriceDelta(deltaY);
+      
+      // Update both endpoints with the same delta to move the entire line
+      const updatedLine = { ...this.trendLine };
+      updatedLine.startPoint = {
+        timestamp: initialStartTimestamp + timeDelta,
+        price: initialStartPrice + priceDelta,
+      };
+      updatedLine.endPoint = {
+        timestamp: initialEndTimestamp + timeDelta,
+        price: initialEndPrice + priceDelta,
+      };
+      
+      this.dispatchEvent(
+        new CustomEvent("trend-line-update", {
+          detail: { trendLine: updatedLine },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    };
+    
+    const onMouseUp = (e: MouseEvent) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      this.handleDragEnd();
+    };
+    
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  private pixelDeltaToTimeDelta(pixelDelta: number): number {
+    if (!this.timeRange || this.width === 0) return 0;
+    const range = this.timeRange.end - this.timeRange.start;
+    return (pixelDelta / this.width) * range;
+  }
+
+  private pixelDeltaToPriceDelta(pixelDelta: number): number {
+    if (!this.priceRange || this.height === 0) return 0;
+    const range = this.priceRange.max - this.priceRange.min;
+    // Note: negative because Y increases downward
+    return -(pixelDelta / this.height) * range;
+  }
 
   private handleMouseEnter = () => {
     this.hovered = true;
@@ -384,8 +477,8 @@ export class TrendLineElement extends LitElement {
             x2="${extendedEnd.x}"
             y2="${extendedEnd.y}"
             stroke="transparent"
-            stroke-width="15"
-            @click="${this.handleLineClick}"
+            stroke-width="20"
+            @mousedown="${this.handleLineMouseDown}"
           />
           <!-- Visible trend line -->
           <line
