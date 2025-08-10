@@ -367,28 +367,40 @@ export class TrendLineElement extends LitElement {
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
-        <!-- Invisible hit area for easier selection -->
-        <line
-          class="trend-line-hit-area"
-          x1="${extendedStart.x}"
-          y1="${extendedStart.y}"
-          x2="${extendedEnd.x}"
-          y2="${extendedEnd.y}"
-          stroke="transparent"
-          stroke-width="15"
-          @click="${this.handleLineClick}"
-        />
-        <!-- Visible trend line -->
-        <line
-          class="trend-line ${lineStyle}"
-          x1="${extendedStart.x}"
-          y1="${extendedStart.y}"
-          x2="${extendedEnd.x}"
-          y2="${extendedEnd.y}"
-          stroke="${lineColor}"
-          style="stroke-width: ${this.trendLine.lineWidth || 2}px"
-          pointer-events="none"
-        />
+        <!-- Define clipping path to restrict drawing to chart area -->
+        <defs>
+          <clipPath id="chart-area-clip-${this.trendLine.id}">
+            <rect x="0" y="0" width="${this.width}" height="${this.height}" />
+          </clipPath>
+        </defs>
+        
+        <!-- Group with clipping applied -->
+        <g clip-path="url(#chart-area-clip-${this.trendLine.id})">
+          <!-- Invisible hit area for easier selection -->
+          <line
+            class="trend-line-hit-area"
+            x1="${extendedStart.x}"
+            y1="${extendedStart.y}"
+            x2="${extendedEnd.x}"
+            y2="${extendedEnd.y}"
+            stroke="transparent"
+            stroke-width="15"
+            @click="${this.handleLineClick}"
+          />
+          <!-- Visible trend line -->
+          <line
+            class="trend-line ${lineStyle}"
+            x1="${extendedStart.x}"
+            y1="${extendedStart.y}"
+            x2="${extendedEnd.x}"
+            y2="${extendedEnd.y}"
+            stroke="${lineColor}"
+            style="stroke-width: ${this.trendLine.lineWidth || 2}px"
+            pointer-events="none"
+          />
+        </g>
+        
+        <!-- Handles remain outside clipping so they're always visible when hovered/selected -->
         <circle
           class="handle handle-start"
           cx="${handleStart.x}"
