@@ -417,10 +417,16 @@ export class ChartContainer extends LitElement {
       // Force update to render trend lines
       this.requestUpdate();
       
-      // Ensure trend line layer gets updated after render
+      // Ensure trend line layer gets updated after render and no lines are selected
       requestAnimationFrame(() => {
         logger.debug(`ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`);
         this.updateTrendLineLayer();
+        
+        // Ensure no trend lines are selected on initialization
+        if (this.trendLineLayer) {
+          logger.debug(`ChartContainer: Deselecting all trend lines on initialization`);
+          this.trendLineLayer.deselectAll();
+        }
       });
     }
   }
