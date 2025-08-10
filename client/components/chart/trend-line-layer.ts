@@ -34,6 +34,7 @@ export class TrendLineLayer extends LitElement {
       height: 100%;
       pointer-events: none;
       z-index: 10;
+      overflow: hidden; /* Clip content that extends beyond boundaries */
     }
 
     .trend-line-container {
@@ -41,6 +42,7 @@ export class TrendLineLayer extends LitElement {
       width: 100%;
       height: 100%;
       pointer-events: none;
+      overflow: hidden; /* Ensure trend lines are clipped to container */
     }
 
     trend-line {
