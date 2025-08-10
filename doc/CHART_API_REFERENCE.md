@@ -2,22 +2,53 @@
 
 ## Overview
 
-The Rekt Sense Charts API provides a comprehensive interface for controlling and interacting with cryptocurrency trading charts. This document covers all aspects of the Chart API including methods, events, and configuration options.
+The Rekt Sense Charts API provides a comprehensive interface for controlling and interacting with cryptocurrency trading charts. This document covers all aspects of the Chart API including methods, events, configuration options, and framework integration examples.
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-2. [API Methods](#api-methods)
+1. [Quick Start](#quick-start)
+2. [Getting Started](#getting-started)
+3. [Initialization](#initialization)
+4. [API Methods](#api-methods)
    - [Symbol Control](#symbol-control)
    - [Granularity Control](#granularity-control)
    - [Indicator Control](#indicator-control)
    - [Display Control](#display-control)
+   - [Trend Line Control](#trend-line-control)
    - [State Access](#state-access)
    - [Utility Methods](#utility-methods)
-3. [Event System](#event-system)
-4. [Type Definitions](#type-definitions)
-5. [Usage Examples](#usage-examples)
-6. [Best Practices](#best-practices)
+5. [Event System](#event-system)
+6. [Type Definitions](#type-definitions)
+7. [Framework Integration Examples](#framework-integration-examples)
+8. [Usage Examples](#usage-examples)
+9. [Error Handling](#error-handling)
+10. [Performance Considerations](#performance-considerations)
+11. [Best Practices](#best-practices)
+12. [Migration from Legacy API](#migration-from-legacy-api)
+13. [Library Exports](#library-exports)
+14. [Build & Distribution](#build--distribution)
+
+## Quick Start
+
+```javascript
+import { initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+
+// Create chart container
+const chartContainer = createChartContainer();
+document.body.appendChild(chartContainer);
+
+// Initialize chart with API
+const { app, api } = await initChartWithApi(chartContainer, firebaseConfig, {
+  symbol: "BTC-USD",
+  granularity: "ONE_HOUR"
+});
+
+// Use the API
+await api.setSymbol("ETH-USD");
+await api.setGranularity("FIVE_MINUTE");
+api.showIndicator({ id: "rsi", name: "RSI", visible: true });
+await api.enterFullscreen();
+```
 
 ## Getting Started
 
@@ -49,7 +80,7 @@ You can pass trend lines and other configuration options when initializing the c
 ```typescript
 import { initChartWithApi } from "@anssipiirainen/sc-charts";
 
-const chartContainer = document.createElement("chart-container");
+const chartContainer = createChartContainer();
 const initialState = {
   symbol: "BTC-USD",
   granularity: "ONE_HOUR",
@@ -71,7 +102,34 @@ const initialState = {
   ]
 };
 
-const { app, api } = initChartWithApi(chartContainer, firebaseConfig, initialState);
+const { app, api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
+```
+
+## Initialization
+
+### Using initChartWithApi (Recommended)
+
+```javascript
+import { initChartWithApi } from '@anssipiirainen/sc-charts';
+
+const { app, api } = await initChartWithApi(
+  chartContainer, 
+  firebaseConfig, 
+  initialState?
+);
+```
+
+**Returns:**
+- `app`: App instance for low-level control
+- `api`: ChartApi instance for high-level control
+
+### Using createChartApi (Advanced)
+
+```javascript
+import { createChartApi, initChart } from '@anssipiirainen/sc-charts';
+
+const app = initChart(chartContainer, firebaseConfig);
+const api = createChartApi(chartContainer, app);
 ```
 
 ## API Methods
@@ -94,12 +152,17 @@ Set the chart symbol (e.g., "BTC-USD", "ETH-USD").
 // Simple usage
 await api.setSymbol("ETH-USD");
 
-// With options
+// Advanced usage with options
 await api.setSymbol({
   symbol: "ETH-USD",
-  refetch: true, // Whether to refetch data immediately (default: true)
+  refetch: true  // Whether to refetch data (default: true)
 });
 ```
+
+**Parameters:**
+- `options`: `string | SymbolChangeOptions`
+  - If string: symbol name
+  - If object: `{ symbol: string, refetch?: boolean }`
 
 ### Granularity Control
 
@@ -117,7 +180,7 @@ Get all available timeframes.
 
 ```typescript
 const granularities = api.getAvailableGranularities();
-// Returns: ["FIVE_MINUTE", "FIFTEEN_MINUTE", "ONE_HOUR", "FOUR_HOUR", "ONE_DAY", ...]
+// Returns: ["ONE_MINUTE", "FIVE_MINUTE", "FIFTEEN_MINUTE", "THIRTY_MINUTE", "ONE_HOUR", "TWO_HOUR", "SIX_HOUR", "ONE_DAY"]
 ```
 
 #### `setGranularity(options: Granularity | GranularityChangeOptions): Promise<void>`
@@ -128,12 +191,22 @@ Set the chart timeframe.
 // Simple usage
 await api.setGranularity("ONE_DAY");
 
-// With options
+// Advanced usage with options
 await api.setGranularity({
   granularity: "ONE_DAY",
-  refetch: true, // Whether to refetch data immediately (default: true)
+  refetch: true  // Whether to refetch data (default: true)
 });
 ```
+
+**Available Granularities:**
+- `ONE_MINUTE` (1m)
+- `FIVE_MINUTE` (5m)
+- `FIFTEEN_MINUTE` (15m)
+- `THIRTY_MINUTE` (30m)
+- `ONE_HOUR` (1h)
+- `TWO_HOUR` (2h)
+- `SIX_HOUR` (6h)
+- `ONE_DAY` (1d)
 
 ### Indicator Control
 
@@ -152,6 +225,7 @@ Check if a specific indicator is visible.
 
 ```typescript
 const isRSIVisible = api.isIndicatorVisible("rsi"); // Returns: true/false
+const isVolumeVisible = api.isIndicatorVisible("volume"); // Returns: true/false
 ```
 
 #### `showIndicator(config: ApiIndicatorConfig): void`
@@ -163,10 +237,11 @@ api.showIndicator({
   id: "rsi",
   name: "RSI",
   visible: true,
-  display: DisplayType.Bottom,
-  scale: ScaleType.Value,
-  params: { period: 14 },
-  gridStyle: GridStyle.Standard,
+  display: DisplayType.Bottom,     // Optional: "overlay" | "bottom" | "stack-top" | "stack-bottom"
+  scale: ScaleType.Value,          // Optional: "price" | "percentage" | "custom" | "value"
+  params: { period: 14 },          // Optional: indicator-specific parameters
+  skipFetch: false,                // Optional: skip data fetching
+  gridStyle: GridStyle.Standard    // Optional: grid styling
 });
 ```
 
@@ -186,10 +261,11 @@ Toggle an indicator's visibility.
 // Simple toggle
 api.toggleIndicator("volume");
 
-// Toggle with configuration (used when showing)
+// Toggle with configuration for when showing
 api.toggleIndicator("macd", {
+  name: "MACD",
   display: DisplayType.Bottom,
-  params: { fast: 12, slow: 26, signal: 9 },
+  params: { fast: 12, slow: 26, signal: 9 }
 });
 ```
 
@@ -201,9 +277,17 @@ Set multiple indicators at once, replacing all current indicators.
 api.setIndicators([
   { id: "volume", name: "Volume", visible: true },
   { id: "rsi", name: "RSI", visible: true, params: { period: 14 } },
-  { id: "macd", name: "MACD", visible: false },
+  { id: "macd", name: "MACD", visible: true }
 ]);
 ```
+
+**Common Indicator IDs:**
+- `volume` - Volume bars
+- `rsi` - Relative Strength Index
+- `macd` - MACD histogram and signal lines
+- `bb` - Bollinger Bands
+- `sma` - Simple Moving Average
+- `ema` - Exponential Moving Average
 
 ### Display Control
 
@@ -222,8 +306,15 @@ const inFullscreen = api.isFullscreen(); // Returns: true/false
 Enter browser fullscreen mode.
 
 ```typescript
-await api.enterFullscreen();
+try {
+  await api.enterFullscreen();
+  console.log("Entered fullscreen");
+} catch (error) {
+  console.log("Fullscreen failed:", error.message);
+}
 ```
+
+**Note:** Must be called in response to user interaction due to browser security restrictions.
 
 ##### `exitFullscreen(): Promise<void>`
 
@@ -253,7 +344,7 @@ const inFullWindow = api.isFullWindow(); // Returns: true/false
 
 ##### `enterFullWindow(): void`
 
-Enter full window mode.
+Enter full window mode (maximizes chart within the page).
 
 ```typescript
 api.enterFullWindow();
@@ -275,6 +366,168 @@ Toggle full window mode.
 api.toggleFullWindow();
 ```
 
+### Trend Line Control
+
+#### `addTrendLine(trendLine: Omit<TrendLine, 'id'>): string`
+
+Add a new trend line to the chart.
+
+```typescript
+// Add a trend line and keep it selected (default behavior)
+const lineId = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 50000 },
+  end: { timestamp: 1234567900000, price: 51000 },
+  color: "#FF0000",
+  lineWidth: 2,
+  style: "solid", // "solid" | "dashed" | "dotted"
+  extendLeft: false,
+  extendRight: true
+});
+
+// Add a trend line and explicitly deselect it
+const lineId2 = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 52000 },
+  end: { timestamp: 1234567900000, price: 53000 },
+  color: "#00FF00",
+  selected: false  // Line will not be selected after creation
+});
+
+// Add a trend line and ensure it's selected
+const lineId3 = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 54000 },
+  end: { timestamp: 1234567900000, price: 55000 },
+  selected: true  // Explicitly select the line after creation
+});
+```
+
+**Parameters:**
+- `trendLine`: Object containing trend line configuration
+  - `start`: Start point with `timestamp` and `price`
+  - `end`: End point with `timestamp` and `price`
+  - `color`: Optional line color (default: chart default)
+  - `lineWidth`: Optional line width (default: 2)
+  - `style`: Optional line style - "solid" | "dashed" | "dotted" (default: "solid")
+  - `extendLeft`: Optional extend line to the left (default: false)
+  - `extendRight`: Optional extend line to the right (default: false)
+  - `selected`: Optional whether to select the line after creation (default: true)
+
+**Returns:** The ID of the created trend line
+
+#### `getTrendLine(id: string): TrendLine | null`
+
+Get a specific trend line by its ID.
+
+```typescript
+const trendLine = api.getTrendLine('trend-line-1704153600000');
+if (trendLine) {
+  console.log("Trend line:", trendLine);
+}
+```
+
+#### `getTrendLines(): TrendLine[]`
+
+Get all trend lines currently on the chart.
+
+```typescript
+const allTrendLines = api.getTrendLines();
+console.log(`Chart has ${allTrendLines.length} trend lines`);
+```
+
+#### `updateTrendLine(id: string, updates: Partial<TrendLine>): void`
+
+Update an existing trend line.
+
+```typescript
+api.updateTrendLine("trend-line-1234567890", {
+  color: "#00FF00",
+  lineWidth: 3,
+  extendRight: false
+});
+```
+
+#### `updateTrendLineSettings(id: string, settings: TrendLineSettings): void`
+
+Update visual settings of an existing trend line (convenience method).
+
+```typescript
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  color: '#0000FF',
+  lineWidth: 1,
+  style: 'dashed',
+  extendLeft: true,
+  extendRight: true
+});
+```
+
+#### `removeTrendLine(id: string): void`
+
+Remove a specific trend line from the chart. This will emit a `trend-line-deleted` event.
+
+```typescript
+api.removeTrendLine("trend-line-1234567890");
+```
+
+#### `clearTrendLines(): void`
+
+Remove all trend lines from the chart.
+
+```typescript
+api.clearTrendLines();
+```
+
+#### `selectTrendLine(id: string): void`
+
+Select a trend line by ID.
+
+```typescript
+api.selectTrendLine("trend-line-1234567890");
+```
+
+#### `deselectAllTrendLines(): void`
+
+Deselect all trend lines.
+
+```typescript
+api.deselectAllTrendLines();
+```
+
+#### `getSelectedTrendLineId(): string | null`
+
+Get the currently selected trend line ID.
+
+```typescript
+const selectedId = api.getSelectedTrendLineId();
+if (selectedId) {
+  console.log("Selected trend line:", selectedId);
+}
+```
+
+#### `activateTrendLineTool(): void`
+
+Activate the trend line drawing tool.
+
+```typescript
+api.activateTrendLineTool();
+// User can now click and drag to draw trend lines
+```
+
+#### `deactivateTrendLineTool(): void`
+
+Deactivate the trend line drawing tool.
+
+```typescript
+api.deactivateTrendLineTool();
+```
+
+#### `isToolActive(tool: string): boolean`
+
+Check if a drawing tool is active.
+
+```typescript
+const isActive = api.isToolActive('trendLine');
+console.log("Trend line tool active:", isActive);
+```
+
 ### State Access
 
 #### `getState(): ChartState`
@@ -283,7 +536,7 @@ Get the complete current chart state.
 
 ```typescript
 const state = api.getState();
-// Returns: { symbol, granularity, indicators, loading, ... }
+console.log(state.symbol, state.granularity, state.indicators);
 ```
 
 #### `isLoading(): boolean`
@@ -326,98 +579,6 @@ Clean up the API instance and remove all event listeners.
 
 ```typescript
 api.dispose(); // Call when unmounting/destroying chart
-```
-
-### Trend Line Control
-
-#### `addTrendLine(trendLine: Omit<TrendLine, 'id'>): string`
-
-Add a new trend line to the chart.
-
-```typescript
-const trendLineId = api.addTrendLine({
-  startPoint: { timestamp: 1704067200000, price: 45000 },
-  endPoint: { timestamp: 1704153600000, price: 46500 },
-  color: '#2962ff',
-  lineWidth: 2,
-  style: 'solid',
-  extendLeft: false,
-  extendRight: true
-});
-// Returns: "trend-line-1704153600000"
-```
-
-#### `getTrendLine(id: string): TrendLine | null`
-
-Get a specific trend line by its ID.
-
-```typescript
-const trendLine = api.getTrendLine('trend-line-1704153600000');
-// Returns: TrendLine object or null if not found
-```
-
-#### `getTrendLines(): TrendLine[]`
-
-Get all trend lines currently on the chart.
-
-```typescript
-const allTrendLines = api.getTrendLines();
-// Returns: Array of TrendLine objects
-```
-
-#### `updateTrendLineSettings(id: string, settings: TrendLineSettings): void`
-
-Update visual settings of an existing trend line.
-
-```typescript
-api.updateTrendLineSettings('trend-line-1704153600000', {
-  color: '#ff0000',
-  lineWidth: 3,
-  style: 'dashed',
-  extendLeft: true,
-  extendRight: false
-});
-```
-
-#### `removeTrendLine(id: string): void`
-
-Remove a specific trend line from the chart. This will emit a `trend-line-deleted` event.
-
-```typescript
-// Remove a trend line by ID
-api.removeTrendLine('trend-line-1704153600000');
-
-// Listen for deletion events
-api.on('trend-line-deleted', (data) => {
-  console.log('Trend line deleted:', data.trendLineId);
-});
-
-// Note: Users can also delete selected lines with Backspace key
-```
-
-#### `clearTrendLines(): void`
-
-Remove all trend lines from the chart.
-
-```typescript
-api.clearTrendLines();
-```
-
-#### `activateTrendLineTool(): void`
-
-Activate the trend line drawing tool.
-
-```typescript
-api.activateTrendLineTool();
-// User can now click twice on the chart to draw a trend line
-```
-
-#### `deactivateTrendLineTool(): void`
-
-Deactivate the trend line drawing tool.
-
-```typescript
-api.deactivateTrendLineTool();
 ```
 
 ## Event System
@@ -532,6 +693,43 @@ api.on("ready", (data) => {
 api.on("symbolChange", (data) => {
   console.log(`Symbol changed: ${data.oldSymbol} → ${data.newSymbol}`);
 });
+
+api.on('granularityChange', (data) => {
+  console.log('Granularity changed to', data.newGranularity);
+});
+
+api.on('indicatorChange', (data) => {
+  console.log('Indicator', data.action, data.indicator?.id || data.indicatorId);
+});
+
+api.on('fullscreenChange', (data) => {
+  console.log('Fullscreen changed:', data.isFullscreen, data.type);
+});
+
+// Trend line events
+api.on('trend-line-added', (data) => {
+  console.log('Trend line added:', data.trendLine);
+});
+
+api.on('trend-line-updated', (data) => {
+  console.log('Trend line updated:', data.trendLine);
+});
+
+api.on('trend-line-removed', (data) => {
+  console.log('Trend line removed:', data.trendLine);
+});
+
+api.on('trend-line-selected', (data) => {
+  console.log('Trend line selected:', data.trendLineId);
+});
+
+api.on('trend-line-deselected', (data) => {
+  console.log('Trend line deselected');
+});
+
+api.on('trend-line-deleted', (data) => {
+  console.log('Trend line deleted:', data.trendLineId);
+});
 ```
 
 #### `off<T extends ChartApiEventName>(event: T, callback: ChartApiEventCallback<T>): void`
@@ -544,6 +742,19 @@ api.on("symbolChange", handler);
 // Later...
 api.off("symbolChange", handler);
 ```
+
+**Available Events:**
+- `ready` - Fired when chart is fully initialized
+- `symbolChange` - Fired when symbol changes
+- `granularityChange` - Fired when granularity changes
+- `indicatorChange` - Fired when indicators change
+- `fullscreenChange` - Fired when fullscreen/fullwindow state changes
+- `trend-line-added` - Fired when a trend line is added
+- `trend-line-updated` - Fired when a trend line is updated
+- `trend-line-removed` - Fired when a trend line is removed
+- `trend-line-selected` - Fired when a trend line is selected
+- `trend-line-deselected` - Fired when trend lines are deselected
+- `trend-line-deleted` - Fired when a trend line is deleted
 
 ### Trend Line Event Examples
 
@@ -612,12 +823,14 @@ function onStyleChange(newStyle: 'solid' | 'dashed' | 'dotted') {
 ```typescript
 // Available granularities (timeframes)
 type Granularity =
+  | "ONE_MINUTE"
   | "FIVE_MINUTE"
   | "FIFTEEN_MINUTE"
+  | "THIRTY_MINUTE"
   | "ONE_HOUR"
-  | "FOUR_HOUR"
-  | "ONE_DAY"
-  | "ONE_WEEK";
+  | "TWO_HOUR"
+  | "SIX_HOUR"
+  | "ONE_DAY";
 
 // Indicator display options
 enum DisplayType {
@@ -666,13 +879,142 @@ interface GranularityChangeOptions {
   refetch?: boolean; // Refetch data (default: true)
 }
 
+interface TrendLineSettings {
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
+
+interface TrendLinePoint {
+  timestamp: number;
+  price: number;
+}
+
+interface TrendLine {
+  id: string;
+  start: TrendLinePoint;
+  end: TrendLinePoint;
+  color: string;
+  lineWidth: number;
+  style: 'solid' | 'dashed' | 'dotted';
+  extendLeft: boolean;
+  extendRight: boolean;
+  selected?: boolean;
+}
+
 // Initial state configuration that can be passed when creating a chart
 interface ChartState {
   symbol?: string; // Trading pair symbol (e.g., "BTC-USD")
   granularity?: Granularity; // Chart timeframe
   indicators?: IndicatorConfig[]; // Initial indicators to display
   trendLines?: TrendLine[]; // Initial trend lines to display
+  loading?: boolean; // Loading state
   // ... other optional state properties
+}
+
+interface InitChartResult {
+  app: App;
+  api: ChartApi;
+}
+```
+
+## Framework Integration Examples
+
+### React Hook
+
+```typescript
+import { useRef, useEffect, useState } from 'react';
+import { ChartApi, initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+
+function useChart(firebaseConfig: any, initialState?: any) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [api, setApi] = useState<ChartApi | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const initChart = async () => {
+      const chartContainer = createChartContainer();
+      containerRef.current!.appendChild(chartContainer);
+      
+      const { api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
+      setApi(api);
+      setLoading(false);
+    };
+
+    initChart();
+    
+    return () => {
+      api?.dispose();
+    };
+  }, [firebaseConfig]);
+
+  return { containerRef, api, loading };
+}
+```
+
+### Vue Composition API
+
+```typescript
+import { ref, onMounted, onUnmounted } from 'vue';
+import { ChartApi, initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+
+export function useChart(firebaseConfig: any, initialState?: any) {
+  const containerRef = ref<HTMLElement>();
+  const api = ref<ChartApi | null>(null);
+  const loading = ref(true);
+
+  onMounted(async () => {
+    if (!containerRef.value) return;
+
+    const chartContainer = createChartContainer();
+    containerRef.value.appendChild(chartContainer);
+    
+    const result = await initChartWithApi(chartContainer, firebaseConfig, initialState);
+    api.value = result.api;
+    loading.value = false;
+  });
+
+  onUnmounted(() => {
+    api.value?.dispose();
+  });
+
+  return { containerRef, api, loading };
+}
+```
+
+### Angular Service
+
+```typescript
+import { Injectable } from '@angular/core';
+import { ChartApi, initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ChartService {
+  private api: ChartApi | null = null;
+
+  async initializeChart(container: HTMLElement, firebaseConfig: any, initialState?: any): Promise<ChartApi> {
+    const chartContainer = createChartContainer();
+    container.appendChild(chartContainer);
+    
+    const { api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
+    this.api = api;
+    return api;
+  }
+
+  getApi(): ChartApi | null {
+    return this.api;
+  }
+
+  dispose(): void {
+    this.api?.dispose();
+    this.api = null;
+  }
 }
 ```
 
@@ -682,7 +1024,7 @@ interface ChartState {
 
 ```typescript
 import { useEffect, useState, useRef } from 'react';
-import { ChartApi, SymbolChangeEvent, GranularityChangeEvent } from '@anssipiirainen/sc-charts';
+import { ChartApi, SymbolChangeEvent, GranularityChangeEvent, ReadyEvent } from '@anssipiirainen/sc-charts';
 
 function TradingChart({ initialSymbol = "BTC-USD" }) {
   const [api, setApi] = useState<ChartApi | null>(null);
@@ -850,6 +1192,78 @@ function restoreIndicatorState() {
 }
 ```
 
+### TypeScript Support
+
+The Chart API is fully typed for TypeScript users:
+
+```typescript
+import { 
+  ChartApi, 
+  Granularity, 
+  ApiIndicatorConfig,
+  InitChartResult,
+  TrendLine 
+} from '@anssipiirainen/sc-charts';
+
+// Strongly typed API usage
+const { app, api }: InitChartResult = await initChartWithApi(
+  container, 
+  firebaseConfig
+);
+
+const granularity: Granularity = "ONE_HOUR";
+await api.setGranularity(granularity);
+
+const indicatorConfig: ApiIndicatorConfig = {
+  id: "rsi",
+  name: "RSI",
+  visible: true
+};
+api.showIndicator(indicatorConfig);
+
+// Trend line usage
+const lineId = api.addTrendLine({
+  start: { timestamp: Date.now() - 3600000, price: 50000 },
+  end: { timestamp: Date.now(), price: 52000 },
+  color: "#FF0000",
+  lineWidth: 2,
+  selected: false  // Don't select the line after creation
+});
+
+const trendLines: TrendLine[] = api.getTrendLines();
+api.selectTrendLine(lineId);  // Manually select it later if needed
+```
+
+## Error Handling
+
+```typescript
+try {
+  await api.setSymbol("INVALID-SYMBOL");
+} catch (error) {
+  console.error("Failed to change symbol:", error);
+}
+
+// Event-based error handling
+api.on('error', (error) => {
+  console.error("Chart error:", error);
+});
+
+// Async operations error handling
+try {
+  await api.enterFullscreen();
+} catch (error) {
+  console.error("Failed to enter fullscreen:", error);
+  // Show user-friendly error message
+}
+```
+
+## Performance Considerations
+
+- **Batching**: When making multiple changes, consider using `setIndicators()` instead of multiple `showIndicator()` calls
+- **Debouncing**: Debounce rapid API calls, especially symbol/granularity changes
+- **Memory**: Always call `dispose()` when cleaning up to prevent memory leaks
+- **Async Operations**: Symbol and granularity changes are async and trigger data fetches
+
 ## Best Practices
 
 ### 1. Event Listener Management
@@ -940,6 +1354,23 @@ const indicatorConfig: ApiIndicatorConfig = {
 };
 ```
 
+## Migration from Legacy API
+
+If you're upgrading from the legacy `initChart()` function:
+
+```javascript
+// Old way
+const app = initChart(container, firebaseConfig);
+
+// New way (backward compatible)
+const app = initChart(container, firebaseConfig); // Still works
+
+// New way (with API access)
+const { app, api } = initChartWithApi(container, firebaseConfig);
+```
+
+The legacy `initChart()` function is still supported but deprecated in favor of `initChartWithApi()`.
+
 ## 📦 Library Exports
 
 All types and functions are exported through the main package:
@@ -949,6 +1380,8 @@ export {
   // Main API
   ChartApi,
   createChartApi,
+  initChartWithApi,
+  createChartContainer,
 
   // Event Types
   ReadyEvent,
@@ -968,6 +1401,8 @@ export {
   SymbolChangeOptions,
   GranularityChangeOptions,
   TrendLineSettings,
+  ChartState,
+  InitChartResult,
 
   // Trend Line Types
   TrendLine,
@@ -998,4 +1433,3 @@ bun test          # Run all tests
 - ✅ CommonJS compatibility
 - ✅ Source maps included
 - ✅ Comprehensive documentation
-- ✅ Semantic versioning
