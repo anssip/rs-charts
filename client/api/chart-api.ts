@@ -682,20 +682,31 @@ export class ChartApi {
   
   /**
    * Add a trend line to the chart
-   * @param trendLine Trend line configuration (without ID)
+   * @param trendLine Trend line configuration (without ID) and options
    * @returns The ID of the created trend line
    */
-  addTrendLine(trendLine: Omit<TrendLine, 'id'>): string {
+  addTrendLine(trendLine: Omit<TrendLine, 'id'> & { selected?: boolean }): string {
     const id = `trend-line-${Date.now()}`;
-    const fullTrendLine: TrendLine = { id, ...trendLine };
+    const { selected, ...trendLineData } = trendLine;
+    const fullTrendLine: TrendLine = { id, ...trendLineData };
     
     // Access the container's trend line methods
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.addTrendLine) {
       chartContainer.addTrendLine(fullTrendLine);
+      
+      // Handle selection state
+      if (selected === true && chartContainer.trendLineLayer) {
+        // Select the newly created line
+        chartContainer.trendLineLayer.selectLine(id);
+      } else if (selected === false && chartContainer.trendLineLayer) {
+        // Explicitly deselect if selected is false
+        chartContainer.trendLineLayer.deselectAll();
+      }
+      // If selected is undefined, keep the default behavior (line stays selected)
     }
     
-    logger.info(`ChartApi: Added trend line ${id}`);
+    logger.info(`ChartApi: Added trend line ${id}${selected !== undefined ? ` (selected: ${selected})` : ''}`);
     return id;
   }
   
@@ -824,6 +835,41 @@ export class ChartApi {
       }
     }
     return false;
+  }
+  
+  /**
+   * Select a trend line by ID
+   * @param id The ID of the trend line to select
+   */
+  selectTrendLine(id: string): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      chartContainer.trendLineLayer.selectLine(id);
+      logger.info(`ChartApi: Selected trend line ${id}`);
+    }
+  }
+  
+  /**
+   * Deselect all trend lines
+   */
+  deselectAllTrendLines(): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      chartContainer.trendLineLayer.deselectAll();
+      logger.info("ChartApi: Deselected all trend lines");
+    }
+  }
+  
+  /**
+   * Get the currently selected trend line ID
+   * @returns The ID of the selected trend line or null if none selected
+   */
+  getSelectedTrendLineId(): string | null {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineLayer) {
+      return chartContainer.trendLineLayer.selectedLineId || null;
+    }
+    return null;
   }
 
   // ============================================================================

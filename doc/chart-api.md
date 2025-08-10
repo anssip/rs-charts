@@ -263,6 +263,155 @@ Toggle full window mode.
 api.toggleFullWindow();
 ```
 
+### Trend Line Control
+
+#### `addTrendLine(trendLine): string`
+Add a trend line to the chart.
+
+```javascript
+// Add a trend line and keep it selected (default behavior)
+const lineId = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 50000 },
+  end: { timestamp: 1234567900000, price: 51000 },
+  color: "#FF0000",
+  lineWidth: 2,
+  style: "solid", // "solid" | "dashed" | "dotted"
+  extendLeft: false,
+  extendRight: true
+});
+
+// Add a trend line and explicitly deselect it
+const lineId2 = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 52000 },
+  end: { timestamp: 1234567900000, price: 53000 },
+  color: "#00FF00",
+  selected: false  // Line will not be selected after creation
+});
+
+// Add a trend line and ensure it's selected
+const lineId3 = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 54000 },
+  end: { timestamp: 1234567900000, price: 55000 },
+  selected: true  // Explicitly select the line after creation
+});
+```
+
+**Parameters:**
+- `trendLine`: Object containing trend line configuration
+  - `start`: Start point with `timestamp` and `price`
+  - `end`: End point with `timestamp` and `price`
+  - `color`: Optional line color (default: chart default)
+  - `lineWidth`: Optional line width (default: 2)
+  - `style`: Optional line style - "solid" | "dashed" | "dotted" (default: "solid")
+  - `extendLeft`: Optional extend line to the left (default: false)
+  - `extendRight`: Optional extend line to the right (default: false)
+  - `selected`: Optional whether to select the line after creation (default: true)
+
+**Returns:** The ID of the created trend line
+
+#### `removeTrendLine(id): void`
+Remove a trend line from the chart.
+
+```javascript
+api.removeTrendLine("trend-line-1234567890");
+```
+
+#### `updateTrendLine(id, updates): void`
+Update an existing trend line.
+
+```javascript
+api.updateTrendLine("trend-line-1234567890", {
+  color: "#00FF00",
+  lineWidth: 3,
+  extendRight: false
+});
+```
+
+#### `updateTrendLineSettings(id, settings): void`
+Update trend line settings (convenience method).
+
+```javascript
+api.updateTrendLineSettings("trend-line-1234567890", {
+  color: "#0000FF",
+  lineWidth: 1,
+  style: "dashed",
+  extendLeft: true,
+  extendRight: true
+});
+```
+
+#### `getTrendLines(): TrendLine[]`
+Get all trend lines.
+
+```javascript
+const trendLines = api.getTrendLines();
+console.log(`Chart has ${trendLines.length} trend lines`);
+```
+
+#### `getTrendLine(id): TrendLine | null`
+Get a specific trend line by ID.
+
+```javascript
+const trendLine = api.getTrendLine("trend-line-1234567890");
+if (trendLine) {
+  console.log("Trend line:", trendLine);
+}
+```
+
+#### `clearTrendLines(): void`
+Remove all trend lines from the chart.
+
+```javascript
+api.clearTrendLines();
+```
+
+#### `selectTrendLine(id): void`
+Select a trend line by ID.
+
+```javascript
+api.selectTrendLine("trend-line-1234567890");
+```
+
+#### `deselectAllTrendLines(): void`
+Deselect all trend lines.
+
+```javascript
+api.deselectAllTrendLines();
+```
+
+#### `getSelectedTrendLineId(): string | null`
+Get the currently selected trend line ID.
+
+```javascript
+const selectedId = api.getSelectedTrendLineId();
+if (selectedId) {
+  console.log("Selected trend line:", selectedId);
+}
+```
+
+#### `activateTrendLineTool(): void`
+Activate the trend line drawing tool.
+
+```javascript
+api.activateTrendLineTool();
+// User can now click and drag to draw trend lines
+```
+
+#### `deactivateTrendLineTool(): void`
+Deactivate the trend line drawing tool.
+
+```javascript
+api.deactivateTrendLineTool();
+```
+
+#### `isToolActive(tool): boolean`
+Check if a drawing tool is active.
+
+```javascript
+const isActive = api.isToolActive('trendLine');
+console.log("Trend line tool active:", isActive);
+```
+
 ### State & Utility
 
 #### `getState(): ChartState`
@@ -322,6 +471,31 @@ api.on('indicatorChange', (data) => {
 api.on('fullscreenChange', (data) => {
   console.log('Fullscreen changed:', data.isFullscreen, data.type);
 });
+
+// Trend line events
+api.on('trend-line-added', (data) => {
+  console.log('Trend line added:', data.trendLine);
+});
+
+api.on('trend-line-updated', (data) => {
+  console.log('Trend line updated:', data.trendLine);
+});
+
+api.on('trend-line-removed', (data) => {
+  console.log('Trend line removed:', data.trendLine);
+});
+
+api.on('trend-line-selected', (data) => {
+  console.log('Trend line selected:', data.trendLineId);
+});
+
+api.on('trend-line-deselected', (data) => {
+  console.log('Trend line deselected');
+});
+
+api.on('trend-line-deleted', (data) => {
+  console.log('Trend line deleted:', data.trendLineId);
+});
 ```
 
 #### `off(event, callback): void`
@@ -338,6 +512,12 @@ api.off('symbolChange', handler);
 - `granularityChange` - Fired when granularity changes
 - `indicatorChange` - Fired when indicators change
 - `fullscreenChange` - Fired when fullscreen/fullwindow state changes
+- `trend-line-added` - Fired when a trend line is added
+- `trend-line-updated` - Fired when a trend line is updated
+- `trend-line-removed` - Fired when a trend line is removed
+- `trend-line-selected` - Fired when a trend line is selected
+- `trend-line-deselected` - Fired when trend lines are deselected
+- `trend-line-deleted` - Fired when a trend line is deleted
 
 ### Cleanup
 
@@ -357,7 +537,8 @@ import {
   ChartApi, 
   Granularity, 
   ApiIndicatorConfig,
-  InitChartResult 
+  InitChartResult,
+  TrendLine 
 } from '@anssipiirainen/sc-charts';
 
 // Strongly typed API usage
@@ -375,6 +556,18 @@ const indicatorConfig: ApiIndicatorConfig = {
   visible: true
 };
 api.showIndicator(indicatorConfig);
+
+// Trend line usage
+const lineId = api.addTrendLine({
+  start: { timestamp: Date.now() - 3600000, price: 50000 },
+  end: { timestamp: Date.now(), price: 52000 },
+  color: "#FF0000",
+  lineWidth: 2,
+  selected: false  // Don't select the line after creation
+});
+
+const trendLines: TrendLine[] = api.getTrendLines();
+api.selectTrendLine(lineId);  // Manually select it later if needed
 ```
 
 ## Framework Integration Examples
