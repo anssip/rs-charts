@@ -17,7 +17,6 @@ interface ChartInteractionOptions {
   bufferMultiplier?: number;
   zoomFactor?: number;
   onActivate?: () => void;
-  onFullWindowToggle?: () => void;
   doubleTapDelay?: number;
   isActive?: () => boolean;
   requireActivation?: boolean;
@@ -32,8 +31,6 @@ export class ChartInteractionController {
   private isZooming = false;
   private readonly ZOOM_FACTOR: number;
   private readonly BUFFER_MULTIPLIER: number;
-  private readonly DOUBLE_TAP_DELAY: number;
-  private lastTapTime = 0;
 
   private readonly options: ChartInteractionOptions;
   private eventTarget: HTMLElement;
@@ -42,7 +39,6 @@ export class ChartInteractionController {
     this.options = options;
     this.ZOOM_FACTOR = options.zoomFactor ?? 0.005;
     this.BUFFER_MULTIPLIER = options.bufferMultiplier ?? 1;
-    this.DOUBLE_TAP_DELAY = options.doubleTapDelay ?? 300;
     this.eventTarget = options.container;
   }
 
@@ -229,14 +225,6 @@ export class ChartInteractionController {
 
   private handleTouchStart = (e: TouchEvent) => {
     e.preventDefault();
-
-    const currentTime = new Date().getTime();
-    const tapLength = currentTime - this.lastTapTime;
-    if (tapLength < this.DOUBLE_TAP_DELAY && tapLength > 0) {
-      this.options.onFullWindowToggle?.();
-      return;
-    }
-    this.lastTapTime = currentTime;
 
     this.isDragging = true;
 

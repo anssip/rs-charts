@@ -1149,11 +1149,6 @@ export class ChartContainer extends LitElement {
       onNeedMoreData: (direction) => {
         this.dispatchRefetch(direction);
       },
-      onFullWindowToggle: () => {
-        if (this.isMobile) {
-          this.toggleFullWindow();
-        }
-      },
       onContextMenu: (position) => {
         this.showContextMenu = true;
         this.contextMenuPosition = position;
