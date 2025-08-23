@@ -11,10 +11,14 @@ export class TrendLineTool {
   private moveHandler: ((event: MouseEvent) => void) | null = null;
   private escapeHandler: ((event: KeyboardEvent) => void) | null = null;
   private dragEndHandler: (() => void) | null = null;
+  private touchStartHandler: ((event: TouchEvent) => void) | null = null;
+  private touchMoveHandler: ((event: TouchEvent) => void) | null = null;
+  private touchEndHandler: ((event: TouchEvent) => void) | null = null;
   private getState: () => ChartState;
   private priceAxisWidth: number;
   private getChartCanvas: () => HTMLCanvasElement | null;
   private ignoreNextClick = false;
+  private touchStartTime = 0;
   
   constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70, getChartCanvas?: () => HTMLCanvasElement | null) {
     this.container = container;
@@ -30,7 +34,7 @@ export class TrendLineTool {
     this.firstPoint = null;
     this.createPreviewElements();
     
-    // Add event listeners
+    // Add mouse event listeners
     this.clickHandler = this.handleClick.bind(this);
     this.moveHandler = this.handleMouseMove.bind(this);
     this.escapeHandler = this.handleEscape.bind(this);
@@ -38,6 +42,16 @@ export class TrendLineTool {
     this.container.addEventListener('click', this.clickHandler);
     this.container.addEventListener('mousemove', this.moveHandler);
     document.addEventListener('keydown', this.escapeHandler);
+    
+    // Add touch event listeners
+    this.touchStartHandler = this.handleTouchStart.bind(this);
+    this.touchMoveHandler = this.handleTouchMove.bind(this);
+    this.touchEndHandler = this.handleTouchEnd.bind(this);
+    
+    this.container.addEventListener('touchstart', this.touchStartHandler, { passive: false });
+    this.container.addEventListener('touchmove', this.touchMoveHandler, { passive: false });
+    this.container.addEventListener('touchend', this.touchEndHandler);
+    this.container.addEventListener('touchcancel', this.touchEndHandler);
     
     // Listen for drag end events from trend lines
     this.dragEndHandler = () => {
@@ -62,7 +76,7 @@ export class TrendLineTool {
     this.firstPoint = null;
     this.removePreviewElements();
     
-    // Remove event listeners
+    // Remove mouse event listeners
     if (this.clickHandler) {
       this.container.removeEventListener('click', this.clickHandler);
     }
@@ -71,6 +85,18 @@ export class TrendLineTool {
     }
     if (this.escapeHandler) {
       document.removeEventListener('keydown', this.escapeHandler);
+    }
+    
+    // Remove touch event listeners
+    if (this.touchStartHandler) {
+      this.container.removeEventListener('touchstart', this.touchStartHandler);
+    }
+    if (this.touchMoveHandler) {
+      this.container.removeEventListener('touchmove', this.touchMoveHandler);
+    }
+    if (this.touchEndHandler) {
+      this.container.removeEventListener('touchend', this.touchEndHandler);
+      this.container.removeEventListener('touchcancel', this.touchEndHandler);
     }
     
     if (this.dragEndHandler) {
@@ -278,5 +304,124 @@ export class TrendLineTool {
       lineWidth: 2,
       style: 'solid'
     };
+  }
+
+  private handleTouchStart = (event: TouchEvent) => {
+    if (!this.isActive || event.touches.length !== 1) return;
+    
+    // Prevent default to stop scrolling/zooming
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Record touch start time to detect tap vs drag
+    this.touchStartTime = Date.now();
+    
+    const touch = event.touches[0];
+    const point = this.getPointFromTouch(touch);
+    
+    if (!this.firstPoint) {
+      // First touch - set start point
+      this.firstPoint = point;
+      this.showPreviewFromTouch(touch);
+    }
+  };
+
+  private handleTouchMove = (event: TouchEvent) => {
+    if (!this.isActive || !this.firstPoint || event.touches.length !== 1) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const touch = event.touches[0];
+    this.updatePreviewFromTouch(touch);
+  };
+
+  private handleTouchEnd = (event: TouchEvent) => {
+    if (!this.isActive || !this.firstPoint) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Check if this was a tap (short duration)
+    const touchDuration = Date.now() - this.touchStartTime;
+    const isTap = touchDuration < 300; // Consider it a tap if less than 300ms
+    
+    if (isTap && event.changedTouches.length === 1) {
+      // This is the second tap - create the trend line
+      const touch = event.changedTouches[0];
+      const endPoint = this.getPointFromTouch(touch);
+      
+      const trendLine = this.createTrendLine(this.firstPoint, endPoint);
+      
+      // Dispatch event to add the trend line
+      this.container.dispatchEvent(new CustomEvent('trend-line-created', {
+        detail: { trendLine },
+        bubbles: true,
+        composed: true
+      }));
+      
+      // Reset for next line
+      this.firstPoint = null;
+      this.hidePreview();
+    }
+  };
+
+  private getPointFromTouch(touch: Touch): TrendLinePoint {
+    const rect = this.container.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    // Get the chart state using the provided function
+    const chartState = this.getState();
+    if (!chartState || !chartState.timeRange || !chartState.priceRange) {
+      throw new Error('Chart state not available');
+    }
+    
+    // The actual chart drawing area width excludes the price axis
+    const chartWidth = rect.width - this.priceAxisWidth;
+    
+    // Use the actual canvas height if available, otherwise fall back to container height
+    const canvas = this.getChartCanvas();
+    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    
+    const timestamp = this.xToTime(x, chartWidth, chartState.timeRange);
+    const price = this.yToPrice(y, chartHeight, chartState.priceRange);
+    
+    return { timestamp, price };
+  }
+
+  private showPreviewFromTouch(touch: Touch): void {
+    if (!this.previewLine || !this.firstPoint) return;
+    
+    const rect = this.container.getBoundingClientRect();
+    const chartState = this.getState();
+    if (!chartState || !chartState.timeRange || !chartState.priceRange) return;
+    
+    // Use the chart width (excluding price axis) for X coordinate calculation
+    const chartWidth = rect.width - this.priceAxisWidth;
+    
+    // Use the actual canvas height if available
+    const canvas = this.getChartCanvas();
+    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    
+    const x1 = this.timeToX(this.firstPoint.timestamp, chartWidth, chartState.timeRange);
+    const y1 = this.priceToY(this.firstPoint.price, chartHeight, chartState.priceRange);
+    
+    this.previewLine.setAttribute('x1', x1.toString());
+    this.previewLine.setAttribute('y1', y1.toString());
+    this.previewLine.style.display = 'block';
+    
+    this.updatePreviewFromTouch(touch);
+  }
+
+  private updatePreviewFromTouch(touch: Touch): void {
+    if (!this.previewLine || !this.firstPoint) return;
+    
+    const rect = this.container.getBoundingClientRect();
+    const x2 = touch.clientX - rect.left;
+    const y2 = touch.clientY - rect.top;
+    
+    this.previewLine.setAttribute('x2', x2.toString());
+    this.previewLine.setAttribute('y2', y2.toString());
   }
 }

@@ -60,6 +60,34 @@ export const getStyles = (
     pointer-events: auto;
   }
 
+  .touch-scroll-area {
+    display: none; /* Hidden by default */
+  }
+  
+  /* Only show on mobile devices */
+  @media (max-width: 767px) {
+    .touch-scroll-area {
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 100%;
+      background-color: rgba(128, 128, 128, 0.15);
+      z-index: 10; /* Higher than chart elements to intercept events */
+      pointer-events: auto;
+      touch-action: pan-y; /* Allow only vertical scrolling */
+      cursor: ns-resize;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    
+    .touch-scroll-area:active {
+      background-color: rgba(128, 128, 128, 0.25);
+    }
+  }
+
   .chart-toolbar {
     position: absolute;
     top: 16px;
