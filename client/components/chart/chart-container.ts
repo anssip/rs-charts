@@ -103,7 +103,7 @@ export class ChartContainer extends LitElement {
   private readonly ZOOM_FACTOR = 0.005;
 
   @state()
-  public showVolume = true;
+  public showVolume = false;
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
