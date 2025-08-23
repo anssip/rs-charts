@@ -646,6 +646,14 @@ export class ChartContainer extends LitElement {
           @connectedCallback=${(e: HTMLElement) =>
             e.setAttribute("grid-area", "chart-area")}
         >
+          <!-- Touch scroll area for embedded charts -->
+          <div 
+            class="touch-scroll-area"
+            @touchstart=${this.handleTouchScrollAreaStart}
+            @mousedown=${this.handleTouchScrollAreaStart}
+            @wheel=${this.handleTouchScrollAreaWheel}
+          ></div>
+          
           <!-- Chart toolbar positioned in top-left corner -->
           <chart-toolbar
             class="chart-toolbar"
@@ -907,6 +915,18 @@ export class ChartContainer extends LitElement {
 
   private handleWindowFocus = () => {
     this.draw();
+  };
+
+  private handleTouchScrollAreaStart = (e: TouchEvent | MouseEvent) => {
+    // Stop propagation to prevent chart interaction (panning/zooming)
+    e.stopPropagation();
+    // Don't prevent default to allow native scrolling
+  };
+
+  private handleTouchScrollAreaWheel = (e: WheelEvent) => {
+    // Stop propagation to prevent chart zooming
+    e.stopPropagation();
+    // Don't prevent default to allow page scrolling
   };
 
   private handleFullScreenToggle = async (e: Event) => {

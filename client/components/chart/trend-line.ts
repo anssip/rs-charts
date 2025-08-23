@@ -257,6 +257,26 @@ export class TrendLineElement extends LitElement {
     this.handleLineDragStart(event);
   };
 
+  private handleLineTouchStart = (event: TouchEvent) => {
+    logger.debug("Line touchstart:", this.trendLine.id);
+    if (event.touches.length !== 1) return;
+    
+    event.stopPropagation();
+    event.preventDefault();
+    
+    // First select the line
+    this.dispatchEvent(
+      new CustomEvent("trend-line-select", {
+        detail: { trendLine: this.trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+    
+    // Start dragging the entire line
+    this.handleLineTouchDragStart(event);
+  };
+
   private handleLineDragStart = (event: MouseEvent) => {
     const rect = this.getBoundingClientRect();
     const startX = event.clientX - rect.left;
@@ -314,6 +334,71 @@ export class TrendLineElement extends LitElement {
     document.addEventListener("mouseup", onMouseUp);
   };
 
+  private handleLineTouchDragStart = (event: TouchEvent) => {
+    if (event.touches.length !== 1) return;
+    
+    const touch = event.touches[0];
+    const rect = this.getBoundingClientRect();
+    const startX = touch.clientX - rect.left;
+    const startY = touch.clientY - rect.top;
+    
+    // Store initial positions
+    const initialStartTimestamp = this.trendLine.startPoint.timestamp;
+    const initialStartPrice = this.trendLine.startPoint.price;
+    const initialEndTimestamp = this.trendLine.endPoint.timestamp;
+    const initialEndPrice = this.trendLine.endPoint.price;
+    
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      
+      const currentTouch = e.touches[0];
+      const currentX = currentTouch.clientX - rect.left;
+      const currentY = currentTouch.clientY - rect.top;
+      
+      // Calculate the delta in pixels
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+      
+      // Convert pixel deltas to time/price deltas
+      const timeDelta = this.pixelDeltaToTimeDelta(deltaX);
+      const priceDelta = this.pixelDeltaToPriceDelta(deltaY);
+      
+      // Update both endpoints with the same delta to move the entire line
+      const updatedLine = { ...this.trendLine };
+      updatedLine.startPoint = {
+        timestamp: initialStartTimestamp + timeDelta,
+        price: initialStartPrice + priceDelta,
+      };
+      updatedLine.endPoint = {
+        timestamp: initialEndTimestamp + timeDelta,
+        price: initialEndPrice + priceDelta,
+      };
+      
+      this.dispatchEvent(
+        new CustomEvent("trend-line-update", {
+          detail: { trendLine: updatedLine },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    };
+    
+    const onTouchEnd = (e: TouchEvent) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+      this.handleDragEnd();
+    };
+    
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
+  };
+
   private pixelDeltaToTimeDelta(pixelDelta: number): number {
     if (!this.timeRange || this.width === 0) return 0;
     const range = this.timeRange.end - this.timeRange.start;
@@ -367,10 +452,69 @@ export class TrendLineElement extends LitElement {
     document.addEventListener("mouseup", onMouseUp);
   };
 
+  private handleTouchDragStart = (handle: "start" | "end", event: TouchEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+
+    const handleElement = event.target as SVGElement;
+    handleElement.classList.add("dragging");
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        this.handleTouchDragMove(handle, e);
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      
+      handleElement.classList.remove("dragging");
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+      this.handleDragEnd();
+    };
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
+  };
+
   private handleDragMove(handle: "start" | "end", event: MouseEvent) {
     const rect = this.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+
+    // Convert pixel coordinates to price/time
+    const timestamp = this.xToTime(x);
+    const price = this.yToPrice(y);
+
+    // Emit update event
+    const updatedLine = { ...this.trendLine };
+    if (handle === "start") {
+      updatedLine.startPoint = { timestamp, price };
+    } else {
+      updatedLine.endPoint = { timestamp, price };
+    }
+
+    this.dispatchEvent(
+      new CustomEvent("trend-line-update", {
+        detail: { trendLine: updatedLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private handleTouchDragMove(handle: "start" | "end", event: TouchEvent) {
+    if (event.touches.length !== 1) return;
+    
+    const touch = event.touches[0];
+    const rect = this.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
 
     // Convert pixel coordinates to price/time
     const timestamp = this.xToTime(x);
@@ -479,6 +623,7 @@ export class TrendLineElement extends LitElement {
             stroke="transparent"
             stroke-width="20"
             @mousedown="${this.handleLineMouseDown}"
+            @touchstart="${this.handleLineTouchStart}"
           />
           <!-- Visible trend line -->
           <line
@@ -503,6 +648,7 @@ export class TrendLineElement extends LitElement {
           opacity="${showHandles ? "1" : "0"}"
           style="pointer-events: ${showHandles ? "all" : "none"}"
           @mousedown="${(e: MouseEvent) => this.handleDragStart("start", e)}"
+          @touchstart="${(e: TouchEvent) => this.handleTouchDragStart("start", e)}"
         />
         <circle
           class="handle handle-end"
@@ -513,6 +659,7 @@ export class TrendLineElement extends LitElement {
           opacity="${showHandles ? "1" : "0"}"
           style="pointer-events: ${showHandles ? "all" : "none"}"
           @mousedown="${(e: MouseEvent) => this.handleDragStart("end", e)}"
+          @touchstart="${(e: TouchEvent) => this.handleTouchDragStart("end", e)}"
         />
       </svg>
     `;
