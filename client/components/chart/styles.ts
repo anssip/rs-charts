@@ -40,7 +40,7 @@ export const getStyles = (
     height: 100%;
     background-color: var(--color-primary-dark);
     gap: 0px;
-    padding: 0 16px;
+    padding: 0;
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
