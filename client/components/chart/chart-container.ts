@@ -127,7 +127,7 @@ export class ChartContainer extends LitElement {
     super();
     // Check if device is touch-only (no mouse/trackpad)
     this.isTouchOnly = window.matchMedia(
-      "(hover: none) and (pointer: coarse)"
+      "(hover: none) and (pointer: coarse)",
     ).matches;
 
     // Initialize mobile state and width
@@ -163,7 +163,7 @@ export class ChartContainer extends LitElement {
       "ChartContainer: chart area found, dimensions:",
       chartArea.clientWidth,
       "x",
-      chartArea.clientHeight
+      chartArea.clientHeight,
     );
 
     // Get the computed style to check if we have a fixed height
@@ -180,15 +180,17 @@ export class ChartContainer extends LitElement {
         "ChartContainer: Invalid dimensions for initial resize:",
         width,
         "x",
-        height
+        height,
       );
     }
-    
+
     // Initialize trend line tool
     this.initializeTrendLineTool();
-    
+
     // Get trend line layer reference and set initial dimensions
-    this.trendLineLayer = this.renderRoot.querySelector("trend-line-layer") as TrendLineLayer;
+    this.trendLineLayer = this.renderRoot.querySelector(
+      "trend-line-layer",
+    ) as TrendLineLayer;
     if (this.trendLineLayer) {
       // Set initial dimensions after a small delay to ensure chart is ready
       setTimeout(() => {
@@ -211,7 +213,7 @@ export class ChartContainer extends LitElement {
               detail: (e as CustomEvent).detail,
               bubbles: true,
               composed: true,
-            })
+            }),
           );
 
           // Initialize interaction controller after chart is ready
@@ -222,7 +224,7 @@ export class ChartContainer extends LitElement {
         });
       } else {
         logger.error(
-          "ChartContainer: Chart element not found during initialization"
+          "ChartContainer: Chart element not found during initialization",
         );
       }
     }, 0);
@@ -240,13 +242,13 @@ export class ChartContainer extends LitElement {
     this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.addEventListener(
       "toggle-indicator",
-      this.handleIndicatorToggle as EventListener
+      this.handleIndicatorToggle as EventListener,
     );
 
     // Initialize mobile state and add listener
     this.handleMobileChange();
     this.mobileMediaQuery.addEventListener("change", () =>
-      this.handleMobileChange()
+      this.handleMobileChange(),
     );
   }
 
@@ -292,26 +294,30 @@ export class ChartContainer extends LitElement {
 
     // Force redraw on indicators
     this.redrawIndicators();
-    
+
     // Update trend line layer with current state
     this.updateTrendLineLayer();
   }
 
   // Helper method to force redraw of all indicators
   private updateTrendLineLayer() {
-    const trendLineLayer = this.renderRoot.querySelector("trend-line-layer") as TrendLineLayer;
+    const trendLineLayer = this.renderRoot.querySelector(
+      "trend-line-layer",
+    ) as TrendLineLayer;
     if (trendLineLayer && this.chart?.canvas) {
       // Get the chart area dimensions
-      const chartArea = this.renderRoot.querySelector(".chart-area") as HTMLElement;
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
       if (chartArea && this.chart.canvas) {
         // Use the chart area width minus price axis (same as what the tool uses)
         trendLineLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        
+
         // Use the actual canvas height
         const dpr = window.devicePixelRatio || 1;
         trendLineLayer.height = this.chart.canvas.height / dpr;
       }
-      
+
       // Update the state to ensure trend lines recalculate positions
       trendLineLayer.state = this._state;
       trendLineLayer.requestUpdate();
@@ -323,7 +329,7 @@ export class ChartContainer extends LitElement {
 
     // Force indicator-stack to redraw
     const indicatorStack = this.renderRoot.querySelector(
-      "indicator-stack.main-chart"
+      "indicator-stack.main-chart",
     );
     if (indicatorStack) {
       // Get current dimensions for the detail object
@@ -335,7 +341,7 @@ export class ChartContainer extends LitElement {
           bubbles: false,
           composed: true,
           detail: { width, height }, // Add detail property
-        })
+        }),
       );
     }
 
@@ -345,7 +351,7 @@ export class ChartContainer extends LitElement {
       logger.debug(
         `ChartContainer: Sending redraw to ${
           indicator.getAttribute("slot") || "unknown"
-        } indicator`
+        } indicator`,
       );
 
       // Get current dimensions for the detail object
@@ -357,7 +363,7 @@ export class ChartContainer extends LitElement {
           bubbles: false,
           composed: true,
           detail: { width, height }, // Add detail property
-        })
+        }),
       );
     });
   }
@@ -373,7 +379,7 @@ export class ChartContainer extends LitElement {
     window.removeEventListener("focus", this.handleWindowFocus);
     document.removeEventListener(
       "fullscreenchange",
-      this.handleFullscreenChange
+      this.handleFullscreenChange,
     );
     document.removeEventListener("click", this.handleClickOutside);
     document.removeEventListener("touchstart", this.handleClickOutside);
@@ -381,50 +387,69 @@ export class ChartContainer extends LitElement {
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener(
       "toggle-indicator",
-      this.handleIndicatorToggle as EventListener
+      this.handleIndicatorToggle as EventListener,
     );
     this.mobileMediaQuery.removeEventListener("change", () =>
-      this.handleMobileChange()
+      this.handleMobileChange(),
     );
     this.interactionController?.detach();
   }
 
   @property({ type: Object })
   set state(state: ChartState) {
-    const isInitialState = this._state.symbol === "BTC-USD" && this._state.granularity === "ONE_HOUR" && this.indicators.size === 0 && this.trendLines.length === 0;
+    const isInitialState =
+      this._state.symbol === "BTC-USD" &&
+      this._state.granularity === "ONE_HOUR" &&
+      this.indicators.size === 0 &&
+      this.trendLines.length === 0;
     this._state = state;
-    
+
     // Process indicators from initial state if this is the first time setting state
     if (isInitialState && state.indicators && state.indicators.length > 0) {
-      logger.debug(`ChartContainer: Processing ${state.indicators.length} indicators from initial state`);
-      state.indicators.forEach(indicator => {
+      logger.debug(
+        `ChartContainer: Processing ${state.indicators.length} indicators from initial state`,
+      );
+      state.indicators.forEach((indicator) => {
         if (indicator.visible) {
-          logger.debug(`ChartContainer: Auto-showing indicator ${indicator.id} from initial state`);
-          this.handleIndicatorToggle(new CustomEvent('toggle-indicator', {
-            detail: indicator
-          }));
+          logger.debug(
+            `ChartContainer: Auto-showing indicator ${indicator.id} from initial state`,
+          );
+          this.handleIndicatorToggle(
+            new CustomEvent("toggle-indicator", {
+              detail: indicator,
+            }),
+          );
         }
       });
     }
-    
+
     // Process trend lines from initial state if this is the first time setting state
     if (isInitialState && state.trendLines && state.trendLines.length > 0) {
-      logger.debug(`ChartContainer: Processing ${state.trendLines.length} trend lines from initial state`);
-      logger.debug(`ChartContainer: Initial trend line IDs:`, state.trendLines.map(l => l.id));
+      logger.debug(
+        `ChartContainer: Processing ${state.trendLines.length} trend lines from initial state`,
+      );
+      logger.debug(
+        `ChartContainer: Initial trend line IDs:`,
+        state.trendLines.map((l) => l.id),
+      );
       this.trendLines = [...state.trendLines];
       this._state.trendLines = this.trendLines;
-      
+
       // Force update to render trend lines
       this.requestUpdate();
-      
+
       // Ensure trend line layer gets updated after render and no lines are selected
       requestAnimationFrame(() => {
-        logger.debug(`ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`);
+        logger.debug(
+          `ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`,
+        );
         this.updateTrendLineLayer();
-        
+
         // Ensure no trend lines are selected on initialization
         if (this.trendLineLayer) {
-          logger.debug(`ChartContainer: Deselecting all trend lines on initialization`);
+          logger.debug(
+            `ChartContainer: Deselecting all trend lines on initialization`,
+          );
           this.trendLineLayer.deselectAll();
         }
       });
@@ -436,7 +461,7 @@ export class ChartContainer extends LitElement {
       new CustomEvent("spotcanvas-upgrade", {
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   }
 
@@ -465,7 +490,7 @@ export class ChartContainer extends LitElement {
     logger.debug(
       `ChartContainer: Indicator ${id} toggled to ${
         visible ? "visible" : "hidden"
-      }`
+      }`,
     );
 
     // Special handling for volume indicator
@@ -474,18 +499,18 @@ export class ChartContainer extends LitElement {
       logger.debug(
         `ChartContainer: Volume indicator toggled to ${
           visible ? "visible" : "hidden"
-        }`
+        }`,
       );
       // Force redraw of the volume chart
       const volumeChart = this.renderRoot.querySelector(
-        ".volume-chart"
+        ".volume-chart",
       ) as HTMLElement;
       if (volumeChart) {
         volumeChart.hidden = !visible;
         logger.debug(
           `ChartContainer: Volume chart container ${
             visible ? "shown" : "hidden"
-          }`
+          }`,
         );
 
         // Force a redraw on the volume-chart element
@@ -495,7 +520,7 @@ export class ChartContainer extends LitElement {
             new CustomEvent("force-redraw", {
               bubbles: false,
               composed: true,
-            })
+            }),
           );
         }
       }
@@ -543,7 +568,7 @@ export class ChartContainer extends LitElement {
               label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
               action: () =>
                 this.handleFullScreenToggle(
-                  new CustomEvent("toggle-fullscreen")
+                  new CustomEvent("toggle-fullscreen"),
                 ),
             },
           ]),
@@ -592,16 +617,16 @@ export class ChartContainer extends LitElement {
     ];
 
     const overlayIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === DisplayType.Overlay
+      (indicator) => indicator.display === DisplayType.Overlay,
     );
     const bottomIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === DisplayType.Bottom
+      (indicator) => indicator.display === DisplayType.Bottom,
     );
     const stackTopIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === DisplayType.StackTop
+      (indicator) => indicator.display === DisplayType.StackTop,
     );
     const stackBottomIndicators = Array.from(this.indicators.values()).filter(
-      (indicator) => indicator.display === DisplayType.StackBottom
+      (indicator) => indicator.display === DisplayType.StackBottom,
     );
 
     // Calculate grid template rows based on number of stacked indicators
@@ -626,8 +651,6 @@ export class ChartContainer extends LitElement {
           grid-template-rows: ${gridTemplateRows};
         "
       >
-
-
         ${stackTopIndicators.length > 0
           ? html`
               <indicator-stack
@@ -658,7 +681,7 @@ export class ChartContainer extends LitElement {
             @toggle-indicator=${this.handleIndicatorToggle}
             @toggle-trend-line-tool=${this.handleTrendLineToolToggle}
           ></chart-toolbar>
-          
+
           <!-- Trend line layer -->
           <trend-line-layer
             .trendLines=${this.trendLines}
@@ -668,7 +691,7 @@ export class ChartContainer extends LitElement {
             @trend-line-update=${this.handleTrendLineUpdate}
             @trend-line-remove=${this.handleTrendLineRemove}
           ></trend-line-layer>
-          
+
           <div class="chart">
             ${bottomIndicators.map(
               (indicator) => html`
@@ -684,7 +707,7 @@ export class ChartContainer extends LitElement {
                     .gridStyle=${indicator.gridStyle}
                   ></market-indicator>
                 </indicator-container>
-              `
+              `,
             )}
 
             <indicator-stack
@@ -718,7 +741,7 @@ export class ChartContainer extends LitElement {
                       .name=${indicator.name}
                       .gridStyle=${indicator.gridStyle}
                     ></market-indicator>
-                  `
+                  `,
                 )}
                 <live-decorators></live-decorators>
                 <!-- Volume chart - positioned using flexbox at the bottom -->
@@ -732,7 +755,7 @@ export class ChartContainer extends LitElement {
                 ? stackBottomIndicators.map((indicator, index) => {
                     const slotId = `indicator-${index + 1}`;
                     logger.debug(
-                      `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`
+                      `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`,
                     );
                     return html`
                       <market-indicator
@@ -800,7 +823,7 @@ export class ChartContainer extends LitElement {
       };
       this.draw();
     }
-    
+
     // Update trend line layer after resize
     this.updateTrendLineLayer();
   }
@@ -832,7 +855,7 @@ export class ChartContainer extends LitElement {
           bubbles: true,
           composed: true,
         },
-      })
+      }),
     );
   }
 
@@ -842,7 +865,7 @@ export class ChartContainer extends LitElement {
       this.chart.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     return Math.floor(
-      availableWidth / (totalCandleWidth * window.devicePixelRatio)
+      availableWidth / (totalCandleWidth * window.devicePixelRatio),
     );
   }
 
@@ -868,7 +891,7 @@ export class ChartContainer extends LitElement {
     const candleWidth =
       Math.max(
         this.options.minCandleWidth,
-        Math.min(this.options.maxCandleWidth, idealCandleWidth)
+        Math.min(this.options.maxCandleWidth, idealCandleWidth),
       ) / (window.devicePixelRatio ?? 1);
     const candleGap = Math.max(1, idealGapWidth);
 
@@ -969,7 +992,7 @@ export class ChartContainer extends LitElement {
   private getChartElement(): CandlestickChart | null {
     logger.debug("ChartContainer: Getting chart element");
     const indicatorStack = this.renderRoot.querySelector(
-      "indicator-stack.main-chart"
+      "indicator-stack.main-chart",
     ) as LitElement | null;
 
     if (!indicatorStack) {
@@ -980,50 +1003,52 @@ export class ChartContainer extends LitElement {
 
     // Find the chart in the new structure - inside indicator-container with class chart-with-overlays
     const chartElement = this.renderRoot.querySelector(
-      "indicator-stack.main-chart indicator-container.chart-with-overlays candlestick-chart"
+      "indicator-stack.main-chart indicator-container.chart-with-overlays candlestick-chart",
     ) as CandlestickChart | null;
 
     logger.debug(
       "ChartContainer: candlestick-chart",
-      chartElement ? "found" : "NOT FOUND"
+      chartElement ? "found" : "NOT FOUND",
     );
 
     return chartElement;
   }
 
   private initializeTrendLineTool() {
-    const chartArea = this.renderRoot.querySelector(".chart-area") as HTMLElement;
+    const chartArea = this.renderRoot.querySelector(
+      ".chart-area",
+    ) as HTMLElement;
     if (!chartArea) {
       logger.error("Chart area not found for trend line tool");
       return;
     }
-    
+
     // Pass a function to get the current state, the price axis width, and a function to get the chart canvas
     this.trendLineTool = new TrendLineTool(
-      chartArea, 
-      () => this._state, 
+      chartArea,
+      () => this._state,
       this.priceAxisWidth,
-      () => this.chart?.canvas || null
+      () => this.chart?.canvas || null,
     );
-    
+
     // Listen for trend line creation
     chartArea.addEventListener("trend-line-created", (event: Event) => {
       const customEvent = event as CustomEvent;
       const trendLineData = customEvent.detail.trendLine;
       const trendLine: TrendLine = {
         id: `trend-line-${Date.now()}`,
-        ...trendLineData
+        ...trendLineData,
       };
-      
+
       this.addTrendLine(trendLine);
     });
   }
-  
+
   private handleTrendLineToolToggle = () => {
     if (!this.trendLineTool) return;
-    
+
     const toolbar = this.renderRoot.querySelector("chart-toolbar") as any;
-    
+
     if (this.trendLineTool.isToolActive()) {
       this.trendLineTool.deactivate();
       if (toolbar) toolbar.trendLineToolActive = false;
@@ -1031,106 +1056,129 @@ export class ChartContainer extends LitElement {
       this.trendLineTool.activate();
       if (toolbar) toolbar.trendLineToolActive = true;
     }
-  }
-  
+  };
+
   private addTrendLine(trendLine: TrendLine) {
     this.trendLines = [...this.trendLines, trendLine];
-    
+
     // Force update to trigger re-render with new trend line
     this.requestUpdate();
-    
+
     // Update state
     this._state.trendLines = this.trendLines;
     touch("state.trendLines");
-    
+
     // Select the newly created trend line
     if (this.trendLineLayer) {
       this.trendLineLayer.selectLine(trendLine.id);
     }
-    
+
     // Ensure trend line layer has correct dimensions after adding line
     // Use requestAnimationFrame to wait for render to complete
     requestAnimationFrame(() => {
       this.updateTrendLineLayer();
     });
-    
+
     // Emit API event
-    this.dispatchEvent(new CustomEvent("trend-line-added", {
-      detail: { trendLine },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("trend-line-added", {
+        detail: { trendLine },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
-  
+
   private handleTrendLineAdd = (event: CustomEvent) => {
-    logger.debug(`ChartContainer: handleTrendLineAdd called (should not be used)`);
+    logger.debug(
+      `ChartContainer: handleTrendLineAdd called (should not be used)`,
+    );
     // This is already handled by the layer itself
-  }
-  
+  };
+
   private handleTrendLineUpdate = (event: CustomEvent) => {
     logger.debug(`ChartContainer: handleTrendLineUpdate called`, event.detail);
     const { trendLine } = event.detail;
     // Convert Proxy IDs to strings for comparison
-    const index = this.trendLines.findIndex(l => String(l.id) === String(trendLine.id));
-    logger.debug(`ChartContainer: Looking for trend line with ID ${String(trendLine.id)}, found at index: ${index}`);
+    const index = this.trendLines.findIndex(
+      (l) => String(l.id) === String(trendLine.id),
+    );
+    logger.debug(
+      `ChartContainer: Looking for trend line with ID ${String(trendLine.id)}, found at index: ${index}`,
+    );
     if (index !== -1) {
       this.trendLines = [
         ...this.trendLines.slice(0, index),
         trendLine,
-        ...this.trendLines.slice(index + 1)
+        ...this.trendLines.slice(index + 1),
       ];
-      
+
       // Update state
       this._state.trendLines = this.trendLines;
       touch("state.trendLines");
-      
+
       // Emit API event
-      this.dispatchEvent(new CustomEvent("trend-line-updated", {
-        detail: event.detail,
-        bubbles: true,
-        composed: true
-      }));
+      this.dispatchEvent(
+        new CustomEvent("trend-line-updated", {
+          detail: event.detail,
+          bubbles: true,
+          composed: true,
+        }),
+      );
     } else {
-      logger.warn(`ChartContainer: Could not find trend line with ID ${String(trendLine.id)} to update`);
+      logger.warn(
+        `ChartContainer: Could not find trend line with ID ${String(trendLine.id)} to update`,
+      );
     }
-  }
-  
+  };
+
   private handleTrendLineRemove = (event: CustomEvent) => {
     logger.debug(`ChartContainer: handleTrendLineRemove called, event:`, event);
     logger.debug(`ChartContainer: Event detail:`, event.detail);
     logger.debug(`ChartContainer: Event type:`, event.detail?.type);
-    
+
     const eventDetail = event.detail;
     const trendLine = eventDetail.trendLine || eventDetail;
-    
+
     if (!trendLine || !trendLine.id) {
-      logger.error(`ChartContainer: Invalid event detail, cannot find trend line`, eventDetail);
+      logger.error(
+        `ChartContainer: Invalid event detail, cannot find trend line`,
+        eventDetail,
+      );
       return;
     }
-    
+
     const lineId = String(trendLine.id);
     logger.debug(`ChartContainer: Removing trend line ${lineId}`);
-    logger.debug(`ChartContainer: Before removal, trendLines:`, this.trendLines.map(l => String(l.id)));
-    
+    logger.debug(
+      `ChartContainer: Before removal, trendLines:`,
+      this.trendLines.map((l) => String(l.id)),
+    );
+
     // Use String conversion for Proxy comparison
-    this.trendLines = this.trendLines.filter(l => String(l.id) !== lineId);
-    
+    this.trendLines = this.trendLines.filter((l) => String(l.id) !== lineId);
+
     // Update state
     this._state.trendLines = this.trendLines;
     touch("state.trendLines");
-    
+
     // Force update to ensure UI reflects the change
     this.requestUpdate();
-    
-    logger.debug(`ChartContainer: After removal, ${this.trendLines.length} lines remaining:`, this.trendLines.map(l => String(l.id)));
-    
+
+    logger.debug(
+      `ChartContainer: After removal, ${this.trendLines.length} lines remaining:`,
+      this.trendLines.map((l) => String(l.id)),
+    );
+
     // Emit API event
-    this.dispatchEvent(new CustomEvent("trend-line-removed", {
-      detail: event.detail,
-      bubbles: true,
-      composed: true
-    }));
-  }
+    this.dispatchEvent(
+      new CustomEvent("trend-line-removed", {
+        detail: event.detail,
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
 
   private initializeInteractionController() {
     if (!this.chart) return;
