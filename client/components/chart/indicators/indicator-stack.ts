@@ -59,8 +59,8 @@ export class IndicatorStack extends LitElement {
 
     /* Special handling for chart item - it should flex grow */
     .stack-item.chart-item {
-      flex: 1;
-      min-height: 200px;
+      flex: 1 1 auto;
+      min-height: 60px; /* Minimum height for chart */
       border-bottom: none;
       pointer-events: auto;
     }
@@ -69,7 +69,7 @@ export class IndicatorStack extends LitElement {
     .stack-item:not(.chart-item) {
       flex: 0 0 auto;
       min-height: 30px;
-      height: 150px;
+      height: min(100px, 12vh); /* Limited height for indicators */
       pointer-events: auto;
     }
 
