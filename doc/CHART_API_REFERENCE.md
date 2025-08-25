@@ -502,14 +502,58 @@ if (selectedId) {
 }
 ```
 
-#### `activateTrendLineTool(): void`
+#### `activateTrendLineTool(defaults?: TrendLineDefaults): void`
 
-Activate the trend line drawing tool.
+Activate the trend line drawing tool with optional default settings for new trend lines.
 
 ```typescript
+// Simple activation
 api.activateTrendLineTool();
-// User can now click and drag to draw trend lines
+
+// Activation with default settings for new trend lines
+api.activateTrendLineTool({
+  color: '#FF0000',
+  lineWidth: 3,
+  style: 'dashed',
+  extendLeft: false,
+  extendRight: true
+});
+// User can now click and drag to draw trend lines with these defaults
 ```
+
+**Parameters:**
+- `defaults`: Optional `TrendLineDefaults` object with default settings for new trend lines
+  - `color`: Default line color
+  - `lineWidth`: Default line width
+  - `style`: Default line style ('solid' | 'dashed' | 'dotted')
+  - `extendLeft`: Default for extending line to the left
+  - `extendRight`: Default for extending line to the right
+
+#### `setTrendLineDefaults(defaults: TrendLineDefaults): void`
+
+Set default settings for new trend lines without activating the drawing tool. These defaults will be used for all subsequently created trend lines.
+
+```typescript
+// Set defaults for new trend lines
+api.setTrendLineDefaults({
+  color: '#2962ff',
+  lineWidth: 2,
+  style: 'solid',
+  extendLeft: false,
+  extendRight: false
+});
+
+// Later, when the tool is activated, it will use these defaults
+api.activateTrendLineTool();
+```
+
+**Parameters:**
+- `defaults`: `TrendLineDefaults` object with default settings for new trend lines
+  - `color`: Default line color
+  - `lineWidth`: Default line width
+  - `style`: Default line style ('solid' | 'dashed' | 'dotted')
+  - `extendLeft`: Default for extending line to the left
+  - `extendRight`: Default for extending line to the right
 
 #### `deactivateTrendLineTool(): void`
 
@@ -800,18 +844,74 @@ api.on("trend-line-deselected", () => {
 function onColorChange(newColor: string) {
   if (selectedLineId) {
     api.updateTrendLineSettings(selectedLineId, { color: newColor });
+  } else {
+    // No line selected - update defaults for new lines
+    api.setTrendLineDefaults({ color: newColor });
   }
 }
 
 function onLineWidthChange(newWidth: number) {
   if (selectedLineId) {
     api.updateTrendLineSettings(selectedLineId, { lineWidth: newWidth });
+  } else {
+    // No line selected - update defaults for new lines
+    api.setTrendLineDefaults({ lineWidth: newWidth });
   }
 }
 
 function onStyleChange(newStyle: 'solid' | 'dashed' | 'dotted') {
   if (selectedLineId) {
     api.updateTrendLineSettings(selectedLineId, { style: newStyle });
+  } else {
+    // No line selected - update defaults for new lines
+    api.setTrendLineDefaults({ style: newStyle });
+  }
+}
+```
+
+### Trend Line Defaults Example
+
+```typescript
+// Set up default settings for trend lines based on user preferences
+const userPreferences = {
+  trendLineColor: '#FF5722',
+  trendLineWidth: 3,
+  trendLineStyle: 'dashed' as const,
+  extendLines: true
+};
+
+// Apply user preferences as defaults
+api.setTrendLineDefaults({
+  color: userPreferences.trendLineColor,
+  lineWidth: userPreferences.trendLineWidth,
+  style: userPreferences.trendLineStyle,
+  extendLeft: false,
+  extendRight: userPreferences.extendLines
+});
+
+// Activate the tool - all new lines will use these defaults
+api.activateTrendLineTool();
+
+// Or activate with different defaults for a specific session
+api.activateTrendLineTool({
+  color: '#00FF00',
+  lineWidth: 1,
+  style: 'dotted',
+  extendLeft: true,
+  extendRight: true
+});
+
+// Save user's default preferences
+function saveDefaultPreferences(defaults: TrendLineDefaults) {
+  localStorage.setItem('trendLineDefaults', JSON.stringify(defaults));
+}
+
+// Load and apply saved preferences
+function loadDefaultPreferences() {
+  const saved = localStorage.getItem('trendLineDefaults');
+  if (saved) {
+    const defaults = JSON.parse(saved);
+    api.setTrendLineDefaults(defaults);
   }
 }
 ```
@@ -880,6 +980,14 @@ interface GranularityChangeOptions {
 }
 
 interface TrendLineSettings {
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
+
+interface TrendLineDefaults {
   color?: string;
   lineWidth?: number;
   style?: 'solid' | 'dashed' | 'dotted';
@@ -1408,6 +1516,7 @@ export {
   TrendLine,
   TrendLinePoint,
   TrendLineEvent,
+  TrendLineDefaults,
 
   // Enums
   DisplayType,

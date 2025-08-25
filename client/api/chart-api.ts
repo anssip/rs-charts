@@ -6,7 +6,7 @@ import { Granularity, getAllGranularities } from "../../server/services/price-da
 import { IndicatorConfig, DisplayType, ScaleType, GridStyle } from "../components/chart/indicators/indicator-types";
 import { logger } from "../util/logger";
 import { config as chartConfig } from "../config";
-import { TrendLine, TrendLineEvent } from "../types/trend-line";
+import { TrendLine, TrendLineEvent, TrendLineDefaults } from "../types/trend-line";
 
 export interface ChartApiOptions {
   container: ChartContainer;
@@ -793,10 +793,15 @@ export class ChartApi {
   
   /**
    * Activate the trend line drawing tool
+   * @param defaults Optional default settings for new trend lines
    */
-  activateTrendLineTool(): void {
+  activateTrendLineTool(defaults?: TrendLineDefaults): void {
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.trendLineTool) {
+      // Set defaults if provided
+      if (defaults) {
+        chartContainer.trendLineTool.setDefaults(defaults);
+      }
       chartContainer.trendLineTool.activate();
       
       // Update toolbar state
@@ -804,7 +809,20 @@ export class ChartApi {
       if (toolbar) toolbar.trendLineToolActive = true;
     }
     
-    logger.info("ChartApi: Activated trend line tool");
+    logger.info("ChartApi: Activated trend line tool", defaults);
+  }
+  
+  /**
+   * Set default settings for new trend lines without activating the tool
+   * @param defaults Default settings for new trend lines
+   */
+  setTrendLineDefaults(defaults: TrendLineDefaults): void {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.trendLineTool) {
+      chartContainer.trendLineTool.setDefaults(defaults);
+    }
+    
+    logger.info("ChartApi: Set trend line defaults", defaults);
   }
   
   /**

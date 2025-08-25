@@ -42,6 +42,9 @@ export type {
 export type { Granularity } from "../server/services/price-data/price-history-model";
 export { getAllGranularities, granularityLabel } from "../server/services/price-data/price-history-model";
 
+// Export trend line types
+export type { TrendLine, TrendLineDefaults, TrendLineEvent, TrendLinePoint } from "./types/trend-line";
+
 // You might want to export related types if consumers need them
 export type { ChartState } from "./index"; // Export ChartState type as well
 // Consider defining shared types in a separate file if needed.
