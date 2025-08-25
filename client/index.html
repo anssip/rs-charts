@@ -227,9 +227,7 @@
                 gap: 10px;
             }
 
-            .charts-wrapper {
-                margin-top: 60px; /* Account for fixed header */
-            }
+            /* Charts wrapper positioning handled in styles.css */
 
             product-select {
                 width: 200px;
@@ -374,6 +372,7 @@
             <div class="chart-container" id="chart-1"></div>
             <div class="chart-container" id="chart-2"></div>
         </div>
+
 
         <div class="upgrade-backdrop"></div>
         <div class="upgrade-popup">
@@ -815,6 +814,7 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                     }, 100);
                 }
             });
+
         </script>
     </body>
 </html>

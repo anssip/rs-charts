@@ -83,10 +83,13 @@ export class Timeline extends CanvasBase {
       const canvasWidth = this.canvas!.width / dpr;
 
       const state = xin[this._chartId] as ChartState;
-      if (!state) return;
-
+      
       const ctx = this.ctx!;
       ctx.clearRect(0, 0, this.canvas!.width, this.canvas!.height);
+      
+      if (!state) {
+        return;
+      }
 
       // Set text properties once
       const fontFamily = getComputedStyle(document.documentElement)

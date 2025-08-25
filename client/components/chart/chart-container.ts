@@ -19,7 +19,6 @@ import { ChartState } from "../..";
 import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import { MenuItem } from "./context-menu";
-import "./toolbar/chart-toolbar";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
 import { config } from "../../config";
@@ -237,9 +236,7 @@ export class ChartContainer extends LitElement {
 
     this.setupFocusHandler();
 
-    // Add event listeners for toolbar actions
-    this.addEventListener("toggle-fullscreen", this.handleFullScreenToggle);
-    this.addEventListener("toggle-fullwindow", this.toggleFullWindow);
+    // Add event listener for indicator toggling
     this.addEventListener(
       "toggle-indicator",
       this.handleIndicatorToggle as EventListener,
@@ -561,17 +558,6 @@ export class ChartContainer extends LitElement {
         label: this.isFullWindow ? "Exit Full Window" : "Full Window",
         action: this.toggleFullWindow,
       },
-      ...(this.isMobile
-        ? []
-        : [
-            {
-              label: this.isFullscreen ? "Exit Full Screen" : "Full Screen",
-              action: () =>
-                this.handleFullScreenToggle(
-                  new CustomEvent("toggle-fullscreen"),
-                ),
-            },
-          ]),
       {
         label: "separator",
         separator: true,
@@ -630,6 +616,7 @@ export class ChartContainer extends LitElement {
     );
 
     // Calculate grid template rows based on number of stacked indicators
+    // Remove timeline from grid since it will be outside
     const gridTemplateRows = `
       ${
         stackTopIndicators.length
@@ -637,51 +624,38 @@ export class ChartContainer extends LitElement {
           : "0"
       }
       1fr
-      ${TIMELINE_HEIGHT}px
     `;
 
     return html`
-      <div
-        class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
-          .isFullWindow
-          ? "full-window"
-          : ""}"
-        style="
-          --price-axis-width: ${this.priceAxisWidth}px;
-          grid-template-rows: ${gridTemplateRows};
-        "
-      >
-        ${stackTopIndicators.length > 0
-          ? html`
-              <indicator-stack
-                .setAttribute=${() => {}}
-                @connectedCallback=${(e: HTMLElement) =>
-                  e.setAttribute("grid-area", "indicators-top")}
-                .indicators=${stackTopIndicators}
-                .valueAxisWidth=${PRICEAXIS_WIDTH}
-                .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
-              ></indicator-stack>
-            `
-          : ""}
-
+      <div class="chart-wrapper">
         <div
-          class="chart-area"
-          @connectedCallback=${(e: HTMLElement) =>
-            e.setAttribute("grid-area", "chart-area")}
+          class="container ${this.isFullscreen ? "fullscreen" : ""} ${this
+            .isFullWindow
+            ? "full-window"
+            : ""}"
+          style="
+            --price-axis-width: ${this.priceAxisWidth}px;
+            grid-template-rows: ${gridTemplateRows};
+          "
         >
-          <!-- Chart toolbar positioned in top-left corner -->
-          <chart-toolbar
-            class="chart-toolbar"
-            .isFullscreen=${this.isFullscreen}
-            .isFullWindow=${this.isFullWindow}
-            .showVolume=${this.isIndicatorVisible("volume")}
-            .container=${this}
-            @toggle-fullscreen=${this.handleFullScreenToggle}
-            @toggle-fullwindow=${this.toggleFullWindow}
-            @toggle-indicator=${this.handleIndicatorToggle}
-            @toggle-trend-line-tool=${this.handleTrendLineToolToggle}
-          ></chart-toolbar>
+          ${stackTopIndicators.length > 0
+            ? html`
+                <indicator-stack
+                  .setAttribute=${() => {}}
+                  @connectedCallback=${(e: HTMLElement) =>
+                    e.setAttribute("grid-area", "indicators-top")}
+                  .indicators=${stackTopIndicators}
+                  .valueAxisWidth=${PRICEAXIS_WIDTH}
+                  .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+                ></indicator-stack>
+              `
+            : ""}
 
+          <div
+            class="chart-area"
+            @connectedCallback=${(e: HTMLElement) =>
+              e.setAttribute("grid-area", "chart-area")}
+          >
           <!-- Trend line layer -->
           <trend-line-layer
             .trendLines=${this.trendLines}
@@ -774,14 +748,6 @@ export class ChartContainer extends LitElement {
           </div>
         </div>
 
-        <div
-          class="timeline-container"
-          @connectedCallback=${(e: HTMLElement) =>
-            e.setAttribute("grid-area", "timeline")}
-        >
-          <chart-timeline></chart-timeline>
-        </div>
-
         <chart-context-menu
           .show=${this.showContextMenu}
           .position=${this.contextMenuPosition}
@@ -792,6 +758,11 @@ export class ChartContainer extends LitElement {
           ? html`<chart-crosshairs class="grid-crosshairs"></chart-crosshairs>`
           : ""}
       </div>
+      
+      <div class="timeline-container">
+        <chart-timeline></chart-timeline>
+      </div>
+    </div>
     `;
   }
 
@@ -1047,14 +1018,10 @@ export class ChartContainer extends LitElement {
   private handleTrendLineToolToggle = () => {
     if (!this.trendLineTool) return;
 
-    const toolbar = this.renderRoot.querySelector("chart-toolbar") as any;
-
     if (this.trendLineTool.isToolActive()) {
       this.trendLineTool.deactivate();
-      if (toolbar) toolbar.trendLineToolActive = false;
     } else {
       this.trendLineTool.activate();
-      if (toolbar) toolbar.trendLineToolActive = true;
     }
   };
 

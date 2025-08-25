@@ -7,7 +7,8 @@ export const getStyles = (
   timelineHeight: number,
 ) => css`
   :host {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     min-height: 400px;
@@ -25,19 +26,27 @@ export const getStyles = (
     z-index: 1000;
   }
 
-  :host(.full-window) .container {
+  :host(.full-window) .chart-wrapper {
     height: 100%;
     overflow: hidden;
+  }
+
+  .chart-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-primary-dark);
+    min-height: 0; /* Allow flex children to shrink */
   }
 
   .container {
     display: grid;
     grid-template-areas:
       "indicators-top"
-      "chart-area"
-      "timeline";
+      "chart-area";
     grid-template-columns: minmax(0, 1fr);
-    height: 100%;
+    flex: 1 1 auto; /* Allow to grow and shrink */
     background-color: var(--color-primary-dark);
     gap: 0px;
     padding: 0;
@@ -45,26 +54,19 @@ export const getStyles = (
     position: relative;
     overflow: hidden;
     min-width: 0;
+    min-height: 0;
   }
 
   .chart-area {
     grid-area: chart-area;
     position: relative;
-    min-height: 300px;
+    min-height: 120px; /* Minimum height for chart area */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
     height: 100%;
     flex: 1;
-    pointer-events: auto;
-  }
-
-  .chart-toolbar {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    z-index: 5;
     pointer-events: auto;
   }
 
@@ -86,11 +88,13 @@ export const getStyles = (
   }
 
   .timeline-container {
-    grid-area: timeline;
+    flex: 0 0 ${timelineHeight}px;
     height: ${timelineHeight}px;
     min-height: ${timelineHeight}px;
     position: relative;
     overflow: hidden;
+    background-color: var(--color-primary-dark);
+    width: 100%;
   }
 
   .candlestick-chart {
@@ -141,13 +145,13 @@ export const getStyles = (
 
   chart-logo {
     position: absolute;
-    bottom: ${timelineHeight + 8}px;
+    bottom: 8px;
     z-index: 7;
   }
 
   indicator-container {
     position: absolute;
-    bottom: ${timelineHeight}px;
+    bottom: 0;
     left: 0;
     width: 100%;
     height: 25%;
@@ -224,11 +228,6 @@ export const getStyles = (
     overflow: hidden;
     flex: 1;
     pointer-events: auto;
-  }
-
-  [grid-area="timeline"] {
-    height: ${timelineHeight}px;
-    min-height: ${timelineHeight}px;
   }
 
   /* Add grid-crosshairs styling to extend crosshairs over the entire container */
