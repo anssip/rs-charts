@@ -1,4 +1,4 @@
-import { TrendLine, TrendLinePoint } from "../../../types/trend-line";
+import { TrendLine, TrendLinePoint, TrendLineDefaults } from "../../../types/trend-line";
 import { ChartState } from "../../..";
 
 export class TrendLineTool {
@@ -16,11 +16,23 @@ export class TrendLineTool {
   private getChartCanvas: () => HTMLCanvasElement | null;
   private ignoreNextClick = false;
   
+  private defaults = {
+    color: '#2962ff',
+    lineWidth: 2,
+    style: 'solid' as 'solid' | 'dashed' | 'dotted',
+    extendLeft: false,
+    extendRight: false
+  };
+  
   constructor(container: HTMLElement, getState: () => ChartState, priceAxisWidth: number = 70, getChartCanvas?: () => HTMLCanvasElement | null) {
     this.container = container;
     this.getState = getState;
     this.priceAxisWidth = priceAxisWidth;
     this.getChartCanvas = getChartCanvas || (() => null);
+  }
+
+  setDefaults(defaults: TrendLineDefaults): void {
+    this.defaults = { ...this.defaults, ...defaults };
   }
 
   activate(): void {
@@ -210,8 +222,8 @@ export class TrendLineTool {
     this.previewSvg.style.zIndex = '1000';
     
     this.previewLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    this.previewLine.setAttribute('stroke', '#2962ff');
-    this.previewLine.setAttribute('stroke-width', '2');
+    this.previewLine.setAttribute('stroke', this.defaults.color);
+    this.previewLine.setAttribute('stroke-width', this.defaults.lineWidth.toString());
     this.previewLine.setAttribute('stroke-dasharray', '5,5');
     this.previewLine.style.display = 'none';
     
@@ -272,11 +284,11 @@ export class TrendLineTool {
     return {
       startPoint,
       endPoint,
-      extendLeft: false,
-      extendRight: false,
-      color: '#2962ff',
-      lineWidth: 2,
-      style: 'solid'
+      extendLeft: this.defaults.extendLeft,
+      extendRight: this.defaults.extendRight,
+      color: this.defaults.color,
+      lineWidth: this.defaults.lineWidth,
+      style: this.defaults.style
     };
   }
 }

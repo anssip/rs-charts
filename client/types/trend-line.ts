@@ -25,3 +25,11 @@ export interface Point {
   x: number;
   y: number;
 }
+
+export interface TrendLineDefaults {
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
