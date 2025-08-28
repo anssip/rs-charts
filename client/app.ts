@@ -32,6 +32,7 @@ export class App {
   private state: ChartState;
   private firestoreClient: FirestoreClient;
   private isInitializing = true;
+  private isChangingGranularity = false;
   private observersInitialized = false;
   private chartReadyHandled = false;
   private _chartId: string = "state";
@@ -92,9 +93,7 @@ export class App {
     });
     observe(`${this._chartId}.granularity`, (_) => {
       if (!this.isInitializing) {
-        this.refetchData();
-        // Restart live subscription with new granularity
-        this.startLiveCandleSubscription(this.state.symbol, this.state.granularity);
+        this.handleGranularityChange();
       }
     });
     observe(`${this._chartId}.indicators`, (_) => {
@@ -248,6 +247,209 @@ export class App {
       this.chartContainer!.panTimeline(-5 * (candleInterval / 1000), 0.5);
     }, 1000);
   };
+
+  private async handleGranularityChange() {
+    // Set flag to prevent premature drawing
+    this.isChangingGranularity = true;
+    this.state.isTransitioning = true;
+    
+    // Constants from drawing-strategy.ts to ensure consistency
+    const FIXED_GAP_WIDTH = 6; // pixels
+    const MIN_CANDLE_WIDTH = 5; // pixels
+    const dpr = window.devicePixelRatio ?? 1;
+    
+    // Get canvas width
+    const canvasWidth = (this.chartContainer?.clientWidth || 800) * dpr;
+    
+    // Get current state
+    const currentEnd = this.state.timeRange.end;
+    const currentStart = this.state.timeRange.start;
+    const currentTimeRange = currentEnd - currentStart;
+    const oldGranularityMs = granularityToMs(this.state.priceHistory?.getGranularity() || "ONE_HOUR");
+    const newGranularityMs = granularityToMs(this.state.granularity);
+    
+    console.log("=== Granularity Change Debug ===");
+    console.log("Old granularity:", this.state.priceHistory?.getGranularity(), "ms:", oldGranularityMs);
+    console.log("New granularity:", this.state.granularity, "ms:", newGranularityMs);
+    console.log("Current viewport:", new Date(currentStart).toISOString(), "to", new Date(currentEnd).toISOString());
+    console.log("Canvas width:", canvasWidth / dpr, "px (without dpr)");
+    
+    // Determine if we're near the right edge or in a panned/zoomed state
+    const lastPossibleCandleTime = Math.floor(currentEnd / oldGranularityMs) * oldGranularityMs;
+    
+    // Check if we're looking at current/live data or shifted data (past or future)
+    const now = Date.now();
+    const hoursFromNow = (now - currentEnd) / (1000 * 60 * 60);
+    // Consider it shifted data if viewing data >2 hours in the past OR any future data
+    const isViewingShiftedData = hoursFromNow > 2 || currentEnd > now;
+    
+    // Check if the last candle is even in the viewport
+    const isLastCandleVisible = lastPossibleCandleTime >= currentStart && lastPossibleCandleTime <= currentEnd;
+    
+    let lastCandleX = 0;
+    let distanceFromRightEdge = 0;
+    let isNearRightEdge = false;
+    
+    if (isLastCandleVisible) {
+      lastCandleX = ((lastPossibleCandleTime - currentStart) / currentTimeRange) * (canvasWidth / dpr);
+      distanceFromRightEdge = (canvasWidth / dpr) - lastCandleX;
+      // Only consider it "near edge" if we're viewing current data and physically near the edge
+      isNearRightEdge = !isViewingShiftedData && distanceFromRightEdge < 20;
+    } else {
+      // If last candle isn't visible, we're definitely panned/zoomed
+      isNearRightEdge = false;
+      console.log("Last candle not visible in viewport - using center preservation");
+    }
+    
+    console.log("Last possible candle time:", new Date(lastPossibleCandleTime).toISOString());
+    console.log("Current time:", new Date(now).toISOString());
+    console.log("Hours from now:", hoursFromNow.toFixed(1));
+    console.log("Is viewing shifted data (past or future):", isViewingShiftedData);
+    console.log("Is last candle visible:", isLastCandleVisible);
+    if (isLastCandleVisible) {
+      console.log("Last candle position:", lastCandleX, "px, distance from edge:", distanceFromRightEdge, "px");
+    }
+    console.log("Is near right edge:", isNearRightEdge);
+    
+    let referenceTime;
+    let targetScreenPosition; // X position in pixels from left
+    
+    if (isNearRightEdge) {
+      // When near the edge, preserve the rightmost candle position
+      referenceTime = lastPossibleCandleTime;
+      targetScreenPosition = lastCandleX;
+      console.log("Using edge preservation mode - keeping rightmost candle at", targetScreenPosition, "px");
+    } else {
+      // When panned/zoomed, find the candle closest to viewport center
+      const viewportCenterX = (canvasWidth / dpr) / 2;
+      let closestCandle = null;
+      let minDistance = Infinity;
+      
+      // Find all visible candles
+      for (let t = Math.floor(currentStart / oldGranularityMs) * oldGranularityMs; 
+           t <= currentEnd; 
+           t += oldGranularityMs) {
+        if (t >= currentStart && t <= currentEnd) {
+          const x = ((t - currentStart) / currentTimeRange) * (canvasWidth / dpr);
+          const distance = Math.abs(x - viewportCenterX);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCandle = { time: t, x: x };
+          }
+        }
+      }
+      
+      if (closestCandle) {
+        referenceTime = closestCandle.time;
+        targetScreenPosition = closestCandle.x;
+        console.log("Using center preservation mode - keeping candle at", targetScreenPosition, "px");
+      } else {
+        // Fallback
+        referenceTime = currentStart + (currentTimeRange / 2);
+        targetScreenPosition = viewportCenterX;
+        console.log("Using fallback center mode");
+      }
+    }
+    
+    console.log("Reference time:", new Date(referenceTime).toISOString());
+    console.log("Target screen position:", targetScreenPosition, "px from left");
+    
+    // Find the corresponding candle in the new granularity
+    // This is the candle at or just before the same timestamp
+    let targetCandleTime = Math.floor(referenceTime / newGranularityMs) * newGranularityMs;
+    
+    console.log("Target candle in new granularity:", new Date(targetCandleTime).toISOString());
+    
+    // Calculate how many candles should be visible
+    const pixelsPerCandle = MIN_CANDLE_WIDTH + FIXED_GAP_WIDTH;
+    const maxCandlesInViewport = Math.floor(canvasWidth / pixelsPerCandle);
+    let targetCandleCount = Math.ceil(currentTimeRange / oldGranularityMs);
+    targetCandleCount = Math.min(targetCandleCount, maxCandlesInViewport);
+    targetCandleCount = Math.max(10, targetCandleCount);
+    
+    console.log("Target candle count:", targetCandleCount);
+    console.log("Max candles that can fit:", maxCandlesInViewport);
+    
+    // Calculate new viewport to preserve the pixel position
+    const newTimeSpan = targetCandleCount * newGranularityMs;
+    
+    // We want the targetCandleTime to be at the same screen position
+    // So: (targetCandleTime - newStart) / newTimeSpan = targetScreenPosition / (canvasWidth / dpr)
+    // Rearranging: targetCandleTime - newStart = (targetScreenPosition / (canvasWidth / dpr)) * newTimeSpan
+    // Therefore: newStart = targetCandleTime - (targetScreenPosition / (canvasWidth / dpr)) * newTimeSpan
+    
+    const proportionFromLeft = targetScreenPosition / (canvasWidth / dpr);
+    const newStart = targetCandleTime - (proportionFromLeft * newTimeSpan);
+    const newEnd = newStart + newTimeSpan;
+    
+    console.log("Proportion from left:", proportionFromLeft);
+    console.log("New time span:", newTimeSpan / (1000 * 60 * 60), "hours");
+    console.log("New viewport:", new Date(newStart).toISOString(), "to", new Date(newEnd).toISOString());
+    
+    // Verify the position will be preserved
+    const verifyX = ((targetCandleTime - newStart) / newTimeSpan) * (canvasWidth / dpr);
+    console.log("Verification - new X position will be:", verifyX, "px from left");
+    console.log("Verification - difference from target:", verifyX - targetScreenPosition, "px");
+    console.log("=== End Debug ===");
+    
+    // Create new time range object
+    const adjustedTimeRange = {
+      start: newStart,
+      end: newEnd
+    };
+    
+    // Fetch data with the new granularity and adjusted time range
+    const newCandles = await this.fetchData(
+      this.state.symbol,
+      this.state.granularity,
+      adjustedTimeRange,
+      false,
+      "granularity-change",
+    );
+    
+    if (newCandles) {
+      // Create new price history with the new granularity
+      const newPriceHistory = new SimplePriceHistory(
+        this.state.granularity,
+        newCandles,
+      );
+      
+      // Calculate price range for the new viewport
+      const newPriceRange = newPriceHistory.getPriceRange(
+        adjustedTimeRange.start,
+        adjustedTimeRange.end,
+      );
+      
+      // Batch update all state properties at once
+      // This ensures only one draw() call with all correct values
+      this.state.timeRange = adjustedTimeRange;
+      this.state.priceHistory = newPriceHistory;
+      this.state.priceRange = newPriceRange;
+      
+      // Clear the transitioning flag before final state update
+      this.state.isTransitioning = false;
+      
+      // Now update the chart container with the complete, consistent state
+      // This triggers only one draw() with all values correctly set
+      this.chartContainer!.state = this.state;
+      
+      // Clear the internal flag
+      this.isChangingGranularity = false;
+      
+      // Trigger a single draw with all correct values
+      this.chartContainer!.draw();
+    } else {
+      // Clear flags even if fetch failed
+      this.state.isTransitioning = false;
+      this.chartContainer!.state = this.state;
+    }
+    
+    // Clear the flag even if fetch failed
+    this.isChangingGranularity = false;
+    
+    // Restart live subscription with new granularity
+    this.startLiveCandleSubscription(this.state.symbol, this.state.granularity);
+  }
 
   private async refetchData() {
     const newCandles = await this.fetchData(

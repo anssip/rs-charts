@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chart Zoom Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .chart-container {
+            width: 100%;
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+        .instructions strong {
+            color: #0066cc;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 4px;
+            border: 1px solid #ffeeba;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chart Timeline Zoom & Timeframe Test</h1>
+    <div class="instructions">
+        <strong>Test Instructions:</strong><br>
+        1. Use mouse wheel on the chart to zoom in/out<br>
+        2. Zoom IN (scroll up) to see fewer candles - they should get wider<br>
+        3. Zoom OUT (scroll down) to see more candles - they should get thinner<br>
+        4. <strong>Switch timeframes using the buttons below to test spacing preservation</strong><br>
+        5. <strong>Expected Behavior:</strong> 
+        <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>Candles should NEVER overlap, maintaining a 6px gap between them</li>
+            <li>When switching timeframes, candle width and gaps should remain consistent</li>
+            <li><strong>The rightmost candle should stay in the same position when switching timeframes</strong></li>
+            <li>Minimum candle width should be 5px (as defined by MIN_CANDLE_WIDTH)</li>
+        </ul>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <strong>Timeframe:</strong>
+        <button onclick="changeGranularity('FIVE_MINUTE')">5m</button>
+        <button onclick="changeGranularity('FIFTEEN_MINUTE')">15m</button>
+        <button onclick="changeGranularity('THIRTY_MINUTE')">30m</button>
+        <button onclick="changeGranularity('ONE_HOUR')">1h</button>
+        <button onclick="changeGranularity('SIX_HOUR')">6h</button>
+        <button onclick="changeGranularity('ONE_DAY')">1d</button>
+    </div>
+    
+    <div class="chart-container" id="chart-1">
+        <!-- Chart will be initialized here by index.js -->
+    </div>
+    
+    <div class="status" id="status">
+        Loading chart...
+    </div>
+
+    <script type="module">
+        import './index.js';
+        import { xin } from 'xinjs';
+        
+        // Make changeGranularity globally available
+        window.changeGranularity = function(granularity) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = `Changing timeframe to ${granularity}...`;
+            
+            // Change granularity using xin state
+            xin.state.granularity = granularity;
+            
+            setTimeout(() => {
+                statusEl.textContent = `Timeframe changed to ${granularity}. Check candle spacing preservation.`;
+            }, 1000);
+        };
+        
+        // Wait for chart to load and add status updates
+        setTimeout(() => {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = 'Chart loaded. Try zooming or switching timeframes to test spacing.';
+            
+            // Listen for zoom events to provide feedback
+            const chartContainer = document.querySelector('chart-container');
+            if (chartContainer) {
+                chartContainer.addEventListener('timeline-zoom', (e) => {
+                    statusEl.textContent = `Zooming... Delta: ${e.detail.deltaX.toFixed(2)}`;
+                    setTimeout(() => {
+                        statusEl.textContent = 'Zoom complete. Check if candles maintain proper spacing.';
+                    }, 500);
+                });
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
