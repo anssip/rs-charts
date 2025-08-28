@@ -131,12 +131,18 @@ export class VolumeChart extends CanvasBase {
     );
     const availableWidth = this.canvas.width / dpr;
 
-    const totalGapWidth = ((candleCount - 1) * this.FIXED_GAP_WIDTH) / dpr;
-    const spaceForBars = availableWidth - totalGapWidth;
-    const barWidth = Math.max(
-      this.MIN_BAR_WIDTH,
-      Math.min(this.MAX_BAR_WIDTH, spaceForBars / candleCount)
-    );
+    // Calculate total gap width based on number of gaps (one less than candle count)
+    const numberOfGaps = Math.max(0, candleCount - 1);
+    const totalGapWidth = numberOfGaps * this.FIXED_GAP_WIDTH;
+    
+    // Calculate space available for bar bodies after accounting for gaps
+    const spaceForBars = Math.max(0, availableWidth - totalGapWidth);
+    
+    // Calculate bar width ensuring MIN_BAR_WIDTH is respected
+    let barWidth = spaceForBars / Math.max(1, candleCount);
+    
+    // Enforce MIN and MAX bar width constraints
+    barWidth = Math.max(this.MIN_BAR_WIDTH, Math.min(this.MAX_BAR_WIDTH, barWidth));
 
     logger.debug(
       `VolumeChart: Drawing ${candleCount} volume bars with width ${barWidth}px`

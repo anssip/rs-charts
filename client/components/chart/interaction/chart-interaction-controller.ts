@@ -163,7 +163,9 @@ export class ChartInteractionController {
     const viewportWidth = this.eventTarget?.clientWidth ?? 0;
     const timePerPixel = timeRange / viewportWidth;
 
-    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
+    // For mouse drag: dragging left (negative deltaX) should move backward in time
+    // For trackpad: horizontal scroll right (positive deltaX) should move forward in time
+    const adjustedDelta = isTrackpad ? -deltaX : -deltaX;
     const timeShift = Math.round(adjustedDelta * timePerPixel);
 
     if (timeShift === 0) return;
@@ -346,23 +348,43 @@ export class ChartInteractionController {
     const { deltaX, clientX, rect, isTrackpad } = event.detail;
     const { state } = this.options;
 
+    // Constants from drawing-strategy.ts
+    const FIXED_GAP_WIDTH = 6; // pixels
+    const MIN_CANDLE_WIDTH = 5; // pixels
+    const dpr = window.devicePixelRatio ?? 1;
+    
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
     const timeRange = state.timeRange.end - state.timeRange.start;
     const zoomCenter = (clientX - rect.left) / rect.width;
     const timeAdjustment =
       timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
+    
+    // Calculate the proposed new time range
+    let proposedTimeRange = timeRange - timeAdjustment;
+    
+    // Calculate maximum time range to prevent candle overlap
+    // Each candle needs MIN_CANDLE_WIDTH + FIXED_GAP_WIDTH pixels
+    const canvasWidth = rect.width * dpr;
+    const pixelsPerCandle = MIN_CANDLE_WIDTH + FIXED_GAP_WIDTH;
+    const maxCandlesInViewport = Math.floor(canvasWidth / pixelsPerCandle);
+    const candleInterval = getCandleInterval(state.granularity);
+    const maxTimeRange = maxCandlesInViewport * candleInterval;
+    
+    // Enforce both minimum and maximum time range
+    const minTimeRange = candleInterval * 10; // Keep original minimum
     const newTimeRange = Math.max(
-      timeRange - timeAdjustment,
-      getCandleInterval(state.granularity) * 10
+      minTimeRange,
+      Math.min(proposedTimeRange, maxTimeRange)
     );
+    
     const rangeDifference = timeRange - newTimeRange;
 
     const newStart = state.timeRange.start + rangeDifference * zoomCenter;
     const newEnd = state.timeRange.end - rangeDifference * (1 - zoomCenter);
 
-    if (newEnd - newStart < getCandleInterval(state.granularity) * 10) {
+    if (newEnd - newStart < minTimeRange) {
       const center = (newStart + newEnd) / 2;
-      const minHalfRange = getCandleInterval(state.granularity) * 5;
+      const minHalfRange = minTimeRange / 2;
       this.options.onStateChange({
         timeRange: {
           start: center - minHalfRange,

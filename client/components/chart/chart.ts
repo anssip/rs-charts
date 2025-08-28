@@ -117,7 +117,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   @property({ type: Object })
   public set state(state: ChartState) {
     this._state = state;
-    this.draw();
+    // Skip drawing if we're in a transition (e.g., changing granularity)
+    // This prevents drawing with inconsistent state
+    if (!state.isTransitioning) {
+      this.draw();
+    }
   }
 
   override getId(): string {

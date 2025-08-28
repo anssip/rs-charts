@@ -38,6 +38,7 @@ export type ChartState = {
   loading?: boolean;
   indicators?: IndicatorConfig[];
   trendLines?: TrendLine[];
+  isTransitioning?: boolean; // Flag to prevent drawing during state transitions
 };
 
 declare global {
