@@ -260,25 +260,33 @@ export class ChartInteractionController {
 
       const adjustedDelta = deltaDistance * zoomSensitivity;
 
-      this.eventTarget.dispatchEvent(
-        new CustomEvent("timeline-zoom", {
-          detail: {
-            deltaX: adjustedDelta,
-            clientX: centerX,
-            rect,
-            isTrackpad: true,
-          },
-          bubbles: true,
-          composed: true,
-        })
-      );
+      // Only dispatch timeline-zoom if we're not on the price-axis or timeline components
+      // Those components handle their own pinch zooming
+      const target = e.target as HTMLElement;
+      const isOnPriceAxis = target.closest('price-axis') !== null;
+      const isOnTimeline = target.closest('chart-timeline') !== null;
+      
+      if (!isOnPriceAxis && !isOnTimeline) {
+        this.eventTarget.dispatchEvent(
+          new CustomEvent("timeline-zoom", {
+            detail: {
+              deltaX: adjustedDelta,
+              clientX: centerX,
+              rect,
+              isTrackpad: true,
+            },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      }
 
       this.lastTouchDistance = currentDistance;
     } else if (e.touches.length === 1) {
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
 
-      this.handlePan(deltaX);
+      this.handlePan(-deltaX);
       this.handleVerticalPan(deltaY);
 
       this.lastX = e.touches[0].clientX;
