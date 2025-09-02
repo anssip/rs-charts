@@ -28,6 +28,8 @@ export class ChartInteractionController {
   private lastX = 0;
   private lastY = 0;
   private lastTouchDistance = 0;
+  private lastTouchDistanceX = 0;
+  private lastTouchDistanceY = 0;
   private isZooming = false;
   private readonly ZOOM_FACTOR: number;
   private readonly BUFFER_MULTIPLIER: number;
@@ -236,6 +238,9 @@ export class ChartInteractionController {
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
+      // Store separate X and Y distances for directional zoom detection
+      this.lastTouchDistanceX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+      this.lastTouchDistanceY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
     } else if (e.touches.length === 1) {
       this.lastX = e.touches[0].clientX;
       this.lastY = e.touches[0].clientY;
@@ -247,30 +252,30 @@ export class ChartInteractionController {
     e.preventDefault();
 
     if (e.touches.length === 2 && this.isZooming) {
-      const currentDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-
-      const deltaDistance = currentDistance - this.lastTouchDistance;
-      const zoomSensitivity = 0.5;
-
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-
-      const adjustedDelta = deltaDistance * zoomSensitivity;
-
-      // Only dispatch timeline-zoom if we're not on the price-axis or timeline components
-      // Those components handle their own pinch zooming
-      const target = e.target as HTMLElement;
-      const isOnPriceAxis = target.closest('price-axis') !== null;
-      const isOnTimeline = target.closest('chart-timeline') !== null;
+      const currentDistanceX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+      const currentDistanceY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
       
-      if (!isOnPriceAxis && !isOnTimeline) {
+      const deltaDistanceX = currentDistanceX - this.lastTouchDistanceX;
+      const deltaDistanceY = currentDistanceY - this.lastTouchDistanceY;
+      
+      const zoomSensitivity = 0.5;
+      
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      
+      // Determine the dominant zoom direction based on the larger delta
+      const isHorizontalZoom = Math.abs(deltaDistanceX) > Math.abs(deltaDistanceY);
+      
+      // Apply directional zoom based on pinch direction
+      if (isHorizontalZoom && Math.abs(deltaDistanceX) > 1) {
+        // Horizontal pinch - zoom timeline (X axis)
+        const adjustedDeltaX = deltaDistanceX * zoomSensitivity;
+        
         this.eventTarget.dispatchEvent(
           new CustomEvent("timeline-zoom", {
             detail: {
-              deltaX: adjustedDelta,
+              deltaX: adjustedDeltaX,
               clientX: centerX,
               rect,
               isTrackpad: true,
@@ -279,9 +284,26 @@ export class ChartInteractionController {
             composed: true,
           })
         );
+      } else if (!isHorizontalZoom && Math.abs(deltaDistanceY) > 1) {
+        // Vertical pinch - zoom price axis (Y axis)
+        const adjustedDeltaY = deltaDistanceY * zoomSensitivity;
+        
+        this.eventTarget.dispatchEvent(
+          new CustomEvent("price-axis-zoom", {
+            detail: {
+              deltaY: adjustedDeltaY,
+              clientY: centerY,
+              rect,
+              isTrackpad: true,
+            },
+            bubbles: true,
+            composed: true,
+          })
+        );
       }
-
-      this.lastTouchDistance = currentDistance;
+      
+      this.lastTouchDistanceX = currentDistanceX;
+      this.lastTouchDistanceY = currentDistanceY;
     } else if (e.touches.length === 1) {
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
