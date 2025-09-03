@@ -122,7 +122,44 @@ const defaultIndicators: IndicatorConfig[] = [
   },
 ];
 
+// Register service worker for background data fetching
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/'
+      });
+      
+      console.log('Service Worker registered successfully:', registration.scope);
+      
+      // Check for updates periodically
+      setInterval(() => {
+        registration.update();
+      }, 60 * 60 * 1000); // Check every hour
+      
+      // Handle updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              console.log('Service Worker updated and activated');
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  } else {
+    console.warn('Service Workers are not supported in this browser');
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  // Register service worker
+  registerServiceWorker();
+  
   const chartContainer1 = document.querySelector("#chart-1") as HTMLElement;
   const chartContainer2 = document.querySelector("#chart-2") as HTMLElement;
 
