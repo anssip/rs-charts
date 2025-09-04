@@ -25,9 +25,14 @@ The chart provides different interaction methods for navigating and zooming acro
   - Swipe down → Chart moves down (view higher prices)
   - Uses natural scrolling behavior expected on touch devices
 
-- **Two Finger Pinch**: Zoom the timeline (horizontal zoom only)
-  - Pinch in → Zoom out (see more time period)
-  - Pinch out → Zoom in (see less time period)
+- **Two Finger Pinch**: Directional zoom based on gesture orientation
+  - **Horizontal pinch** (fingers move horizontally): Zoom the timeline
+    - Pinch in → Zoom out (see more time period)
+    - Pinch out → Zoom in (see less time period)
+  - **Vertical pinch** (fingers move vertically): Zoom the price axis
+    - Pinch in → Zoom out (wider price range)
+    - Pinch out → Zoom in (narrower price range)
+  - **Diagonal pinch**: Zooms both axes proportionally
   - Zoom centers on the midpoint between fingers
 
 ## Timeline (Horizontal Axis)
@@ -47,10 +52,11 @@ The chart provides different interaction methods for navigating and zooming acro
   - Swipe left → Zoom out (show more time)
   - Swipe right → Zoom in (show less time)
 
-- **Two Finger Pinch**: Zoom the timeline
-  - Pinch in → Zoom out
-  - Pinch out → Zoom in
+- **Two Finger Pinch**: Zoom the timeline (horizontal only)
+  - Pinch in → Zoom out (show more time)
+  - Pinch out → Zoom in (show less time)
   - Zoom centers on the midpoint between fingers
+  - Note: Pinch gestures on the timeline only affect horizontal zoom
 
 ## Price Axis (Vertical Axis)
 
@@ -68,18 +74,21 @@ The chart provides different interaction methods for navigating and zooming acro
   - Swipe up → Zoom out (show wider price range)
   - Swipe down → Zoom in (show narrower price range)
 
-- **Two Finger Pinch**: Zoom the price axis (vertical zoom only)
+- **Two Finger Pinch**: Zoom the price axis (vertical only)
   - Pinch in → Zoom out (wider price range)
   - Pinch out → Zoom in (narrower price range)
-  - Note: Pinch gestures on the price axis only affect vertical zoom, not the timeline
+  - Zoom is applied uniformly regardless of pinch direction
+  - Note: Pinch gestures on the price axis only affect vertical zoom, timeline remains unchanged
 
 ## Interaction Zones Summary
 
 | Area | Mouse Drag | Mouse Wheel | Touch Single Finger | Touch Pinch |
 |------|------------|-------------|-------------------|--------------|
-| **Chart Area** | Pan X/Y | Pan X/Y | Pan X/Y | Zoom Timeline |
-| **Timeline** | Zoom Time | Zoom Time | Zoom Time | Zoom Time |
-| **Price Axis** | Zoom Price | Zoom Price | Zoom Price | Zoom Price |
+| **Chart Area** | Pan X/Y | Pan X/Y | Pan X/Y | Directional Zoom* |
+| **Timeline** | Zoom Time | Zoom Time | Zoom Time | Zoom Time (H only) |
+| **Price Axis** | Zoom Price | Zoom Price | Zoom Price | Zoom Price (V only) |
+
+*Directional zoom in chart area: Horizontal pinch → timeline zoom, Vertical pinch → price zoom, Diagonal → both
 
 ## Key Behaviors
 
@@ -94,7 +103,13 @@ The chart provides different interaction methods for navigating and zooming acro
 ### Touch-Specific Behaviors
 - **Natural scrolling**: Touch gestures follow natural scrolling patterns (content moves with finger)
 - **Momentum scrolling**: Not currently implemented
-- **Gesture isolation**: Pinch gestures on price axis don't affect timeline and vice versa
+- **Gesture isolation**: Pinch gestures on specific areas are isolated:
+  - Price axis pinch → only vertical zoom
+  - Timeline pinch → only horizontal zoom
+  - Chart area pinch → directional zoom based on finger movement
+- **Directional pinch detection** (Chart area only):
+  - System detects whether fingers move primarily horizontally, vertically, or diagonally
+  - Applies appropriate zoom based on gesture direction
 
 ### Performance Optimizations
 - **Smart data loading**: Additional data loads automatically when approaching viewport edges

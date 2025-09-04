@@ -8,7 +8,7 @@ import { getLogger } from "../util/logger";
 const logger = getLogger("indexeddb-cache");
 
 const DB_NAME = "RSChartsCache";
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to trigger schema upgrade
 const CANDLE_STORE = "candles";
 const META_STORE = "metadata";
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -186,11 +186,21 @@ export class IndexedDBCache {
         const cursor = (event.target as IDBRequest).result;
         if (cursor) {
           const record = cursor.value as CandleRecord;
-          candles.set(record.timestamp, record.candle);
           
-          // Update last accessed time
-          record.lastAccessed = now;
-          cursor.update(record);
+          // IMPORTANT: Verify exact match for symbol, granularity, and indicators
+          // The compound index might return partial matches, so we need to filter
+          if (record.symbol === symbol && 
+              record.granularity === granularity && 
+              record.indicators === sortedIndicators &&
+              record.timestamp >= timeRange.start &&
+              record.timestamp <= timeRange.end) {
+            
+            candles.set(record.timestamp, record.candle);
+            
+            // Update last accessed time
+            record.lastAccessed = now;
+            cursor.update(record);
+          }
           
           cursor.continue();
         } else {
@@ -403,6 +413,59 @@ export class IndexedDBCache {
 
       transaction.onerror = () => {
         logger.error("Failed to clear cache:", transaction.error);
+        reject(transaction.error);
+      };
+    });
+  }
+
+  async clearCacheForSymbol(symbol: string): Promise<void> {
+    await this.ensureInitialized();
+    if (!this.db) return;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(
+        [CANDLE_STORE, META_STORE],
+        "readwrite"
+      );
+      const candleStore = transaction.objectStore(CANDLE_STORE);
+      const metaStore = transaction.objectStore(META_STORE);
+      
+      // Clear candles for this symbol
+      const candleIndex = candleStore.index("by_key");
+      const candleRequest = candleIndex.openCursor();
+      
+      candleRequest.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          const record = cursor.value as CandleRecord;
+          if (record.symbol === symbol) {
+            cursor.delete();
+          }
+          cursor.continue();
+        }
+      };
+
+      // Clear metadata for this symbol
+      const metaRequest = metaStore.openCursor();
+      
+      metaRequest.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          const key = cursor.key as string;
+          if (key.startsWith(`${symbol}:`)) {
+            cursor.delete();
+          }
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => {
+        logger.info(`Cache cleared for symbol: ${symbol}`);
+        resolve();
+      };
+
+      transaction.onerror = () => {
+        logger.error(`Failed to clear cache for symbol ${symbol}:`, transaction.error);
         reject(transaction.error);
       };
     });
