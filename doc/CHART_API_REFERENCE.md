@@ -591,6 +591,131 @@ Check if chart is currently loading data.
 const loading = api.isLoading(); // Returns: true/false
 ```
 
+#### `getTimeRange(): TimeRange`
+
+Get the currently visible time range of the chart.
+
+```typescript
+const timeRange = api.getTimeRange();
+console.log("Start:", new Date(timeRange.start));
+console.log("End:", new Date(timeRange.end));
+// Returns: { start: 1609459200000, end: 1609545600000 }
+```
+
+**Returns:**
+- `TimeRange`: Object with `start` and `end` properties (timestamps in milliseconds)
+
+#### `setTimeRange(timeRange: TimeRange | { start?: number; end?: number }): void`
+
+Set a new time range for the chart. The chart will automatically fetch additional data if needed when panning outside the buffered area.
+
+```typescript
+// Set a specific time range
+api.setTimeRange({
+  start: Date.now() - 7 * 24 * 60 * 60 * 1000, // 7 days ago
+  end: Date.now()
+});
+
+// Zoom in by 50% (keeping center point)
+const current = api.getTimeRange();
+const duration = current.end - current.start;
+const center = (current.start + current.end) / 2;
+const newDuration = duration * 0.5;
+api.setTimeRange({
+  start: center - newDuration / 2,
+  end: center + newDuration / 2
+});
+
+// Pan left by 20%
+const current = api.getTimeRange();
+const duration = current.end - current.start;
+const shift = duration * 0.2;
+api.setTimeRange({
+  start: current.start - shift,
+  end: current.end - shift
+});
+```
+
+**Parameters:**
+- `timeRange`: Object with optional `start` and/or `end` properties
+  - `start`: Start timestamp in milliseconds
+  - `end`: End timestamp in milliseconds
+  - If only one is provided, the other will remain unchanged
+
+**Throws:**
+- Error if `start >= end`
+
+#### `getPriceRange(): PriceRange`
+
+Get the currently visible price range of the chart.
+
+```typescript
+const priceRange = api.getPriceRange();
+console.log("Min:", priceRange.min);
+console.log("Max:", priceRange.max);
+console.log("Range:", priceRange.range);
+// Returns: { min: 45000, max: 50000, range: 5000 }
+```
+
+**Returns:**
+- `PriceRange`: Object with `min`, `max`, and `range` properties
+  - `min`: Minimum visible price
+  - `max`: Maximum visible price
+  - `range`: Price range (max - min)
+
+#### `setPriceRange(priceRange: { min: number; max: number }): void`
+
+Set a new price range for the chart.
+
+```typescript
+// Set a specific price range
+api.setPriceRange({
+  min: 45000,
+  max: 55000
+});
+
+// Expand range by 10%
+const current = api.getPriceRange();
+const adjustment = current.range * 0.1;
+api.setPriceRange({
+  min: current.min - adjustment,
+  max: current.max + adjustment
+});
+
+// Auto-fit to visible data
+const state = api.getState();
+const timeRange = api.getTimeRange();
+const visibleCandles = state.priceHistory.getCandlesInRange(
+  timeRange.start,
+  timeRange.end
+);
+
+if (visibleCandles.length > 0) {
+  let minPrice = Infinity;
+  let maxPrice = -Infinity;
+  
+  visibleCandles.forEach(([_, candle]) => {
+    minPrice = Math.min(minPrice, candle.low);
+    maxPrice = Math.max(maxPrice, candle.high);
+  });
+  
+  // Add 5% padding
+  const padding = (maxPrice - minPrice) * 0.05;
+  api.setPriceRange({
+    min: minPrice - padding,
+    max: maxPrice + padding
+  });
+}
+```
+
+**Parameters:**
+- `priceRange`: Object with required `min` and `max` properties
+  - `min`: Minimum price to display
+  - `max`: Maximum price to display
+
+**Throws:**
+- Error if `min >= max`
+
 ### Utility Methods
 
 #### `redraw(): void`

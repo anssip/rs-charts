@@ -2,11 +2,14 @@
 import { ChartContainer } from "../components/chart/chart-container";
 import { App } from "../app";
 import { ChartState } from "../index";
-import { Granularity, getAllGranularities } from "../../server/services/price-data/price-history-model";
+import { Granularity, getAllGranularities, TimeRange, PriceRange } from "../../server/services/price-data/price-history-model";
 import { IndicatorConfig, DisplayType, ScaleType, GridStyle } from "../components/chart/indicators/indicator-types";
 import { logger } from "../util/logger";
 import { config as chartConfig } from "../config";
 import { TrendLine, TrendLineEvent, TrendLineDefaults } from "../types/trend-line";
+import { PriceRangeImpl } from "../util/price-range";
+
+const BUFFER_MULTIPLIER = 1;
 
 export interface ChartApiOptions {
   container: ChartContainer;
@@ -594,6 +597,97 @@ export class ChartApi {
    */
   isChartReady(): boolean {
     return this.isReady;
+  }
+
+  /**
+   * Get the currently visible time range
+   * @returns TimeRange object with start and end timestamps in milliseconds
+   */
+  getTimeRange(): TimeRange {
+    return this.state.timeRange;
+  }
+
+  /**
+   * Set a new time range for the chart
+   * @param timeRange Time range with start and end timestamps in milliseconds
+   */
+  setTimeRange(timeRange: TimeRange | { start?: number; end?: number }): void {
+    logger.info(`ChartApi: Setting time range`, timeRange);
+    
+    // Merge with existing time range if partial
+    const newTimeRange: TimeRange = {
+      start: timeRange.start !== undefined ? timeRange.start : this.state.timeRange.start,
+      end: timeRange.end !== undefined ? timeRange.end : this.state.timeRange.end
+    };
+    
+    // Validate time range
+    if (newTimeRange.start >= newTimeRange.end) {
+      logger.error("ChartApi: Invalid time range - start must be before end");
+      throw new Error("Invalid time range: start must be before end");
+    }
+    
+    // Update the state
+    this.state.timeRange = newTimeRange;
+    
+    // Check if we need to fetch more data
+    const bufferTimeRange = (newTimeRange.end - newTimeRange.start) * BUFFER_MULTIPLIER;
+    const needMoreData = 
+      newTimeRange.start < this.state.priceHistory.startTimestamp + bufferTimeRange ||
+      newTimeRange.end > this.state.priceHistory.endTimestamp - bufferTimeRange;
+    
+    if (needMoreData) {
+      // Determine direction based on which boundary we're approaching
+      const direction = newTimeRange.start < this.state.priceHistory.startTimestamp + bufferTimeRange
+        ? "backward" 
+        : "forward";
+      
+      // Dispatch event to fetch more data
+      this.container.dispatchEvent(
+        new CustomEvent("chart-pan", {
+          detail: {
+            direction,
+            timeRange: newTimeRange,
+            needMoreData: true,
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    
+    // Force a redraw
+    this.redraw();
+  }
+
+  /**
+   * Get the currently visible price range
+   * @returns PriceRange object with min, max, and range values
+   */
+  getPriceRange(): PriceRange {
+    return this.state.priceRange;
+  }
+
+  /**
+   * Set a new price range for the chart
+   * @param priceRange Object with min and max price values
+   */
+  setPriceRange(priceRange: { min: number; max: number }): void {
+    logger.info(`ChartApi: Setting price range`, priceRange);
+    
+    // Validate price range
+    if (priceRange.min >= priceRange.max) {
+      logger.error("ChartApi: Invalid price range - min must be less than max");
+      throw new Error("Invalid price range: min must be less than max");
+    }
+    
+    // Create new PriceRangeImpl instance
+    const newPriceRange = new PriceRangeImpl(priceRange.min, priceRange.max);
+    
+    // Update the state
+    this.state.priceRange = newPriceRange;
+    
+    // Force a redraw
+    this.redraw();
   }
 
   /**

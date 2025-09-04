@@ -312,6 +312,27 @@
             </div>
 
             <div class="control-group">
+                <label>Time Range:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="getTimeRange()">Get Range</button>
+                    <button class="control-button" onclick="zoomInTime()">Zoom In</button>
+                    <button class="control-button" onclick="zoomOutTime()">Zoom Out</button>
+                    <button class="control-button" onclick="panLeft()">← Pan</button>
+                    <button class="control-button" onclick="panRight()">Pan →</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Price Range:</label>
+                <div class="control-buttons">
+                    <button class="control-button" onclick="getPriceRange()">Get Range</button>
+                    <button class="control-button" onclick="adjustPriceUp()">↑ Expand</button>
+                    <button class="control-button" onclick="adjustPriceDown()">↓ Contract</button>
+                    <button class="control-button" onclick="resetPriceRange()">Auto Fit</button>
+                </div>
+            </div>
+
+            <div class="control-group">
                 <label>Trend Lines:</label>
                 <div class="control-buttons">
                     <button class="control-button" onclick="activateTrendLine()">Draw Line</button>
@@ -476,6 +497,182 @@
                 try {
                     api.redraw();
                     updateStatus('Chart redrawn');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Time Range functions
+            function getTimeRange() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const range = api.getTimeRange();
+                    const startDate = new Date(range.start).toLocaleString();
+                    const endDate = new Date(range.end).toLocaleString();
+                    updateStatus(`Time Range:\nStart: ${startDate}\nEnd: ${endDate}`);
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function zoomInTime() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const center = (currentRange.start + currentRange.end) / 2;
+                    const newDuration = duration * 0.5;
+                    
+                    api.setTimeRange({
+                        start: center - newDuration / 2,
+                        end: center + newDuration / 2
+                    });
+                    updateStatus('Zoomed in time 50%');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function zoomOutTime() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const center = (currentRange.start + currentRange.end) / 2;
+                    const newDuration = duration * 2;
+                    
+                    api.setTimeRange({
+                        start: center - newDuration / 2,
+                        end: center + newDuration / 2
+                    });
+                    updateStatus('Zoomed out time 200%');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function panLeft() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const shift = duration * 0.2;
+                    
+                    api.setTimeRange({
+                        start: currentRange.start - shift,
+                        end: currentRange.end - shift
+                    });
+                    updateStatus('Panned left');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function panRight() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const shift = duration * 0.2;
+                    
+                    api.setTimeRange({
+                        start: currentRange.start + shift,
+                        end: currentRange.end + shift
+                    });
+                    updateStatus('Panned right');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Price Range functions
+            function getPriceRange() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const range = api.getPriceRange();
+                    updateStatus(`Price Range:\nMin: $${range.min.toFixed(2)}\nMax: $${range.max.toFixed(2)}\nRange: $${range.range.toFixed(2)}`);
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function adjustPriceUp() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getPriceRange();
+                    const adjustment = currentRange.range * 0.1;
+                    
+                    api.setPriceRange({
+                        min: currentRange.min - adjustment,
+                        max: currentRange.max + adjustment
+                    });
+                    updateStatus('Expanded price range by 10%');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function adjustPriceDown() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    const currentRange = api.getPriceRange();
+                    const adjustment = currentRange.range * 0.1;
+                    
+                    api.setPriceRange({
+                        min: currentRange.min + adjustment,
+                        max: currentRange.max - adjustment
+                    });
+                    updateStatus('Contracted price range by 10%');
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function resetPriceRange() {
+                const api = getCurrentApi();
+                if (!api) return;
+                
+                try {
+                    // Get visible candles to determine appropriate price range
+                    const state = api.getState();
+                    const timeRange = api.getTimeRange();
+                    const visibleCandles = state.priceHistory.getCandlesInRange(timeRange.start, timeRange.end);
+                    
+                    if (visibleCandles.length > 0) {
+                        let minPrice = Infinity;
+                        let maxPrice = -Infinity;
+                        
+                        visibleCandles.forEach(([_, candle]) => {
+                            minPrice = Math.min(minPrice, candle.low);
+                            maxPrice = Math.max(maxPrice, candle.high);
+                        });
+                        
+                        // Add 5% padding
+                        const padding = (maxPrice - minPrice) * 0.05;
+                        api.setPriceRange({
+                            min: minPrice - padding,
+                            max: maxPrice + padding
+                        });
+                        updateStatus('Auto-fitted price range to visible data');
+                    } else {
+                        updateStatus('No visible candles to determine price range');
+                    }
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
