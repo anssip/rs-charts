@@ -48,3 +48,12 @@ Let's add line deletion.
 
 - Add an event to the chart-api that is emitted when a line is modified. It should include an ID of the line that can be then used to identify the line in later API calls.
 - Then add an API method that can be used to modify a line by its ID.
+
+# API enhancements
+
+Add the follwing methods to chart-api.ts and make these functional:
+
+- getTimeRange(): returns the currently visible time range
+- setTimeRange(): sets a new time range for the chart and makes it visible
+- getPriceRange(): returns the currently visible price range
+- setPriceRange(): sets a new price range for the chart and makes it visible

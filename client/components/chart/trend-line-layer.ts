@@ -6,7 +6,7 @@ import "./trend-line";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("trend-line-layer");
-logger.setLoggerLevel("trend-line-layer", LogLevel.DEBUG);
+logger.setLoggerLevel("trend-line-layer", LogLevel.INFO);
 
 @customElement("trend-line-layer")
 export class TrendLineLayer extends LitElement {
@@ -62,20 +62,32 @@ export class TrendLineLayer extends LitElement {
 
   removeTrendLine(id: string): void {
     logger.debug(`TrendLineLayer: removeTrendLine called for ID: ${id}`);
-    logger.debug(`TrendLineLayer: Current trend lines array:`, this.trendLines.map(l => String(l.id)));
+    logger.debug(
+      `TrendLineLayer: Current trend lines array:`,
+      this.trendLines.map((l) => String(l.id)),
+    );
     logger.debug(`TrendLineLayer: Array length: ${this.trendLines.length}`);
-    
+
     // Convert Proxy IDs to strings for comparison
     const lineToRemove = this.trendLines.find((l) => String(l.id) === id);
     if (lineToRemove) {
-      logger.debug(`TrendLineLayer: Found line to remove: ${String(lineToRemove.id)}`);
+      logger.debug(
+        `TrendLineLayer: Found line to remove: ${String(lineToRemove.id)}`,
+      );
       // Don't mutate the local array - just emit the event and let the parent handle it
       this.emitEvent("remove", lineToRemove);
-      logger.debug(`TrendLineLayer: Emitted remove event for line ${String(lineToRemove.id)}`);
+      logger.debug(
+        `TrendLineLayer: Emitted remove event for line ${String(lineToRemove.id)}`,
+      );
     } else {
-      logger.warn(`TrendLineLayer: Could not find trend line with ID: ${id} in local array`);
-      logger.warn(`TrendLineLayer: Available IDs:`, this.trendLines.map(l => String(l.id)));
-      
+      logger.warn(
+        `TrendLineLayer: Could not find trend line with ID: ${id} in local array`,
+      );
+      logger.warn(
+        `TrendLineLayer: Available IDs:`,
+        this.trendLines.map((l) => String(l.id)),
+      );
+
       // Even if we can't find it locally, emit the remove event with a minimal object
       // The parent chart-container should have the actual trend line
       logger.info(`TrendLineLayer: Emitting remove event anyway for ID: ${id}`);
@@ -86,33 +98,49 @@ export class TrendLineLayer extends LitElement {
   updateTrendLine(id: string, updates: Partial<TrendLine>): void {
     logger.debug(`TrendLineLayer: updateTrendLine called for ID: ${id}`);
     logger.debug(`TrendLineLayer: Updates:`, updates);
-    logger.debug(`TrendLineLayer: Current trend lines full objects:`, this.trendLines);
-    logger.debug(`TrendLineLayer: Current trend lines IDs:`, this.trendLines.map(l => ({
-      id: l.id,
-      idType: typeof l.id,
-      stringId: String(l.id),
-      hasIdProp: 'id' in l
-    })));
-    
+    logger.debug(
+      `TrendLineLayer: Current trend lines full objects:`,
+      this.trendLines,
+    );
+    logger.debug(
+      `TrendLineLayer: Current trend lines IDs:`,
+      this.trendLines.map((l) => ({
+        id: l.id,
+        idType: typeof l.id,
+        stringId: String(l.id),
+        hasIdProp: "id" in l,
+      })),
+    );
+
     // Try different comparison methods
     logger.debug(`TrendLineLayer: Looking for ID "${id}" (type: ${typeof id})`);
     this.trendLines.forEach((line, idx) => {
-      logger.debug(`  Line ${idx}: id="${line.id}" (type: ${typeof line.id}), String(id)="${String(line.id)}", equals: ${String(line.id) === id}`);
+      logger.debug(
+        `  Line ${idx}: id="${line.id}" (type: ${typeof line.id}), String(id)="${String(line.id)}", equals: ${String(line.id) === id}`,
+      );
     });
-    
+
     // Convert Proxy IDs to strings for comparison
     const index = this.trendLines.findIndex((l) => String(l.id) === id);
     logger.debug(`TrendLineLayer: Found at index: ${index}`);
-    
+
     if (index !== -1) {
       const previousState = this.trendLines[index];
       const updatedLine = { ...previousState, ...updates };
-      logger.debug(`TrendLineLayer: Emitting update event with updated line:`, updatedLine);
+      logger.debug(
+        `TrendLineLayer: Emitting update event with updated line:`,
+        updatedLine,
+      );
       // Don't mutate the local array - just emit the event and let the parent handle it
       this.emitEvent("update", updatedLine, previousState);
     } else {
-      logger.warn(`TrendLineLayer: Could not find trend line with ID: ${id} to update`);
-      logger.warn(`TrendLineLayer: Available IDs:`, this.trendLines.map(l => String(l.id)));
+      logger.warn(
+        `TrendLineLayer: Could not find trend line with ID: ${id} to update`,
+      );
+      logger.warn(
+        `TrendLineLayer: Available IDs:`,
+        this.trendLines.map((l) => String(l.id)),
+      );
     }
   }
 
@@ -127,7 +155,7 @@ export class TrendLineLayer extends LitElement {
   clearTrendLines(): void {
     // Don't mutate the local array - this should be handled by the parent
     // Emit events for each trend line being cleared
-    this.trendLines.forEach(line => {
+    this.trendLines.forEach((line) => {
       this.emitEvent("remove", line);
     });
   }
@@ -144,7 +172,7 @@ export class TrendLineLayer extends LitElement {
     };
 
     logger.debug(`TrendLineLayer: Dispatching event trend-line-${type}`, event);
-    
+
     this.dispatchEvent(
       new CustomEvent(`trend-line-${type}`, {
         detail: event,
@@ -152,7 +180,7 @@ export class TrendLineLayer extends LitElement {
         composed: true,
       }),
     );
-    
+
     logger.debug(`TrendLineLayer: Event dispatched`);
   }
 
@@ -165,7 +193,7 @@ export class TrendLineLayer extends LitElement {
       this.trendLines = [
         ...this.trendLines.slice(0, index),
         updatedLine,
-        ...this.trendLines.slice(index + 1)
+        ...this.trendLines.slice(index + 1),
       ];
       this.requestUpdate();
     }
@@ -184,14 +212,14 @@ export class TrendLineLayer extends LitElement {
     logger.debug("Selecting line:", lineId);
     this.selectedLineId = lineId;
     this.requestUpdate();
-    
+
     // Emit selection event for external listeners
     // Convert ID to string to avoid passing Proxy object
     this.dispatchEvent(
       new CustomEvent("trend-line-selected", {
-        detail: { 
+        detail: {
           trendLineId: String(selectedLine.id),
-          trendLine: selectedLine 
+          trendLine: selectedLine,
         },
         bubbles: true,
         composed: true,
@@ -217,32 +245,39 @@ export class TrendLineLayer extends LitElement {
     const path = event.composedPath();
     let clickedOnTrendLine = false;
     let clickedOnChart = false;
-    
+
     // Check if any element in the path is a trend line or part of the chart
     for (const element of path) {
       if (element instanceof HTMLElement) {
         const tagName = element.tagName?.toLowerCase();
-        
+
         // Check if clicked on trend line
-        if (tagName === 'trend-line' || element.closest?.('trend-line')) {
+        if (tagName === "trend-line" || element.closest?.("trend-line")) {
           clickedOnTrendLine = true;
         }
-        
+
         // Check if clicked within chart-container or chart-related elements
-        if (tagName === 'chart-container' || 
-            tagName === 'chart' ||
-            tagName === 'chart-canvas' ||
-            tagName === 'market-indicator' ||
-            tagName === 'indicator-container' ||
-            tagName === 'trend-line-layer' ||
-            tagName === 'live-decorators' ||
-            element.closest?.('chart-container')) {
+        if (
+          tagName === "chart-container" ||
+          tagName === "chart" ||
+          tagName === "chart-canvas" ||
+          tagName === "market-indicator" ||
+          tagName === "indicator-container" ||
+          tagName === "trend-line-layer" ||
+          tagName === "live-decorators" ||
+          element.closest?.("chart-container")
+        ) {
           clickedOnChart = true;
         }
       }
     }
 
-    logger.debug("Clicked on trend line?", clickedOnTrendLine, "Clicked on chart?", clickedOnChart);
+    logger.debug(
+      "Clicked on trend line?",
+      clickedOnTrendLine,
+      "Clicked on chart?",
+      clickedOnChart,
+    );
 
     // Only deselect if clicked on chart area but not on a trend line
     // Clicks outside the chart (like on settings panels) won't deselect
@@ -257,30 +292,36 @@ export class TrendLineLayer extends LitElement {
     if (event.key === "Escape") {
       logger.debug("ESC pressed, deselecting");
       this.deselectAll();
-    } else if ((event.key === "Backspace" || event.key === "Delete") && this.selectedLineId) {
-      logger.debug("Backspace/Delete pressed with selection:", this.selectedLineId);
-      
+    } else if (
+      (event.key === "Backspace" || event.key === "Delete") &&
+      this.selectedLineId
+    ) {
+      logger.debug(
+        "Backspace/Delete pressed with selection:",
+        this.selectedLineId,
+      );
+
       // Prevent default browser behavior (e.g., navigating back)
       event.preventDefault();
-      
+
       // Store the ID before removal (ensure it's a string)
       const deletedLineId = String(this.selectedLineId);
-      
+
       // Remove the trend line
       this.removeTrendLine(deletedLineId);
-      
+
       // Emit deletion event
       // ID is already a string here (deletedLineId = String(this.selectedLineId))
       this.dispatchEvent(
         new CustomEvent("trend-line-deleted", {
-          detail: { 
-            trendLineId: deletedLineId 
+          detail: {
+            trendLineId: deletedLineId,
           },
           bubbles: true,
           composed: true,
         }),
       );
-      
+
       // Clear selection
       this.selectedLineId = null;
       this.requestUpdate();
@@ -289,34 +330,36 @@ export class TrendLineLayer extends LitElement {
 
   public deselectAll() {
     logger.debug("deselectAll called, current selection:", this.selectedLineId);
-    const previousSelection = this.selectedLineId ? String(this.selectedLineId) : null;
+    const previousSelection = this.selectedLineId
+      ? String(this.selectedLineId)
+      : null;
     this.selectedLineId = null;
-    
+
     // Emit deselection event if there was a selection
     if (previousSelection) {
       this.dispatchEvent(
         new CustomEvent("trend-line-deselected", {
-          detail: { 
-            trendLineId: previousSelection 
+          detail: {
+            trendLineId: previousSelection,
           },
           bubbles: true,
           composed: true,
         }),
       );
     }
-    
+
     // Force update and ensure trend-line components update their selected state
     this.requestUpdate();
     // Wait for the update to complete, then ensure child components are updated
     this.updateComplete.then(() => {
       if (this.shadowRoot) {
-        const trendLines = this.shadowRoot.querySelectorAll('trend-line');
+        const trendLines = this.shadowRoot.querySelectorAll("trend-line");
         trendLines.forEach((line: any) => {
           // Explicitly set selected to false and force update
           if (line.selected === true) {
             logger.debug(`Forcing deselect on trend-line:`, line.trendLine?.id);
             line.selected = false;
-            line.requestUpdate('selected');
+            line.requestUpdate("selected");
           }
         });
       }
@@ -332,7 +375,11 @@ export class TrendLineLayer extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     logger.debug("Connected, setting up event listeners");
-    logger.debug("Initial trendLines:", this.trendLines?.length || 0, this.trendLines?.map(l => l.id));
+    logger.debug(
+      "Initial trendLines:",
+      this.trendLines?.length || 0,
+      this.trendLines?.map((l) => l.id),
+    );
 
     this.addEventListener(
       "trend-line-update",
@@ -382,12 +429,12 @@ export class TrendLineLayer extends LitElement {
 
   updated(changedProperties: Map<string | number | symbol, unknown>) {
     super.updated(changedProperties);
-    
-    if (changedProperties.has('trendLines')) {
-      logger.debug('Trend lines updated:', {
+
+    if (changedProperties.has("trendLines")) {
+      logger.debug("Trend lines updated:", {
         count: this.trendLines.length,
         trendLines: this.trendLines,
-        previousValue: changedProperties.get('trendLines')
+        previousValue: changedProperties.get("trendLines"),
       });
     }
   }
