@@ -1,6 +1,6 @@
 {
   "name": "@anssipiirainen/sc-charts",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "type": "module",
   "private": false,
   "description": "Web components for SpotCanvas charting",
