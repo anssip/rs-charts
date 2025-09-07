@@ -702,7 +702,7 @@ export class TrendLineElement extends LitElement {
     const midY = (y1 + y2) / 2;
 
     // Offset perpendicular to the line direction
-    const offsetDistance = 20;
+    const offsetDistance = 2;
     const offsetX = -Math.sin(angle) * offsetDistance;
     const offsetY = Math.cos(angle) * offsetDistance;
 
@@ -880,6 +880,7 @@ export class TrendLineElement extends LitElement {
               y="${namePosition.y}"
               text-anchor="middle"
               dominant-baseline="middle"
+              transform="rotate(${namePosition.angle} ${namePosition.x} ${namePosition.y})"
             >
               ${this.trendLine.name}
             </text>

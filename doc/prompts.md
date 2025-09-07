@@ -1,6 +1,5 @@
 # Add initial chart configuration
 
-
 Is it now possible to supply the initial indicators, symbol and time granularity to this chart library
 so that it uses those to load the initial candles and indicators to show? Or is it now first loading candles
 using a default (BTC-USD) symbol and 1 hour granularity? I'd like it to be possible to provide the initial
@@ -43,7 +42,6 @@ Let's add line deletion.
 - Make it possible to delete a line by hitting the backspace key when the line is selected.
 - Add an event to the chart-api that is emitted when a line is deleted. It should include an ID of the line that was deleted.
 
-
 # Line modification
 
 - Add an event to the chart-api that is emitted when a line is modified. It should include an ID of the line that can be then used to identify the line in later API calls.
@@ -57,3 +55,9 @@ Add the follwing methods to chart-api.ts and make these functional:
 - setTimeRange(): sets a new time range for the chart and makes it visible
 - getPriceRange(): returns the currently visible price range
 - setPriceRange(): sets a new price range for the chart and makes it visible
+
+# Trend line enhancelemts
+
+Add name and description to the trend lines. There needs to be a way to provide these in the API methods that are used to create and update trend lines. The name should be shown as a small text above the line so that the name is visible when a part of the line is visible in the chart - the name might move as the chart is panned or zoomed. The description shoule be shown when the user hovers over the line's touch area- there needs to be a small delay before it's shown.
+
+Add a way to set these properties to the testing overlay that is in client/index.html
