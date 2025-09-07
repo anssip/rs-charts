@@ -347,6 +347,16 @@
                 </div>
                 
                 <div class="control-group">
+                    <label>Name:</label>
+                    <input type="text" id="line-name" placeholder="Line name" style="width: 100%;">
+                </div>
+                
+                <div class="control-group">
+                    <label>Description:</label>
+                    <textarea id="line-description" placeholder="Line description" style="width: 100%; min-height: 60px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="control-group">
                     <label>Color:</label>
                     <input type="color" id="line-color" value="#2962ff" style="width: 60px; height: 30px;">
                 </div>
@@ -722,6 +732,8 @@
                 isUpdatingUI = true;
                 
                 document.getElementById('selected-line-id').textContent = trendLine.id.substring(0, 20) + '...';
+                document.getElementById('line-name').value = trendLine.name || '';
+                document.getElementById('line-description').value = trendLine.description || '';
                 document.getElementById('line-color').value = trendLine.color || '#2962ff';
                 document.getElementById('line-width').value = trendLine.lineWidth || 2;
                 document.getElementById('line-style').value = trendLine.style || 'solid';
@@ -732,6 +744,26 @@
             }
 
             function setupTrendLineControls() {
+                // Name change
+                document.getElementById('line-name').addEventListener('input', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        api.updateTrendLineSettings(selectedTrendLineId, { name: e.target.value });
+                        updateStatus(`Line name updated`);
+                    }
+                });
+
+                // Description change
+                document.getElementById('line-description').addEventListener('input', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        api.updateTrendLineSettings(selectedTrendLineId, { description: e.target.value });
+                        updateStatus(`Line description updated`);
+                    }
+                });
+
                 // Color change
                 document.getElementById('line-color').addEventListener('change', (e) => {
                     if (isUpdatingUI || !selectedTrendLineId) return;

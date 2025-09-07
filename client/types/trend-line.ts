@@ -13,6 +13,8 @@ export interface TrendLine {
   lineWidth?: number;
   style?: 'solid' | 'dashed' | 'dotted';
   label?: string;
+  name?: string;
+  description?: string;
 }
 
 export interface TrendLineEvent {
