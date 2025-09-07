@@ -33,6 +33,11 @@ export class TrendLineElement extends LitElement {
   @state()
   private hovered = false;
 
+  @state()
+  private showTooltip = false;
+
+  private tooltipTimeout?: number;
+
   connectedCallback() {
     super.connectedCallback();
     // Don't override the selected property if it's being set from parent
@@ -41,21 +46,33 @@ export class TrendLineElement extends LitElement {
     }
     this.hovered = false;
   }
-  
+
   updated(changedProperties: Map<string, any>) {
     super.updated(changedProperties);
-    if (changedProperties.has('selected')) {
-      logger.debug(`Trend line ${this.trendLine?.id} selected state changed to:`, this.selected);
+    if (changedProperties.has("selected")) {
+      logger.debug(
+        `Trend line ${this.trendLine?.id} selected state changed to:`,
+        this.selected,
+      );
     }
-    if (changedProperties.has('trendLine')) {
-      const oldValue = changedProperties.get('trendLine');
+    if (changedProperties.has("trendLine")) {
+      const oldValue = changedProperties.get("trendLine");
       logger.debug(`Trend line ${this.trendLine?.id} data updated:`, {
         old: oldValue,
         new: this.trendLine,
         lineWidth: this.trendLine?.lineWidth,
         color: this.trendLine?.color,
-        style: this.trendLine?.style
+        style: this.trendLine?.style,
       });
+      // Force re-render when trend line data changes
+      this.requestUpdate();
+    }
+    // Also re-render when time or price ranges change
+    if (
+      changedProperties.has("timeRange") ||
+      changedProperties.has("priceRange")
+    ) {
+      this.requestUpdate();
     }
   }
 
@@ -83,14 +100,14 @@ export class TrendLineElement extends LitElement {
         stroke-width 0.15s ease,
         opacity 0.15s ease;
     }
-    
+
     .trend-line-hit-area {
       stroke: transparent;
       fill: none;
       pointer-events: stroke;
       cursor: move;
     }
-    
+
     .trend-line-hit-area:active {
       cursor: grabbing;
     }
@@ -127,6 +144,40 @@ export class TrendLineElement extends LitElement {
     .handle.dragging {
       cursor: grabbing;
     }
+
+    .trend-name {
+      font-size: 12px;
+      fill: white;
+      stroke: black;
+      stroke-width: 3;
+      paint-order: stroke;
+      pointer-events: none;
+      user-select: none;
+      font-family: Arial, sans-serif;
+      font-weight: 600;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 0.5em;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      max-width: 250px;
+      white-space: normal;
+      text-align: left !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: opacity 0.2s ease;
+      display: block;
+      line-height: 1.4;
+    }
+
+    .tooltip.hidden {
+      opacity: 0;
+    }
   `;
 
   private timeToX(timestamp: number): number {
@@ -141,7 +192,8 @@ export class TrendLineElement extends LitElement {
     if (!this.priceRange || this.height === 0) return 0;
     const range = this.priceRange.max - this.priceRange.min;
     if (range === 0) return this.height / 2;
-    const y = this.height - ((price - this.priceRange.min) / range) * this.height;
+    const y =
+      this.height - ((price - this.priceRange.min) / range) * this.height;
     return isFinite(y) ? y : this.height / 2;
   }
 
@@ -164,7 +216,12 @@ export class TrendLineElement extends LitElement {
     };
 
     // Validate start and end points
-    if (!isFinite(start.x) || !isFinite(start.y) || !isFinite(end.x) || !isFinite(end.y)) {
+    if (
+      !isFinite(start.x) ||
+      !isFinite(start.y) ||
+      !isFinite(end.x) ||
+      !isFinite(end.y)
+    ) {
       logger.warn("Invalid coordinates detected in trend line points", {
         start,
         end,
@@ -183,9 +240,10 @@ export class TrendLineElement extends LitElement {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
 
-    if (Math.abs(dx) > 0.001) {  // Avoid division by very small numbers
+    if (Math.abs(dx) > 0.001) {
+      // Avoid division by very small numbers
       const slope = dy / dx;
-      
+
       // Extend left
       // Using point-slope form: y - y1 = m(x - x1)
       // Rearranged: y = y1 + m(x - x1)
@@ -194,7 +252,7 @@ export class TrendLineElement extends LitElement {
         // Use the start point as reference for left extension
         extendedStart.x = targetX;
         extendedStart.y = start.y + slope * (targetX - start.x);
-        
+
         // Clamp y values to viewport bounds if they're invalid
         if (!isFinite(extendedStart.y)) {
           extendedStart.y = extendedStart.y > 0 ? this.height : 0;
@@ -207,7 +265,7 @@ export class TrendLineElement extends LitElement {
         const targetX = this.width;
         extendedEnd.x = targetX;
         extendedEnd.y = end.y + slope * (targetX - end.x);
-        
+
         // Clamp y values to viewport bounds if they're invalid
         if (!isFinite(extendedEnd.y)) {
           extendedEnd.y = extendedEnd.y > 0 ? this.height : 0;
@@ -243,7 +301,7 @@ export class TrendLineElement extends LitElement {
     logger.debug("Line mousedown:", this.trendLine.id);
     event.stopPropagation();
     event.preventDefault();
-    
+
     // First select the line
     this.dispatchEvent(
       new CustomEvent("trend-line-select", {
@@ -252,7 +310,7 @@ export class TrendLineElement extends LitElement {
         composed: true,
       }),
     );
-    
+
     // Start dragging the entire line
     this.handleLineDragStart(event);
   };
@@ -260,10 +318,10 @@ export class TrendLineElement extends LitElement {
   private handleLineTouchStart = (event: TouchEvent) => {
     logger.debug("Line touchstart:", this.trendLine.id);
     if (event.touches.length !== 1) return;
-    
+
     event.stopPropagation();
     event.preventDefault();
-    
+
     // First select the line
     this.dispatchEvent(
       new CustomEvent("trend-line-select", {
@@ -272,7 +330,7 @@ export class TrendLineElement extends LitElement {
         composed: true,
       }),
     );
-    
+
     // Start dragging the entire line
     this.handleLineTouchDragStart(event);
   };
@@ -281,25 +339,25 @@ export class TrendLineElement extends LitElement {
     const rect = this.getBoundingClientRect();
     const startX = event.clientX - rect.left;
     const startY = event.clientY - rect.top;
-    
+
     // Store initial positions
     const initialStartTimestamp = this.trendLine.startPoint.timestamp;
     const initialStartPrice = this.trendLine.startPoint.price;
     const initialEndTimestamp = this.trendLine.endPoint.timestamp;
     const initialEndPrice = this.trendLine.endPoint.price;
-    
+
     const onMouseMove = (e: MouseEvent) => {
       const currentX = e.clientX - rect.left;
       const currentY = e.clientY - rect.top;
-      
+
       // Calculate the delta in pixels
       const deltaX = currentX - startX;
       const deltaY = currentY - startY;
-      
+
       // Convert pixel deltas to time/price deltas
       const timeDelta = this.pixelDeltaToTimeDelta(deltaX);
       const priceDelta = this.pixelDeltaToPriceDelta(deltaY);
-      
+
       // Update both endpoints with the same delta to move the entire line
       const updatedLine = { ...this.trendLine };
       updatedLine.startPoint = {
@@ -310,7 +368,7 @@ export class TrendLineElement extends LitElement {
         timestamp: initialEndTimestamp + timeDelta,
         price: initialEndPrice + priceDelta,
       };
-      
+
       this.dispatchEvent(
         new CustomEvent("trend-line-update", {
           detail: { trendLine: updatedLine },
@@ -319,50 +377,50 @@ export class TrendLineElement extends LitElement {
         }),
       );
     };
-    
+
     const onMouseUp = (e: MouseEvent) => {
       e.stopPropagation();
       e.stopImmediatePropagation();
       e.preventDefault();
-      
+
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       this.handleDragEnd();
     };
-    
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   };
 
   private handleLineTouchDragStart = (event: TouchEvent) => {
     if (event.touches.length !== 1) return;
-    
+
     const touch = event.touches[0];
     const rect = this.getBoundingClientRect();
     const startX = touch.clientX - rect.left;
     const startY = touch.clientY - rect.top;
-    
+
     // Store initial positions
     const initialStartTimestamp = this.trendLine.startPoint.timestamp;
     const initialStartPrice = this.trendLine.startPoint.price;
     const initialEndTimestamp = this.trendLine.endPoint.timestamp;
     const initialEndPrice = this.trendLine.endPoint.price;
-    
+
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
-      
+
       const currentTouch = e.touches[0];
       const currentX = currentTouch.clientX - rect.left;
       const currentY = currentTouch.clientY - rect.top;
-      
+
       // Calculate the delta in pixels
       const deltaX = currentX - startX;
       const deltaY = currentY - startY;
-      
+
       // Convert pixel deltas to time/price deltas
       const timeDelta = this.pixelDeltaToTimeDelta(deltaX);
       const priceDelta = this.pixelDeltaToPriceDelta(deltaY);
-      
+
       // Update both endpoints with the same delta to move the entire line
       const updatedLine = { ...this.trendLine };
       updatedLine.startPoint = {
@@ -373,7 +431,7 @@ export class TrendLineElement extends LitElement {
         timestamp: initialEndTimestamp + timeDelta,
         price: initialEndPrice + priceDelta,
       };
-      
+
       this.dispatchEvent(
         new CustomEvent("trend-line-update", {
           detail: { trendLine: updatedLine },
@@ -382,18 +440,18 @@ export class TrendLineElement extends LitElement {
         }),
       );
     };
-    
+
     const onTouchEnd = (e: TouchEvent) => {
       e.stopPropagation();
       e.stopImmediatePropagation();
       e.preventDefault();
-      
+
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("touchcancel", onTouchEnd);
       this.handleDragEnd();
     };
-    
+
     document.addEventListener("touchmove", onTouchMove, { passive: false });
     document.addEventListener("touchend", onTouchEnd);
     document.addEventListener("touchcancel", onTouchEnd);
@@ -414,10 +472,21 @@ export class TrendLineElement extends LitElement {
 
   private handleMouseEnter = () => {
     this.hovered = true;
+    if (this.trendLine.description) {
+      // Start timer for tooltip
+      this.tooltipTimeout = window.setTimeout(() => {
+        this.showTooltip = true;
+      }, 500); // 500ms delay
+    }
   };
 
   private handleMouseLeave = () => {
     this.hovered = false;
+    this.showTooltip = false;
+    if (this.tooltipTimeout) {
+      clearTimeout(this.tooltipTimeout);
+      this.tooltipTimeout = undefined;
+    }
   };
 
   private handleDragStart = (handle: "start" | "end", event: MouseEvent) => {
@@ -435,12 +504,12 @@ export class TrendLineElement extends LitElement {
       e.stopPropagation();
       e.stopImmediatePropagation();
       e.preventDefault();
-      
+
       handleElement.classList.remove("dragging");
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       this.handleDragEnd();
-      
+
       // Prevent the trend line tool from interpreting this as a click
       // Add a small delay to ensure event doesn't propagate
       setTimeout(() => {
@@ -452,7 +521,10 @@ export class TrendLineElement extends LitElement {
     document.addEventListener("mouseup", onMouseUp);
   };
 
-  private handleTouchDragStart = (handle: "start" | "end", event: TouchEvent) => {
+  private handleTouchDragStart = (
+    handle: "start" | "end",
+    event: TouchEvent,
+  ) => {
     event.stopPropagation();
     event.preventDefault();
 
@@ -469,7 +541,7 @@ export class TrendLineElement extends LitElement {
       e.stopPropagation();
       e.stopImmediatePropagation();
       e.preventDefault();
-      
+
       handleElement.classList.remove("dragging");
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
@@ -510,7 +582,7 @@ export class TrendLineElement extends LitElement {
 
   private handleTouchDragMove(handle: "start" | "end", event: TouchEvent) {
     if (event.touches.length !== 1) return;
-    
+
     const touch = event.touches[0];
     const rect = this.getBoundingClientRect();
     const x = touch.clientX - rect.left;
@@ -545,7 +617,7 @@ export class TrendLineElement extends LitElement {
         composed: true,
       }),
     );
-    
+
     // Dispatch event to notify that dragging has ended
     this.dispatchEvent(
       new CustomEvent("trend-line-drag-end", {
@@ -567,8 +639,142 @@ export class TrendLineElement extends LitElement {
     if (!this.priceRange || this.height === 0) return 0;
     const range = this.priceRange.max - this.priceRange.min;
     if (range === 0) return this.priceRange.min;
-    const price = this.priceRange.min + ((this.height - y) / this.height) * range;
+    const price =
+      this.priceRange.min + ((this.height - y) / this.height) * range;
     return isFinite(price) ? price : this.priceRange.min;
+  }
+
+  private calculateNamePosition(): {
+    x: number;
+    y: number;
+    angle: number;
+  } | null {
+    if (!this.trendLine.name || !this.timeRange || !this.priceRange) {
+      return null;
+    }
+
+    // Get the actual line endpoints in pixel coordinates
+    const startX = this.timeToX(this.trendLine.startPoint.timestamp);
+    const startY = this.priceToY(this.trendLine.startPoint.price);
+    const endX = this.timeToX(this.trendLine.endPoint.timestamp);
+    const endY = this.priceToY(this.trendLine.endPoint.price);
+
+    // Calculate line angle
+    const angle = Math.atan2(endY - startY, endX - startX);
+
+    // Find the visible portion of the line
+    const [extendedStart, extendedEnd] = this.calculateExtendedPoints();
+
+    let x1 = extendedStart.x;
+    let y1 = extendedStart.y;
+    let x2 = extendedEnd.x;
+    let y2 = extendedEnd.y;
+
+    // Determine which part of the line is visible
+    const leftEdge = 0;
+    const rightEdge = this.width;
+    const topEdge = 0;
+    const bottomEdge = this.height;
+
+    // Find intersection points with viewport edges if line extends beyond
+    if (
+      x1 < leftEdge ||
+      x1 > rightEdge ||
+      y1 < topEdge ||
+      y1 > bottomEdge ||
+      x2 < leftEdge ||
+      x2 > rightEdge ||
+      y2 < topEdge ||
+      y2 > bottomEdge
+    ) {
+      // Clip line to viewport
+      const clipped = this.clipLineToViewport(x1, y1, x2, y2);
+      if (clipped) {
+        x1 = clipped.x1;
+        y1 = clipped.y1;
+        x2 = clipped.x2;
+        y2 = clipped.y2;
+      }
+    }
+
+    // Position name at the midpoint of the visible line segment
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+
+    // Offset perpendicular to the line direction
+    const offsetDistance = 20;
+    const offsetX = -Math.sin(angle) * offsetDistance;
+    const offsetY = Math.cos(angle) * offsetDistance;
+
+    return {
+      x: midX + offsetX,
+      y: midY + offsetY,
+      angle: (angle * 180) / Math.PI,
+    };
+  }
+
+  private clipLineToViewport(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+  ): { x1: number; y1: number; x2: number; y2: number } | null {
+    const left = 0;
+    const right = this.width;
+    const top = 0;
+    const bottom = this.height;
+
+    // Cohen-Sutherland line clipping algorithm
+    const computeOutCode = (x: number, y: number) => {
+      let code = 0;
+      if (x < left) code |= 1;
+      else if (x > right) code |= 2;
+      if (y < top) code |= 4;
+      else if (y > bottom) code |= 8;
+      return code;
+    };
+
+    let outcode1 = computeOutCode(x1, y1);
+    let outcode2 = computeOutCode(x2, y2);
+
+    while (true) {
+      if (!(outcode1 | outcode2)) {
+        // Both points inside
+        return { x1, y1, x2, y2 };
+      } else if (outcode1 & outcode2) {
+        // Both points outside on same side
+        return null;
+      } else {
+        // Calculate intersection
+        let x = 0,
+          y = 0;
+        const outcode = outcode1 ? outcode1 : outcode2;
+
+        if (outcode & 8) {
+          x = x1 + ((x2 - x1) * (bottom - y1)) / (y2 - y1);
+          y = bottom;
+        } else if (outcode & 4) {
+          x = x1 + ((x2 - x1) * (top - y1)) / (y2 - y1);
+          y = top;
+        } else if (outcode & 2) {
+          y = y1 + ((y2 - y1) * (right - x1)) / (x2 - x1);
+          x = right;
+        } else if (outcode & 1) {
+          y = y1 + ((y2 - y1) * (left - x1)) / (x2 - x1);
+          x = left;
+        }
+
+        if (outcode === outcode1) {
+          x1 = x;
+          y1 = y;
+          outcode1 = computeOutCode(x1, y1);
+        } else {
+          x2 = x;
+          y2 = y;
+          outcode2 = computeOutCode(x2, y2);
+        }
+      }
+    }
   }
 
   render() {
@@ -595,6 +801,7 @@ export class TrendLineElement extends LitElement {
     const lineColor = this.trendLine.color || "#2962ff";
     const lineStyle = this.trendLine.style || "solid";
     const showHandles = this.hovered || this.selected;
+    const namePosition = this.calculateNamePosition();
 
     return html`
       <svg
@@ -610,7 +817,7 @@ export class TrendLineElement extends LitElement {
             <rect x="0" y="0" width="${this.width}" height="${this.height}" />
           </clipPath>
         </defs>
-        
+
         <!-- Group with clipping applied -->
         <g clip-path="url(#chart-area-clip-${this.trendLine.id})">
           <!-- Invisible hit area for easier selection -->
@@ -637,7 +844,7 @@ export class TrendLineElement extends LitElement {
             pointer-events="none"
           />
         </g>
-        
+
         <!-- Handles remain outside clipping so they're always visible when hovered/selected -->
         <circle
           class="handle handle-start"
@@ -648,7 +855,8 @@ export class TrendLineElement extends LitElement {
           opacity="${showHandles ? "1" : "0"}"
           style="pointer-events: ${showHandles ? "all" : "none"}"
           @mousedown="${(e: MouseEvent) => this.handleDragStart("start", e)}"
-          @touchstart="${(e: TouchEvent) => this.handleTouchDragStart("start", e)}"
+          @touchstart="${(e: TouchEvent) =>
+            this.handleTouchDragStart("start", e)}"
         />
         <circle
           class="handle handle-end"
@@ -659,9 +867,40 @@ export class TrendLineElement extends LitElement {
           opacity="${showHandles ? "1" : "0"}"
           style="pointer-events: ${showHandles ? "all" : "none"}"
           @mousedown="${(e: MouseEvent) => this.handleDragStart("end", e)}"
-          @touchstart="${(e: TouchEvent) => this.handleTouchDragStart("end", e)}"
+          @touchstart="${(e: TouchEvent) =>
+            this.handleTouchDragStart("end", e)}"
         />
+
+        <!-- Trend line name -->
+        ${this.trendLine.name && namePosition
+          ? svg`
+            <text
+              class="trend-name"
+              x="${namePosition.x}"
+              y="${namePosition.y}"
+              text-anchor="middle"
+              dominant-baseline="middle"
+            >
+              ${this.trendLine.name}
+            </text>
+          `
+          : ""}
       </svg>
+
+      <!-- Tooltip for description -->
+      ${this.showTooltip && this.trendLine.description && namePosition
+        ? html`
+            <div
+              class="tooltip ${!this.showTooltip ? "hidden" : ""}"
+              style="
+              left: ${Math.max(10, namePosition.x - 100)}px;
+              top: ${namePosition.y + 15}px;
+            "
+            >
+              ${this.trendLine.description}
+            </div>
+          `
+        : ""}
     `;
   }
 }

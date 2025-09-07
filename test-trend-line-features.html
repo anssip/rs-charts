@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Trend Line Name & Description</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        #chart-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #2962ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #1e4ec9;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Trend Line Name & Description Features</h1>
+    
+    <div id="chart-container"></div>
+    
+    <div class="controls">
+        <button onclick="addNamedLine()">Add Named Line</button>
+        <button onclick="addDescribedLine()">Add Line with Description</button>
+        <button onclick="addFullyDescribedLine()">Add Line with Name & Description</button>
+        <button onclick="updateLineName()">Update Selected Line Name</button>
+        <button onclick="updateLineDescription()">Update Selected Line Description</button>
+        <button onclick="clearLines()">Clear All Lines</button>
+    </div>
+    
+    <div class="status" id="status">Ready</div>
+    
+    <script type="module">
+        import { initChartWithApi, createChartContainer } from './dist/lib/lib.js';
+        
+        let api = null;
+        let selectedLineId = null;
+        
+        async function init() {
+            const container = createChartContainer();
+            document.getElementById('chart-container').appendChild(container);
+            
+            const firebaseConfig = {
+                // Add your Firebase config here if needed
+            };
+            
+            const result = await initChartWithApi(container, firebaseConfig, {
+                symbol: "BTC-USD",
+                granularity: "ONE_HOUR"
+            });
+            
+            api = result.api;
+            window.api = api; // For debugging
+            
+            // Listen for trend line selection
+            api.on('trend-line-selected', (data) => {
+                selectedLineId = data.trendLineId;
+                updateStatus(`Selected line: ${data.trendLineId}`);
+            });
+            
+            api.on('trend-line-deselected', () => {
+                selectedLineId = null;
+                updateStatus('Line deselected');
+            });
+            
+            updateStatus('Chart initialized');
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        window.addNamedLine = function() {
+            if (!api) return;
+            
+            const timeRange = api.getTimeRange();
+            const priceRange = api.getPriceRange();
+            
+            const startTime = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+            const endTime = timeRange.start + (timeRange.end - timeRange.start) * 0.7;
+            const startPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.3;
+            const endPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.6;
+            
+            const lineId = api.addTrendLine({
+                name: "Support Line",
+                startPoint: { timestamp: startTime, price: startPrice },
+                endPoint: { timestamp: endTime, price: endPrice },
+                color: "#4caf50",
+                lineWidth: 2,
+                style: "solid",
+                extendLeft: false,
+                extendRight: true
+            });
+            
+            updateStatus(`Added named line: ${lineId}`);
+        };
+        
+        window.addDescribedLine = function() {
+            if (!api) return;
+            
+            const timeRange = api.getTimeRange();
+            const priceRange = api.getPriceRange();
+            
+            const startTime = timeRange.start + (timeRange.end - timeRange.start) * 0.2;
+            const endTime = timeRange.start + (timeRange.end - timeRange.start) * 0.8;
+            const startPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.7;
+            const endPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.4;
+            
+            const lineId = api.addTrendLine({
+                description: "This is a resistance line showing the upper boundary of the price movement",
+                startPoint: { timestamp: startTime, price: startPrice },
+                endPoint: { timestamp: endTime, price: endPrice },
+                color: "#ff5252",
+                lineWidth: 2,
+                style: "dashed",
+                extendLeft: true,
+                extendRight: true
+            });
+            
+            updateStatus(`Added line with description: ${lineId}`);
+        };
+        
+        window.addFullyDescribedLine = function() {
+            if (!api) return;
+            
+            const timeRange = api.getTimeRange();
+            const priceRange = api.getPriceRange();
+            
+            const startTime = timeRange.start + (timeRange.end - timeRange.start) * 0.4;
+            const endTime = timeRange.start + (timeRange.end - timeRange.start) * 0.6;
+            const startPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.5;
+            const endPrice = priceRange.min + (priceRange.max - priceRange.min) * 0.5;
+            
+            const lineId = api.addTrendLine({
+                name: "Mid Channel",
+                description: "The middle of the trading channel, acts as a pivot point for price action",
+                startPoint: { timestamp: startTime, price: startPrice },
+                endPoint: { timestamp: endTime, price: endPrice },
+                color: "#ffc107",
+                lineWidth: 3,
+                style: "dotted",
+                extendLeft: true,
+                extendRight: true
+            });
+            
+            updateStatus(`Added fully described line: ${lineId}`);
+        };
+        
+        window.updateLineName = function() {
+            if (!api || !selectedLineId) {
+                updateStatus('Please select a line first');
+                return;
+            }
+            
+            const newName = prompt('Enter new name:');
+            if (newName) {
+                api.updateTrendLineSettings(selectedLineId, { name: newName });
+                updateStatus(`Updated line name to: ${newName}`);
+            }
+        };
+        
+        window.updateLineDescription = function() {
+            if (!api || !selectedLineId) {
+                updateStatus('Please select a line first');
+                return;
+            }
+            
+            const newDescription = prompt('Enter new description:');
+            if (newDescription) {
+                api.updateTrendLineSettings(selectedLineId, { description: newDescription });
+                updateStatus(`Updated line description`);
+            }
+        };
+        
+        window.clearLines = function() {
+            if (!api) return;
+            api.clearTrendLines();
+            selectedLineId = null;
+            updateStatus('All lines cleared');
+        };
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

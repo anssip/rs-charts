@@ -97,7 +97,9 @@ const initialState = {
       lineWidth: 2,
       style: "solid",
       extendLeft: false,
-      extendRight: true
+      extendRight: true,
+      name: "Support Line",
+      description: "Key support level from previous trading session"
     }
   ]
 };
@@ -373,7 +375,7 @@ api.toggleFullWindow();
 Add a new trend line to the chart.
 
 ```typescript
-// Add a trend line and keep it selected (default behavior)
+// Add a trend line with all properties
 const lineId = api.addTrendLine({
   start: { timestamp: 1234567890000, price: 50000 },
   end: { timestamp: 1234567900000, price: 51000 },
@@ -381,21 +383,25 @@ const lineId = api.addTrendLine({
   lineWidth: 2,
   style: "solid", // "solid" | "dashed" | "dotted"
   extendLeft: false,
-  extendRight: true
+  extendRight: true,
+  name: "Resistance",
+  description: "Major resistance level from daily chart"
 });
 
-// Add a trend line and explicitly deselect it
+// Add a trend line with name only
 const lineId2 = api.addTrendLine({
   start: { timestamp: 1234567890000, price: 52000 },
   end: { timestamp: 1234567900000, price: 53000 },
   color: "#00FF00",
+  name: "Support",
   selected: false  // Line will not be selected after creation
 });
 
-// Add a trend line and ensure it's selected
+// Add a trend line with description only
 const lineId3 = api.addTrendLine({
   start: { timestamp: 1234567890000, price: 54000 },
   end: { timestamp: 1234567900000, price: 55000 },
+  description: "Ascending channel upper boundary",
   selected: true  // Explicitly select the line after creation
 });
 ```
@@ -404,6 +410,8 @@ const lineId3 = api.addTrendLine({
 - `trendLine`: Object containing trend line configuration
   - `start`: Start point with `timestamp` and `price`
   - `end`: End point with `timestamp` and `price`
+  - `name?`: Optional display name shown above the line
+  - `description?`: Optional description shown as tooltip on hover
   - `color`: Optional line color (default: chart default)
   - `lineWidth`: Optional line width (default: 2)
   - `style`: Optional line style - "solid" | "dashed" | "dotted" (default: "solid")
@@ -441,7 +449,9 @@ Update an existing trend line.
 api.updateTrendLine("trend-line-1234567890", {
   color: "#00FF00",
   lineWidth: 3,
-  extendRight: false
+  extendRight: false,
+  name: "Updated Resistance",
+  description: "Adjusted resistance level after breakout"
 });
 ```
 
@@ -455,7 +465,9 @@ api.updateTrendLineSettings('trend-line-1704153600000', {
   lineWidth: 1,
   style: 'dashed',
   extendLeft: true,
-  extendRight: true
+  extendRight: true,
+  name: "Dynamic Support",
+  description: "Support level that adjusts with market conditions"
 });
 ```
 
@@ -1110,6 +1122,8 @@ interface TrendLineSettings {
   style?: 'solid' | 'dashed' | 'dotted';
   extendLeft?: boolean;
   extendRight?: boolean;
+  name?: string;
+  description?: string;
 }
 
 interface TrendLineDefaults {
@@ -1134,6 +1148,8 @@ interface TrendLine {
   style: 'solid' | 'dashed' | 'dotted';
   extendLeft: boolean;
   extendRight: boolean;
+  name?: string;         // Display name shown above the line
+  description?: string;   // Tooltip text shown on hover
   selected?: boolean;
 }
 
@@ -1460,6 +1476,8 @@ const lineId = api.addTrendLine({
   end: { timestamp: Date.now(), price: 52000 },
   color: "#FF0000",
   lineWidth: 2,
+  name: "Breakout Level",
+  description: "Important breakout level to watch for entry",
   selected: false  // Don't select the line after creation
 });
 
