@@ -1,8 +1,7 @@
 {
-  "name": "@anssipiirainen/sc-charts",
-  "version": "0.1.9",
+  "name": "@anssip/rs-charts",
+  "version": "1.2.3",
   "type": "module",
-  "private": false,
   "description": "Web components for SpotCanvas charting",
   "keywords": [
     "web-components",
@@ -13,7 +12,7 @@
   "homepage": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/your-repo.git"
+    "url": "git+https://github.com/anssip/rs-charts.git"
   },
   "license": "MIT",
   "author": "Your Name <your.email@example.com>",
@@ -78,6 +77,7 @@
     "jsonwebtoken": "^9.0.2"
   },
   "publishConfig": {
-    "access": "public"
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   }
 }
