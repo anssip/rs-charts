@@ -1,0 +1,60 @@
+name: Publish Package to GitHub Packages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 1.2.4)"
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@anssip"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Update version if provided
+        if: github.event.inputs.version
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          echo "Updated version to ${{ github.event.inputs.version }}"
+
+      - name: Build package
+        run: bun run build
+
+      - name: Run tests
+        run: bun test
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output published version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "Published version: $PACKAGE_VERSION"
+          echo "Package: @anssip/rs-charts@$PACKAGE_VERSION"
+          echo "Install with: npm install @anssip/rs-charts@$PACKAGE_VERSION"
