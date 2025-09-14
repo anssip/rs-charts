@@ -141,6 +141,20 @@ export function formatDate(date: Date): string {
   });
 }
 
+export function formatDateTime(date: Date): string {
+  const dateStr = date.toLocaleDateString([], {
+    month: "numeric",
+    day: "numeric",
+  });
+  const timeStr = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+  return `${dateStr} ${timeStr}`;
+}
+
 export function canvasYToPrice(
   y: number,
   canvas: HTMLCanvasElement,
@@ -180,10 +194,13 @@ export function drawTimeLabel(
   x: number,
   y: number,
   backgroundColor: string = "#eee",
-  textColor: string = "#000"
+  textColor: string = "#000",
+  showFullDateTime: boolean = false
 ) {
   const dpr = window.devicePixelRatio ?? 1;
-  const timeText = formatTime(new Date(time));
+  const timeText = showFullDateTime
+    ? formatDateTime(new Date(time))
+    : formatTime(new Date(time));
   const padding = 6 * dpr;
 
   // Measure text

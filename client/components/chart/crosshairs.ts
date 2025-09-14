@@ -127,7 +127,8 @@ export class Crosshairs extends CanvasBase {
         .trim(),
       getComputedStyle(document.documentElement)
         .getPropertyValue("--color-primary-dark")
-        .trim()
+        .trim(),
+      true // Show full date and time
     );
   }
 
