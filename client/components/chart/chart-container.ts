@@ -12,6 +12,7 @@ import "./crosshairs";
 import "./indicators/volume-chart";
 import "./context-menu";
 import "./candle-tooltip";
+import "./live-candle-display";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
@@ -795,6 +796,8 @@ export class ChartContainer extends LitElement {
       .data=${this.candleTooltipData}
       .visible=${this.showCandleTooltip}
     ></candle-tooltip>
+    <!-- Live Candle Display -->
+    <live-candle-display></live-candle-display>
     `;
   }
 
