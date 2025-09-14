@@ -123,10 +123,16 @@ export class ChartInteractionController {
     );
   }
 
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragThreshold = 5; // pixels - minimum movement to consider it a drag
+
   private handleDragStart = (e: MouseEvent) => {
     this.isDragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
   };
 
   private handleDragMove = (e: MouseEvent) => {
@@ -135,14 +141,34 @@ export class ChartInteractionController {
     const deltaX = e.clientX - this.lastX;
     const deltaY = e.clientY - this.lastY;
 
-    this.handlePan(deltaX);
-    this.handleVerticalPan(deltaY);
+    // Check if we've moved enough to consider this a drag
+    const totalMovement = Math.sqrt(
+      Math.pow(e.clientX - this.dragStartX, 2) +
+      Math.pow(e.clientY - this.dragStartY, 2)
+    );
+
+    // Only pan if we've moved beyond the threshold
+    if (totalMovement > this.dragThreshold) {
+      this.handlePan(deltaX);
+      this.handleVerticalPan(deltaY);
+    }
 
     this.lastX = e.clientX;
     this.lastY = e.clientY;
   };
 
-  private handleDragEnd = () => {
+  private handleDragEnd = (e: MouseEvent) => {
+    // Check if this was a click (minimal movement)
+    const totalMovement = Math.sqrt(
+      Math.pow(e.clientX - this.dragStartX, 2) +
+      Math.pow(e.clientY - this.dragStartY, 2)
+    );
+
+    if (totalMovement <= this.dragThreshold) {
+      // This was a click, not a drag - let it propagate
+      // Don't prevent default or stop propagation
+    }
+
     this.isDragging = false;
   };
 

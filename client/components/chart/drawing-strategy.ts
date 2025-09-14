@@ -60,6 +60,15 @@ export class CandlestickStrategy implements Drawable {
   private lastDrawLogTime: number = 0;
   private readonly LOG_THROTTLE_MS = 5000; // Only log every 5 seconds
 
+  // Store candle positions for hit detection
+  private candlePositions: Map<number, {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    candle: any;
+  }> = new Map();
+
   drawGrid(context: DrawingContext): void {
     this.grid.draw(context);
   }
@@ -170,6 +179,9 @@ export class CandlestickStrategy implements Drawable {
 
     // 1. Clear the entire canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Clear candle positions for new render
+    this.candlePositions.clear();
 
     // 2. Draw the grid first (it will be in the background)
     this.drawGrid(context);
@@ -347,6 +359,22 @@ export class CandlestickStrategy implements Drawable {
 
     // Reset line dash
     ctx.setLineDash([]);
+
+    // Store candle position for hit detection
+    this.candlePositions.set(candle.timestamp, {
+      x: candleX,
+      y: Math.min(highY, lowY),
+      width: candleWidth,
+      height: Math.abs(highY - lowY),
+      candle: {
+        timestamp: candle.timestamp,
+        open: candle.open,
+        high: actualHigh,
+        low: actualLow,
+        close: candle.close,
+        volume: candle.volume
+      }
+    });
 
     // Debug log for live candles
     if (isLiveCandle) {
@@ -603,5 +631,22 @@ export class CandlestickStrategy implements Drawable {
     }
 
     this.grid.destroy();
+  }
+
+  // Find candle at the given coordinates
+  getCandleAtPosition(x: number, y: number): any | null {
+    for (const [_, position] of this.candlePositions) {
+      // Check if click is within candle bounds (with some padding for easier clicking)
+      const padding = 2; // Add some padding to make candles easier to click
+      if (
+        x >= position.x - padding &&
+        x <= position.x + position.width + padding &&
+        y >= position.y - padding &&
+        y <= position.y + position.height + padding
+      ) {
+        return position.candle;
+      }
+    }
+    return null;
   }
 }

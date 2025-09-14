@@ -8,7 +8,7 @@ import {
 } from "./drawing-strategy";
 import { xin } from "xinjs";
 import { ChartState } from "../..";
-import { priceToY, timeToX } from "../../util/chart-util";
+import { priceToY, timeToX, dpr } from "../../util/chart-util";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 import { getLogger } from "../../util/logger";
 import "./price-axis";
@@ -71,11 +71,17 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     });
   }
 
-  bindEventListeners(_: HTMLCanvasElement): void {
+  bindEventListeners(canvas: HTMLCanvasElement): void {
     this.addEventListener(
       "force-redraw",
       this.handleForceRedraw as EventListener
     );
+
+    // Add pointer event listeners for candle tooltip (using capture phase)
+    canvas.addEventListener("pointerdown", this.handleCanvasPointerDown, true);
+    canvas.addEventListener("pointerup", this.handleCanvasPointerUp, true);
+    canvas.addEventListener("click", this.handleCanvasClick, true);
+    canvas.addEventListener("touchend", this.handleCanvasTouchEnd, true);
   }
 
   handleForceRedraw(e: CustomEvent<{ width: number; height: number }>) {
@@ -92,7 +98,15 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       "change",
       this.handleMobileChange
     );
-    
+
+    // Remove event listeners
+    if (this.canvas) {
+      this.canvas.removeEventListener("pointerdown", this.handleCanvasPointerDown, true);
+      this.canvas.removeEventListener("pointerup", this.handleCanvasPointerUp, true);
+      this.canvas.removeEventListener("click", this.handleCanvasClick, true);
+      this.canvas.removeEventListener("touchend", this.handleCanvasTouchEnd, true);
+    }
+
     // Clean up drawing strategy
     if (this.drawingStrategy && typeof this.drawingStrategy.destroy === 'function') {
       this.drawingStrategy.destroy();
@@ -228,8 +242,8 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       viewportEndTimestamp: this._state!.timeRange.end,
       priceRange: this._state!.priceRange,
       axisMappings: {
-        timeToX: timeToX(this.canvas!.width, this._state!.timeRange),
-        priceToY: priceToY(this.canvas!.height, {
+        timeToX: timeToX(this.canvas!.width / dpr, this._state!.timeRange),
+        priceToY: priceToY(this.canvas!.height / dpr, {
           start: this._state!.priceRange.min,
           end: this._state.priceRange.max,
         }),
@@ -253,6 +267,95 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       availableWidth / (totalCandleWidth * window.devicePixelRatio)
     );
   }
+
+  private pointerDownPosition: { x: number; y: number } | null = null;
+  private readonly clickThreshold = 5; // pixels
+
+  private handleCanvasPointerDown = (event: PointerEvent) => {
+    this.pointerDownPosition = { x: event.clientX, y: event.clientY };
+  };
+
+  private handleCanvasPointerUp = (event: PointerEvent) => {
+    if (!this.pointerDownPosition || !this.canvas) return;
+
+    // Check if this was a click (minimal movement)
+    const deltaX = Math.abs(event.clientX - this.pointerDownPosition.x);
+    const deltaY = Math.abs(event.clientY - this.pointerDownPosition.y);
+
+    if (deltaX < this.clickThreshold && deltaY < this.clickThreshold) {
+      // This was a click, check for candle
+      const rect = this.canvas.getBoundingClientRect();
+      // Don't multiply by devicePixelRatio - candle positions are stored in CSS coordinates
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      const candle = this.drawingStrategy.getCandleAtPosition(x, y);
+      if (candle) {
+        this.dispatchEvent(
+          new CustomEvent("candle-click", {
+            detail: {
+              candle,
+              x: event.clientX,
+              y: event.clientY
+            },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      }
+    }
+
+    this.pointerDownPosition = null;
+  };
+
+  private handleCanvasClick = (event: MouseEvent) => {
+    if (!this.canvas) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    // Don't multiply by devicePixelRatio - candle positions are stored in CSS coordinates
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const candle = this.drawingStrategy.getCandleAtPosition(x, y);
+    if (candle) {
+      this.dispatchEvent(
+        new CustomEvent("candle-click", {
+          detail: {
+            candle,
+            x: event.clientX,
+            y: event.clientY
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  };
+
+  private handleCanvasTouchEnd = (event: TouchEvent) => {
+    if (!this.canvas || event.touches.length > 0) return; // Only handle single touch
+
+    const rect = this.canvas.getBoundingClientRect();
+    const touch = event.changedTouches[0];
+    // Don't multiply by devicePixelRatio - candle positions are stored in CSS coordinates
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    const candle = this.drawingStrategy.getCandleAtPosition(x, y);
+    if (candle) {
+      this.dispatchEvent(
+        new CustomEvent("candle-click", {
+          detail: {
+            candle,
+            x: touch.clientX,
+            y: touch.clientY
+          },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  };
 
   render() {
     return html`
