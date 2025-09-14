@@ -388,7 +388,70 @@
                         Extend Right
                     </label>
                 </div>
-                
+
+                <div class="control-group">
+                    <label>Opacity: <span id="opacity-value">100%</span></label>
+                    <input type="range" id="line-opacity" min="0" max="100" value="100" style="width: 100%;">
+                </div>
+
+                <div class="control-group">
+                    <label>Level Type:</label>
+                    <select id="level-type" style="width: 100%;">
+                        <option value="">None</option>
+                        <option value="swing">Swing</option>
+                        <option value="horizontal">Horizontal</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Z-Index:</label>
+                    <input type="number" id="z-index" min="0" max="1000" value="0" style="width: 100%;">
+                </div>
+
+                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                    <label>
+                        <input type="checkbox" id="markers-enabled" style="margin-right: 5px;">
+                        Enable Markers
+                    </label>
+                </div>
+
+                <div id="marker-settings" style="display: none;">
+                    <div class="control-group">
+                        <label>Marker Symbol:</label>
+                        <select id="marker-symbol" style="width: 100%;">
+                            <option value="diamond">Diamond</option>
+                            <option value="circle">Circle</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Marker Size:</label>
+                        <input type="number" id="marker-size" min="1" max="20" value="4" style="width: 100%;">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Marker Spacing:</label>
+                        <input type="number" id="marker-spacing" min="10" max="500" value="100" style="width: 100%;">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Marker Color:</label>
+                        <input type="color" id="marker-color" value="#2962ff" style="width: 60px; height: 30px;">
+                    </div>
+                </div>
+
+                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                    <label>Presets:</label>
+                    <div class="control-buttons">
+                        <button class="control-button" onclick="applySwingSupport()" style="background: #4caf50;">Swing Support</button>
+                        <button class="control-button" onclick="applySwingResistance()" style="background: #f44336;">Swing Resistance</button>
+                        <button class="control-button" onclick="applyHorizontalSupport()" style="background: #66bb6a;">Horizontal Support</button>
+                        <button class="control-button" onclick="applyHorizontalResistance()" style="background: #ef5350;">Horizontal Resistance</button>
+                    </div>
+                </div>
+
                 <div class="control-buttons">
                     <button class="control-button" onclick="deleteTrendLine()" style="background: #ff5252;">Delete Line</button>
                 </div>
@@ -418,6 +481,95 @@
             let chart2Api = null;
             let selectedTrendLineId = null;
             let isUpdatingUI = false; // Prevent feedback loops
+
+            // Preset functions for support/resistance
+            function applySwingSupport() {
+                const api = getCurrentApi();
+                if (!api || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: '#00FF00',
+                    lineWidth: 3,
+                    style: 'solid',
+                    opacity: 0.9,
+                    levelType: 'swing',
+                    zIndex: 100,
+                    markers: {
+                        enabled: true,
+                        symbol: 'diamond',
+                        size: 4,
+                        spacing: 100,
+                        color: '#00FF00'
+                    }
+                };
+
+                api.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus('Applied Swing Support preset');
+            }
+
+            function applySwingResistance() {
+                const api = getCurrentApi();
+                if (!api || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: '#FF0000',
+                    lineWidth: 3,
+                    style: 'solid',
+                    opacity: 0.9,
+                    levelType: 'swing',
+                    zIndex: 100,
+                    markers: {
+                        enabled: true,
+                        symbol: 'diamond',
+                        size: 4,
+                        spacing: 100,
+                        color: '#FF0000'
+                    }
+                };
+
+                api.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus('Applied Swing Resistance preset');
+            }
+
+            function applyHorizontalSupport() {
+                const api = getCurrentApi();
+                if (!api || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: '#66CC66',
+                    lineWidth: 1.5,
+                    style: 'dashed',
+                    opacity: 0.7,
+                    levelType: 'horizontal',
+                    zIndex: 90,
+                    markers: undefined
+                };
+
+                api.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus('Applied Horizontal Support preset');
+            }
+
+            function applyHorizontalResistance() {
+                const api = getCurrentApi();
+                if (!api || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: '#FF6666',
+                    lineWidth: 1.5,
+                    style: 'dashed',
+                    opacity: 0.7,
+                    levelType: 'horizontal',
+                    zIndex: 90,
+                    markers: undefined
+                };
+
+                api.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus('Applied Horizontal Resistance preset');
+            }
 
             function toggleDemoControls() {
                 const controls = document.getElementById('demo-controls');
@@ -730,7 +882,7 @@
 
             function updateTrendLineUI(trendLine) {
                 isUpdatingUI = true;
-                
+
                 document.getElementById('selected-line-id').textContent = trendLine.id.substring(0, 20) + '...';
                 document.getElementById('line-name').value = trendLine.name || '';
                 document.getElementById('line-description').value = trendLine.description || '';
@@ -739,7 +891,26 @@
                 document.getElementById('line-style').value = trendLine.style || 'solid';
                 document.getElementById('extend-left').checked = trendLine.extendLeft || false;
                 document.getElementById('extend-right').checked = trendLine.extendRight || false;
-                
+
+                // New properties
+                const opacity = (trendLine.opacity ?? 1.0) * 100;
+                document.getElementById('line-opacity').value = opacity;
+                document.getElementById('opacity-value').textContent = Math.round(opacity) + '%';
+                document.getElementById('level-type').value = trendLine.levelType || '';
+                document.getElementById('z-index').value = trendLine.zIndex || 0;
+
+                // Markers
+                const markersEnabled = trendLine.markers?.enabled || false;
+                document.getElementById('markers-enabled').checked = markersEnabled;
+                document.getElementById('marker-settings').style.display = markersEnabled ? 'block' : 'none';
+
+                if (markersEnabled && trendLine.markers) {
+                    document.getElementById('marker-symbol').value = trendLine.markers.symbol || 'diamond';
+                    document.getElementById('marker-size').value = trendLine.markers.size || 4;
+                    document.getElementById('marker-spacing').value = trendLine.markers.spacing || 100;
+                    document.getElementById('marker-color').value = trendLine.markers.color || trendLine.color || '#2962ff';
+                }
+
                 isUpdatingUI = false;
             }
 
@@ -812,6 +983,80 @@
                         api.updateTrendLineSettings(selectedTrendLineId, { extendRight: e.target.checked });
                         updateStatus(`Extend right: ${e.target.checked}`);
                     }
+                });
+
+                // Opacity change
+                document.getElementById('line-opacity').addEventListener('input', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const opacity = parseInt(e.target.value) / 100;
+                    document.getElementById('opacity-value').textContent = e.target.value + '%';
+                    const api = getCurrentApi();
+                    if (api) {
+                        api.updateTrendLineSettings(selectedTrendLineId, { opacity });
+                        updateStatus(`Opacity: ${e.target.value}%`);
+                    }
+                });
+
+                // Level type change
+                document.getElementById('level-type').addEventListener('change', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        api.updateTrendLineSettings(selectedTrendLineId, { levelType: e.target.value || undefined });
+                        updateStatus(`Level type: ${e.target.value || 'none'}`);
+                    }
+                });
+
+                // Z-index change
+                document.getElementById('z-index').addEventListener('change', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        api.updateTrendLineSettings(selectedTrendLineId, { zIndex: parseInt(e.target.value) });
+                        updateStatus(`Z-index: ${e.target.value}`);
+                    }
+                });
+
+                // Markers enabled change
+                document.getElementById('markers-enabled').addEventListener('change', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const enabled = e.target.checked;
+                    document.getElementById('marker-settings').style.display = enabled ? 'block' : 'none';
+                    const api = getCurrentApi();
+                    if (api) {
+                        if (enabled) {
+                            const markers = {
+                                enabled: true,
+                                symbol: document.getElementById('marker-symbol').value,
+                                size: parseInt(document.getElementById('marker-size').value),
+                                spacing: parseInt(document.getElementById('marker-spacing').value),
+                                color: document.getElementById('marker-color').value
+                            };
+                            api.updateTrendLineSettings(selectedTrendLineId, { markers });
+                        } else {
+                            api.updateTrendLineSettings(selectedTrendLineId, { markers: undefined });
+                        }
+                        updateStatus(`Markers: ${enabled ? 'enabled' : 'disabled'}`);
+                    }
+                });
+
+                // Marker settings changes
+                ['marker-symbol', 'marker-size', 'marker-spacing', 'marker-color'].forEach(id => {
+                    document.getElementById(id).addEventListener('change', (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api && document.getElementById('markers-enabled').checked) {
+                            const markers = {
+                                enabled: true,
+                                symbol: document.getElementById('marker-symbol').value,
+                                size: parseInt(document.getElementById('marker-size').value),
+                                spacing: parseInt(document.getElementById('marker-spacing').value),
+                                color: document.getElementById('marker-color').value
+                            };
+                            api.updateTrendLineSettings(selectedTrendLineId, { markers });
+                            updateStatus(`Marker settings updated`);
+                        }
+                    });
                 });
             }
 

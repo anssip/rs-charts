@@ -440,7 +440,8 @@ export class TrendLineLayer extends LitElement {
   }
 
   render() {
-    const visibleLines = this.getVisibleTrendLines();
+    const visibleLines = this.getVisibleTrendLines()
+      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)); // Sort by z-index
 
     // Use clientWidth/clientHeight if width/height are not set
     const actualWidth = this.width || this.clientWidth || 0;
