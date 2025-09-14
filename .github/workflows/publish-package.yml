@@ -38,8 +38,14 @@ jobs:
       - name: Update version if provided
         if: github.event.inputs.version
         run: |
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          echo "Updated version to ${{ github.event.inputs.version }}"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${{ github.event.inputs.version }}"
+          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
+            echo "Version $NEW_VERSION is already set in package.json, skipping update"
+          else
+            npm version $NEW_VERSION --no-git-tag-version
+            echo "Updated version from $CURRENT_VERSION to $NEW_VERSION"
+          fi
 
       - name: Build package
         run: bun run build

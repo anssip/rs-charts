@@ -211,7 +211,7 @@ export class ChartContainer extends LitElement {
     // Also listen for clicks directly on the chart area
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
-      chartAreaElement.addEventListener("click", this.handleChartAreaClick);
+      chartAreaElement.addEventListener("click", this.handleChartAreaClick as EventListener);
     }
 
     // Add global click listener to hide tooltip when clicking elsewhere
@@ -405,7 +405,7 @@ export class ChartContainer extends LitElement {
 
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
-      chartAreaElement.removeEventListener("click", this.handleChartAreaClick);
+      chartAreaElement.removeEventListener("click", this.handleChartAreaClick as EventListener);
     }
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
