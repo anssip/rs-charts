@@ -24,13 +24,13 @@ export const priceToY =
     const percentage =
       (price - priceRange.start) / (priceRange.end - priceRange.start);
     const y = (1 - percentage) * availableHeight;
-    return y / dpr;
+    return y;
   };
 
 export const priceToCanvasY =
   (canvas: HTMLCanvasElement, priceRange: PriceRange) =>
   (price: number): number =>
-    priceToY(canvas.height, {
+    priceToY(canvas.height / dpr, {
       start: priceRange.min,
       end: priceRange.max,
     })(price);

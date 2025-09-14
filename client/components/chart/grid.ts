@@ -21,7 +21,7 @@ export class HairlineGrid implements Drawable {
     } = context;
     const dpr = window.devicePixelRatio ?? 1;
 
-    const priceY = priceToY(canvas.height, {
+    const priceY = priceToY(canvas.height / dpr, {
       start: priceRange.min,
       end: priceRange.max,
     });

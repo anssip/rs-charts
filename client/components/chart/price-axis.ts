@@ -162,7 +162,7 @@ export class PriceAxis extends CanvasBase {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    const priceY = priceToY(this.canvas.height, {
+    const priceY = priceToY(this.canvas.height / dpr, {
       start: this.priceRange.min,
       end: this.priceRange.max,
     });
@@ -331,7 +331,8 @@ export class PriceAxis extends CanvasBase {
 
     if (!this.canvas) return;
 
-    const priceY = priceToY(this.canvas.height, {
+    const dpr = window.devicePixelRatio ?? 1;
+    const priceY = priceToY(this.canvas.height / dpr, {
       start: this.priceRange.min,
       end: this.priceRange.max,
     });

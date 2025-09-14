@@ -11,6 +11,7 @@ import "./live-decorators";
 import "./crosshairs";
 import "./indicators/volume-chart";
 import "./context-menu";
+import "./candle-tooltip";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
@@ -118,6 +119,12 @@ export class ChartContainer extends LitElement {
   @state()
   private trendLines: TrendLine[] = [];
 
+  @state()
+  private candleTooltipData: any = null;
+
+  @state()
+  private showCandleTooltip = false;
+
   private interactionController?: ChartInteractionController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
@@ -196,6 +203,18 @@ export class ChartContainer extends LitElement {
         this.updateTrendLineLayer();
       }, 100);
     }
+
+    // Add event listener for candle clicks
+    this.addEventListener("candle-click", this.handleCandleClick as EventListener);
+
+    // Also listen for clicks directly on the chart area
+    const chartAreaElement = this.renderRoot.querySelector(".chart-area");
+    if (chartAreaElement) {
+      chartAreaElement.addEventListener("click", this.handleChartAreaClick);
+    }
+
+    // Add global click listener to hide tooltip when clicking elsewhere
+    document.addEventListener("click", this.handleDocumentClick);
 
     // Wait for components to initialize
     setTimeout(() => {
@@ -380,6 +399,13 @@ export class ChartContainer extends LitElement {
     );
     document.removeEventListener("click", this.handleClickOutside);
     document.removeEventListener("touchstart", this.handleClickOutside);
+    document.removeEventListener("click", this.handleDocumentClick);
+    this.removeEventListener("candle-click", this.handleCandleClick as EventListener);
+
+    const chartAreaElement = this.renderRoot.querySelector(".chart-area");
+    if (chartAreaElement) {
+      chartAreaElement.removeEventListener("click", this.handleChartAreaClick);
+    }
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
     this.removeEventListener(
@@ -763,6 +789,12 @@ export class ChartContainer extends LitElement {
         <chart-timeline></chart-timeline>
       </div>
     </div>
+
+    <!-- Candle Tooltip -->
+    <candle-tooltip
+      .data=${this.candleTooltipData}
+      .visible=${this.showCandleTooltip}
+    ></candle-tooltip>
     `;
   }
 
@@ -901,6 +933,64 @@ export class ChartContainer extends LitElement {
 
   private handleWindowFocus = () => {
     this.draw();
+  };
+
+  private handleCandleClick = (event: CustomEvent) => {
+    event.stopPropagation();
+    const { candle, x, y } = event.detail;
+
+    this.candleTooltipData = {
+      timestamp: candle.timestamp,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      volume: candle.volume,
+      x,
+      y
+    };
+    this.showCandleTooltip = true;
+  };
+
+  private handleDocumentClick = (event: MouseEvent) => {
+    // Hide tooltip if clicking outside the chart
+    const target = event.target as Element;
+    if (!this.contains(target)) {
+      this.showCandleTooltip = false;
+    }
+  };
+
+  private handleChartAreaClick = (event: MouseEvent) => {
+    // Try to find the chart and canvas
+    const chart = this.renderRoot.querySelector("candlestick-chart") as any;
+    if (!chart || !chart.shadowRoot) return;
+
+    const canvas = chart.shadowRoot.querySelector("canvas");
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * window.devicePixelRatio;
+    const y = (event.clientY - rect.top) * window.devicePixelRatio;
+
+    // Use the drawing strategy to find candle at position
+    if (chart.drawingStrategy && typeof chart.drawingStrategy.getCandleAtPosition === 'function') {
+      const candle = chart.drawingStrategy.getCandleAtPosition(x, y);
+      if (candle) {
+        this.candleTooltipData = {
+          timestamp: candle.timestamp,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          volume: candle.volume,
+          x: event.clientX,
+          y: event.clientY
+        };
+        this.showCandleTooltip = true;
+      } else {
+        this.showCandleTooltip = false;
+      }
+    }
   };
 
   private handleFullScreenToggle = async (e: Event) => {
