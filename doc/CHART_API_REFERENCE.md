@@ -100,6 +100,28 @@ const initialState = {
       extendRight: true,
       name: "Support Line",
       description: "Key support level from previous trading session"
+    },
+    {
+      id: "trend-2",
+      startPoint: { timestamp: 1704067200000, price: 48000 },
+      endPoint: { timestamp: 1704153600000, price: 48000 },
+      color: "#00FF00",
+      lineWidth: 3,
+      style: "solid",
+      opacity: 0.9,
+      levelType: "swing",
+      zIndex: 100,
+      markers: {
+        enabled: true,
+        symbol: "diamond",
+        size: 4,
+        spacing: 100,
+        color: "#00FF00"
+      },
+      extendLeft: true,
+      extendRight: true,
+      name: "◆ Swing Support",
+      description: "Major swing support level with high confidence"
     }
   ]
 };
@@ -372,10 +394,10 @@ api.toggleFullWindow();
 
 #### `addTrendLine(trendLine: Omit<TrendLine, 'id'>): string`
 
-Add a new trend line to the chart.
+Add a new trend line to the chart with advanced support/resistance visualization capabilities.
 
 ```typescript
-// Add a trend line with all properties
+// Add a basic trend line
 const lineId = api.addTrendLine({
   start: { timestamp: 1234567890000, price: 50000 },
   end: { timestamp: 1234567900000, price: 51000 },
@@ -388,21 +410,43 @@ const lineId = api.addTrendLine({
   description: "Major resistance level from daily chart"
 });
 
-// Add a trend line with name only
-const lineId2 = api.addTrendLine({
-  start: { timestamp: 1234567890000, price: 52000 },
-  end: { timestamp: 1234567900000, price: 53000 },
+// Add a swing support level with markers
+const swingSupport = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 48000 },
+  end: { timestamp: 1234567900000, price: 48000 },
   color: "#00FF00",
-  name: "Support",
-  selected: false  // Line will not be selected after creation
+  lineWidth: 3,
+  style: "solid",
+  opacity: 0.9,
+  levelType: "swing",
+  zIndex: 100,
+  markers: {
+    enabled: true,
+    symbol: "diamond",
+    size: 4,
+    spacing: 100,
+    color: "#00FF00"
+  },
+  extendLeft: true,
+  extendRight: true,
+  name: "◆ Swing Support",
+  description: "Strong swing support level at 48000"
 });
 
-// Add a trend line with description only
-const lineId3 = api.addTrendLine({
-  start: { timestamp: 1234567890000, price: 54000 },
-  end: { timestamp: 1234567900000, price: 55000 },
-  description: "Ascending channel upper boundary",
-  selected: true  // Explicitly select the line after creation
+// Add a horizontal resistance level
+const horizontalResistance = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 52000 },
+  end: { timestamp: 1234567900000, price: 52000 },
+  color: "#FF6666",
+  lineWidth: 1.5,
+  style: "dashed",
+  opacity: 0.7,
+  levelType: "horizontal",
+  zIndex: 90,
+  extendLeft: true,
+  extendRight: true,
+  name: "— Horizontal Resistance",
+  description: "Consolidation zone resistance"
 });
 ```
 
@@ -412,12 +456,21 @@ const lineId3 = api.addTrendLine({
   - `end`: End point with `timestamp` and `price`
   - `name?`: Optional display name shown above the line
   - `description?`: Optional description shown as tooltip on hover
-  - `color`: Optional line color (default: chart default)
-  - `lineWidth`: Optional line width (default: 2)
-  - `style`: Optional line style - "solid" | "dashed" | "dotted" (default: "solid")
-  - `extendLeft`: Optional extend line to the left (default: false)
-  - `extendRight`: Optional extend line to the right (default: false)
-  - `selected`: Optional whether to select the line after creation (default: true)
+  - `color?`: Optional line color (default: chart default)
+  - `lineWidth?`: Optional line width (default: 2)
+  - `style?`: Optional line style - "solid" | "dashed" | "dotted" (default: "solid")
+  - `extendLeft?`: Optional extend line to the left (default: false)
+  - `extendRight?`: Optional extend line to the right (default: false)
+  - `selected?`: Optional whether to select the line after creation (default: true)
+  - **`levelType?`**: Optional level classification - "swing" | "horizontal" for support/resistance types
+  - **`opacity?`**: Optional opacity value from 0.0 to 1.0 (default: 1.0)
+  - **`zIndex?`**: Optional z-index for layering (higher values on top, default: 0)
+  - **`markers?`**: Optional marker configuration object:
+    - `enabled`: Whether to show markers along the line
+    - `symbol`: Marker shape - "diamond" | "circle" | "square" | "triangle"
+    - `size`: Marker size in pixels
+    - `spacing`: Distance between markers in pixels
+    - `color?`: Marker color (defaults to line color)
 
 **Returns:** The ID of the created trend line
 
@@ -460,6 +513,7 @@ api.updateTrendLine("trend-line-1234567890", {
 Update visual settings of an existing trend line (convenience method).
 
 ```typescript
+// Basic settings update
 api.updateTrendLineSettings('trend-line-1704153600000', {
   color: '#0000FF',
   lineWidth: 1,
@@ -468,6 +522,28 @@ api.updateTrendLineSettings('trend-line-1704153600000', {
   extendRight: true,
   name: "Dynamic Support",
   description: "Support level that adjusts with market conditions"
+});
+
+// Update with advanced properties
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  color: '#00FF00',
+  lineWidth: 3,
+  style: 'solid',
+  opacity: 0.9,
+  levelType: 'swing',
+  zIndex: 100,
+  markers: {
+    enabled: true,
+    symbol: 'diamond',
+    size: 4,
+    spacing: 100,
+    color: '#00FF00'
+  }
+});
+
+// Remove markers
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  markers: undefined
 });
 ```
 
@@ -1124,6 +1200,16 @@ interface TrendLineSettings {
   extendRight?: boolean;
   name?: string;
   description?: string;
+  levelType?: 'swing' | 'horizontal';
+  opacity?: number;
+  zIndex?: number;
+  markers?: {
+    enabled: boolean;
+    symbol: 'diamond' | 'circle' | 'square' | 'triangle';
+    size: number;
+    spacing: number;
+    color?: string;
+  };
 }
 
 interface TrendLineDefaults {
@@ -1151,6 +1237,16 @@ interface TrendLine {
   name?: string;         // Display name shown above the line
   description?: string;   // Tooltip text shown on hover
   selected?: boolean;
+  levelType?: 'swing' | 'horizontal';  // Type of support/resistance level
+  opacity?: number;                     // Opacity value (0.0 to 1.0)
+  zIndex?: number;                      // Z-index for layering (higher = on top)
+  markers?: {                          // Optional markers along the line
+    enabled: boolean;
+    symbol: 'diamond' | 'circle' | 'square' | 'triangle';
+    size: number;                      // Size in pixels
+    spacing: number;                   // Spacing between markers in pixels
+    color?: string;                    // Marker color (defaults to line color)
+  };
 }
 
 // Initial state configuration that can be passed when creating a chart
