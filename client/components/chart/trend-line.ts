@@ -98,6 +98,7 @@ export class TrendLineElement extends LitElement {
       pointer-events: none;
       transition:
         stroke-width 0.15s ease,
+        stroke-opacity 0.2s ease,
         opacity 0.15s ease;
     }
 
@@ -127,6 +128,25 @@ export class TrendLineElement extends LitElement {
     .trend-line:hover {
       stroke-width: 3;
       opacity: 0.9;
+    }
+
+    /* Different hover effects based on level type */
+    .trend-line[data-level-type="swing"]:hover {
+      filter: drop-shadow(0 0 4px currentColor);
+    }
+
+    .trend-line[data-level-type="horizontal"]:hover {
+      filter: drop-shadow(0 0 2px currentColor);
+    }
+
+    /* Marker animations */
+    .marker-point {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
     }
 
     .handle {
@@ -777,6 +797,86 @@ export class TrendLineElement extends LitElement {
     }
   }
 
+
+  // New helper method to render markers along the line
+  private renderMarkers(start: Point, end: Point): any {
+    const markers = this.trendLine.markers!;
+    const spacing = markers.spacing || 100;
+    const markerColor = markers.color || this.trendLine.color || '#2962ff';
+    const markerSize = markers.size || 4;
+
+    // Calculate line length
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const lineLength = Math.sqrt(dx * dx + dy * dy);
+
+    // Calculate number of markers
+    const numMarkers = Math.floor(lineLength / spacing);
+
+    if (numMarkers <= 0) return svg``;
+
+    // Generate marker positions
+    const markerPositions: Point[] = [];
+    for (let i = 1; i <= numMarkers; i++) {
+      const t = (i * spacing) / lineLength;
+      if (t < 1) {
+        markerPositions.push({
+          x: start.x + dx * t,
+          y: start.y + dy * t
+        });
+      }
+    }
+
+    // Render actual marker shapes at calculated positions
+    return svg`
+      ${markerPositions.map(pos => this.renderMarkerAtPosition(pos, markers.symbol, markerSize, markerColor))}
+    `;
+  }
+
+  private renderMarkerAtPosition(pos: Point, symbol: string, size: number, color: string): any {
+    switch (symbol) {
+      case 'diamond':
+        return svg`
+          <polygon
+            points="${pos.x},${pos.y - size} ${pos.x + size},${pos.y} ${pos.x},${pos.y + size} ${pos.x - size},${pos.y}"
+            fill="${color}"
+            opacity="${this.trendLine.opacity ?? 1.0}"
+          />
+        `;
+      case 'circle':
+        return svg`
+          <circle
+            cx="${pos.x}"
+            cy="${pos.y}"
+            r="${size/2}"
+            fill="${color}"
+            opacity="${this.trendLine.opacity ?? 1.0}"
+          />
+        `;
+      case 'square':
+        return svg`
+          <rect
+            x="${pos.x - size/2}"
+            y="${pos.y - size/2}"
+            width="${size}"
+            height="${size}"
+            fill="${color}"
+            opacity="${this.trendLine.opacity ?? 1.0}"
+          />
+        `;
+      case 'triangle':
+        return svg`
+          <polygon
+            points="${pos.x},${pos.y - size} ${pos.x + size},${pos.y + size} ${pos.x - size},${pos.y + size}"
+            fill="${color}"
+            opacity="${this.trendLine.opacity ?? 1.0}"
+          />
+        `;
+      default:
+        return svg``;
+    }
+  }
+
   render() {
     if (
       !this.trendLine ||
@@ -800,6 +900,9 @@ export class TrendLineElement extends LitElement {
 
     const lineColor = this.trendLine.color || "#2962ff";
     const lineStyle = this.trendLine.style || "solid";
+    const lineWidth = this.trendLine.lineWidth || 2;
+    const opacity = this.trendLine.opacity ?? 1.0;  // New: opacity support
+    const zIndex = this.trendLine.zIndex ?? 0;      // New: z-index support
     const showHandles = this.hovered || this.selected;
     const namePosition = this.calculateNamePosition();
 
@@ -808,6 +911,7 @@ export class TrendLineElement extends LitElement {
         class="${this.hovered ? "hovered" : ""} ${this.selected
           ? "selected"
           : ""}"
+        style="z-index: ${zIndex}"
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
@@ -835,14 +939,21 @@ export class TrendLineElement extends LitElement {
           <!-- Visible trend line -->
           <line
             class="trend-line ${lineStyle}"
+            data-level-type="${this.trendLine.levelType || ''}"
             x1="${extendedStart.x}"
             y1="${extendedStart.y}"
             x2="${extendedEnd.x}"
             y2="${extendedEnd.y}"
             stroke="${lineColor}"
-            style="stroke-width: ${this.trendLine.lineWidth || 2}px"
+            stroke-opacity="${opacity}"
+            style="stroke-width: ${lineWidth}px"
             pointer-events="none"
           />
+
+          ${/* Render invisible markers along the line for marker placement */
+          this.trendLine.markers?.enabled
+            ? this.renderMarkers(extendedStart, extendedEnd)
+            : ''}
         </g>
 
         <!-- Handles remain outside clipping so they're always visible when hovered/selected -->
