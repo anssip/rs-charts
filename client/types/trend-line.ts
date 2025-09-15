@@ -27,6 +27,12 @@ export interface TrendLine {
     color?: string;                    // Marker color (defaults to line color)
   };
   zIndex?: number;                      // Z-index for layering (higher = on top)
+  animation?: {                          // Optional animation configuration
+    type: 'pulse';                       // Animation type (currently only pulse supported)
+    duration?: number;                   // Duration in milliseconds (default: 2000)
+    intensity?: number;                  // Intensity of the animation (0.0 to 1.0, default: 0.3)
+    enabled?: boolean;                   // Whether animation is enabled (default: true if animation object exists)
+  };
 }
 
 export interface TrendLineEvent {
