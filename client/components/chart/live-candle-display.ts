@@ -23,6 +23,12 @@ export class LiveCandleDisplay extends LitElement {
       pointer-events: none;
     }
 
+    @media (max-width: 768px) {
+      :host {
+        display: none;
+      }
+    }
+
     .display-container {
       background: rgba(0, 0, 0, 0.6);
       color: white;
