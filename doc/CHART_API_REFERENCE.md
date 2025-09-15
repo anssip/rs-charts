@@ -98,6 +98,11 @@ const initialState = {
       style: "solid",
       extendLeft: false,
       extendRight: true,
+      animation: {
+        type: "pulse",
+        duration: 2000,
+        intensity: 0.3
+      }
       name: "Support Line",
       description: "Key support level from previous trading session"
     },
@@ -448,6 +453,26 @@ const horizontalResistance = api.addTrendLine({
   name: "— Horizontal Resistance",
   description: "Consolidation zone resistance"
 });
+
+// Add a trend line with pulse animation for critical levels
+const animatedSupportLine = api.addTrendLine({
+  start: { timestamp: 1234567890000, price: 45000 },
+  end: { timestamp: 1234567900000, price: 45500 },
+  color: "#00FF00",
+  lineWidth: 4,
+  style: "solid",
+  opacity: 0.8,
+  animation: {
+    type: "pulse",
+    duration: 2000,    // 2 second pulse cycle
+    intensity: 0.3,    // 30% opacity variation (will pulse between 0.65 and 0.95)
+    enabled: true
+  },
+  extendLeft: false,
+  extendRight: true,
+  name: "⚡ Critical Support",
+  description: "Major support level with high importance"
+});
 ```
 
 **Parameters:**
@@ -471,6 +496,11 @@ const horizontalResistance = api.addTrendLine({
     - `size`: Marker size in pixels
     - `spacing`: Distance between markers in pixels
     - `color?`: Marker color (defaults to line color)
+  - **`animation?`**: Optional pulse animation configuration:
+    - `type`: Animation type - currently only "pulse" is supported
+    - `duration?`: Duration of one pulse cycle in milliseconds (default: 2000)
+    - `intensity?`: Intensity of opacity variation from 0.0 to 1.0 (default: 0.3)
+    - `enabled?`: Whether animation is enabled (default: true if animation object exists)
 
 **Returns:** The ID of the created trend line
 
@@ -539,6 +569,21 @@ api.updateTrendLineSettings('trend-line-1704153600000', {
     spacing: 100,
     color: '#00FF00'
   }
+});
+
+// Add pulse animation to a trend line
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  animation: {
+    type: 'pulse',
+    duration: 2000,     // 2 second pulse cycle
+    intensity: 0.3,     // 30% opacity variation
+    enabled: true
+  }
+});
+
+// Remove animation
+api.updateTrendLineSettings('trend-line-1704153600000', {
+  animation: undefined
 });
 
 // Remove markers
@@ -1210,6 +1255,12 @@ interface TrendLineSettings {
     spacing: number;
     color?: string;
   };
+  animation?: {
+    type: 'pulse';
+    duration?: number;
+    intensity?: number;
+    enabled?: boolean;
+  };
 }
 
 interface TrendLineDefaults {
@@ -1246,6 +1297,12 @@ interface TrendLine {
     size: number;                      // Size in pixels
     spacing: number;                   // Spacing between markers in pixels
     color?: string;                    // Marker color (defaults to line color)
+  };
+  animation?: {                         // Optional pulse animation
+    type: 'pulse';                      // Animation type (currently only pulse supported)
+    duration?: number;                  // Duration in milliseconds (default: 2000)
+    intensity?: number;                 // Intensity of the animation (0.0 to 1.0, default: 0.3)
+    enabled?: boolean;                  // Whether animation is enabled (default: true if animation object exists)
   };
 }
 
