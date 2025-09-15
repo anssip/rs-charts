@@ -149,6 +149,20 @@ export class TrendLineElement extends LitElement {
       50% { opacity: 1; }
     }
 
+    /* Pulse animation for trend lines */
+    @keyframes trend-line-pulse {
+      0%, 100% {
+        opacity: var(--pulse-min-opacity, 0.7);
+      }
+      50% {
+        opacity: var(--pulse-max-opacity, 1);
+      }
+    }
+
+    .trend-line.animated-pulse {
+      animation: trend-line-pulse var(--pulse-duration, 2s) ease-in-out infinite;
+    }
+
     .handle {
       fill: white;
       stroke: currentColor;
@@ -906,12 +920,28 @@ export class TrendLineElement extends LitElement {
     const showHandles = this.hovered || this.selected;
     const namePosition = this.calculateNamePosition();
 
+    // Animation configuration
+    const animation = this.trendLine.animation;
+    const animationEnabled = animation?.enabled !== false && animation?.type === 'pulse';
+    const animationDuration = animation?.duration || 2000;
+    const animationIntensity = animation?.intensity || 0.3;
+
+    // Calculate animation opacity range based on base opacity and intensity
+    const minOpacity = Math.max(0, opacity - (animationIntensity / 2));
+    const maxOpacity = Math.min(1, opacity + (animationIntensity / 2));
+
+    const animationStyles = animationEnabled ? `
+      --pulse-duration: ${animationDuration}ms;
+      --pulse-min-opacity: ${minOpacity};
+      --pulse-max-opacity: ${maxOpacity};
+    ` : '';
+
     return html`
       <svg
         class="${this.hovered ? "hovered" : ""} ${this.selected
           ? "selected"
           : ""}"
-        style="z-index: ${zIndex}"
+        style="z-index: ${zIndex}; ${animationStyles}"
         @mouseenter="${this.handleMouseEnter}"
         @mouseleave="${this.handleMouseLeave}"
       >
@@ -938,15 +968,15 @@ export class TrendLineElement extends LitElement {
           />
           <!-- Visible trend line -->
           <line
-            class="trend-line ${lineStyle}"
+            class="trend-line ${lineStyle} ${animationEnabled ? 'animated-pulse' : ''}"
             data-level-type="${this.trendLine.levelType || ''}"
             x1="${extendedStart.x}"
             y1="${extendedStart.y}"
             x2="${extendedEnd.x}"
             y2="${extendedEnd.y}"
             stroke="${lineColor}"
-            stroke-opacity="${opacity}"
-            style="stroke-width: ${lineWidth}px"
+            stroke-opacity="${animationEnabled ? '' : opacity}"
+            style="stroke-width: ${lineWidth}px${animationEnabled ? '; opacity: ' + opacity : ''}"
             pointer-events="none"
           />
 

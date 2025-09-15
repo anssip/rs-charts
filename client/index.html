@@ -410,6 +410,25 @@
 
                 <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
                     <label>
+                        <input type="checkbox" id="pulse-animation-enabled" style="margin-right: 5px;">
+                        Enable Pulse Animation
+                    </label>
+                </div>
+
+                <div id="pulse-animation-settings" style="display: none;">
+                    <div class="control-group">
+                        <label>Duration: <span id="pulse-duration-value">2000ms</span></label>
+                        <input type="range" id="pulse-duration" min="500" max="5000" value="2000" step="100" style="width: 100%;">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Intensity: <span id="pulse-intensity-value">30%</span></label>
+                        <input type="range" id="pulse-intensity" min="10" max="100" value="30" step="5" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                    <label>
                         <input type="checkbox" id="markers-enabled" style="margin-right: 5px;">
                         Enable Markers
                     </label>
@@ -1014,6 +1033,63 @@
                     if (api) {
                         api.updateTrendLineSettings(selectedTrendLineId, { zIndex: parseInt(e.target.value) });
                         updateStatus(`Z-index: ${e.target.value}`);
+                    }
+                });
+
+                // Pulse Animation controls
+                document.getElementById('pulse-animation-enabled').addEventListener('change', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        const animationSettings = e.target.checked ? {
+                            animation: {
+                                type: 'pulse',
+                                enabled: true,
+                                duration: parseInt(document.getElementById('pulse-duration').value),
+                                intensity: parseInt(document.getElementById('pulse-intensity').value) / 100
+                            }
+                        } : {
+                            animation: undefined
+                        };
+                        api.updateTrendLineSettings(selectedTrendLineId, animationSettings);
+                        document.getElementById('pulse-animation-settings').style.display = e.target.checked ? 'block' : 'none';
+                        updateStatus(`Pulse animation: ${e.target.checked ? 'enabled' : 'disabled'}`);
+                    }
+                });
+
+                document.getElementById('pulse-duration').addEventListener('input', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        const duration = parseInt(e.target.value);
+                        document.getElementById('pulse-duration-value').textContent = duration + 'ms';
+                        api.updateTrendLineSettings(selectedTrendLineId, {
+                            animation: {
+                                type: 'pulse',
+                                enabled: true,
+                                duration: duration,
+                                intensity: parseInt(document.getElementById('pulse-intensity').value) / 100
+                            }
+                        });
+                        updateStatus(`Pulse duration: ${duration}ms`);
+                    }
+                });
+
+                document.getElementById('pulse-intensity').addEventListener('input', (e) => {
+                    if (isUpdatingUI || !selectedTrendLineId) return;
+                    const api = getCurrentApi();
+                    if (api) {
+                        const intensity = parseInt(e.target.value);
+                        document.getElementById('pulse-intensity-value').textContent = intensity + '%';
+                        api.updateTrendLineSettings(selectedTrendLineId, {
+                            animation: {
+                                type: 'pulse',
+                                enabled: true,
+                                duration: parseInt(document.getElementById('pulse-duration').value),
+                                intensity: intensity / 100
+                            }
+                        });
+                        updateStatus(`Pulse intensity: ${intensity}%`);
                     }
                 });
 
