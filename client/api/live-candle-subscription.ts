@@ -9,7 +9,8 @@ import { Granularity } from "../../server/services/price-data/price-history-mode
 import { getLogger, LogLevel } from "../util/logger";
 
 const logger = getLogger('live-candle-subscription');
-logger.setLoggerLevel('live-candle-subscription', LogLevel.ERROR);
+// Set to WARN to avoid showing permission errors in production
+logger.setLoggerLevel('live-candle-subscription', LogLevel.WARN);
 
 export interface LiveCandle {
   timestamp: number;
@@ -37,6 +38,7 @@ export class LiveCandleSubscription {
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
   private _reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly instanceId: string;
+  private _permissionDenied: boolean = false;
 
   constructor(private firestore: Firestore) {
     // Create unique instance ID for debugging multiple subscriptions
@@ -139,7 +141,13 @@ export class LiveCandleSubscription {
       logger.warn(`[${this.instanceId}] Cannot subscribe - instance is not active`);
       return;
     }
-    
+
+    // Don't attempt to subscribe if we've already detected permission issues
+    if (this._permissionDenied) {
+      logger.warn(`[${this.instanceId}] Skipping subscription due to previous permission denial`);
+      return;
+    }
+
     this.unsubscribe();
 
     this._currentSymbol = symbol;
@@ -147,6 +155,7 @@ export class LiveCandleSubscription {
     this._currentCallback = onUpdate;
     this._lastUpdateTime = Date.now();
     this._reconnectAttempts = 0; // Reset reconnection attempts on new subscription
+    this._permissionDenied = false; // Reset permission flag on new subscription
 
     logger.info(`[${this.instanceId}] Subscribing to ${symbol}/${granularity}`);
 
@@ -181,14 +190,26 @@ export class LiveCandleSubscription {
           }
         }
       },
-      (error) => {
+      (error: any) => {
         if (!this._isActive) return;
-        
+
+        // Handle permission errors specifically
+        if (error?.code === 'permission-denied') {
+          logger.warn(`[${this.instanceId}] Permission denied for live candle subscription. Path: exchanges/coinbase/products/${symbol}/intervals/${granularity}`);
+          logger.debug('This feature requires authentication or proper Firebase security rules configuration.');
+          // Don't attempt to reconnect on permission errors
+          this._reconnectAttempts = this.MAX_RECONNECT_ATTEMPTS;
+          this._permissionDenied = true;
+          // Stop monitoring to prevent continuous reconnection attempts
+          this.stopMonitoring();
+          return;
+        }
+
         logger.error(`[${this.instanceId}] Snapshot error:`, error);
         // Start reconnection process on error with delay
         const delay = Math.min(1000 * (this._reconnectAttempts + 1), 5000);
         setTimeout(() => {
-          if (this._isActive) {
+          if (this._isActive && this._reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
             this.reconnect();
           }
         }, delay);
