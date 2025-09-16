@@ -10,8 +10,8 @@ import { ChartState } from "../..";
 import { css } from "lit";
 import { getLogger, LogLevel } from "../../util/logger";
 
-const logger = getLogger('LiveDecorators');
-logger.setLoggerLevel('LiveDecorators', LogLevel.ERROR);
+const logger = getLogger("LiveDecorators");
+logger.setLoggerLevel("LiveDecorators", LogLevel.ERROR);
 
 @customElement("live-decorators")
 export class LiveDecorators extends CanvasBase {
@@ -133,10 +133,7 @@ export class LiveDecorators extends CanvasBase {
 
       this.isInitialized = true;
     } catch (error) {
-      logger.error(
-        `Error initializing state:`,
-        error,
-      );
+      logger.error(`Error initializing state:`, error);
     }
   }
 
@@ -256,10 +253,7 @@ export class LiveDecorators extends CanvasBase {
       try {
         this.draw();
       } catch (error) {
-        logger.error(
-          `Error during draw:`,
-          error,
-        );
+        logger.error(`Error during draw:`, error);
       }
     });
   }
@@ -278,11 +272,10 @@ export class LiveDecorators extends CanvasBase {
       return;
     }
     if (!this.liveCandle) {
-      logger.warn(
-        `Live candle not initialized`,
-      );
+      logger.warn(`Live candle not initialized`);
       return;
     }
+    const dpr = window.devicePixelRatio ?? 1;
     const width = this.canvas.width;
     const height = this.canvas.height;
 
@@ -307,10 +300,7 @@ export class LiveDecorators extends CanvasBase {
       typeof latestPriceRange.min === "undefined" ||
       typeof latestPriceRange.max === "undefined"
     ) {
-      logger.warn(
-        `No valid price range available in state`,
-        latestPriceRange,
-      );
+      logger.warn(`No valid price range available in state`, latestPriceRange);
       return;
     }
 
@@ -329,7 +319,7 @@ export class LiveDecorators extends CanvasBase {
       return;
     }
 
-    const priceY = priceToY(height, {
+    const priceY = priceToY(height / dpr, {
       start: this.priceRange.min,
       end: this.priceRange.max,
     });
@@ -347,11 +337,13 @@ export class LiveDecorators extends CanvasBase {
           .getPropertyValue("--color-accent-1")
           .trim();
     this.ctx.lineWidth = 1;
-    this.ctx.setLineDash([5, 5]); // Dashed line for better visibility
+    this.ctx.setLineDash([2, 2]); // Dashed line for better visibility
+    this.ctx.globalAlpha = 0.5; // Set opacity for the line
     this.ctx.beginPath();
     this.ctx.moveTo(0, yPosition);
     this.ctx.lineTo(width, yPosition);
     this.ctx.stroke();
+    this.ctx.globalAlpha = 1.0; // Reset opacity
     this.ctx.setLineDash([]); // Reset line dash
   }
 
