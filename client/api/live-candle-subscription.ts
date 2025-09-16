@@ -2,6 +2,7 @@ import {
   Firestore,
   onSnapshot,
   doc,
+  getDoc,
   DocumentSnapshot,
   DocumentData,
 } from "firebase/firestore";
@@ -132,11 +133,11 @@ export class LiveCandleSubscription {
     }
   }
 
-  subscribe(
+  async subscribe(
     symbol: string,
     granularity: Granularity,
     onUpdate: (candle: LiveCandle) => void
-  ): void {
+  ): Promise<void> {
     if (!this._isActive) {
       logger.warn(`[${this.instanceId}] Cannot subscribe - instance is not active`);
       return;
@@ -164,57 +165,86 @@ export class LiveCandleSubscription {
       `exchanges/coinbase/products/${symbol}/intervals/${granularity}`
     );
 
-    this._unsubscribe = onSnapshot(
-      docRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (!this._isActive) return;
-        
-        this._lastUpdateTime = Date.now();
-        this._reconnectAttempts = 0; // Reset on successful update
-        
-        if (snapshot.exists()) {
-          const data = snapshot.data() as LiveCandle;
-
-          // TODO: Live candles do not include volume
-          const candle: LiveCandle = {
-            ...data,
-            lastUpdate:
-              data.lastUpdate instanceof Date
-                ? data.lastUpdate
-                : new Date(data.lastUpdate),
-          };
-          
-          // Ensure callback is still valid before calling
-          if (this._currentCallback && this._isActive) {
-            onUpdate(candle);
-          }
-        }
-      },
-      (error: any) => {
-        if (!this._isActive) return;
-
-        // Handle permission errors specifically
-        if (error?.code === 'permission-denied') {
-          logger.warn(`[${this.instanceId}] Permission denied for live candle subscription. Path: exchanges/coinbase/products/${symbol}/intervals/${granularity}`);
-          logger.debug('This feature requires authentication or proper Firebase security rules configuration.');
-          // Don't attempt to reconnect on permission errors
-          this._reconnectAttempts = this.MAX_RECONNECT_ATTEMPTS;
-          this._permissionDenied = true;
-          // Stop monitoring to prevent continuous reconnection attempts
-          this.stopMonitoring();
-          return;
-        }
-
-        logger.error(`[${this.instanceId}] Snapshot error:`, error);
-        // Start reconnection process on error with delay
-        const delay = Math.min(1000 * (this._reconnectAttempts + 1), 5000);
-        setTimeout(() => {
-          if (this._isActive && this._reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
-            this.reconnect();
-          }
-        }, delay);
+    // First try a simple read to test permissions
+    try {
+      const testDoc = await getDoc(docRef);
+      if (testDoc.exists()) {
+        logger.debug(`[${this.instanceId}] Test read successful, document exists`);
+      } else {
+        logger.debug(`[${this.instanceId}] Test read successful, but document does not exist`);
       }
-    );
+    } catch (testError: any) {
+      logger.error(`[${this.instanceId}] Test read failed:`, testError);
+      if (testError?.code === 'permission-denied') {
+        logger.error(`[${this.instanceId}] Cannot read from path due to permissions`);
+        this._permissionDenied = true;
+        return;
+      }
+    }
+
+    try {
+      this._unsubscribe = onSnapshot(
+        docRef,
+        (snapshot: DocumentSnapshot<DocumentData>) => {
+          if (!this._isActive) return;
+
+          this._lastUpdateTime = Date.now();
+          this._reconnectAttempts = 0; // Reset on successful update
+
+          if (snapshot.exists()) {
+            const data = snapshot.data() as LiveCandle;
+
+            // TODO: Live candles do not include volume
+            const candle: LiveCandle = {
+              ...data,
+              lastUpdate:
+                data.lastUpdate instanceof Date
+                  ? data.lastUpdate
+                  : new Date(data.lastUpdate),
+            };
+
+            // Ensure callback is still valid before calling
+            if (this._currentCallback && this._isActive) {
+              onUpdate(candle);
+            }
+          } else {
+            logger.debug(`[${this.instanceId}] Document does not exist at path: exchanges/coinbase/products/${symbol}/intervals/${granularity}`);
+          }
+        },
+        (error: any) => {
+          if (!this._isActive) return;
+
+          // Log full error details for debugging
+          logger.debug(`[${this.instanceId}] Full error object:`, JSON.stringify(error));
+
+          // Handle permission errors specifically
+          if (error?.code === 'permission-denied') {
+            logger.warn(`[${this.instanceId}] Permission denied for live candle subscription. Path: exchanges/coinbase/products/${symbol}/intervals/${granularity}`);
+            logger.debug('This feature requires authentication or proper Firebase security rules configuration.');
+            logger.debug('Error message:', error.message);
+            // Don't attempt to reconnect on permission errors
+            this._reconnectAttempts = this.MAX_RECONNECT_ATTEMPTS;
+            this._permissionDenied = true;
+            // Stop monitoring to prevent continuous reconnection attempts
+            this.stopMonitoring();
+            return;
+          }
+
+          logger.error(`[${this.instanceId}] Snapshot error:`, error);
+          // Start reconnection process on error with delay
+          const delay = Math.min(1000 * (this._reconnectAttempts + 1), 5000);
+          setTimeout(() => {
+            if (this._isActive && this._reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+              this.reconnect();
+            }
+          }, delay);
+        }
+      );
+    } catch (setupError) {
+      logger.error(`[${this.instanceId}] Failed to setup snapshot listener:`, setupError);
+      this._permissionDenied = true;
+      this.stopMonitoring();
+    }
 
     this.startMonitoring();
   }
