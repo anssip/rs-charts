@@ -15,8 +15,6 @@ logger.setLoggerLevel('timeline', LogLevel.ERROR);
 import { ChartState } from "../..";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 
-const dpr = window.devicePixelRatio ?? 1;
-
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {
   private isDragging = false;
@@ -80,6 +78,7 @@ export class Timeline extends CanvasBase {
     this.animationFrameId = requestAnimationFrame(() => {
       const viewportStartTimestamp = this.timeRange.start;
       const viewportEndTimestamp = this.timeRange.end;
+      const dpr = window.devicePixelRatio ?? 1;
       const canvasWidth = this.canvas!.width / dpr;
 
       const state = xin[this._chartId] as ChartState;

@@ -53,7 +53,7 @@ export class IndicatorStack extends LitElement {
     /* When we have chart and indicators stacked together */
     .stack-item {
       position: relative;
-      border-top: 0.5px solid var(--color-gray-500, #363c4e);
+      /*border-top: 0.5px solid var(--color-gray-500, #363c4e);*/
       pointer-events: auto;
     }
 

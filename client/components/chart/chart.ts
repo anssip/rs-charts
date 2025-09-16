@@ -8,7 +8,7 @@ import {
 } from "./drawing-strategy";
 import { xin } from "xinjs";
 import { ChartState } from "../..";
-import { priceToY, timeToX, dpr } from "../../util/chart-util";
+import { priceToY, timeToX, getDpr } from "../../util/chart-util";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
 import { getLogger } from "../../util/logger";
 import "./price-axis";
@@ -242,8 +242,8 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       viewportEndTimestamp: this._state!.timeRange.end,
       priceRange: this._state!.priceRange,
       axisMappings: {
-        timeToX: timeToX(this.canvas!.width / dpr, this._state!.timeRange),
-        priceToY: priceToY(this.canvas!.height / dpr, {
+        timeToX: timeToX(this.canvas!.width / getDpr(), this._state!.timeRange),
+        priceToY: priceToY(this.canvas!.height / getDpr(), {
           start: this._state!.priceRange.min,
           end: this._state.priceRange.max,
         }),
@@ -264,7 +264,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     const totalCandleWidth =
       this._options.candleWidth + this._options.candleGap;
     return Math.floor(
-      availableWidth / (totalCandleWidth * window.devicePixelRatio)
+      availableWidth / (totalCandleWidth * getDpr())
     );
   }
 

@@ -240,14 +240,38 @@ export class ChartInteractionController {
       return;
     }
 
-    const availableHeight = this.eventTarget?.clientHeight ?? 0;
-    const pricePerPixel = state.priceRange.range / availableHeight;
+    // Use the container height (where mouse events are captured)
+    // This matches the actual draggable area
+    const containerHeight = this.eventTarget?.clientHeight ?? 0;
+    if (containerHeight === 0) {
+      logger.error("Container height is 0");
+      return;
+    }
+
+    const pricePerPixel = state.priceRange.range / containerHeight;
 
     const sensitivity = 1.5;
-    const adjustedDelta = (isTrackpad ? -deltaY : deltaY) * sensitivity;
+    // Fix the direction: dragging down (positive deltaY) should show lower prices (negative shift)
+    // For trackpad, the direction is already inverted in the browser
+    const adjustedDelta = (isTrackpad ? -deltaY : -deltaY) * sensitivity;
     const priceShift = adjustedDelta * pricePerPixel;
 
     if (priceShift === 0) return;
+
+    // Dispatch event for price-axis to update immediately
+    this.eventTarget.dispatchEvent(
+      new CustomEvent("price-axis-pan", {
+        detail: {
+          priceShift,
+          newPriceRange: {
+            min: state.priceRange.min + priceShift,
+            max: state.priceRange.max + priceShift
+          }
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
 
     state.priceRange.shift(priceShift);
     this.options.onStateChange({ priceRange: state.priceRange });

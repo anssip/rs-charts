@@ -102,7 +102,3 @@ h1.app-header {
     flex-direction: column;
     overflow: hidden; /* Prevent overflow */
 }
-
-.chart-container:first-child {
-    border-bottom: 1px solid rgba(143, 143, 143, 0.2);
-}

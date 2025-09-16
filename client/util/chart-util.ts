@@ -10,7 +10,8 @@ export type Range = {
   end: number;
 };
 
-export const dpr = window.devicePixelRatio ?? 1;
+// Get current device pixel ratio dynamically to handle display scaling changes
+export const getDpr = () => window.devicePixelRatio ?? 1;
 
 export const timeToX =
   (availableWidth: number, timeRange: Range) => (timestamp: number) => {
@@ -30,7 +31,7 @@ export const priceToY =
 export const priceToCanvasY =
   (canvas: HTMLCanvasElement, priceRange: PriceRange) =>
   (price: number): number =>
-    priceToY(canvas.height / dpr, {
+    priceToY(canvas.height / getDpr(), {
       start: priceRange.min,
       end: priceRange.max,
     })(price);
@@ -160,7 +161,7 @@ export function canvasYToPrice(
   canvas: HTMLCanvasElement,
   priceRange: PriceRange
 ): number {
-  const availableHeight = canvas.height / dpr;
+  const availableHeight = canvas.height / getDpr();
   // Invert the percentage calculation
   const percentage = 1 - y / availableHeight;
   // Convert percentage to price
@@ -172,7 +173,7 @@ export function yToPrice(
   height: number,
   priceRange: PriceRange
 ): number {
-  const availableHeight = height / dpr;
+  const availableHeight = height / getDpr();
   // Invert the percentage calculation
   const percentage = 1 - y / availableHeight;
   // Convert percentage to price
@@ -197,11 +198,11 @@ export function drawTimeLabel(
   textColor: string = "#000",
   showFullDateTime: boolean = false
 ) {
-  const dpr = window.devicePixelRatio ?? 1;
+  const dpr = getDpr();
   const timeText = showFullDateTime
     ? formatDateTime(new Date(time))
     : formatTime(new Date(time));
-  const padding = 6 * dpr;
+  const padding = 6 * getDpr();
 
   // Measure text
   const textMetrics = ctx.measureText(timeText);
@@ -254,7 +255,7 @@ export function drawPriceLabel(
 
   // Draw price label
   const labelHeight = 20;
-  const labelX = ctx.canvas.width / dpr - labelWidth;
+  const labelX = ctx.canvas.width / getDpr() - labelWidth;
   const labelY = y;
 
   // Draw background

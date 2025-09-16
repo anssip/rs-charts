@@ -18,7 +18,7 @@ import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
-import { getCandleInterval, priceToY, timeToX } from "../../util/chart-util";
+import { getCandleInterval, priceToY, timeToX, getDpr } from "../../util/chart-util";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import { MenuItem } from "./context-menu";
 import "./indicators/indicator-container";
@@ -300,8 +300,8 @@ export class ChartContainer extends LitElement {
       viewportEndTimestamp: this._state.timeRange.end,
       priceRange: this._state.priceRange,
       axisMappings: {
-        timeToX: timeToX(this.chart.canvas!.width, this._state.timeRange),
-        priceToY: priceToY(this.chart.canvas!.height, {
+        timeToX: timeToX(this.chart.canvas!.width / getDpr(), this._state.timeRange),
+        priceToY: priceToY(this.chart.canvas!.height / getDpr(), {
           start: this._state.priceRange.min,
           end: this._state.priceRange.max,
         }),
@@ -1252,7 +1252,10 @@ export class ChartContainer extends LitElement {
         Object.keys(updates).forEach((key) => {
           touch(`state.${key}`);
         });
-        this.draw();
+        // Need to call draw() for priceRange changes to update indicators and trend lines
+        if (updates.priceRange || updates.timeRange) {
+          this.draw();
+        }
       },
       onNeedMoreData: (direction) => {
         this.dispatchRefetch(direction);

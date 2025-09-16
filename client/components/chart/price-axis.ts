@@ -68,6 +68,12 @@ export class PriceAxis extends CanvasBase {
     this.currentPrice = 0;
     this.liveCandle = null;
 
+    // Listen for our own zoom events for immediate visual feedback
+    this.addEventListener("price-axis-zoom", this.handleOwnZoomEvent as EventListener);
+
+    // Listen for pan events from the chart area for immediate visual feedback
+    document.addEventListener("price-axis-pan", this.handleChartPanEvent as EventListener);
+
     // Defer state initialization until component is properly connected
     requestAnimationFrame(() => {
       this.initializeState();
@@ -148,6 +154,10 @@ export class PriceAxis extends CanvasBase {
 
     document.removeEventListener("mousemove", this.handleDocumentMouseMove);
     document.removeEventListener("mouseout", this.handleDocumentMouseOut);
+
+    // Remove zoom and pan event listeners
+    this.removeEventListener("price-axis-zoom", this.handleOwnZoomEvent as EventListener);
+    document.removeEventListener("price-axis-pan", this.handleChartPanEvent as EventListener);
   }
 
   useResizeObserver(): boolean {
@@ -402,6 +412,42 @@ export class PriceAxis extends CanvasBase {
   private handleTouchEnd = () => {
     this.isDragging = false;
     this.isZooming = false;
+  };
+
+  private handleOwnZoomEvent = (event: CustomEvent) => {
+    // Handle our own zoom event for immediate visual feedback
+    const { deltaY, isTrackpad } = event.detail;
+
+    // Apply zoom to our local price range for immediate visual feedback
+    const zoomCenter = 0.5; // Center of the price axis
+    const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
+
+    // Create a temporary price range for immediate feedback
+    const tempRange = new PriceRangeImpl(this.priceRange.min, this.priceRange.max);
+    tempRange.adjust(deltaY * zoomMultiplier, zoomCenter);
+
+    // Update our local price range for immediate rendering
+    this.priceRange = tempRange;
+
+    // Immediately redraw
+    this.draw();
+
+    // The event will bubble up and the interaction controller will handle the state update
+  };
+
+  private handleChartPanEvent = (event: CustomEvent) => {
+    // Handle pan events from chart area for immediate visual feedback
+    const { newPriceRange } = event.detail;
+
+    if (!newPriceRange) return;
+
+    // Update our local price range for immediate rendering
+    this.priceRange = new PriceRangeImpl(newPriceRange.min, newPriceRange.max);
+
+    // Immediately redraw
+    this.draw();
+
+    // The state update will happen via the interaction controller
   };
 
   render() {
