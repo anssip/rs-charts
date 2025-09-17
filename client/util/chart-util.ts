@@ -10,8 +10,16 @@ export type Range = {
   end: number;
 };
 
-// Get current device pixel ratio dynamically to handle display scaling changes
-export const getDpr = () => window.devicePixelRatio ?? 1;
+// Store initial device pixel ratio to prevent browser zoom from affecting chart rendering
+let initialDpr: number | null = null;
+
+// Get initial device pixel ratio - fixed to prevent browser zoom issues
+export const getDpr = () => {
+  if (initialDpr === null) {
+    initialDpr = window.devicePixelRatio ?? 1;
+  }
+  return initialDpr;
+};
 
 export const timeToX =
   (availableWidth: number, timeRange: Range) => (timestamp: number) => {
