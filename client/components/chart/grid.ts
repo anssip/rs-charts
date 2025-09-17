@@ -1,11 +1,11 @@
-import {
+import { 
   iterateTimeline,
   priceToY,
   getTimelineMarks,
-} from "../../util/chart-util";
-import { getPriceStep } from "../../util/price-util";
-import { DrawingContext, Drawable } from "./drawing-strategy";
-import { GridStyle } from "./indicators/indicator-types";
+} getDpr } from "../../util/chart-util";
+import {  getPriceStep } from "../../util/price-util";
+import {  DrawingContext, Drawable } from "./drawing-strategy";
+import {  GridStyle } from "./indicators/indicator-types";
 
 export class HairlineGrid implements Drawable {
   public draw(context: DrawingContext): void {
@@ -19,7 +19,7 @@ export class HairlineGrid implements Drawable {
       gridStyle = GridStyle.Standard, // Default to standard grid if not specified
       oscillatorConfig, // Configuration for percentage oscillators
     } = context;
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
 
     const priceY = priceToY(canvas.height / dpr, {
       start: priceRange.min,

@@ -284,7 +284,15 @@ export class MarketIndicator extends CanvasBase {
       const plotPoints: {
         [key: string]: Array<{ x: number; y: number; style: any }>;
       } = {};
-      const candleWidth = this.canvas.width / dpr / Math.max(1, candles.length);
+
+      // Use the same calculation as the main chart for consistency
+      const FIXED_GAP_WIDTH = 6; // Same as in drawing-strategy.ts
+      const candleCount = candles.length;
+      const availableWidth = this.canvas.width / dpr;
+      const numberOfGaps = Math.max(0, candleCount - 1);
+      const totalGapWidth = numberOfGaps * FIXED_GAP_WIDTH;
+      const spaceForCandles = Math.max(0, availableWidth - totalGapWidth);
+      const candleWidth = Math.max(5, Math.min(500, spaceForCandles / Math.max(1, candleCount)));
 
       // Track min/max values for auto-scaling
       let minValue = Infinity;

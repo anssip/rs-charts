@@ -1,14 +1,14 @@
-import { customElement } from "lit/decorators.js";
-import { CanvasBase } from "./canvas-base";
-import { xin } from "xinjs";
-import { LiveCandle } from "../../api/live-candle-subscription";
-import { PriceRange } from "../../../server/services/price-data/price-history-model";
-import { PriceRangeImpl } from "../../util/price-range";
-import { priceToY } from "../../util/chart-util";
-import { getLocalChartId, observeLocal } from "../../util/state-context";
-import { ChartState } from "../..";
-import { css } from "lit";
-import { getLogger, LogLevel } from "../../util/logger";
+import {  customElement } from "lit/decorators.js";
+import {  CanvasBase } from "./canvas-base";
+import {  xin } from "xinjs";
+import {  LiveCandle } from "../../api/live-candle-subscription";
+import {  PriceRange } from "../../../server/services/price-data/price-history-model";
+import {  PriceRangeImpl } from "../../util/price-range";
+import {  priceToY } getDpr } from "../../util/chart-util";
+import {  getLocalChartId, observeLocal } from "../../util/state-context";
+import {  ChartState } from "../..";
+import {  css } from "lit";
+import {  getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("LiveDecorators");
 logger.setLoggerLevel("LiveDecorators", LogLevel.ERROR);
@@ -275,7 +275,7 @@ export class LiveDecorators extends CanvasBase {
       logger.warn(`Live candle not initialized`);
       return;
     }
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
     const width = this.canvas.width;
     const height = this.canvas.height;
 

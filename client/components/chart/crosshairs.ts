@@ -1,11 +1,11 @@
-import { observe, xin } from "xinjs";
-import { CanvasBase } from "./canvas-base";
-import { granularityToMs } from "../../../server/services/price-data/price-history-model";
-import { customElement } from "lit/decorators.js";
-import { drawTimeLabel, getLocalAlignedTimestamp } from "../../util/chart-util";
-import { ChartState } from "../..";
-import { TIMELINE_HEIGHT } from "./chart-container";
-import { getLocalChartId, observeLocal } from "../../util/state-context";
+import {  observe, xin } from "xinjs";
+import {  CanvasBase } from "./canvas-base";
+import {  granularityToMs } from "../../../server/services/price-data/price-history-model";
+import {  customElement } from "lit/decorators.js";
+import {  drawTimeLabel, getLocalAlignedTimestamp } getDpr } from "../../util/chart-util";
+import {  ChartState } from "../..";
+import {  TIMELINE_HEIGHT } from "./chart-container";
+import {  getLocalChartId, observeLocal } from "../../util/state-context";
 
 @customElement("chart-crosshairs")
 export class Crosshairs extends CanvasBase {
@@ -91,7 +91,7 @@ export class Crosshairs extends CanvasBase {
     }
     const rect = this.canvas.getBoundingClientRect();
     const ctx = this.ctx;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = getDpr() || 1;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 

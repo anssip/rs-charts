@@ -4,6 +4,7 @@ import { CanvasBase } from "./canvas-base";
 import { formatPrice } from "../../util/price-util";
 import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 import { getLogger, LogLevel } from "../../util/logger";
+import { getDpr } from "../../util/chart-util";
 
 const logger = getLogger("value-axis");
 logger.setLoggerLevel("value-axis", LogLevel.ERROR);
@@ -225,7 +226,7 @@ export class ValueAxis extends CanvasBase {
     if (!this.canvas || !this.ctx) return;
 
     const ctx = this.ctx;
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
 
     this.canvas.width = this.canvas.offsetWidth * dpr;
     this.canvas.height = this.canvas.offsetHeight * dpr;
