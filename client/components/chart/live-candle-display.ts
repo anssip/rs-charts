@@ -32,21 +32,13 @@ export class LiveCandleDisplay extends LitElement {
     .display-container {
       background: rgba(0, 0, 0, 0.6);
       color: white;
-      padding: 12px;
+      padding: 8px;
       border-radius: 6px;
       font-size: 12px;
       font-family: monospace;
-      min-width: 160px;
+      min-width: 100px;
       line-height: 1.4;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .display-header {
-      font-weight: bold;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
     }
 
     .display-row {
@@ -57,7 +49,7 @@ export class LiveCandleDisplay extends LitElement {
 
     .display-label {
       color: #999;
-      margin-right: 12px;
+      margin-right: 0;
     }
 
     .display-value {
@@ -160,7 +152,6 @@ export class LiveCandleDisplay extends LitElement {
 
     return html`
       <div class="display-container">
-        <div class="display-header">Live Candle</div>
         <div class="display-row">
           <span class="display-label">Open:</span>
           <span class="display-value"
@@ -196,7 +187,6 @@ export class LiveCandleDisplay extends LitElement {
             `
           : ""}
         <div class="change-indicator">
-          <span class="display-label">Change:</span>
           <span class="change-value ${colorClass}">
             <span class="arrow">${arrow}</span>
             ${change.value} (${change.percentage})
