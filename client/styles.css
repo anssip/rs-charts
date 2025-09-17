@@ -101,4 +101,9 @@ h1.app-header {
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Prevent overflow */
+    /* Prevent zoom on touch devices */
+    touch-action: pan-x pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }

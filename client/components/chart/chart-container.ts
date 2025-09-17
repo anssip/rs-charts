@@ -173,6 +173,9 @@ export class ChartContainer extends LitElement {
       chartArea.clientHeight,
     );
 
+    // Add keyboard event listeners to prevent browser zoom
+    this.setupZoomPrevention();
+
     // Get the computed style to check if we have a fixed height
     const computedStyle = getComputedStyle(chartArea);
     const height = parseFloat(computedStyle.height);
@@ -275,6 +278,61 @@ export class ChartContainer extends LitElement {
       ? PRICEAXIS_MOBILE_WIDTH
       : PRICEAXIS_WIDTH;
   };
+
+  private setupZoomPrevention() {
+    // Prevent keyboard zoom shortcuts
+    const handleKeydown = (e: KeyboardEvent) => {
+      // Check if Ctrl or Cmd is pressed
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd) {
+        // Prevent Ctrl/Cmd + Plus/Minus/0 (zoom controls)
+        if (
+          e.key === '+' ||
+          e.key === '-' ||
+          e.key === '=' || // Plus key without shift
+          e.key === '0' ||
+          e.keyCode === 187 || // Plus/Equals key
+          e.keyCode === 189 || // Minus key
+          e.keyCode === 48     // Zero key
+        ) {
+          e.preventDefault();
+          logger.debug('ChartContainer: Prevented browser zoom keyboard shortcut');
+          return false;
+        }
+      }
+    };
+
+    // Prevent wheel zoom with Ctrl/Cmd
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        logger.debug('ChartContainer: Prevented browser zoom wheel event');
+        return false;
+      }
+    };
+
+    // Add listeners to the component and its shadow root
+    this.addEventListener('keydown', handleKeydown);
+    this.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Also add to the document when this element has focus
+    const documentKeydownHandler = (e: KeyboardEvent) => {
+      // Only prevent if the chart container or its children have focus
+      if (this.contains(document.activeElement) || this.shadowRoot?.contains(document.activeElement as Element)) {
+        handleKeydown(e);
+      }
+    };
+
+    document.addEventListener('keydown', documentKeydownHandler);
+
+    // Store handlers for cleanup
+    (this as any)._zoomPreventionHandlers = {
+      keydown: handleKeydown,
+      wheel: handleWheel,
+      documentKeydown: documentKeydownHandler
+    };
+  }
 
   private handleUpgrade = async () => {
     if (this.isFullscreen) {
@@ -416,6 +474,15 @@ export class ChartContainer extends LitElement {
     this.mobileMediaQuery.removeEventListener("change", () =>
       this.handleMobileChange(),
     );
+
+    // Clean up zoom prevention handlers
+    const handlers = (this as any)._zoomPreventionHandlers;
+    if (handlers) {
+      this.removeEventListener('keydown', handlers.keydown);
+      this.removeEventListener('wheel', handlers.wheel);
+      document.removeEventListener('keydown', handlers.documentKeydown);
+    }
+
     this.interactionController?.detach();
   }
 
