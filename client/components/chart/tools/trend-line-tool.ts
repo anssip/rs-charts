@@ -1,6 +1,7 @@
 import { TrendLine, TrendLinePoint, TrendLineDefaults } from "../../../types/trend-line";
 import { ChartState } from "../../..";
 import { logger } from "../../../util/logger";
+import { getDpr } from "../../../util/chart-util";
 
 export class TrendLineTool {
   private isActive = false;
@@ -305,7 +306,7 @@ export class TrendLineTool {
     
     // Use the actual canvas height if available, otherwise fall back to container height
     const canvas = this.getChartCanvas();
-    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    const chartHeight = canvas ? canvas.height / (getDpr() || 1) : rect.height;
     
     const timestamp = this.xToTime(x, chartWidth, chartState.timeRange);
     const price = this.yToPrice(y, chartHeight, chartState.priceRange);
@@ -325,7 +326,7 @@ export class TrendLineTool {
     
     // Use the actual canvas height if available
     const canvas = this.getChartCanvas();
-    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    const chartHeight = canvas ? canvas.height / (getDpr() || 1) : rect.height;
     
     const x1 = this.timeToX(this.firstPoint.timestamp, chartWidth, chartState.timeRange);
     const y1 = this.priceToY(this.firstPoint.price, chartHeight, chartState.priceRange);
@@ -357,7 +358,7 @@ export class TrendLineTool {
     const rect = this.container.getBoundingClientRect();
     const chartWidth = rect.width - this.priceAxisWidth;
     const canvas = this.getChartCanvas();
-    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    const chartHeight = canvas ? canvas.height / (getDpr() || 1) : rect.height;
     
     return {
       x: this.timeToX(point.timestamp, chartWidth, chartState.timeRange),
@@ -381,7 +382,7 @@ export class TrendLineTool {
     
     // Use the actual canvas height if available, otherwise fall back to container height
     const canvas = this.getChartCanvas();
-    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    const chartHeight = canvas ? canvas.height / (getDpr() || 1) : rect.height;
     
     const timestamp = this.xToTime(x, chartWidth, chartState.timeRange);
     const price = this.yToPrice(y, chartHeight, chartState.priceRange);
@@ -451,7 +452,7 @@ export class TrendLineTool {
     
     // Use the actual canvas height if available
     const canvas = this.getChartCanvas();
-    const chartHeight = canvas ? canvas.height / (window.devicePixelRatio || 1) : rect.height;
+    const chartHeight = canvas ? canvas.height / (getDpr() || 1) : rect.height;
     
     const x1 = this.timeToX(this.firstPoint.timestamp, chartWidth, chartState.timeRange);
     const y1 = this.priceToY(this.firstPoint.price, chartHeight, chartState.priceRange);

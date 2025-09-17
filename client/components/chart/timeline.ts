@@ -1,19 +1,19 @@
-import { customElement } from "lit/decorators.js";
-import { CanvasBase } from "./canvas-base";
-import {
+import {  customElement } from "lit/decorators.js";
+import {  CanvasBase } from "./canvas-base";
+import { 
   formatDate,
   formatTime,
   iterateTimeline,
   getTimelineMarks,
-} from "../../util/chart-util";
-import { xin } from "xinjs";
-import { TimeRange } from "../../../server/services/price-data/price-history-model";
-import { getLogger, LogLevel } from "../../util/logger";
+} getDpr } from "../../util/chart-util";
+import {  xin } from "xinjs";
+import {  TimeRange } from "../../../server/services/price-data/price-history-model";
+import {  getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger('timeline');
 logger.setLoggerLevel('timeline', LogLevel.ERROR);
-import { ChartState } from "../..";
-import { getLocalChartId, observeLocal } from "../../util/state-context";
+import {  ChartState } from "../..";
+import {  getLocalChartId, observeLocal } from "../../util/state-context";
 
 @customElement("chart-timeline")
 export class Timeline extends CanvasBase {
@@ -78,7 +78,7 @@ export class Timeline extends CanvasBase {
     this.animationFrameId = requestAnimationFrame(() => {
       const viewportStartTimestamp = this.timeRange.start;
       const viewportEndTimestamp = this.timeRange.end;
-      const dpr = window.devicePixelRatio ?? 1;
+      const dpr = getDpr() ?? 1;
       const canvasWidth = this.canvas!.width / dpr;
 
       const state = xin[this._chartId] as ChartState;

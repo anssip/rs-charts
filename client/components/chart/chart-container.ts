@@ -389,7 +389,7 @@ export class ChartContainer extends LitElement {
         trendLineLayer.width = chartArea.clientWidth - this.priceAxisWidth;
 
         // Use the actual canvas height
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getDpr(); // Use fixed DPR
         trendLineLayer.height = this.chart.canvas.height / dpr;
       }
 
@@ -938,7 +938,7 @@ export class ChartContainer extends LitElement {
       this.chart.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
     return Math.floor(
-      availableWidth / (totalCandleWidth * window.devicePixelRatio),
+      availableWidth / (totalCandleWidth * getDpr()),
     );
   }
 
@@ -953,7 +953,7 @@ export class ChartContainer extends LitElement {
     const numCandles = timeRange / getCandleInterval(this._state.granularity);
 
     const availableWidth =
-      this.chart.canvas.width / (window.devicePixelRatio ?? 1) -
+      this.chart.canvas.width / getDpr() -
       this.padding.left -
       this.padding.right;
 
@@ -965,7 +965,7 @@ export class ChartContainer extends LitElement {
       Math.max(
         this.options.minCandleWidth,
         Math.min(this.options.maxCandleWidth, idealCandleWidth),
-      ) / (window.devicePixelRatio ?? 1);
+      ) / getDpr();
     const candleGap = Math.max(1, idealGapWidth);
 
     return {
@@ -1039,8 +1039,8 @@ export class ChartContainer extends LitElement {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * window.devicePixelRatio;
-    const y = (event.clientY - rect.top) * window.devicePixelRatio;
+    const x = (event.clientX - rect.left) * getDpr();
+    const y = (event.clientY - rect.top) * getDpr();
 
     // Use the drawing strategy to find candle at position
     if (chart.drawingStrategy && typeof chart.drawingStrategy.getCandleAtPosition === 'function') {

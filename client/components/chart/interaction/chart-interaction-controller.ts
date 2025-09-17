@@ -1,8 +1,8 @@
-import { ChartState } from "../../..";
-import { getCandleInterval } from "../../../util/chart-util";
-import { PriceRangeImpl } from "../../../util/price-range";
-import { CandlestickChart } from "../chart";
-import { getLogger, LogLevel } from "../../../util/logger";
+import {  ChartState } from "../../..";
+import {  getCandleInterval } getDpr } from "../../../util/chart-util";
+import {  PriceRangeImpl } from "../../../util/price-range";
+import {  CandlestickChart } from "../chart";
+import {  getLogger, LogLevel } from "../../../util/logger";
 
 const logger = getLogger('ChartInteractionController');
 logger.setLoggerLevel('ChartInteractionController', LogLevel.ERROR);
@@ -431,7 +431,7 @@ export class ChartInteractionController {
     // Constants from drawing-strategy.ts
     const FIXED_GAP_WIDTH = 6; // pixels
     const MIN_CANDLE_WIDTH = 5; // pixels
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
     
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
     const timeRange = state.timeRange.end - state.timeRange.start;

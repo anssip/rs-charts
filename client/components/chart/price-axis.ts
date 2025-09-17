@@ -1,20 +1,20 @@
-import { customElement, property, state } from "lit/decorators.js";
-import { formatPrice, getPriceStep } from "../../util/price-util";
-import { CanvasBase } from "./canvas-base";
-import { observe, xin } from "xinjs";
-import { LiveCandle } from "../../api/live-candle-subscription";
-import {
+import {  customElement, property, state } from "lit/decorators.js";
+import {  formatPrice, getPriceStep } from "../../util/price-util";
+import {  CanvasBase } from "./canvas-base";
+import {  observe, xin } from "xinjs";
+import {  LiveCandle } from "../../api/live-candle-subscription";
+import { 
   Granularity,
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
-import { PriceRangeImpl } from "../../util/price-range";
-import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
-import { priceToY } from "../../util/chart-util";
-import { granularityToMs } from "../../../server/services/price-data/price-history-model";
-import { ChartState } from "../..";
-import { css, html } from "lit";
-import { getLocalChartId, observeLocal } from "../../util/state-context";
-import { getLogger, LogLevel } from "../../util/logger";
+import {  PriceRangeImpl } from "../../util/price-range";
+import {  PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
+import {  priceToY } getDpr } from "../../util/chart-util";
+import {  granularityToMs } from "../../../server/services/price-data/price-history-model";
+import {  ChartState } from "../..";
+import {  css, html } from "lit";
+import {  getLocalChartId, observeLocal } from "../../util/state-context";
+import {  getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger('PriceAxis');
 logger.setLoggerLevel('PriceAxis', LogLevel.ERROR);
@@ -167,7 +167,7 @@ export class PriceAxis extends CanvasBase {
   override draw(): void {
     if (!this.canvas || !this.ctx || !this.priceRange) return;
 
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
     const ctx = this.ctx;
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -341,7 +341,7 @@ export class PriceAxis extends CanvasBase {
 
     if (!this.canvas) return;
 
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr() ?? 1;
     const priceY = priceToY(this.canvas.height / dpr, {
       start: this.priceRange.min,
       end: this.priceRange.max,

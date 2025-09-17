@@ -5,7 +5,7 @@ import {
 } from "../../../server/services/price-data/price-history-model";
 import { HairlineGrid } from "./grid";
 import { xin } from "xinjs";
-import { iterateTimeline } from "../../util/chart-util";
+import { iterateTimeline, getDpr } from "../../util/chart-util";
 import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
@@ -175,7 +175,7 @@ export class CandlestickStrategy implements Drawable {
       viewportStartTimestamp,
       viewportEndTimestamp,
     } = context;
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr(); // Use fixed DPR
 
     // 1. Clear the entire canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
