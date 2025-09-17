@@ -358,7 +358,7 @@ export class ChartInteractionController {
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
 
-      this.handlePan(-deltaX);
+      this.handlePan(deltaX);
       this.handleVerticalPan(deltaY);
 
       this.lastX = e.touches[0].clientX;
