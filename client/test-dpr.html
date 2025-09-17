@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>DPR Detection Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #222;
+            color: #0f0;
+        }
+        .info {
+            background: #111;
+            padding: 20px;
+            margin: 10px 0;
+            border: 1px solid #0f0;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: monospace;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0a0;
+        }
+    </style>
+</head>
+<body>
+    <h1>DPR Detection Test</h1>
+
+    <div class="info">
+        <h2>Current Values:</h2>
+        <p>window.devicePixelRatio: <span id="current-dpr"></span></p>
+        <p>Detected True DPR: <span id="true-dpr"></span></p>
+        <p>Stored DPR (localStorage): <span id="stored-dpr"></span></p>
+    </div>
+
+    <div class="info">
+        <h2>Media Query Tests:</h2>
+        <div id="media-tests"></div>
+    </div>
+
+    <div class="info">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Open this page normally (no zoom)</li>
+            <li>Note the "Detected True DPR" value</li>
+            <li>Use browser zoom (Ctrl/Cmd +/-)</li>
+            <li>Refresh the page</li>
+            <li>The "Detected True DPR" should remain the same!</li>
+        </ol>
+    </div>
+
+    <button onclick="clearStoredDpr()">Clear Stored DPR</button>
+    <button onclick="location.reload()">Refresh Page</button>
+
+    <script type="module">
+        // Copy the detection logic from chart-util.ts
+        const TRUE_DPR_STORAGE_KEY = 'spotcanvas_true_device_dpr';
+
+        function detectTrueDpr() {
+            const dprs = [4, 3, 2.5, 2, 1.5, 1.25, 1];
+
+            for (const dpr of dprs) {
+                if (window.matchMedia(`(min-resolution: ${dpr}dppx) and (max-resolution: ${dpr}dppx)`).matches ||
+                    window.matchMedia(`(-webkit-min-device-pixel-ratio: ${dpr}) and (-webkit-max-device-pixel-ratio: ${dpr})`).matches) {
+                    return dpr;
+                }
+            }
+
+            if (window.matchMedia('(min-resolution: 2dppx)').matches) {
+                return 2;
+            }
+
+            return 1;
+        }
+
+        // Display current values
+        document.getElementById('current-dpr').textContent = window.devicePixelRatio;
+        document.getElementById('true-dpr').textContent = detectTrueDpr();
+        document.getElementById('stored-dpr').textContent = localStorage.getItem(TRUE_DPR_STORAGE_KEY) || 'none';
+
+        // Test media queries
+        const mediaTests = document.getElementById('media-tests');
+        const testDprs = [1, 1.25, 1.5, 2, 2.5, 3, 4];
+
+        testDprs.forEach(dpr => {
+            const matches = window.matchMedia(`(min-resolution: ${dpr}dppx) and (max-resolution: ${dpr}dppx)`).matches;
+            const webkitMatches = window.matchMedia(`(-webkit-min-device-pixel-ratio: ${dpr}) and (-webkit-max-device-pixel-ratio: ${dpr})`).matches;
+
+            const div = document.createElement('div');
+            div.innerHTML = `DPR ${dpr}: standard=${matches}, webkit=${webkitMatches}`;
+            div.style.color = (matches || webkitMatches) ? '#0f0' : '#666';
+            mediaTests.appendChild(div);
+        });
+
+        // Also test range queries
+        const rangeDiv = document.createElement('div');
+        rangeDiv.innerHTML = `<br>Range test (min-resolution: 2dppx): ${window.matchMedia('(min-resolution: 2dppx)').matches}`;
+        rangeDiv.style.color = '#ff0';
+        mediaTests.appendChild(rangeDiv);
+
+        window.clearStoredDpr = function() {
+            localStorage.removeItem(TRUE_DPR_STORAGE_KEY);
+            alert('Stored DPR cleared! Refresh to see new detection.');
+        };
+    </script>
+</body>
+</html>

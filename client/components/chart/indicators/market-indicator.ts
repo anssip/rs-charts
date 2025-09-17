@@ -2,7 +2,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
 import { observe, xin, xinValue } from "xinjs";
 import { ChartState } from "../../..";
-import { iterateTimeline, priceToY, timeToX } from "../../../util/chart-util";
+import { iterateTimeline, priceToY, timeToX, getDpr } from "../../../util/chart-util";
 import { ScaleType, GridStyle, OscillatorConfig } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
@@ -267,7 +267,7 @@ export class MarketIndicator extends CanvasBase {
     try {
       logger.debug(`Drawing indicator ${this.indicatorId}`);
       const ctx = this.ctx;
-      const dpr = window.devicePixelRatio ?? 1;
+      const dpr = getDpr(); // Use fixed DPR
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
       // Get visible candles

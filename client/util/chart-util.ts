@@ -10,15 +10,78 @@ export type Range = {
   end: number;
 };
 
-// Store initial device pixel ratio to prevent browser zoom from affecting chart rendering
-let initialDpr: number | null = null;
+// Storage key for true device DPR
+const TRUE_DPR_STORAGE_KEY = 'spotcanvas_true_device_dpr';
 
-// Get initial device pixel ratio - fixed to prevent browser zoom issues
-export const getDpr = () => {
-  if (initialDpr === null) {
-    initialDpr = window.devicePixelRatio ?? 1;
+// Detect the true device DPR using matchMedia (unaffected by browser zoom)
+function detectTrueDpr(): number {
+  // Check common DPR values using matchMedia
+  // This method is more reliable than devicePixelRatio as it's not affected by zoom
+  const dprs = [4, 3, 2.5, 2, 1.5, 1.25, 1]; // Check higher values first
+
+  for (const dpr of dprs) {
+    // Use both min and max resolution to ensure exact match
+    if (window.matchMedia(`(min-resolution: ${dpr}dppx) and (max-resolution: ${dpr}dppx)`).matches ||
+        window.matchMedia(`(-webkit-min-device-pixel-ratio: ${dpr}) and (-webkit-max-device-pixel-ratio: ${dpr})`).matches) {
+      return dpr;
+    }
   }
-  return initialDpr;
+
+  // If no exact match, try range matching for common values
+  if (window.matchMedia('(min-resolution: 2dppx)').matches) {
+    return 2; // Retina display
+  }
+
+  // Default fallback
+  return 1;
+}
+
+// Cache the true DPR value
+let trueDpr: number | null = null;
+
+// Get true device pixel ratio - ignores browser zoom completely
+export const getDpr = (): number => {
+  if (trueDpr !== null) {
+    return trueDpr;
+  }
+
+  // Try to get from localStorage first
+  try {
+    const storedDpr = localStorage.getItem(TRUE_DPR_STORAGE_KEY);
+    if (storedDpr) {
+      trueDpr = parseFloat(storedDpr);
+      // Validate the stored value
+      if (trueDpr > 0 && trueDpr <= 4) {
+        return trueDpr;
+      }
+    }
+  } catch (e) {
+    // localStorage might not be available or accessible
+    console.warn('Could not access localStorage for DPR:', e);
+  }
+
+  // Detect the true DPR
+  trueDpr = detectTrueDpr();
+
+  // Store it for future use
+  try {
+    localStorage.setItem(TRUE_DPR_STORAGE_KEY, trueDpr.toString());
+  } catch (e) {
+    // Fail silently if localStorage is not available
+    console.warn('Could not store DPR to localStorage:', e);
+  }
+
+  return trueDpr;
+};
+
+// Function to reset DPR detection (useful if display changes)
+export const resetDprDetection = (): void => {
+  trueDpr = null;
+  try {
+    localStorage.removeItem(TRUE_DPR_STORAGE_KEY);
+  } catch (e) {
+    // Fail silently
+  }
 };
 
 export const timeToX =

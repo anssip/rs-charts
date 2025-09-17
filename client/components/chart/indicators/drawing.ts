@@ -1,4 +1,5 @@
 import { ValueRange } from "../value-axis";
+import { getDpr } from "../../../util/chart-util";
 
 export function drawLine(
   ctx: CanvasRenderingContext2D,
@@ -22,8 +23,8 @@ export function drawLine(
     ctx.setLineDash(style.dashArray);
   }
 
-  // Convert value to Y position using valueRange
-  const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
+  // Convert value to Y position using valueRange - use fixed DPR
+  const height = ctx.canvas.height / getDpr();
   const getY = (value: number) => {
     const y = height - ((value - valueRange.min) / valueRange.range) * height;
     return Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
@@ -54,7 +55,7 @@ export function drawHorizontalReferenceLine(
   },
   valueRange: ValueRange
 ) {
-  const dpr = window.devicePixelRatio ?? 1;
+  const dpr = getDpr(); // Use fixed DPR
   const width = ctx.canvas.width / dpr;
   const height = ctx.canvas.height / dpr;
 
@@ -94,8 +95,8 @@ export function drawBand(
 ) {
   if (upperPoints.length < 2 || lowerPoints.length < 2) return;
 
-  // Convert value to Y position using valueRange
-  const height = ctx.canvas.height / (window.devicePixelRatio ?? 1);
+  // Convert value to Y position using valueRange - use fixed DPR
+  const height = ctx.canvas.height / getDpr();
   const getY = (value: number) => {
     const y = height - ((value - valueRange.min) / valueRange.range) * height;
     return Math.floor(y) + 0.5; // Align to pixel grid for crisp lines
@@ -142,7 +143,7 @@ export function drawHistogram(
   }>,
   valueRange: ValueRange
 ) {
-  const dpr = window.devicePixelRatio ?? 1;
+  const dpr = getDpr(); // Use fixed DPR
   const height = ctx.canvas.height / dpr;
   const width = ctx.canvas.width / dpr;
 
