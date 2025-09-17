@@ -1,5 +1,6 @@
 import { LitElement, html } from "lit";
 import { getLogger, LogLevel } from "../../util/logger";
+import { getDpr } from "../../util/chart-util";
 
 const logger = getLogger('CanvasBase');
 logger.setLoggerLevel('CanvasBase', LogLevel.ERROR);
@@ -8,8 +9,6 @@ export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
   public ctx: CanvasRenderingContext2D | null = null;
   private resizeObserver: ResizeObserver | null = null;
-  private initialDpr: number = window.devicePixelRatio || 1;
-  private zoomCheckInterval: number | null = null;
 
   constructor() {
     super();
@@ -25,44 +24,6 @@ export abstract class CanvasBase extends LitElement {
   firstUpdated() {
     // Schedule canvas initialization to ensure DOM is ready
     this.initializeCanvas();
-
-    // Start monitoring for browser zoom changes
-    this.startZoomDetection();
-  }
-
-  private startZoomDetection() {
-    // Check for zoom changes periodically
-    this.zoomCheckInterval = window.setInterval(() => {
-      const currentDpr = window.devicePixelRatio || 1;
-      // If devicePixelRatio has changed significantly, it's likely browser zoom
-      if (Math.abs(currentDpr - this.initialDpr) > 0.01) {
-        logger.warn(`Browser zoom detected. Initial DPR: ${this.initialDpr}, Current DPR: ${currentDpr}`);
-        // Reset the zoom by compensating
-        this.handleZoomChange();
-      }
-    }, 500);
-  }
-
-  private handleZoomChange() {
-    // Force a redraw with the initial DPR to maintain consistency
-    if (this.canvas && this.ctx) {
-      const rect = this.getBoundingClientRect();
-      // Use the initial DPR instead of the current one
-      const dpr = this.initialDpr;
-
-      // Reset canvas dimensions with fixed DPR
-      this.canvas.width = Math.max(1, rect.width * dpr);
-      this.canvas.height = Math.max(1, rect.height * dpr);
-      this.canvas.style.width = `${rect.width}px`;
-      this.canvas.style.height = `${rect.height}px`;
-
-      // Reset transform with fixed DPR
-      this.ctx.resetTransform();
-      this.ctx.scale(dpr, dpr);
-
-      // Redraw
-      this.draw();
-    }
   }
 
   // Separate method to initialize the canvas - can be called multiple times if needed
@@ -93,8 +54,8 @@ export abstract class CanvasBase extends LitElement {
         // Get dimensions and set up canvas
         const rect = this.getBoundingClientRect();
 
-        // Always use the initial DPR to prevent zoom issues
-        const dpr = this.initialDpr;
+        // Use the true device DPR (ignores browser zoom)
+        const dpr = getDpr();
 
         // Set dimensions, ensure they're at least 1 pixel
         this.canvas.width = Math.max(1, rect.width * dpr);
@@ -162,8 +123,8 @@ export abstract class CanvasBase extends LitElement {
       return;
     }
 
-    // Always use the initial DPR to prevent zoom issues
-    const dpr = this.initialDpr;
+    // Use the true device DPR (ignores browser zoom)
+    const dpr = getDpr();
 
     // First update style dimensions (CSS pixels)
     this.canvas.style.width = `${width}px`;
@@ -198,12 +159,6 @@ export abstract class CanvasBase extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-
-    // Clean up zoom detection interval
-    if (this.zoomCheckInterval) {
-      clearInterval(this.zoomCheckInterval);
-      this.zoomCheckInterval = null;
-    }
 
     // Clean up resize observer
     if (this.resizeObserver) {

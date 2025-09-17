@@ -2,7 +2,7 @@ import { customElement, property } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
 import { observe, xin } from "xinjs";
 import { ChartState } from "../../..";
-import { iterateTimeline } from "../../../util/chart-util";
+import { iterateTimeline, getDpr } from "../../../util/chart-util";
 import { PropertyValues } from "lit";
 import { css } from "lit";
 import { logger } from "../../../util/logger";
@@ -104,7 +104,7 @@ export class VolumeChart extends CanvasBase {
 
     logger.debug("VolumeChart: Drawing volume chart");
     const ctx = this.ctx;
-    const dpr = window.devicePixelRatio ?? 1;
+    const dpr = getDpr(); // Use fixed DPR
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Get all candles in the visible range
