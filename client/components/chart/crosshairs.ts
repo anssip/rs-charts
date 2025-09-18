@@ -2,7 +2,7 @@ import {  observe, xin } from "xinjs";
 import {  CanvasBase } from "./canvas-base";
 import {  granularityToMs } from "../../../server/services/price-data/price-history-model";
 import {  customElement } from "lit/decorators.js";
-import {  drawTimeLabel, getLocalAlignedTimestamp } getDpr } from "../../util/chart-util";
+import { drawTimeLabel, getLocalAlignedTimestamp, getDpr } from "../../util/chart-util";
 import {  ChartState } from "../..";
 import {  TIMELINE_HEIGHT } from "./chart-container";
 import {  getLocalChartId, observeLocal } from "../../util/state-context";
