@@ -1,8 +1,9 @@
-import { 
+import {
   iterateTimeline,
   priceToY,
   getTimelineMarks,
-} getDpr } from "../../util/chart-util";
+  getDpr
+} from "../../util/chart-util";
 import {  getPriceStep } from "../../util/price-util";
 import {  DrawingContext, Drawable } from "./drawing-strategy";
 import {  GridStyle } from "./indicators/indicator-types";

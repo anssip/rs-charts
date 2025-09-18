@@ -1,11 +1,12 @@
 import {  customElement } from "lit/decorators.js";
 import {  CanvasBase } from "./canvas-base";
-import { 
+import {
   formatDate,
   formatTime,
   iterateTimeline,
   getTimelineMarks,
-} getDpr } from "../../util/chart-util";
+  getDpr
+} from "../../util/chart-util";
 import {  xin } from "xinjs";
 import {  TimeRange } from "../../../server/services/price-data/price-history-model";
 import {  getLogger, LogLevel } from "../../util/logger";

@@ -9,7 +9,7 @@ import {
 } from "../../../server/services/price-data/price-history-model";
 import {  PriceRangeImpl } from "../../util/price-range";
 import {  PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
-import {  priceToY } getDpr } from "../../util/chart-util";
+import { priceToY, getDpr } from "../../util/chart-util";
 import {  granularityToMs } from "../../../server/services/price-data/price-history-model";
 import {  ChartState } from "../..";
 import {  css, html } from "lit";

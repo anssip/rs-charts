@@ -1,5 +1,5 @@
 import {  ChartState } from "../../..";
-import {  getCandleInterval } getDpr } from "../../../util/chart-util";
+import { getCandleInterval, getDpr } from "../../../util/chart-util";
 import {  PriceRangeImpl } from "../../../util/price-range";
 import {  CandlestickChart } from "../chart";
 import {  getLogger, LogLevel } from "../../../util/logger";
