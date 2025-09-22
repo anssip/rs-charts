@@ -1,11 +1,11 @@
-import {  ChartState } from "../../..";
+import { ChartState } from "../../..";
 import { getCandleInterval, getDpr } from "../../../util/chart-util";
-import {  PriceRangeImpl } from "../../../util/price-range";
-import {  CandlestickChart } from "../chart";
-import {  getLogger, LogLevel } from "../../../util/logger";
+import { PriceRangeImpl } from "../../../util/price-range";
+import { CandlestickChart } from "../chart";
+import { getLogger, LogLevel } from "../../../util/logger";
 
-const logger = getLogger('ChartInteractionController');
-logger.setLoggerLevel('ChartInteractionController', LogLevel.ERROR);
+const logger = getLogger("ChartInteractionController");
+logger.setLoggerLevel("ChartInteractionController", LogLevel.ERROR);
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -52,7 +52,7 @@ export class ChartInteractionController {
 
     logger.debug(
       "Attaching chart interaction controller to:",
-      this.eventTarget
+      this.eventTarget,
     );
 
     // Always ensure we're properly detached first to avoid duplicate listeners
@@ -83,15 +83,15 @@ export class ChartInteractionController {
     // Add timeline and price axis zoom listeners on the chart container
     this.eventTarget.addEventListener(
       "timeline-zoom",
-      this.handleTimelineZoom as EventListener
+      this.handleTimelineZoom as EventListener,
     );
     this.eventTarget.addEventListener(
       "price-axis-zoom",
-      this.handlePriceAxisZoom as EventListener
+      this.handlePriceAxisZoom as EventListener,
     );
     this.eventTarget.addEventListener(
       "contextmenu",
-      this.handleContextMenu as EventListener
+      this.handleContextMenu as EventListener,
     );
   }
 
@@ -111,15 +111,15 @@ export class ChartInteractionController {
 
     this.eventTarget.removeEventListener(
       "contextmenu",
-      this.handleContextMenu as EventListener
+      this.handleContextMenu as EventListener,
     );
     this.eventTarget.removeEventListener(
       "timeline-zoom",
-      this.handleTimelineZoom as EventListener
+      this.handleTimelineZoom as EventListener,
     );
     this.eventTarget.removeEventListener(
       "price-axis-zoom",
-      this.handlePriceAxisZoom as EventListener
+      this.handlePriceAxisZoom as EventListener,
     );
   }
 
@@ -144,7 +144,7 @@ export class ChartInteractionController {
     // Check if we've moved enough to consider this a drag
     const totalMovement = Math.sqrt(
       Math.pow(e.clientX - this.dragStartX, 2) +
-      Math.pow(e.clientY - this.dragStartY, 2)
+        Math.pow(e.clientY - this.dragStartY, 2),
     );
 
     // Only pan if we've moved beyond the threshold
@@ -161,7 +161,7 @@ export class ChartInteractionController {
     // Check if this was a click (minimal movement)
     const totalMovement = Math.sqrt(
       Math.pow(e.clientX - this.dragStartX, 2) +
-      Math.pow(e.clientY - this.dragStartY, 2)
+        Math.pow(e.clientY - this.dragStartY, 2),
     );
 
     if (totalMovement <= this.dragThreshold) {
@@ -211,7 +211,7 @@ export class ChartInteractionController {
   private checkNeedMoreData(
     newStart: number,
     newEnd: number,
-    visibleTimeRange: number
+    visibleTimeRange: number,
   ) {
     const { state } = this.options;
     const bufferZone = visibleTimeRange * this.BUFFER_MULTIPLIER;
@@ -265,12 +265,12 @@ export class ChartInteractionController {
           priceShift,
           newPriceRange: {
             min: state.priceRange.min + priceShift,
-            max: state.priceRange.max + priceShift
-          }
+            max: state.priceRange.max + priceShift,
+          },
         },
         bubbles: true,
         composed: true,
-      })
+      }),
     );
 
     state.priceRange.shift(priceShift);
@@ -286,11 +286,15 @@ export class ChartInteractionController {
       this.isZooming = true;
       this.lastTouchDistance = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+        e.touches[0].clientY - e.touches[1].clientY,
       );
       // Store separate X and Y distances for directional zoom detection
-      this.lastTouchDistanceX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-      this.lastTouchDistanceY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+      this.lastTouchDistanceX = Math.abs(
+        e.touches[0].clientX - e.touches[1].clientX,
+      );
+      this.lastTouchDistanceY = Math.abs(
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
     } else if (e.touches.length === 1) {
       this.lastX = e.touches[0].clientX;
       this.lastY = e.touches[0].clientY;
@@ -302,26 +306,31 @@ export class ChartInteractionController {
     e.preventDefault();
 
     if (e.touches.length === 2 && this.isZooming) {
-      const currentDistanceX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-      const currentDistanceY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
-      
+      const currentDistanceX = Math.abs(
+        e.touches[0].clientX - e.touches[1].clientX,
+      );
+      const currentDistanceY = Math.abs(
+        e.touches[0].clientY - e.touches[1].clientY,
+      );
+
       const deltaDistanceX = currentDistanceX - this.lastTouchDistanceX;
       const deltaDistanceY = currentDistanceY - this.lastTouchDistanceY;
-      
+
       const zoomSensitivity = 0.5;
-      
+
       const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
       const rect = (e.target as HTMLElement).getBoundingClientRect();
-      
+
       // Determine the dominant zoom direction based on the larger delta
-      const isHorizontalZoom = Math.abs(deltaDistanceX) > Math.abs(deltaDistanceY);
-      
+      const isHorizontalZoom =
+        Math.abs(deltaDistanceX) > Math.abs(deltaDistanceY);
+
       // Apply directional zoom based on pinch direction
       if (isHorizontalZoom && Math.abs(deltaDistanceX) > 1) {
         // Horizontal pinch - zoom timeline (X axis)
         const adjustedDeltaX = deltaDistanceX * zoomSensitivity;
-        
+
         this.eventTarget.dispatchEvent(
           new CustomEvent("timeline-zoom", {
             detail: {
@@ -332,12 +341,12 @@ export class ChartInteractionController {
             },
             bubbles: true,
             composed: true,
-          })
+          }),
         );
       } else if (!isHorizontalZoom && Math.abs(deltaDistanceY) > 1) {
         // Vertical pinch - zoom price axis (Y axis)
         const adjustedDeltaY = deltaDistanceY * zoomSensitivity;
-        
+
         this.eventTarget.dispatchEvent(
           new CustomEvent("price-axis-zoom", {
             detail: {
@@ -348,18 +357,18 @@ export class ChartInteractionController {
             },
             bubbles: true,
             composed: true,
-          })
+          }),
         );
       }
-      
+
       this.lastTouchDistanceX = currentDistanceX;
       this.lastTouchDistanceY = currentDistanceY;
     } else if (e.touches.length === 1) {
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
 
-      this.handlePan(deltaX);
-      this.handleVerticalPan(deltaY);
+      this.handlePan(deltaX, true);
+      this.handleVerticalPan(deltaY, true);
 
       this.lastX = e.touches[0].clientX;
       this.lastY = e.touches[0].clientY;
@@ -423,7 +432,7 @@ export class ChartInteractionController {
     logger.debug("Received timeline-zoom event", {
       deltaX: event.detail.deltaX,
       target: event.target,
-      currentTarget: event.currentTarget
+      currentTarget: event.currentTarget,
     });
     const { deltaX, clientX, rect, isTrackpad } = event.detail;
     const { state } = this.options;
@@ -432,16 +441,16 @@ export class ChartInteractionController {
     const FIXED_GAP_WIDTH = 6; // pixels
     const MIN_CANDLE_WIDTH = 5; // pixels
     const dpr = getDpr() ?? 1;
-    
+
     const zoomMultiplier = isTrackpad ? 1 : 0.1;
     const timeRange = state.timeRange.end - state.timeRange.start;
     const zoomCenter = (clientX - rect.left) / rect.width;
     const timeAdjustment =
       timeRange * this.ZOOM_FACTOR * deltaX * zoomMultiplier;
-    
+
     // Calculate the proposed new time range
     let proposedTimeRange = timeRange - timeAdjustment;
-    
+
     // Calculate maximum time range to prevent candle overlap
     // Each candle needs MIN_CANDLE_WIDTH + FIXED_GAP_WIDTH pixels
     const canvasWidth = rect.width * dpr;
@@ -449,14 +458,14 @@ export class ChartInteractionController {
     const maxCandlesInViewport = Math.floor(canvasWidth / pixelsPerCandle);
     const candleInterval = getCandleInterval(state.granularity);
     const maxTimeRange = maxCandlesInViewport * candleInterval;
-    
+
     // Enforce both minimum and maximum time range
     const minTimeRange = candleInterval * 10; // Keep original minimum
     const newTimeRange = Math.max(
       minTimeRange,
-      Math.min(proposedTimeRange, maxTimeRange)
+      Math.min(proposedTimeRange, maxTimeRange),
     );
-    
+
     const rangeDifference = timeRange - newTimeRange;
 
     const newStart = state.timeRange.start + rangeDifference * zoomCenter;
@@ -492,7 +501,7 @@ export class ChartInteractionController {
     logger.debug("Received price-axis-zoom event", {
       deltaY: event.detail.deltaY,
       target: event.target,
-      currentTarget: event.currentTarget
+      currentTarget: event.currentTarget,
     });
     const { deltaY, isTrackpad } = event.detail;
     const { state } = this.options;
@@ -500,7 +509,7 @@ export class ChartInteractionController {
     const zoomMultiplier = isTrackpad ? 0.5 : 0.1;
     (state.priceRange as PriceRangeImpl).adjust(
       deltaY * zoomMultiplier,
-      zoomCenter
+      zoomCenter,
     );
     this.options.onStateChange({ priceRange: state.priceRange });
   };
