@@ -7,6 +7,7 @@ import {
   getAllGranularities,
   TimeRange,
   PriceRange,
+  Candle,
 } from "../../server/services/price-data/price-history-model";
 import {
   IndicatorConfig,
@@ -721,6 +722,19 @@ export class ChartApi {
   getPriceRange(): PriceRange {
     // Return the actual PriceRange object to preserve methods
     return this.state.priceRange;
+  }
+
+  /**
+   * Get the candles currently visible in the chart
+   * @returns Array of [timestamp, Candle] tuples for visible candles
+   */
+  getCandles(): [number, Candle][] {
+    // Get candles from the price history within the current time range
+    const timeRange = this.state.timeRange;
+    return this.state.priceHistory.getCandlesInRange(
+      timeRange.start,
+      timeRange.end,
+    );
   }
 
   /**
