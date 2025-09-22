@@ -796,6 +796,49 @@ console.log("Range:", priceRange.range);
   - `max`: Maximum visible price
   - `range`: Price range (max - min)
 
+#### `getCandles(): [number, Candle][]`
+
+Get the candles currently visible in the chart viewport.
+
+```typescript
+const visibleCandles = api.getCandles();
+console.log(`Showing ${visibleCandles.length} candles`);
+
+// Process visible candles
+visibleCandles.forEach(([timestamp, candle]) => {
+  console.log(`${new Date(timestamp).toISOString()}: O:${candle.open} H:${candle.high} L:${candle.low} C:${candle.close} V:${candle.volume}`);
+});
+
+// Calculate statistics for visible candles
+const prices = visibleCandles.map(([_, candle]) => candle.close);
+const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+const minLow = Math.min(...visibleCandles.map(([_, c]) => c.low));
+const maxHigh = Math.max(...visibleCandles.map(([_, c]) => c.high));
+
+// Find highest volume candle in view
+const highestVolume = visibleCandles.reduce((max, [timestamp, candle]) => {
+  return candle.volume > max.volume ? { timestamp, ...candle } : max;
+}, { volume: 0 });
+
+console.log(`Highest volume at ${new Date(highestVolume.timestamp).toISOString()}: ${highestVolume.volume}`);
+```
+
+**Returns:**
+- Array of `[timestamp, Candle]` tuples for candles visible in the current time range
+  - `timestamp`: Unix timestamp in milliseconds
+  - `Candle`: Object containing:
+    - `granularity`: Timeframe of the candle
+    - `timestamp`: Unix timestamp in milliseconds
+    - `open`: Opening price
+    - `high`: Highest price
+    - `low`: Lowest price
+    - `close`: Closing price
+    - `volume`: Trading volume
+    - `live`: Whether this is a live updating candle
+    - `evaluations`: Additional evaluation data
+
+**Note:** This method returns candles from the existing chart state without triggering any server requests. The candles returned are limited to those within the current visible time range set by `getTimeRange()`.
+
 #### `setPriceRange(priceRange: { min: number; max: number }): void`
 
 Set a new price range for the chart.
