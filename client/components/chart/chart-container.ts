@@ -48,7 +48,7 @@ import { PatternHighlight } from "../../types/markers";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
-logger.setLoggerLevel("ChartContainer", LogLevel.DEBUG);
+logger.setLoggerLevel("ChartContainer", LogLevel.INFO);
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
