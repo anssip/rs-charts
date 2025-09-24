@@ -43,11 +43,16 @@ export class CandlePool {
 
   /**
    * Update all active candle renderers
+   * Returns true if any renderer had significant changes
    */
-  updateAll(deltaTime: number) {
+  updateAll(deltaTime: number): boolean {
+    let hasChanges = false;
     this.activeCandles.forEach((renderer) => {
-      renderer.update(deltaTime);
+      if (renderer.update(deltaTime)) {
+        hasChanges = true;
+      }
     });
+    return hasChanges;
   }
 
   /**
@@ -56,27 +61,30 @@ export class CandlePool {
    * MUST preserve highlight state for highlighted candles
    */
   reset() {
-    // Return renderers to pool but keep them if they have highlights
-    const highlightedRenderers = new Map<number, CandleRenderer>();
+    // More efficient reset - only return truly unused renderers
+    const toReturn: CandleRenderer[] = [];
+    const currentFrame = new Set<number>();
 
+    // Track which timestamps are needed for this frame
     this.activeCandles.forEach((renderer, timestamp) => {
-      if (renderer.highlightPattern) {
-        // Keep highlighted renderers active
-        highlightedRenderers.set(timestamp, renderer);
-      } else {
-        // Return non-highlighted renderers to pool
+      currentFrame.add(timestamp);
+    });
+
+    // Only reset and return renderers that:
+    // 1. Are not highlighted
+    // 2. Are not going to be used in current frame
+    this.activeCandles.forEach((renderer, timestamp) => {
+      if (!renderer.highlightPattern && !currentFrame.has(timestamp)) {
         renderer.reset();
         if (this.pool.length < this.MAX_POOL_SIZE) {
-          this.pool.push(renderer);
+          toReturn.push(renderer);
+          this.activeCandles.delete(timestamp);
         }
       }
     });
 
-    // Clear active candles and restore only highlighted ones
-    this.activeCandles.clear();
-    highlightedRenderers.forEach((renderer, timestamp) => {
-      this.activeCandles.set(timestamp, renderer);
-    });
+    // Add returned renderers to pool
+    toReturn.forEach((renderer) => this.pool.push(renderer));
   }
 
   /**
