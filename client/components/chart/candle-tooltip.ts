@@ -38,6 +38,8 @@ export class CandleTooltip extends LitElement {
       background: rgba(0, 0, 0, 0.9);
       color: white;
       padding: 0.75em;
+      margin-left: 0.5em;
+      margin-bottom: 0.5em;
       border-radius: 4px;
       font-size: 12px;
       font-family: monospace;
