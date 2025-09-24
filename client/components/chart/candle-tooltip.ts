@@ -167,13 +167,12 @@ export class CandleTooltip extends LitElement {
     const colorClass = isGreen ? "green" : "red";
 
     // Calculate position - offset to avoid covering the candle
-    // Add 0.5em offset (approximately 6px at 12px font size)
-    const offsetPixels = 6;
+    // Add more spacing from the candle
     const tooltipX = Math.min(
-      this.data.x + 10 + offsetPixels, // Add left offset
+      this.data.x + 20, // Increased left offset from 10 to 20
       window.innerWidth - 220, // Ensure tooltip stays within viewport
     );
-    const tooltipY = Math.max(10, this.data.y - 100 - offsetPixels); // Position above with bottom offset
+    const tooltipY = Math.max(10, this.data.y - 120); // Increased bottom offset from 100 to 120
 
     return html`
       <div
