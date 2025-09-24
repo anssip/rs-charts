@@ -37,19 +37,27 @@ export class CandleRenderer {
     }
   }
 
-  update(deltaTime: number) {
+  update(deltaTime: number): boolean {
     // Smooth intensity transitions when highlighting changes
     const diff = this.targetIntensity - this.currentIntensity;
-    this.currentIntensity += diff * this.TRANSITION_SPEED;
+    const intensityChange = diff * this.TRANSITION_SPEED;
+    this.currentIntensity += intensityChange;
 
     // Update pulse phase when highlighted
+    let phaseChanged = false;
     if (this.currentIntensity > 0.01) {
+      const oldPhase = this.pulsePhase;
       this.pulsePhase += deltaTime * this.PULSE_SPEED;
       // Keep phase in 0-2π range
       if (this.pulsePhase > Math.PI * 2) {
         this.pulsePhase -= Math.PI * 2;
       }
+      phaseChanged =
+        Math.abs(Math.sin(oldPhase) - Math.sin(this.pulsePhase)) > 0.02;
     }
+
+    // Return true if visual change is significant enough to warrant redraw
+    return Math.abs(intensityChange) > 0.01 || phaseChanged;
   }
 
   draw(
@@ -58,11 +66,14 @@ export class CandleRenderer {
     x: number,
     candleWidth: number,
     priceToY: (price: number) => number,
+    disableAnimation: boolean = false,
   ) {
     // If highlighted, draw with special colors, otherwise draw normal
     if (this.highlightPattern) {
-      // Calculate pulsation for highlighted candles
-      const pulse = 0.7 + 0.3 * Math.sin(this.pulsePhase);
+      // Calculate pulsation for highlighted candles (or static if animation disabled)
+      const pulse = disableAnimation
+        ? 1.0
+        : 0.7 + 0.3 * Math.sin(this.pulsePhase);
 
       // Draw the candle with highlight colors and pulsation
       this.drawHighlightedCandleSimple(
