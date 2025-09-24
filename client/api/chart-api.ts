@@ -156,6 +156,7 @@ export class ChartApi {
   private eventListeners: Map<string, Set<Function>> = new Map();
   private isReady: boolean = false;
   private readyData: ReadyEvent | null = null;
+  private waveInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: ChartApiOptions) {
     this.container = options.container;
@@ -1118,6 +1119,9 @@ export class ChartApi {
   clearPatternHighlights(): void {
     logger.info("ChartApi: Clearing all pattern highlights");
 
+    // Stop any running wave animation
+    this.stopPulseWave();
+
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.clearPatternHighlights) {
       chartContainer.clearPatternHighlights();
@@ -1137,6 +1141,119 @@ export class ChartApi {
       return chartContainer.getPatternHighlights();
     }
     return [];
+  }
+
+  /**
+   * Create a pulsating wave effect that moves through the chart candles
+   * @param options Configuration for the wave effect
+   * @param options.speed Speed of the wave movement (default: 5)
+   * @param options.color Color of the wave (default: "#ec4899" - pink)
+   * @param options.numCandles Number of candles in the wave (default: 20)
+   */
+  pulseWave(options?: {
+    speed?: number;
+    color?: string;
+    numCandles?: number;
+  }): void {
+    const config = {
+      speed: options?.speed ?? 5,
+      color: options?.color ?? "#ec4899",
+      numCandles: options?.numCandles ?? 20,
+    };
+
+    logger.info(
+      `ChartApi: Starting pulse wave with speed=${config.speed}, color=${config.color}, numCandles=${config.numCandles}`,
+    );
+
+    // Clear any existing wave animation
+    this.stopPulseWave();
+
+    const candles = this.getCandles();
+    if (candles.length < config.numCandles) {
+      logger.warn(
+        `ChartApi: Not enough candles visible for wave effect (need at least ${config.numCandles})`,
+      );
+      return;
+    }
+
+    let wavePosition = 0;
+
+    // Function to create wave patterns
+    const createWavePatterns = (): PatternHighlight[] => {
+      const patterns: PatternHighlight[] = [];
+
+      // Create a single wave that moves left to right
+      for (let i = 0; i < config.numCandles; i++) {
+        const candleIndex = (wavePosition + i) % candles.length;
+
+        // Calculate opacity gradient - strongest in the middle, fading at edges
+        let opacity: number;
+        const halfWave = config.numCandles / 2;
+        if (i < halfWave) {
+          // Fade in from left edge
+          opacity = i / halfWave;
+        } else {
+          // Fade out to right edge
+          opacity = 2 - i / halfWave;
+        }
+
+        // Apply smooth curve for better gradient
+        opacity = Math.pow(opacity, 2);
+
+        // For now we'll vary the style based on opacity to simulate different intensities
+        let style: "both" | "fill" | "outline";
+        if (opacity > 0.7) {
+          style = "both"; // Full intensity - both fill and outline
+        } else if (opacity > 0.3) {
+          style = "fill"; // Medium intensity - fill only
+        } else {
+          style = "outline"; // Low intensity - outline only
+        }
+
+        patterns.push({
+          id: `wave_${candleIndex}_${Date.now()}`,
+          type: "pattern",
+          patternType: "wave_effect",
+          name: "", // Empty name to hide labels
+          description: "", // Empty description
+          candleTimestamps: [candles[candleIndex][0]],
+          significance: "effect",
+          color: config.color,
+          style: style,
+        });
+      }
+
+      return patterns;
+    };
+
+    // Initial wave
+    this.highlightPatterns(createWavePatterns());
+
+    // Animate the wave
+    this.waveInterval = setInterval(() => {
+      wavePosition = (wavePosition + config.speed) % candles.length;
+      this.highlightPatterns(createWavePatterns());
+    }, 40); // 40ms update rate for smooth animation
+
+    // Auto-stop after 30 seconds to prevent infinite animation
+    setTimeout(() => {
+      if (this.waveInterval) {
+        this.stopPulseWave();
+        this.clearPatternHighlights();
+        logger.info("ChartApi: Wave effect stopped (30s timeout)");
+      }
+    }, 30000);
+  }
+
+  /**
+   * Stop the pulsating wave effect if it's running
+   */
+  stopPulseWave(): void {
+    if (this.waveInterval) {
+      clearInterval(this.waveInterval);
+      this.waveInterval = null;
+      logger.info("ChartApi: Stopped pulse wave");
+    }
   }
 
   // ============================================================================
