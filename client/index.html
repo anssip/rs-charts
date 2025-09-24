@@ -487,6 +487,21 @@
                     </button>
                     <button
                         class="control-button"
+                        onclick="createPulseWave()"
+                        style="
+                            background: linear-gradient(
+                                90deg,
+                                #10b981,
+                                #3b82f6,
+                                #a855f7
+                            );
+                            color: white;
+                        "
+                    >
+                        Pulse Wave
+                    </button>
+                    <button
+                        class="control-button"
                         onclick="clearPatternHighlights()"
                     >
                         Clear
@@ -1513,6 +1528,26 @@
                 try {
                     api.clearPatternHighlights();
                     updateStatus("All pattern highlights cleared");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Pulsating Wave Effect Function
+            function createPulseWave() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    // Use the new pulseWave API method with 5x speed (25 positions per update)
+                    api.pulseWave({
+                        speed: 25, // 5x faster than default
+                        color: "#ec4899", // Pink
+                        numCandles: 20, // 20 candles in the wave
+                    });
+                    updateStatus(
+                        "Pulsating wave effect started - press Clear to stop",
+                    );
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }

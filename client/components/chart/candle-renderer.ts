@@ -64,8 +64,15 @@ export class CandleRenderer {
       // Calculate pulsation for highlighted candles
       const pulse = 0.7 + 0.3 * Math.sin(this.pulsePhase);
 
-      // Draw the candle with highlight colors
-      this.drawHighlightedCandleSimple(ctx, candle, x, candleWidth, priceToY);
+      // Draw the candle with highlight colors and pulsation
+      this.drawHighlightedCandleSimple(
+        ctx,
+        candle,
+        x,
+        candleWidth,
+        priceToY,
+        pulse,
+      );
     } else {
       // Draw normal candle
       this.drawNormalCandle(
@@ -85,6 +92,7 @@ export class CandleRenderer {
     x: number,
     candleWidth: number,
     priceToY: (price: number) => number,
+    pulse: number = 1,
   ) {
     const candleX = x - candleWidth / 2;
 
@@ -117,32 +125,58 @@ export class CandleRenderer {
     const drawFill = patternStyle === "fill" || patternStyle === "both";
     const drawOutline = patternStyle === "outline" || patternStyle === "both";
 
-    // Draw wick with pattern color
+    // Draw wick with pattern color - split into two parts when outline style to avoid overlap
+    // Apply pulsation to opacity for a breathing effect
+    ctx.globalAlpha = 0.4 + 0.6 * pulse; // Varies between 0.4 and 1.0
     ctx.strokeStyle = patternColor;
-    ctx.lineWidth = 3; // Thick line for visibility
+    ctx.lineWidth = 2 + pulse; // Varies between 2 and 3
 
     if (Math.abs(highY - lowY) > 0.5) {
       ctx.beginPath();
-      ctx.moveTo(x, highY);
-      ctx.lineTo(x, lowY);
+
+      if (drawOutline && !drawFill) {
+        // For outline-only style, draw wick in two parts to avoid overlap with body outline
+        // Top wick (from high to body top)
+        if (highY < bodyTop) {
+          ctx.moveTo(x, highY);
+          ctx.lineTo(x, bodyTop);
+        }
+
+        // Bottom wick (from body bottom to low)
+        if (lowY > bodyBottom) {
+          ctx.moveTo(x, bodyBottom);
+          ctx.lineTo(x, lowY);
+        }
+      } else {
+        // For fill or both styles, draw full wick (it will be covered by filled body)
+        ctx.moveTo(x, highY);
+        ctx.lineTo(x, lowY);
+      }
+
       ctx.stroke();
     }
 
     // Draw body based on style
     if (drawFill) {
-      // Fill the body with pattern color
+      // Fill the body with pattern color with pulsating opacity
+      ctx.globalAlpha = 0.3 + 0.7 * pulse; // Varies between 0.3 and 1.0
       ctx.fillStyle = patternColor;
       ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
     } else if (drawOutline) {
-      // Draw outline only
+      // Draw outline only with pulsating width
+      ctx.globalAlpha = 0.5 + 0.5 * pulse; // Varies between 0.5 and 1.0
       ctx.strokeStyle = patternColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1 + pulse; // Varies between 1 and 2
       ctx.strokeRect(candleX, bodyTop, candleWidth, bodyHeight);
     } else {
       // Fallback: draw filled
+      ctx.globalAlpha = 0.3 + 0.7 * pulse;
       ctx.fillStyle = patternColor;
       ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
     }
+
+    // Reset global alpha
+    ctx.globalAlpha = 1;
 
     // COMMENTED OUT - ctx.restore();
   }

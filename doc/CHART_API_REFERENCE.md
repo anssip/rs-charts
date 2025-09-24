@@ -755,7 +755,7 @@ interface PatternHighlight {
   name: string;                   // Display name (e.g., "Doji", "Hammer", "Bullish Engulfing")
   description: string;            // Detailed description shown on click
   candleTimestamps: number[];     // Array of timestamps for candles in the pattern
-  significance: 'low' | 'medium' | 'high' | 'very high';  // Pattern significance
+  significance: 'low' | 'medium' | 'high' | 'very high' | 'effect';  // Pattern significance ('effect' for visual effects like pulseWave)
   color?: string;                 // Optional highlight color (defaults based on pattern type)
   style?: 'outline' | 'fill' | 'both';  // How to highlight (default: 'outline')
   nearLevel?: {                  // Optional key level information
@@ -791,6 +791,68 @@ console.log(`${currentPatterns.length} patterns currently highlighted`);
 // Check if a specific pattern is highlighted
 const hasDoji = currentPatterns.some(p => p.patternType === 'doji');
 ```
+
+#### `pulseWave(options?: { speed?: number; color?: string; numCandles?: number }): void`
+
+Create an animated pulsating wave effect that moves through the chart candles. This creates a visual wave of highlighted candles that travels from left to right across the chart.
+
+```typescript
+// Start a wave with default settings
+api.pulseWave();
+
+// Start a fast pink wave with 20 candles
+api.pulseWave({
+  speed: 25,           // Move 25 positions per update (5x faster than default)
+  color: '#ec4899',    // Pink color
+  numCandles: 20       // Wave spans 20 candles
+});
+
+// Start a slow blue wave with 30 candles
+api.pulseWave({
+  speed: 2,            // Slow movement
+  color: '#3b82f6',    // Blue color
+  numCandles: 30       // Wider wave
+});
+
+// Start a medium-speed green wave
+api.pulseWave({
+  speed: 10,
+  color: '#10b981',    // Green color
+  numCandles: 15
+});
+```
+
+**Parameters:**
+- `options` (optional): Configuration object for the wave effect
+  - `speed`: Speed of wave movement in positions per update (default: 5, range: 1-50)
+  - `color`: Hex color code for the wave (default: "#ec4899" - pink)
+  - `numCandles`: Number of candles in the wave width (default: 20, minimum: 5)
+
+**Features:**
+- **Animated Movement**: The wave continuously moves from left to right through all visible candles
+- **Gradient Effect**: Wave has an opacity gradient - stronger in the middle, fading at edges
+- **Auto-stop**: Wave automatically stops after 30 seconds to prevent infinite animation
+- **Smooth Animation**: Updates at 40ms intervals for smooth visual effect
+- **Style Variation**: Uses different highlight styles (outline, fill, both) based on position in wave
+
+#### `stopPulseWave(): void`
+
+Stop the currently running pulse wave animation.
+
+```typescript
+// Start a wave
+api.pulseWave({ speed: 10 });
+
+// Stop it manually after 5 seconds
+setTimeout(() => {
+  api.stopPulseWave();
+}, 5000);
+```
+
+**Note:** The wave will also stop automatically when:
+- `clearPatternHighlights()` is called
+- Another `pulseWave()` is started (replaces the current wave)
+- 30 seconds have elapsed (automatic timeout)
 
 **Pattern Highlighting Features:**
 - **Visual Styles**: Patterns can be highlighted with outline, fill, or both
