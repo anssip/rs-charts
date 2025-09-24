@@ -113,7 +113,15 @@ export class CandleTooltip extends LitElement {
   }
 
   render() {
+    logger.debug(
+      "CandleTooltip render - data:",
+      this.data,
+      "visible:",
+      this.visible,
+    );
+
     if (!this.data || !this.visible) {
+      logger.debug("CandleTooltip not rendering - data or visible is false");
       return html``;
     }
 
@@ -123,7 +131,7 @@ export class CandleTooltip extends LitElement {
     // Calculate position - offset to avoid covering the candle
     const tooltipX = Math.min(
       this.data.x + 10,
-      window.innerWidth - 220 // Ensure tooltip stays within viewport
+      window.innerWidth - 220, // Ensure tooltip stays within viewport
     );
     const tooltipY = Math.max(10, this.data.y - 100); // Position above the click point
 

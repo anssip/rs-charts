@@ -15,7 +15,7 @@ import { CandleData } from "./candle-renderer";
 import { CandlePool } from "./candle-pool";
 
 const logger = getLogger("CandlestickStrategy");
-logger.setLoggerLevel("CandlestickStrategy", LogLevel.ERROR);
+logger.setLoggerLevel("CandlestickStrategy", LogLevel.DEBUG);
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;
@@ -782,7 +782,12 @@ export class CandlestickStrategy implements Drawable {
 
   // Find candle at the given coordinates
   getCandleAtPosition(x: number, y: number): any | null {
-    for (const [_, position] of this.candlePositions) {
+    logger.debug(`getCandleAtPosition called with x: ${x}, y: ${y}`);
+    logger.debug(
+      `Number of candle positions stored: ${this.candlePositions.size}`,
+    );
+
+    for (const [timestamp, position] of this.candlePositions) {
       // Check if click is within candle bounds (with some padding for easier clicking)
       const padding = 2; // Add some padding to make candles easier to click
       if (
@@ -791,9 +796,14 @@ export class CandlestickStrategy implements Drawable {
         y >= position.y - padding &&
         y <= position.y + position.height + padding
       ) {
+        logger.debug(
+          `Found candle at timestamp ${timestamp}:`,
+          position.candle,
+        );
         return position.candle;
       }
     }
+    logger.debug("No candle found at position");
     return null;
   }
 }
