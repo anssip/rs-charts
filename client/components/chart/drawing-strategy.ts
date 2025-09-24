@@ -787,22 +787,48 @@ export class CandlestickStrategy implements Drawable {
       `Number of candle positions stored: ${this.candlePositions.size}`,
     );
 
+    // Find the candle based only on X coordinate
+    // This makes clicking much more reliable since we don't need precise vertical targeting
     for (const [timestamp, position] of this.candlePositions) {
-      // Check if click is within candle bounds (with some padding for easier clicking)
-      const padding = 2; // Add some padding to make candles easier to click
+      // Check if click is within candle's horizontal bounds
+      // Use generous padding to make candles easier to click
+      const xPadding = 4; // Increased padding for easier clicking
+
       if (
-        x >= position.x - padding &&
-        x <= position.x + position.width + padding &&
-        y >= position.y - padding &&
-        y <= position.y + position.height + padding
+        x >= position.x - xPadding &&
+        x <= position.x + position.width + xPadding
       ) {
         logger.debug(
           `Found candle at timestamp ${timestamp}:`,
           position.candle,
         );
+        logger.debug(
+          `Candle x range: ${position.x - xPadding} to ${position.x + position.width + xPadding}`,
+        );
         return position.candle;
       }
     }
+
+    // If no exact match, find the closest candle
+    let closestCandle = null;
+    let closestDistance = Infinity;
+
+    for (const [timestamp, position] of this.candlePositions) {
+      const candleCenterX = position.x + position.width / 2;
+      const distance = Math.abs(x - candleCenterX);
+
+      if (distance < closestDistance && distance < 20) {
+        // Within 20 pixels
+        closestDistance = distance;
+        closestCandle = position.candle;
+      }
+    }
+
+    if (closestCandle) {
+      logger.debug("Found closest candle within 20px:", closestCandle);
+      return closestCandle;
+    }
+
     logger.debug("No candle found at position");
     return null;
   }
