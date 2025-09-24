@@ -41,7 +41,7 @@ export class CandleTooltip extends LitElement {
       border-radius: 4px;
       font-size: 12px;
       font-family: monospace;
-      pointer-events: none;
+      pointer-events: auto;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       transition: opacity 0.2s ease;
       min-width: 180px;
@@ -83,6 +83,34 @@ export class CandleTooltip extends LitElement {
     .tooltip-value.red {
       color: var(--color-error, #ef5350);
     }
+
+    .close-button {
+      position: absolute;
+      top: 0.25em;
+      right: 0.25em;
+      width: 20px;
+      height: 20px;
+      background: transparent;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .close-button:hover {
+      color: white;
+    }
+
+    .close-button svg {
+      width: 12px;
+      height: 12px;
+    }
   `;
 
   private formatTimestamp(timestamp: number): string {
@@ -110,6 +138,17 @@ export class CandleTooltip extends LitElement {
       return `${(volume / 1000).toFixed(2)}K`;
     }
     return volume.toFixed(2);
+  }
+
+  private handleClose(e: Event) {
+    e.stopPropagation();
+    this.visible = false;
+    this.dispatchEvent(
+      new CustomEvent("close-tooltip", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   render() {
@@ -140,6 +179,21 @@ export class CandleTooltip extends LitElement {
         class="tooltip ${!this.visible ? "hidden" : ""}"
         style="left: ${tooltipX}px; top: ${tooltipY}px;"
       >
+        <button
+          class="close-button"
+          @click=${this.handleClose}
+          aria-label="Close"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
         <div class="tooltip-header">
           ${this.formatTimestamp(this.data.timestamp)}
         </div>
