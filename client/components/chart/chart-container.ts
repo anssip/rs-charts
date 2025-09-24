@@ -954,6 +954,9 @@ export class ChartContainer extends LitElement {
       <candle-tooltip
         .data=${this.candleTooltipData}
         .visible=${this.showCandleTooltip}
+        @close-tooltip=${() => {
+          this.showCandleTooltip = false;
+        }}
       ></candle-tooltip>
       <!-- Live Candle Display -->
       <live-candle-display></live-candle-display>
