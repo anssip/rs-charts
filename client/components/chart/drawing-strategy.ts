@@ -392,6 +392,7 @@ export class CandlestickStrategy implements Drawable {
         }
 
         // Store position for hit detection
+        // Use the same x position that was used for drawing
         this.candlePositions.set(timestamp, {
           x: x - candleWidth / 2,
           y: Math.min(priceToY(candle.high), priceToY(candle.low)),
