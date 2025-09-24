@@ -1112,6 +1112,9 @@ export class ChartContainer extends LitElement {
       y,
     );
 
+    // x and y are already relative coordinates from the event detail
+    // but we should ensure they're relative to the chart container
+    const containerRect = this.getBoundingClientRect();
     this.candleTooltipData = {
       timestamp: candle.timestamp,
       open: candle.open,
@@ -1119,8 +1122,8 @@ export class ChartContainer extends LitElement {
       low: candle.low,
       close: candle.close,
       volume: candle.volume,
-      x,
-      y,
+      x: x - containerRect.left,
+      y: y - containerRect.top,
     };
     this.showCandleTooltip = true;
     logger.debug(
@@ -1182,6 +1185,8 @@ export class ChartContainer extends LitElement {
       logger.debug(`Found candle from click in chart ${chartId}:`, candle);
 
       if (candle) {
+        // Get the chart container's position to convert to relative coordinates
+        const containerRect = this.getBoundingClientRect();
         this.candleTooltipData = {
           timestamp: candle.timestamp,
           open: candle.open,
@@ -1189,8 +1194,8 @@ export class ChartContainer extends LitElement {
           low: candle.low,
           close: candle.close,
           volume: candle.volume,
-          x: event.clientX,
-          y: event.clientY,
+          x: event.clientX - containerRect.left,
+          y: event.clientY - containerRect.top,
         };
         this.showCandleTooltip = true;
         logger.debug(`Set showCandleTooltip to true for chart ${chartId}`);

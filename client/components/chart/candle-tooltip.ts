@@ -171,12 +171,13 @@ export class CandleTooltip extends LitElement {
     const isGreen = this.data.close >= this.data.open;
     const colorClass = isGreen ? "green" : "red";
 
-    // Calculate position - offset to avoid covering the candle
-    const tooltipX = Math.min(
-      this.data.x + 10,
-      window.innerWidth - 250, // Ensure tooltip stays within viewport (accounting for wrapper padding)
-    );
-    const tooltipY = Math.max(10, this.data.y - 100);
+    // Calculate position - offset to position near the mouse cursor
+    // Add small offset to avoid cursor covering the tooltip
+    const tooltipX = this.data.x + 15;
+
+    // Position slightly above the cursor, but ensure it stays visible
+    // If near top of container, position below cursor instead
+    const tooltipY = this.data.y > 150 ? this.data.y - 120 : this.data.y + 20;
 
     return html`
       <div
