@@ -9,8 +9,10 @@ import { iterateTimeline, getDpr } from "../../util/chart-util";
 import { GridStyle, OscillatorConfig } from "./indicators/indicator-types";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
-import { ChartState } from "../..";
 import { getLogger, LogLevel } from "../../util/logger";
+import { PatternHighlight } from "../../types/markers";
+import { CandleData } from "./candle-renderer";
+import { CandlePool } from "./candle-pool";
 
 const logger = getLogger("CandlestickStrategy");
 logger.setLoggerLevel("CandlestickStrategy", LogLevel.ERROR);
@@ -26,6 +28,7 @@ export interface DrawingContext {
   axisMappings: AxisMappings;
   gridStyle?: GridStyle;
   oscillatorConfig?: OscillatorConfig; // Configuration for oscillator indicators
+  patternHighlights?: PatternHighlight[]; // Pattern highlights to draw
 }
 
 export interface Drawable {
@@ -38,6 +41,7 @@ export interface AxisMappings {
 }
 
 export class CandlestickStrategy implements Drawable {
+  private drawCallCount = 0;
   private grid: HairlineGrid = new HairlineGrid();
   private readonly FIXED_GAP_WIDTH = 6; // pixels
   private readonly MIN_CANDLE_WIDTH = 5; // pixels
@@ -46,7 +50,6 @@ export class CandlestickStrategy implements Drawable {
   private liveCandle: LiveCandle | null = null;
   private chartId: string | null = null;
   private isInitialized: boolean = false;
-  private lastDrawnLiveTimestamp: number = 0;
   private redrawCallback: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
   private lastLoggedState: {
@@ -57,17 +60,26 @@ export class CandlestickStrategy implements Drawable {
   private lastLogTime: number = 0;
   private lastPositionLogTime: number = 0;
   private lastBoundsLogTime: number = 0;
-  private lastDrawLogTime: number = 0;
   private readonly LOG_THROTTLE_MS = 5000; // Only log every 5 seconds
 
+  // Candle rendering system
+  private candlePool = new CandlePool();
+  private pulseAnimationId: number | null = null;
+  private lastAnimationTime = 0;
+  private isAnimating = false;
+  private currentHighlights: PatternHighlight[] = [];
+
   // Store candle positions for hit detection
-  private candlePositions: Map<number, {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    candle: any;
-  }> = new Map();
+  private candlePositions: Map<
+    number,
+    {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      candle: any;
+    }
+  > = new Map();
 
   drawGrid(context: DrawingContext): void {
     this.grid.draw(context);
@@ -183,11 +195,44 @@ export class CandlestickStrategy implements Drawable {
     // Clear candle positions for new render
     this.candlePositions.clear();
 
-    // 2. Draw the grid first (it will be in the background)
+    // Track draw calls and timing
+    this.drawCallCount++;
+
+    // 1. Build highlight map FIRST before resetting pool
+    const highlightMap = new Map<number, PatternHighlight>();
+    if (context.patternHighlights && context.patternHighlights.length > 0) {
+      // Store current highlights for animation
+      this.currentHighlights = context.patternHighlights;
+
+      // Build map with normalized timestamps
+      for (const pattern of context.patternHighlights) {
+        for (const timestamp of pattern.candleTimestamps) {
+          const normalizedTimestamp =
+            Math.floor(timestamp / data.granularityMs) * data.granularityMs;
+          highlightMap.set(normalizedTimestamp, pattern);
+        }
+      }
+
+      // Start animation if not already running
+      if (!this.isAnimating) {
+        this.startPulseAnimation();
+      }
+    } else {
+      // Stop animation if no highlights
+      if (this.isAnimating) {
+        this.stopPulseAnimation();
+      }
+      this.currentHighlights = [];
+    }
+
+    // 2. Now reset candle pool (it will preserve highlighted renderers)
+    this.candlePool.reset();
+
+    // 3. Draw the grid first (it will be in the background)
     this.drawGrid(context);
 
-    // 3. Save the canvas state before drawing candles
-    ctx.save();
+    // 4. COMMENTED OUT - Save the canvas state before drawing candles
+    // ctx.save();
 
     // Calculate candle width
     const timeSpan = viewportEndTimestamp - viewportStartTimestamp;
@@ -197,17 +242,20 @@ export class CandlestickStrategy implements Drawable {
     // Calculate total gap width based on number of gaps (one less than candle count)
     const numberOfGaps = Math.max(0, candleCount - 1);
     const totalGapWidth = numberOfGaps * this.FIXED_GAP_WIDTH;
-    
+
     // Calculate space available for candle bodies after accounting for gaps
     const spaceForCandles = Math.max(0, availableWidth - totalGapWidth);
-    
+
     // Calculate candle width ensuring MIN_CANDLE_WIDTH is respected
     let candleWidth = spaceForCandles / Math.max(1, candleCount);
-    
-    // Enforce MIN and MAX candle width constraints
-    candleWidth = Math.max(this.MIN_CANDLE_WIDTH, Math.min(this.MAX_CANDLE_WIDTH, candleWidth));
 
-    // 4. Draw historical candles
+    // Enforce MIN and MAX candle width constraints
+    candleWidth = Math.max(
+      this.MIN_CANDLE_WIDTH,
+      Math.min(this.MAX_CANDLE_WIDTH, candleWidth),
+    );
+
+    // 5. Draw historical candles
     iterateTimeline({
       callback: (x: number, timestamp: number) => {
         // Check if this timestamp should be replaced by live candle
@@ -258,14 +306,66 @@ export class CandlestickStrategy implements Drawable {
           );
         }
 
-        this.drawSingleCandle(
-          ctx,
-          candle,
-          x,
-          candleWidth,
-          priceToY,
-          isLiveCandle,
-        );
+        // Get renderer for this candle
+        const renderer = this.candlePool.getCandle(timestamp);
+
+        // Set highlight if exists - normalize timestamp for lookup
+        const normalizedTimestamp =
+          Math.floor(timestamp / data.granularityMs) * data.granularityMs;
+        const highlight = highlightMap.get(normalizedTimestamp);
+        if (highlight) {
+          const highlightName = String(highlight.name);
+          const highlightColor = String(highlight.color);
+
+          renderer.setHighlight(highlight);
+        } else {
+          // Explicitly clear highlight if not in map
+          renderer.setHighlight(null);
+        }
+
+        // Convert to CandleData format
+        const candleData: CandleData = {
+          timestamp: candle.timestamp,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          volume: candle.volume,
+          live: isLiveCandle,
+        };
+
+        // Draw using renderer
+        renderer.draw(ctx, candleData, x, candleWidth, priceToY);
+
+        // Immediately verify if highlight was drawn
+        if (highlight) {
+          const imageData = ctx.getImageData(
+            Math.floor(x - candleWidth / 2),
+            Math.floor(
+              priceToY(Math.max(candle.high, candle.open, candle.close)),
+            ),
+            Math.ceil(candleWidth),
+            2,
+          );
+
+          const data = imageData.data;
+          let hasWhite = false;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i] > 250 && data[i + 1] > 250 && data[i + 2] > 250) {
+              hasWhite = true;
+              break;
+            }
+          }
+        }
+
+        // Store position for hit detection
+        this.candlePositions.set(timestamp, {
+          x: x - candleWidth / 2,
+          y: Math.min(priceToY(candle.high), priceToY(candle.low)),
+          width: candleWidth,
+          height: Math.abs(priceToY(candle.high) - priceToY(candle.low)),
+          candle: candleData,
+        });
       },
       granularity: data.getGranularity(),
       viewportStartTimestamp,
@@ -275,113 +375,27 @@ export class CandlestickStrategy implements Drawable {
       alignToLocalTime: false,
     });
 
-    // 5. Draw live candle if it's beyond the current timeline (most recent)
+    // 6. Draw live candle if it's beyond the current timeline (most recent)
     this.drawLiveCandleIfNeeded(context, candleWidth, dpr);
 
-    // 6. Restore the canvas state
-    ctx.restore();
-  }
-
-  private drawSingleCandle(
-    ctx: CanvasRenderingContext2D,
-    candle: any,
-    x: number,
-    candleWidth: number,
-    priceToY: (price: number) => number,
-    isLiveCandle: boolean = false,
-  ): void {
-    // Calculate x position for candle
-    const candleX = x - candleWidth / 2;
-
-    // Validate candle data
-    if (
-      typeof candle.open !== "number" ||
-      typeof candle.close !== "number" ||
-      typeof candle.high !== "number" ||
-      typeof candle.low !== "number"
-    ) {
-      logger.warn(`Invalid candle data`, candle);
-      return;
-    }
-
-    // Ensure high/low are consistent
-    const actualHigh = Math.max(candle.high, candle.open, candle.close);
-    const actualLow = Math.min(candle.low, candle.open, candle.close);
-
-    // Determine colors
-    const isGreen = candle.close > candle.open;
-    const wickColor = isGreen
-      ? getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-accent-1")
-          .trim()
-      : getComputedStyle(document.documentElement)
-          .getPropertyValue("--color-error")
-          .trim();
-
-    // Draw wick first (full high-low range)
-    ctx.beginPath();
-    ctx.strokeStyle = wickColor;
-    ctx.setLineDash(isLiveCandle ? [2, 2] : []); // Dashed for live candles
-    ctx.lineWidth = isLiveCandle ? 1.5 : 1; // Slightly thicker for live candles
-
-    const highY = priceToY(actualHigh);
-    const lowY = priceToY(actualLow);
-    const wickX = candleX + candleWidth / 2;
-
-    // Only draw wick if there's a meaningful range
-    if (Math.abs(highY - lowY) > 0.5) {
-      ctx.moveTo(wickX, highY);
-      ctx.lineTo(wickX, lowY);
-      ctx.stroke();
-    }
-
-    // Draw body (open-close range)
-    const openY = priceToY(candle.open);
-    const closeY = priceToY(candle.close);
-    const bodyHeight = Math.abs(closeY - openY);
-    const bodyTop = Math.min(closeY, openY);
-
-    ctx.fillStyle = wickColor;
-
-    // Add slight transparency for live candles to differentiate them
-    if (isLiveCandle) {
-      ctx.globalAlpha = 0.9;
-    }
-
-    // Ensure minimum body height for visibility
-    const minBodyHeight = Math.max(bodyHeight, 1);
-    ctx.fillRect(candleX, bodyTop, candleWidth, minBodyHeight);
-
-    // Reset alpha
-    if (isLiveCandle) {
-      ctx.globalAlpha = 1.0;
-    }
-
-    // Reset line dash
-    ctx.setLineDash([]);
-
-    // Store candle position for hit detection
-    this.candlePositions.set(candle.timestamp, {
-      x: candleX,
-      y: Math.min(highY, lowY),
-      width: candleWidth,
-      height: Math.abs(highY - lowY),
-      candle: {
-        timestamp: candle.timestamp,
-        open: candle.open,
-        high: actualHigh,
-        low: actualLow,
-        close: candle.close,
-        volume: candle.volume
+    // Final verification - check if any white pixels still exist on canvas
+    if (highlightMap.size > 0) {
+      const fullImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const fullData = fullImageData.data;
+      let whitePixelCount = 0;
+      for (let i = 0; i < fullData.length; i += 4) {
+        if (
+          fullData[i] > 250 &&
+          fullData[i + 1] > 250 &&
+          fullData[i + 2] > 250
+        ) {
+          whitePixelCount++;
+        }
       }
-    });
-
-    // Debug log for live candles
-    if (isLiveCandle) {
-      logger.debug(
-        `Drew live candle at X=${candleX} with body from ${bodyTop} to ${bodyTop + minBodyHeight} (OHLC: ${candle.open}, ${actualHigh}, ${actualLow}, ${candle.close})`,
-      );
     }
+
+    // 7. COMMENTED OUT - Restore the canvas state
+    // ctx.restore();
   }
 
   private drawLiveCandleIfNeeded(
@@ -543,15 +557,49 @@ export class CandlestickStrategy implements Drawable {
       evaluations: [],
     };
 
-    if (currentTime - this.lastDrawLogTime > this.LOG_THROTTLE_MS) {
-      logger.debug(
-        `Drawing live candle at X=${x} with OHLC: O=${liveCandle.open}, H=${liveCandle.high}, L=${liveCandle.low}, C=${liveCandle.close}`,
-      );
-      this.lastDrawLogTime = currentTime;
+    // Get renderer for live candle
+    const renderer = this.candlePool.getCandle(targetTimestamp);
+
+    // Check if live candle should be highlighted
+    let highlight: PatternHighlight | null = null;
+    if (this.currentHighlights.length > 0) {
+      const normalizedTimestamp =
+        Math.floor(targetTimestamp / data.granularityMs) * data.granularityMs;
+      for (const pattern of this.currentHighlights) {
+        if (
+          pattern.candleTimestamps.includes(normalizedTimestamp) ||
+          pattern.candleTimestamps.includes(targetTimestamp)
+        ) {
+          highlight = pattern;
+          break;
+        }
+      }
     }
 
-    this.drawSingleCandle(ctx, liveCandle, x, candleWidth, priceToY, true);
-    this.lastDrawnLiveTimestamp = this.liveCandle.timestamp;
+    renderer.setHighlight(highlight);
+
+    // Convert to CandleData format
+    const candleData: CandleData = {
+      timestamp: targetTimestamp,
+      open: liveCandle.open,
+      high: liveCandle.high,
+      low: liveCandle.low,
+      close: liveCandle.close,
+      volume: liveCandle.volume,
+      live: true,
+    };
+
+    // Draw using renderer
+    renderer.draw(ctx, candleData, x, candleWidth, priceToY);
+
+    // Store position for hit detection
+    this.candlePositions.set(targetTimestamp, {
+      x: x - candleWidth / 2,
+      y: Math.min(priceToY(liveCandle.high), priceToY(liveCandle.low)),
+      width: candleWidth,
+      height: Math.abs(priceToY(liveCandle.high) - priceToY(liveCandle.low)),
+      candle: candleData,
+    });
   }
 
   private handleVisibilityChange = () => {
@@ -608,18 +656,64 @@ export class CandlestickStrategy implements Drawable {
     }
   };
 
+  private startPulseAnimation() {
+    if (this.isAnimating) return;
+
+    this.isAnimating = true;
+    this.lastAnimationTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      if (!this.isAnimating) return;
+
+      // Calculate delta time
+      const deltaTime = currentTime - this.lastAnimationTime;
+      this.lastAnimationTime = currentTime;
+
+      // Update all active candle renderers
+      this.candlePool.updateAll(deltaTime);
+
+      // Trigger redraw
+      if (this.redrawCallback) {
+        this.redrawCallback();
+      }
+
+      this.pulseAnimationId = requestAnimationFrame(animate);
+    };
+
+    this.pulseAnimationId = requestAnimationFrame(animate);
+    logger.debug("Started pulse animation");
+  }
+
+  private stopPulseAnimation() {
+    if (!this.isAnimating) return;
+
+    this.isAnimating = false;
+
+    if (this.pulseAnimationId !== null) {
+      cancelAnimationFrame(this.pulseAnimationId);
+      this.pulseAnimationId = null;
+    }
+
+    logger.debug("Stopped pulse animation");
+  }
+
   public destroy(): void {
+    // Stop pulse animation
+    this.stopPulseAnimation();
+
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+
+    // Clean up candle pool
+    this.candlePool.dispose();
 
     // Clean up state
     this.liveCandle = null;
     this.chartId = null;
     this.isInitialized = false;
     this.redrawCallback = null;
-    this.lastDrawnLiveTimestamp = 0;
 
     // Clean up visibility change listener
     if (this.visibilityChangeHandler) {

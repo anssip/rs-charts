@@ -15,6 +15,7 @@ The Rekt Sense Charts API provides a comprehensive interface for controlling and
    - [Indicator Control](#indicator-control)
    - [Display Control](#display-control)
    - [Trend Line Control](#trend-line-control)
+   - [Pattern Highlighting](#pattern-highlighting)
    - [State Access](#state-access)
    - [Utility Methods](#utility-methods)
 5. [Event System](#event-system)
@@ -703,6 +704,167 @@ Check if a drawing tool is active.
 ```typescript
 const isActive = api.isToolActive('trendLine');
 console.log("Trend line tool active:", isActive);
+```
+
+### Pattern Highlighting
+
+#### `highlightPatterns(patterns: PatternHighlight[]): void`
+
+Highlight candlestick patterns on the chart. Each pattern can highlight multiple candles and display a name label and description.
+
+```typescript
+const patterns: PatternHighlight[] = [
+  {
+    id: 'pattern_1',
+    type: 'pattern',
+    patternType: 'bullish_engulfing',
+    name: 'Bullish Engulfing',
+    description: 'Bullish Engulfing pattern at support $115,633.58',
+    candleTimestamps: [1758344400000, 1758348000000],
+    significance: 'very high',
+    color: '#4ade80',  // Green for bullish
+    style: 'both',     // 'outline' | 'fill' | 'both'
+    nearLevel: {
+      type: 'support',
+      price: 115633.58,
+      distance: 0.3    // Percentage distance from level
+    }
+  },
+  {
+    id: 'pattern_2',
+    type: 'pattern',
+    patternType: 'doji',
+    name: 'Doji',
+    description: 'Doji pattern (body 4.5% of range)',
+    candleTimestamps: [1758369600000],
+    significance: 'medium',
+    color: '#fbbf24',  // Yellow for indecision
+    style: 'outline'
+  }
+];
+
+api.highlightPatterns(patterns);
+```
+
+**PatternHighlight Interface:**
+```typescript
+interface PatternHighlight {
+  id: string;                    // Unique ID for the pattern instance
+  type: 'pattern';                // Marker type (always 'pattern' for pattern highlights)
+  patternType: string;            // Pattern type (e.g., "doji", "hammer", "bullish_engulfing")
+  name: string;                   // Display name (e.g., "Doji", "Hammer", "Bullish Engulfing")
+  description: string;            // Detailed description shown on click
+  candleTimestamps: number[];     // Array of timestamps for candles in the pattern
+  significance: 'low' | 'medium' | 'high' | 'very high';  // Pattern significance
+  color?: string;                 // Optional highlight color (defaults based on pattern type)
+  style?: 'outline' | 'fill' | 'both';  // How to highlight (default: 'outline')
+  nearLevel?: {                  // Optional key level information
+    type: 'support' | 'resistance';
+    price: number;
+    distance: number;            // Percentage distance from the level
+  };
+}
+```
+
+**Default Pattern Colors:**
+- Bullish patterns (bullish_engulfing, hammer, morning_star, etc.): `#4ade80` (green)
+- Bearish patterns (bearish_engulfing, shooting_star, evening_star, etc.): `#ef4444` (red)
+- Neutral/Indecision patterns (doji, spinning_top, inside_bar): `#fbbf24` (yellow)
+- Default for unknown patterns: `#60a5fa` (blue)
+
+#### `clearPatternHighlights(): void`
+
+Remove all pattern highlights from the chart.
+
+```typescript
+api.clearPatternHighlights();
+```
+
+#### `getHighlightedPatterns(): PatternHighlight[]`
+
+Get the currently highlighted patterns.
+
+```typescript
+const currentPatterns = api.getHighlightedPatterns();
+console.log(`${currentPatterns.length} patterns currently highlighted`);
+
+// Check if a specific pattern is highlighted
+const hasDoji = currentPatterns.some(p => p.patternType === 'doji');
+```
+
+**Pattern Highlighting Features:**
+- **Visual Styles**: Patterns can be highlighted with outline, fill, or both
+- **Name Labels**: Pattern names appear above the first candle in the pattern
+- **Interactive Descriptions**: Click on a pattern name to see its full description
+- **Significance Indicators**: High and very high significance patterns show additional visual indicators
+- **Multi-Candle Support**: Patterns can span multiple candles (e.g., engulfing patterns)
+- **Level Context**: Patterns can include information about nearby support/resistance levels
+- **Custom Colors**: Each pattern can have a custom color or use defaults based on pattern type
+
+**Usage Example - Highlighting Multiple Pattern Types:**
+```typescript
+// Example: Highlight various patterns found in technical analysis
+const detectedPatterns: PatternHighlight[] = [
+  // Reversal pattern at support
+  {
+    id: 'rev_1',
+    type: 'pattern',
+    patternType: 'bullish_engulfing',
+    name: 'Bullish Engulfing',
+    description: 'Strong bullish reversal signal. Previous downtrend may be ending.',
+    candleTimestamps: [timestamp1, timestamp2],
+    significance: 'very high',
+    color: '#10b981',
+    style: 'both',
+    nearLevel: {
+      type: 'support',
+      price: 50000,
+      distance: 0.5
+    }
+  },
+  // Continuation pattern
+  {
+    id: 'cont_1',
+    type: 'pattern',
+    patternType: 'inside_bar',
+    name: 'Inside Bar',
+    description: 'Consolidation pattern. Waiting for breakout direction.',
+    candleTimestamps: [timestamp3, timestamp4],
+    significance: 'medium',
+    style: 'outline'
+  },
+  // Warning pattern at resistance
+  {
+    id: 'warn_1',
+    type: 'pattern',
+    patternType: 'shooting_star',
+    name: 'Shooting Star',
+    description: 'Potential reversal at resistance. Watch for confirmation.',
+    candleTimestamps: [timestamp5],
+    significance: 'high',
+    color: '#dc2626',
+    style: 'both',
+    nearLevel: {
+      type: 'resistance',
+      price: 52000,
+      distance: 0.2
+    }
+  }
+];
+
+// Highlight all detected patterns
+api.highlightPatterns(detectedPatterns);
+
+// Listen for pattern click events
+api.on('pattern-click', (event) => {
+  console.log('Pattern clicked:', event.pattern.name);
+  // Could show additional analysis or trigger actions
+});
+
+// Clear highlights when analysis is complete
+setTimeout(() => {
+  api.clearPatternHighlights();
+}, 30000); // Clear after 30 seconds
 ```
 
 ### State Access

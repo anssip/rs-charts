@@ -23,6 +23,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { TrendLine } from "./types/trend-line";
+import { PatternHighlight } from "./types/markers";
 
 export type ChartState = {
   priceRange: PriceRange;
@@ -36,6 +37,7 @@ export type ChartState = {
   loading?: boolean;
   indicators?: IndicatorConfig[];
   trendLines?: TrendLine[];
+  patternHighlights?: PatternHighlight[]; // Store pattern highlights in state
   isTransitioning?: boolean; // Flag to prevent drawing during state transitions
 };
 

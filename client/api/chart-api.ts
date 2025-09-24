@@ -23,6 +23,7 @@ import {
   TrendLineDefaults,
 } from "../types/trend-line";
 import { PriceRangeImpl } from "../util/price-range";
+import { PatternHighlight } from "../types/markers";
 
 const BUFFER_MULTIPLIER = 1;
 
@@ -109,6 +110,10 @@ export interface TrendLineSettings {
   extendRight?: boolean;
 }
 
+export interface PatternHighlightEvent {
+  patterns: PatternHighlight[];
+}
+
 /**
  * Map of Chart API event names to their corresponding event data types
  */
@@ -124,6 +129,8 @@ export interface ChartApiEventMap {
   "trend-line-selected": TrendLineSelectedEvent;
   "trend-line-deselected": TrendLineDeselectedEvent;
   "trend-line-deleted": TrendLineDeletedEvent;
+  "patterns-highlighted": PatternHighlightEvent;
+  "patterns-cleared": void;
 }
 
 /**
@@ -198,6 +205,16 @@ export class ChartApi {
     this.container.addEventListener("trend-line-deleted", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("trend-line-deleted", customEvent.detail);
+    });
+
+    // Listen for pattern highlight events
+    this.container.addEventListener("patterns-highlighted", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("patterns-highlighted", customEvent.detail);
+    });
+
+    this.container.addEventListener("patterns-cleared", (event: Event) => {
+      this.emitEvent("patterns-cleared", undefined);
     });
   }
 
@@ -1073,6 +1090,53 @@ export class ChartApi {
       return chartContainer.trendLineLayer.selectedLineId || null;
     }
     return null;
+  }
+
+  // ============================================================================
+  // Pattern Highlighting
+  // ============================================================================
+
+  /**
+   * Highlight patterns on the chart
+   * @param patterns Array of pattern highlights to display
+   */
+  highlightPatterns(patterns: PatternHighlight[]): void {
+    logger.info(`ChartApi: Highlighting ${patterns.length} patterns`);
+
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer && chartContainer.setPatternHighlights) {
+      chartContainer.setPatternHighlights(patterns);
+    }
+
+    // Emit event
+    this.emitEvent("patterns-highlighted", { patterns });
+  }
+
+  /**
+   * Clear all pattern highlights from the chart
+   */
+  clearPatternHighlights(): void {
+    logger.info("ChartApi: Clearing all pattern highlights");
+
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearPatternHighlights) {
+      chartContainer.clearPatternHighlights();
+    }
+
+    // Emit event
+    this.emitEvent("patterns-cleared", undefined);
+  }
+
+  /**
+   * Get the currently highlighted patterns
+   * @returns Array of currently highlighted patterns
+   */
+  getHighlightedPatterns(): PatternHighlight[] {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.getPatternHighlights) {
+      return chartContainer.getPatternHighlights();
+    }
+    return [];
   }
 
   // ============================================================================

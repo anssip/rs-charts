@@ -18,7 +18,12 @@ import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import { ChartState } from "../..";
-import { getCandleInterval, priceToY, timeToX, getDpr } from "../../util/chart-util";
+import {
+  getCandleInterval,
+  priceToY,
+  timeToX,
+  getDpr,
+} from "../../util/chart-util";
 import { CoinbaseProduct } from "../../api/firestore-client";
 import { MenuItem } from "./context-menu";
 import "./indicators/indicator-container";
@@ -37,6 +42,9 @@ import "./trend-line-layer";
 import { TrendLineTool } from "./tools/trend-line-tool";
 import { TrendLine } from "../../types/trend-line";
 import { TrendLineLayer } from "./trend-line-layer";
+import "./pattern-labels-layer";
+import { PatternLabelsLayer } from "./pattern-labels-layer";
+import { PatternHighlight } from "../../types/markers";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -60,6 +68,7 @@ export class ChartContainer extends LitElement {
     canvasHeight: 0,
     symbol: "BTC-USD",
     granularity: "ONE_HOUR",
+    patternHighlights: [],
   };
 
   @state()
@@ -129,6 +138,7 @@ export class ChartContainer extends LitElement {
   private interactionController?: ChartInteractionController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
+  private patternLabelsLayer?: PatternLabelsLayer;
 
   constructor() {
     super();
@@ -208,13 +218,31 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
+    // Get pattern labels layer reference and set initial dimensions
+    this.patternLabelsLayer = this.renderRoot.querySelector(
+      "pattern-labels-layer",
+    ) as PatternLabelsLayer;
+    if (this.patternLabelsLayer) {
+      logger.debug("ChartContainer: Found pattern labels layer");
+      // Set initial dimensions after a small delay to ensure chart is ready
+      setTimeout(() => {
+        this.updatePatternLabelsLayer();
+      }, 100);
+    }
+
     // Add event listener for candle clicks
-    this.addEventListener("candle-click", this.handleCandleClick as EventListener);
+    this.addEventListener(
+      "candle-click",
+      this.handleCandleClick as EventListener,
+    );
 
     // Also listen for clicks directly on the chart area
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
-      chartAreaElement.addEventListener("click", this.handleChartAreaClick as EventListener);
+      chartAreaElement.addEventListener(
+        "click",
+        this.handleChartAreaClick as EventListener,
+      );
     }
 
     // Add global click listener to hide tooltip when clicking elsewhere
@@ -288,16 +316,18 @@ export class ChartContainer extends LitElement {
       if (isCtrlOrCmd) {
         // Prevent Ctrl/Cmd + Plus/Minus/0 (zoom controls)
         if (
-          e.key === '+' ||
-          e.key === '-' ||
-          e.key === '=' || // Plus key without shift
-          e.key === '0' ||
+          e.key === "+" ||
+          e.key === "-" ||
+          e.key === "=" || // Plus key without shift
+          e.key === "0" ||
           e.keyCode === 187 || // Plus/Equals key
           e.keyCode === 189 || // Minus key
-          e.keyCode === 48     // Zero key
+          e.keyCode === 48 // Zero key
         ) {
           e.preventDefault();
-          logger.debug('ChartContainer: Prevented browser zoom keyboard shortcut');
+          logger.debug(
+            "ChartContainer: Prevented browser zoom keyboard shortcut",
+          );
           return false;
         }
       }
@@ -307,30 +337,33 @@ export class ChartContainer extends LitElement {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        logger.debug('ChartContainer: Prevented browser zoom wheel event');
+        logger.debug("ChartContainer: Prevented browser zoom wheel event");
         return false;
       }
     };
 
     // Add listeners to the component and its shadow root
-    this.addEventListener('keydown', handleKeydown);
-    this.addEventListener('wheel', handleWheel, { passive: false });
+    this.addEventListener("keydown", handleKeydown);
+    this.addEventListener("wheel", handleWheel, { passive: false });
 
     // Also add to the document when this element has focus
     const documentKeydownHandler = (e: KeyboardEvent) => {
       // Only prevent if the chart container or its children have focus
-      if (this.contains(document.activeElement) || this.shadowRoot?.contains(document.activeElement as Element)) {
+      if (
+        this.contains(document.activeElement) ||
+        this.shadowRoot?.contains(document.activeElement as Element)
+      ) {
         handleKeydown(e);
       }
     };
 
-    document.addEventListener('keydown', documentKeydownHandler);
+    document.addEventListener("keydown", documentKeydownHandler);
 
     // Store handlers for cleanup
     (this as any)._zoomPreventionHandlers = {
       keydown: handleKeydown,
       wheel: handleWheel,
-      documentKeydown: documentKeydownHandler
+      documentKeydown: documentKeydownHandler,
     };
   }
 
@@ -357,8 +390,12 @@ export class ChartContainer extends LitElement {
       viewportStartTimestamp: this._state.timeRange.start,
       viewportEndTimestamp: this._state.timeRange.end,
       priceRange: this._state.priceRange,
+      patternHighlights: this._state.patternHighlights || [],
       axisMappings: {
-        timeToX: timeToX(this.chart.canvas!.width / getDpr(), this._state.timeRange),
+        timeToX: timeToX(
+          this.chart.canvas!.width / getDpr(),
+          this._state.timeRange,
+        ),
         priceToY: priceToY(this.chart.canvas!.height / getDpr(), {
           start: this._state.priceRange.min,
           end: this._state.priceRange.max,
@@ -372,6 +409,9 @@ export class ChartContainer extends LitElement {
 
     // Update trend line layer with current state
     this.updateTrendLineLayer();
+
+    // Update pattern labels layer with current state
+    this.updatePatternLabelsLayer();
   }
 
   // Helper method to force redraw of all indicators
@@ -396,6 +436,32 @@ export class ChartContainer extends LitElement {
       // Update the state to ensure trend lines recalculate positions
       trendLineLayer.state = this._state;
       trendLineLayer.requestUpdate();
+    }
+  }
+
+  private updatePatternLabelsLayer() {
+    const patternLabelsLayer = this.renderRoot.querySelector(
+      "pattern-labels-layer",
+    ) as PatternLabelsLayer;
+    if (patternLabelsLayer && this.chart?.canvas) {
+      // Get the chart area dimensions
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        // Use the chart area width minus price axis (same as what the tool uses)
+        patternLabelsLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+
+        // Use the actual canvas height
+        const dpr = getDpr(); // Use fixed DPR
+        patternLabelsLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      // Update the state to ensure labels recalculate positions
+      patternLabelsLayer.state = this._state;
+      patternLabelsLayer.timeRange = this._state.timeRange;
+      patternLabelsLayer.priceRange = this._state.priceRange;
+      patternLabelsLayer.requestUpdate();
     }
   }
 
@@ -459,11 +525,17 @@ export class ChartContainer extends LitElement {
     document.removeEventListener("click", this.handleClickOutside);
     document.removeEventListener("touchstart", this.handleClickOutside);
     document.removeEventListener("click", this.handleDocumentClick);
-    this.removeEventListener("candle-click", this.handleCandleClick as EventListener);
+    this.removeEventListener(
+      "candle-click",
+      this.handleCandleClick as EventListener,
+    );
 
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
-      chartAreaElement.removeEventListener("click", this.handleChartAreaClick as EventListener);
+      chartAreaElement.removeEventListener(
+        "click",
+        this.handleChartAreaClick as EventListener,
+      );
     }
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
     this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
@@ -478,9 +550,9 @@ export class ChartContainer extends LitElement {
     // Clean up zoom prevention handlers
     const handlers = (this as any)._zoomPreventionHandlers;
     if (handlers) {
-      this.removeEventListener('keydown', handlers.keydown);
-      this.removeEventListener('wheel', handlers.wheel);
-      document.removeEventListener('keydown', handlers.documentKeydown);
+      this.removeEventListener("keydown", handlers.keydown);
+      this.removeEventListener("wheel", handlers.wheel);
+      document.removeEventListener("keydown", handlers.documentKeydown);
     }
 
     this.interactionController?.detach();
@@ -493,7 +565,15 @@ export class ChartContainer extends LitElement {
       this._state.granularity === "ONE_HOUR" &&
       this.indicators.size === 0 &&
       this.trendLines.length === 0;
+
+    // Preserve patternHighlights if they exist in current state but not in new state
+    // This prevents loss of highlights when app.ts updates the state
+    if (this._state.patternHighlights && !state.patternHighlights) {
+      state.patternHighlights = this._state.patternHighlights;
+    }
+
     this._state = state;
+    (window as any).state = state;
 
     // Process indicators from initial state if this is the first time setting state
     if (isInitialState && state.indicators && state.indicators.length > 0) {
@@ -750,121 +830,133 @@ export class ChartContainer extends LitElement {
             @connectedCallback=${(e: HTMLElement) =>
               e.setAttribute("grid-area", "chart-area")}
           >
-          <!-- Trend line layer -->
-          <trend-line-layer
-            .trendLines=${this.trendLines}
-            .state=${this._state}
-            style="--price-axis-width: ${this.priceAxisWidth}px"
-            @trend-line-add=${this.handleTrendLineAdd}
-            @trend-line-update=${this.handleTrendLineUpdate}
-            @trend-line-remove=${this.handleTrendLineRemove}
-          ></trend-line-layer>
-
-          <div class="chart">
-            ${bottomIndicators.map(
-              (indicator) => html`
-                <indicator-container
-                  data-indicator=${indicator.id}
-                  class="bottom-indicators"
-                  .name=${indicator.name}
-                >
-                  <market-indicator
-                    .indicatorId=${indicator.id}
-                    .scale=${indicator.scale}
-                    .name=${indicator.name}
-                    .gridStyle=${indicator.gridStyle}
-                  ></market-indicator>
-                </indicator-container>
-              `,
-            )}
-
-            <indicator-stack
-              class="main-chart"
-              .valueAxisWidth=${PRICEAXIS_WIDTH}
-              .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+            <!-- Trend line layer -->
+            <trend-line-layer
+              .trendLines=${this.trendLines}
               .state=${this._state}
-              .options=${this.options}
-              @rendered=${() =>
-                logger.debug("ChartContainer: indicator-stack rendered")}
-            >
-              <indicator-container
-                slot="chart"
-                class="chart-with-overlays overlay-indicators"
-              >
-                <!-- Main chart - Important: price-axis in candlestick-chart must receive pointer events -->
-                <candlestick-chart
-                  id="main-chart"
-                  .state=${this._state}
-                  .options=${this.options}
-                  .indicatorId="chart"
-                  .scale=${ScaleType.Price}
-                ></candlestick-chart>
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+              @trend-line-add=${this.handleTrendLineAdd}
+              @trend-line-update=${this.handleTrendLineUpdate}
+              @trend-line-remove=${this.handleTrendLineRemove}
+            ></trend-line-layer>
 
-                ${overlayIndicators.map(
-                  (indicator) => html`
+            <!-- Pattern labels layer -->
+            <pattern-labels-layer
+              .patterns=${this._state.patternHighlights || []}
+              .state=${this._state}
+              .timeRange=${this._state.timeRange}
+              .priceRange=${this._state.priceRange}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+              @pattern-click=${this.handlePatternClick}
+            ></pattern-labels-layer>
+
+            <div class="chart">
+              ${bottomIndicators.map(
+                (indicator) => html`
+                  <indicator-container
+                    data-indicator=${indicator.id}
+                    class="bottom-indicators"
+                    .name=${indicator.name}
+                  >
                     <market-indicator
                       .indicatorId=${indicator.id}
-                      .scale=${ScaleType.Price}
-                      .showAxis=${false}
+                      .scale=${indicator.scale}
                       .name=${indicator.name}
                       .gridStyle=${indicator.gridStyle}
                     ></market-indicator>
-                  `,
-                )}
-                <live-decorators></live-decorators>
-                <!-- Volume chart - positioned using flexbox at the bottom -->
-                <div class="volume-chart" ?hidden=${!this.showVolume}>
-                  <volume-chart></volume-chart>
-                </div>
-              </indicator-container>
+                  </indicator-container>
+                `,
+              )}
 
-              <!-- Bottom stacked indicators (unchanged) -->
-              ${stackBottomIndicators.length > 0
-                ? stackBottomIndicators.map((indicator, index) => {
-                    const slotId = `indicator-${index + 1}`;
-                    logger.debug(
-                      `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`,
-                    );
-                    return html`
+              <indicator-stack
+                class="main-chart"
+                .valueAxisWidth=${PRICEAXIS_WIDTH}
+                .valueAxisMobileWidth=${PRICEAXIS_MOBILE_WIDTH}
+                .state=${this._state}
+                .options=${this.options}
+                @rendered=${() =>
+                  logger.debug("ChartContainer: indicator-stack rendered")}
+              >
+                <indicator-container
+                  slot="chart"
+                  class="chart-with-overlays overlay-indicators"
+                >
+                  <!-- Main chart - Important: price-axis in candlestick-chart must receive pointer events -->
+                  <candlestick-chart
+                    id="main-chart"
+                    .state=${this._state}
+                    .options=${this.options}
+                    .indicatorId="chart"
+                    .scale=${ScaleType.Price}
+                  ></candlestick-chart>
+
+                  ${overlayIndicators.map(
+                    (indicator) => html`
                       <market-indicator
-                        slot="${slotId}"
                         .indicatorId=${indicator.id}
-                        .scale=${indicator.scale}
+                        .scale=${ScaleType.Price}
+                        .showAxis=${false}
                         .name=${indicator.name}
-                        .state=${this._state}
-                        .valueAxisWidth=${this.priceAxisWidth}
                         .gridStyle=${indicator.gridStyle}
                       ></market-indicator>
-                    `;
-                  })
-                : ""}
-            </indicator-stack>
+                    `,
+                  )}
+                  <live-decorators></live-decorators>
+                  <!-- Volume chart - positioned using flexbox at the bottom -->
+                  <div class="volume-chart" ?hidden=${!this.showVolume}>
+                    <volume-chart></volume-chart>
+                  </div>
+                </indicator-container>
+
+                <!-- Bottom stacked indicators (unchanged) -->
+                ${stackBottomIndicators.length > 0
+                  ? stackBottomIndicators.map((indicator, index) => {
+                      const slotId = `indicator-${index + 1}`;
+                      logger.debug(
+                        `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`,
+                      );
+                      return html`
+                        <market-indicator
+                          slot="${slotId}"
+                          .indicatorId=${indicator.id}
+                          .scale=${indicator.scale}
+                          .name=${indicator.name}
+                          .state=${this._state}
+                          .valueAxisWidth=${this.priceAxisWidth}
+                          .gridStyle=${indicator.gridStyle}
+                        ></market-indicator>
+                      `;
+                    })
+                  : ""}
+              </indicator-stack>
+            </div>
           </div>
+
+          <chart-context-menu
+            .show=${this.showContextMenu}
+            .position=${this.contextMenuPosition}
+            .items=${menuItems}
+          ></chart-context-menu>
+
+          ${!this.isTouchOnly
+            ? html`<chart-crosshairs
+                class="grid-crosshairs"
+              ></chart-crosshairs>`
+            : ""}
         </div>
 
-        <chart-context-menu
-          .show=${this.showContextMenu}
-          .position=${this.contextMenuPosition}
-          .items=${menuItems}
-        ></chart-context-menu>
-
-        ${!this.isTouchOnly
-          ? html`<chart-crosshairs class="grid-crosshairs"></chart-crosshairs>`
-          : ""}
+        <div class="timeline-container">
+          <chart-timeline></chart-timeline>
+        </div>
       </div>
-      
-      <div class="timeline-container">
-        <chart-timeline></chart-timeline>
-      </div>
-    </div>
 
-    <!-- Candle Tooltip -->
-    <candle-tooltip
-      .data=${this.candleTooltipData}
-      .visible=${this.showCandleTooltip}
-    ></candle-tooltip>
-    <!-- Live Candle Display -->
-    <live-candle-display></live-candle-display>
+      <!-- Candle Tooltip -->
+      <candle-tooltip
+        .data=${this.candleTooltipData}
+        .visible=${this.showCandleTooltip}
+      ></candle-tooltip>
+      <!-- Live Candle Display -->
+      <live-candle-display></live-candle-display>
     `;
   }
 
@@ -937,9 +1029,7 @@ export class ChartContainer extends LitElement {
     const availableWidth =
       this.chart.canvas.width - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
-    return Math.floor(
-      availableWidth / (totalCandleWidth * getDpr()),
-    );
+    return Math.floor(availableWidth / (totalCandleWidth * getDpr()));
   }
 
   private calculateCandleOptions(): ChartOptions {
@@ -1017,7 +1107,7 @@ export class ChartContainer extends LitElement {
       close: candle.close,
       volume: candle.volume,
       x,
-      y
+      y,
     };
     this.showCandleTooltip = true;
   };
@@ -1043,7 +1133,10 @@ export class ChartContainer extends LitElement {
     const y = (event.clientY - rect.top) * getDpr();
 
     // Use the drawing strategy to find candle at position
-    if (chart.drawingStrategy && typeof chart.drawingStrategy.getCandleAtPosition === 'function') {
+    if (
+      chart.drawingStrategy &&
+      typeof chart.drawingStrategy.getCandleAtPosition === "function"
+    ) {
       const candle = chart.drawingStrategy.getCandleAtPosition(x, y);
       if (candle) {
         this.candleTooltipData = {
@@ -1054,7 +1147,7 @@ export class ChartContainer extends LitElement {
           close: candle.close,
           volume: candle.volume,
           x: event.clientX,
-          y: event.clientY
+          y: event.clientY,
         };
         this.showCandleTooltip = true;
       } else {
@@ -1306,6 +1399,68 @@ export class ChartContainer extends LitElement {
       }),
     );
   };
+
+  private handlePatternClick = (event: CustomEvent) => {
+    // Pattern click is already handled by the markers layer itself
+    // This is here if we need to do additional processing at the container level
+    logger.debug("ChartContainer: Pattern clicked", event.detail);
+  };
+
+  /**
+   * Set pattern highlights to be displayed on the chart
+   */
+  public setPatternHighlights(patterns: PatternHighlight[]) {
+    // Store in state like we do with trendLines
+    this._state.patternHighlights = patterns;
+    touch("state.patternHighlights");
+
+    if (this.patternLabelsLayer) {
+      // Ensure dimensions are up to date before setting patterns
+      this.updatePatternLabelsLayer();
+      this.patternLabelsLayer.setPatterns(patterns);
+    }
+    this.requestUpdate();
+
+    // Force immediate redraw to show highlights
+    this.draw();
+
+    // Emit API event
+    this.dispatchEvent(
+      new CustomEvent("patterns-highlighted", {
+        detail: { patterns },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Clear all pattern highlights
+   */
+  public clearPatternHighlights() {
+    this._state.patternHighlights = [];
+    touch("state.patternHighlights");
+
+    if (this.patternLabelsLayer) {
+      this.patternLabelsLayer.clearPatterns();
+    }
+    this.requestUpdate();
+
+    // Emit API event
+    this.dispatchEvent(
+      new CustomEvent("patterns-cleared", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Get current pattern highlights
+   */
+  public getPatternHighlights(): PatternHighlight[] {
+    return this._state.patternHighlights || [];
+  }
 
   private initializeInteractionController() {
     if (!this.chart) return;
