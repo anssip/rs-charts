@@ -8,7 +8,7 @@ import {
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("trend-line");
-logger.setLoggerLevel("trend-line", LogLevel.DEBUG);
+logger.setLoggerLevel("trend-line", LogLevel.INFO);
 
 @customElement("trend-line")
 export class TrendLineElement extends LitElement {
@@ -145,13 +145,19 @@ export class TrendLineElement extends LitElement {
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.8; }
-      50% { opacity: 1; }
+      0%,
+      100% {
+        opacity: 0.8;
+      }
+      50% {
+        opacity: 1;
+      }
     }
 
     /* Pulse animation for trend lines */
     @keyframes trend-line-pulse {
-      0%, 100% {
+      0%,
+      100% {
         opacity: var(--pulse-min-opacity, 0.7);
       }
       50% {
@@ -811,12 +817,11 @@ export class TrendLineElement extends LitElement {
     }
   }
 
-
   // New helper method to render markers along the line
   private renderMarkers(start: Point, end: Point): any {
     const markers = this.trendLine.markers!;
     const spacing = markers.spacing || 100;
-    const markerColor = markers.color || this.trendLine.color || '#2962ff';
+    const markerColor = markers.color || this.trendLine.color || "#2962ff";
     const markerSize = markers.size || 4;
 
     // Calculate line length
@@ -836,20 +841,25 @@ export class TrendLineElement extends LitElement {
       if (t < 1) {
         markerPositions.push({
           x: start.x + dx * t,
-          y: start.y + dy * t
+          y: start.y + dy * t,
         });
       }
     }
 
     // Render actual marker shapes at calculated positions
     return svg`
-      ${markerPositions.map(pos => this.renderMarkerAtPosition(pos, markers.symbol, markerSize, markerColor))}
+      ${markerPositions.map((pos) => this.renderMarkerAtPosition(pos, markers.symbol, markerSize, markerColor))}
     `;
   }
 
-  private renderMarkerAtPosition(pos: Point, symbol: string, size: number, color: string): any {
+  private renderMarkerAtPosition(
+    pos: Point,
+    symbol: string,
+    size: number,
+    color: string,
+  ): any {
     switch (symbol) {
-      case 'diamond':
+      case "diamond":
         return svg`
           <polygon
             points="${pos.x},${pos.y - size} ${pos.x + size},${pos.y} ${pos.x},${pos.y + size} ${pos.x - size},${pos.y}"
@@ -857,28 +867,28 @@ export class TrendLineElement extends LitElement {
             opacity="${this.trendLine.opacity ?? 1.0}"
           />
         `;
-      case 'circle':
+      case "circle":
         return svg`
           <circle
             cx="${pos.x}"
             cy="${pos.y}"
-            r="${size/2}"
+            r="${size / 2}"
             fill="${color}"
             opacity="${this.trendLine.opacity ?? 1.0}"
           />
         `;
-      case 'square':
+      case "square":
         return svg`
           <rect
-            x="${pos.x - size/2}"
-            y="${pos.y - size/2}"
+            x="${pos.x - size / 2}"
+            y="${pos.y - size / 2}"
             width="${size}"
             height="${size}"
             fill="${color}"
             opacity="${this.trendLine.opacity ?? 1.0}"
           />
         `;
-      case 'triangle':
+      case "triangle":
         return svg`
           <polygon
             points="${pos.x},${pos.y - size} ${pos.x + size},${pos.y + size} ${pos.x - size},${pos.y + size}"
@@ -915,26 +925,29 @@ export class TrendLineElement extends LitElement {
     const lineColor = this.trendLine.color || "#2962ff";
     const lineStyle = this.trendLine.style || "solid";
     const lineWidth = this.trendLine.lineWidth || 2;
-    const opacity = this.trendLine.opacity ?? 1.0;  // New: opacity support
-    const zIndex = this.trendLine.zIndex ?? 0;      // New: z-index support
+    const opacity = this.trendLine.opacity ?? 1.0; // New: opacity support
+    const zIndex = this.trendLine.zIndex ?? 0; // New: z-index support
     const showHandles = this.hovered || this.selected;
     const namePosition = this.calculateNamePosition();
 
     // Animation configuration
     const animation = this.trendLine.animation;
-    const animationEnabled = animation?.enabled !== false && animation?.type === 'pulse';
+    const animationEnabled =
+      animation?.enabled !== false && animation?.type === "pulse";
     const animationDuration = animation?.duration || 2000;
     const animationIntensity = animation?.intensity || 0.3;
 
     // Calculate animation opacity range based on base opacity and intensity
-    const minOpacity = Math.max(0, opacity - (animationIntensity / 2));
-    const maxOpacity = Math.min(1, opacity + (animationIntensity / 2));
+    const minOpacity = Math.max(0, opacity - animationIntensity / 2);
+    const maxOpacity = Math.min(1, opacity + animationIntensity / 2);
 
-    const animationStyles = animationEnabled ? `
+    const animationStyles = animationEnabled
+      ? `
       --pulse-duration: ${animationDuration}ms;
       --pulse-min-opacity: ${minOpacity};
       --pulse-max-opacity: ${maxOpacity};
-    ` : '';
+    `
+      : "";
 
     return html`
       <svg
@@ -968,22 +981,28 @@ export class TrendLineElement extends LitElement {
           />
           <!-- Visible trend line -->
           <line
-            class="trend-line ${lineStyle} ${animationEnabled ? 'animated-pulse' : ''}"
-            data-level-type="${this.trendLine.levelType || ''}"
+            class="trend-line ${lineStyle} ${animationEnabled
+              ? "animated-pulse"
+              : ""}"
+            data-level-type="${this.trendLine.levelType || ""}"
             x1="${extendedStart.x}"
             y1="${extendedStart.y}"
             x2="${extendedEnd.x}"
             y2="${extendedEnd.y}"
             stroke="${lineColor}"
-            stroke-opacity="${animationEnabled ? '' : opacity}"
-            style="stroke-width: ${lineWidth}px${animationEnabled ? '; opacity: ' + opacity : ''}"
+            stroke-opacity="${animationEnabled ? "" : opacity}"
+            style="stroke-width: ${lineWidth}px${animationEnabled
+              ? "; opacity: " + opacity
+              : ""}"
             pointer-events="none"
           />
 
-          ${/* Render invisible markers along the line for marker placement */
-          this.trendLine.markers?.enabled
-            ? this.renderMarkers(extendedStart, extendedEnd)
-            : ''}
+          ${
+            /* Render invisible markers along the line for marker placement */
+            this.trendLine.markers?.enabled
+              ? this.renderMarkers(extendedStart, extendedEnd)
+              : ""
+          }
         </g>
 
         <!-- Handles remain outside clipping so they're always visible when hovered/selected -->

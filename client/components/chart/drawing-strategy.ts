@@ -15,7 +15,7 @@ import { CandleData } from "./candle-renderer";
 import { CandlePool } from "./candle-pool";
 
 const logger = getLogger("CandlestickStrategy");
-logger.setLoggerLevel("CandlestickStrategy", LogLevel.DEBUG);
+logger.setLoggerLevel("CandlestickStrategy", LogLevel.INFO);
 
 export interface DrawingContext {
   ctx: CanvasRenderingContext2D;

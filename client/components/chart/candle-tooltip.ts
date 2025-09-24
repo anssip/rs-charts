@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("candle-tooltip");
-logger.setLoggerLevel("candle-tooltip", LogLevel.DEBUG);
+logger.setLoggerLevel("candle-tooltip", LogLevel.INFO);
 
 export interface CandleTooltipData {
   timestamp: number;
