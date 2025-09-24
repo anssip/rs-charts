@@ -48,7 +48,7 @@ import { PatternHighlight } from "../../types/markers";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
-logger.setLoggerLevel("ChartContainer", LogLevel.ERROR);
+logger.setLoggerLevel("ChartContainer", LogLevel.DEBUG);
 
 const BUFFER_MULTIPLIER = 1;
 export const TIMELINE_HEIGHT = 30;
@@ -1099,6 +1099,15 @@ export class ChartContainer extends LitElement {
     event.stopPropagation();
     const { candle, x, y } = event.detail;
 
+    logger.debug(
+      "handleCandleClick called with candle:",
+      candle,
+      "x:",
+      x,
+      "y:",
+      y,
+    );
+
     this.candleTooltipData = {
       timestamp: candle.timestamp,
       open: candle.open,
@@ -1110,6 +1119,10 @@ export class ChartContainer extends LitElement {
       y,
     };
     this.showCandleTooltip = true;
+    logger.debug(
+      "Set showCandleTooltip to true, data:",
+      this.candleTooltipData,
+    );
   };
 
   private handleDocumentClick = (event: MouseEvent) => {
@@ -1121,16 +1134,26 @@ export class ChartContainer extends LitElement {
   };
 
   private handleChartAreaClick = (event: MouseEvent) => {
+    logger.debug("handleChartAreaClick called");
+
     // Try to find the chart and canvas
     const chart = this.renderRoot.querySelector("candlestick-chart") as any;
-    if (!chart || !chart.shadowRoot) return;
+    if (!chart || !chart.shadowRoot) {
+      logger.debug("No chart or shadowRoot found");
+      return;
+    }
 
     const canvas = chart.shadowRoot.querySelector("canvas");
-    if (!canvas) return;
+    if (!canvas) {
+      logger.debug("No canvas found");
+      return;
+    }
 
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) * getDpr();
     const y = (event.clientY - rect.top) * getDpr();
+
+    logger.debug("Click position - x:", x, "y:", y);
 
     // Use the drawing strategy to find candle at position
     if (
@@ -1138,6 +1161,8 @@ export class ChartContainer extends LitElement {
       typeof chart.drawingStrategy.getCandleAtPosition === "function"
     ) {
       const candle = chart.drawingStrategy.getCandleAtPosition(x, y);
+      logger.debug("Found candle:", candle);
+
       if (candle) {
         this.candleTooltipData = {
           timestamp: candle.timestamp,
@@ -1150,9 +1175,13 @@ export class ChartContainer extends LitElement {
           y: event.clientY,
         };
         this.showCandleTooltip = true;
+        logger.debug("Set showCandleTooltip to true from handleChartAreaClick");
       } else {
         this.showCandleTooltip = false;
+        logger.debug("No candle found, hiding tooltip");
       }
+    } else {
+      logger.debug("Drawing strategy or getCandleAtPosition not available");
     }
   };
 
