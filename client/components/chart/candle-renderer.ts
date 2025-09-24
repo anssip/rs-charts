@@ -125,7 +125,7 @@ export class CandleRenderer {
     const drawFill = patternStyle === "fill" || patternStyle === "both";
     const drawOutline = patternStyle === "outline" || patternStyle === "both";
 
-    // Draw wick with pattern color - split into two parts when outline style to avoid overlap
+    // Draw wick with pattern color - always split into two parts to avoid showing through body
     // Apply pulsation to opacity for a breathing effect
     ctx.globalAlpha = 0.4 + 0.6 * pulse; // Varies between 0.4 and 1.0
     ctx.strokeStyle = patternColor;
@@ -134,22 +134,16 @@ export class CandleRenderer {
     if (Math.abs(highY - lowY) > 0.5) {
       ctx.beginPath();
 
-      if (drawOutline && !drawFill) {
-        // For outline-only style, draw wick in two parts to avoid overlap with body outline
-        // Top wick (from high to body top)
-        if (highY < bodyTop) {
-          ctx.moveTo(x, highY);
-          ctx.lineTo(x, bodyTop);
-        }
-
-        // Bottom wick (from body bottom to low)
-        if (lowY > bodyBottom) {
-          ctx.moveTo(x, bodyBottom);
-          ctx.lineTo(x, lowY);
-        }
-      } else {
-        // For fill or both styles, draw full wick (it will be covered by filled body)
+      // Always draw wick in two parts to avoid overlap with body
+      // Top wick (from high to body top)
+      if (highY < bodyTop) {
         ctx.moveTo(x, highY);
+        ctx.lineTo(x, bodyTop);
+      }
+
+      // Bottom wick (from body bottom to low)
+      if (lowY > bodyBottom) {
+        ctx.moveTo(x, bodyBottom);
         ctx.lineTo(x, lowY);
       }
 
