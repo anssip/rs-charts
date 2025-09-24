@@ -1132,8 +1132,19 @@ export class ChartContainer extends LitElement {
   private handleDocumentClick = (event: MouseEvent) => {
     // Hide tooltip if clicking outside the chart
     const target = event.target as Element;
-    if (!this.contains(target)) {
-      this.showCandleTooltip = false;
+    // Check if the click is within this chart container or the tooltip itself
+    const tooltip = this.renderRoot.querySelector("candle-tooltip");
+    const isInTooltip = tooltip && tooltip.contains(target);
+
+    if (!this.contains(target) && !isInTooltip) {
+      // Only hide if we're showing a tooltip and click is outside both chart and tooltip
+      if (this.showCandleTooltip) {
+        const chartId = (this as any)._chartId || "unknown";
+        logger.debug(
+          `Hiding tooltip for chart ${chartId} due to outside click`,
+        );
+        this.showCandleTooltip = false;
+      }
     }
   };
 
