@@ -64,7 +64,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   constructor() {
     super();
     this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
-    
+
     // Set up redraw callback for live candle updates
     this.drawingStrategy.setRedrawCallback(() => {
       this.draw();
@@ -74,7 +74,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   bindEventListeners(canvas: HTMLCanvasElement): void {
     this.addEventListener(
       "force-redraw",
-      this.handleForceRedraw as EventListener
+      this.handleForceRedraw as EventListener,
     );
 
     // Add pointer event listeners for candle tooltip (using capture phase)
@@ -96,19 +96,34 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     super.disconnectedCallback();
     this.mobileMediaQuery.removeEventListener(
       "change",
-      this.handleMobileChange
+      this.handleMobileChange,
     );
 
     // Remove event listeners
     if (this.canvas) {
-      this.canvas.removeEventListener("pointerdown", this.handleCanvasPointerDown, true);
-      this.canvas.removeEventListener("pointerup", this.handleCanvasPointerUp, true);
+      this.canvas.removeEventListener(
+        "pointerdown",
+        this.handleCanvasPointerDown,
+        true,
+      );
+      this.canvas.removeEventListener(
+        "pointerup",
+        this.handleCanvasPointerUp,
+        true,
+      );
       this.canvas.removeEventListener("click", this.handleCanvasClick, true);
-      this.canvas.removeEventListener("touchend", this.handleCanvasTouchEnd, true);
+      this.canvas.removeEventListener(
+        "touchend",
+        this.handleCanvasTouchEnd,
+        true,
+      );
     }
 
     // Clean up drawing strategy
-    if (this.drawingStrategy && typeof this.drawingStrategy.destroy === 'function') {
+    if (
+      this.drawingStrategy &&
+      typeof this.drawingStrategy.destroy === "function"
+    ) {
       this.drawingStrategy.destroy();
     }
   }
@@ -143,51 +158,53 @@ export class CandlestickChart extends CanvasBase implements Drawable {
   }
 
   override async firstUpdated() {
-    await super.firstUpdated();
+    super.firstUpdated();
 
     // Initialize state management
     await new Promise((resolve) => setTimeout(resolve, 0));
     this.initializeState();
-    
+
     // Wait for canvas to be available
     let retries = 0;
     while (!this.canvas && retries < 10) {
       await new Promise((resolve) => setTimeout(resolve, 10));
       retries++;
     }
-    
+
     // Ensure canvas has chart ID for drawing strategy
     if (this.canvas && this._chartId) {
       (this.canvas as any).chartId = this._chartId;
-      this.canvas.setAttribute('data-chart-id', this._chartId);
+      this.canvas.setAttribute("data-chart-id", this._chartId);
     }
-    
+
     // Only dispatch chart-ready if canvas is available
     if (this.canvas) {
       this.dispatchEvent(
         new CustomEvent("chart-ready", {
           bubbles: true,
           composed: true,
-        })
+        }),
       );
     } else {
-      logger.warn("Chart: Canvas not available after initialization, chart-ready event not dispatched");
+      logger.warn(
+        "Chart: Canvas not available after initialization, chart-ready event not dispatched",
+      );
     }
   }
 
   private initializeState() {
     // Get the local chart ID for this chart instance
     this._chartId = getLocalChartId(this);
-    
+
     // Pass chart ID to the canvas element for drawing strategy identification
     if (this.canvas) {
       (this.canvas as any).chartId = this._chartId;
-      this.canvas.setAttribute('data-chart-id', this._chartId);
+      this.canvas.setAttribute("data-chart-id", this._chartId);
     }
-    
+
     // Initialize state with actual data
     this._state = xin[this._chartId] as ChartState;
-    
+
     // Set up observers for state changes
     observeLocal(this, "state", () => {
       this._state = xin[this._chartId] as ChartState;
@@ -209,6 +226,10 @@ export class CandlestickChart extends CanvasBase implements Drawable {
       this._state = xin[this._chartId] as ChartState;
       this.draw();
     });
+    observeLocal(this, "state.patternHighlights", () => {
+      this._state = xin[this._chartId] as ChartState;
+      this.draw();
+    });
   }
 
   public drawWithContext(context: DrawingContext) {
@@ -219,7 +240,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     // Ensure canvas has chart ID before drawing
     if (this._chartId) {
       (this.canvas as any).chartId = this._chartId;
-      this.canvas.setAttribute('data-chart-id', this._chartId);
+      this.canvas.setAttribute("data-chart-id", this._chartId);
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -248,6 +269,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
           end: this._state.priceRange.max,
         }),
       },
+      patternHighlights: this._state.patternHighlights,
     };
     this.drawWithContext(context);
   }
@@ -263,9 +285,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
     const totalCandleWidth =
       this._options.candleWidth + this._options.candleGap;
-    return Math.floor(
-      availableWidth / (totalCandleWidth * getDpr())
-    );
+    return Math.floor(availableWidth / (totalCandleWidth * getDpr()));
   }
 
   private pointerDownPosition: { x: number; y: number } | null = null;
@@ -296,11 +316,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
             detail: {
               candle,
               x: event.clientX,
-              y: event.clientY
+              y: event.clientY,
             },
             bubbles: true,
             composed: true,
-          })
+          }),
         );
       }
     }
@@ -323,11 +343,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
           detail: {
             candle,
             x: event.clientX,
-            y: event.clientY
+            y: event.clientY,
           },
           bubbles: true,
           composed: true,
-        })
+        }),
       );
     }
   };
@@ -348,11 +368,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
           detail: {
             candle,
             x: touch.clientX,
-            y: touch.clientY
+            y: touch.clientY,
           },
           bubbles: true,
           composed: true,
-        })
+        }),
       );
     }
   };
@@ -372,7 +392,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     this.style.setProperty("--price-axis-width", `${this.priceAxisWidth}px`);
     this.style.setProperty(
       "--price-axis-mobile-width",
-      `${this.priceAxisMobileWidth}px`
+      `${this.priceAxisMobileWidth}px`,
     );
   }
 

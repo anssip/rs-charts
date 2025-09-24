@@ -61,3 +61,71 @@ Add the follwing methods to chart-api.ts and make these functional:
 Add name and description to the trend lines. There needs to be a way to provide these in the API methods that are used to create and update trend lines. The name should be shown as a small text above the line so that the name is visible when a part of the line is visible in the chart - the name might move as the chart is panned or zoomed. The description shoule be shown when the user hovers over the line's touch area- there needs to be a small delay before it's shown.
 
 Add a way to set these properties to the testing overlay that is in client/index.html
+
+# Pattern highlight
+
+Add a highlightCandles function to the chart-api. This should highlight candles based on the provided timestamps. This will be used to highlight patterns on the chart. The name of the pattern should be shown above the first candle of the pattern. The description should be shown when the user clicks the pattern name. The `color` and `style` are used to add the highlight.
+
+```typescript
+interface PatternHighlight {
+  id: string;                    // Unique ID for the pattern instance
+  type: string;                   // Pattern type (e.g., "doji", "hammer", "bullish_engulfing")
+  name: string;                   // Display name (e.g., "Doji", "Hammer", "Bullish Engulfing")
+  description: string;            // Detailed description (e.g., "Bullish Engulfing pattern at support $115,633.58")
+  candleTimestamps: number[];     // Array of timestamps for candles involved in the pattern
+  significance: 'low' | 'medium' | 'high' | 'very high';  // Pattern significance
+  color?: string;                 // Optional highlight color (defaults based on pattern type)
+  style?: 'outline' | 'fill' | 'both';  // How to highlight the candles
+  nearLevel?: {                  // Optional key level information
+    type: 'support' | 'resistance';
+    price: number;
+    distance: number;           // Percentage distance from the level
+  };
+}
+
+// Method to add to the Chart API:
+highlightPatterns: (patterns: PatternHighlight[]) => void;
+clearPatternHighlights: () => void;
+getHighlightedPatterns: () => PatternHighlight[];
+```
+
+## Example usage
+
+```typescript
+const patterns: PatternHighlight[] = [
+  {
+    id: 'pattern_1',
+    type: 'bullish_engulfing',
+    name: 'Bullish Engulfing',
+    description: 'Bullish Engulfing pattern at support $115,633.58',
+    candleTimestamps: [1758344400000, 1758348000000],
+    significance: 'very high',
+    color: '#4ade80',  // Green for bullish
+    style: 'both',
+    nearLevel: {
+      type: 'support',
+      price: 115633.58,
+      distance: 0.3
+    }
+  },
+  {
+    id: 'pattern_2',
+    type: 'doji',
+    name: 'Doji',
+    description: 'Doji pattern (body 4.5% of range)',
+    candleTimestamps: [1758369600000],
+    significance: 'medium',
+    color: '#fbbf24',  // Yellow for indecision
+    style: 'outline'
+  }
+];
+
+// Highlight patterns on the chart
+activeChartApi.highlightPatterns(patterns);
+
+// Clear all highlights
+activeChartApi.clearPatternHighlights();
+
+// Get currently highlighted patterns
+const currentPatterns = activeChartApi.getHighlightedPatterns();
+```

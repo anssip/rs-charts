@@ -162,7 +162,7 @@
                 border-radius: 6px;
                 font-size: 12px;
                 color: var(--color-accent-2);
-                font-family: 'Courier New', monospace;
+                font-family: "Courier New", monospace;
             }
 
             .chart-selector {
@@ -255,10 +255,9 @@
             </div>
         </div>
 
-
         <div class="demo-controls" id="demo-controls">
             <h3>Chart API Demo</h3>
-            
+
             <div class="chart-selector">
                 <label>Select Chart:</label>
                 <select id="chart-select" onchange="selectChart()">
@@ -270,133 +269,333 @@
             <div class="control-group">
                 <label>Symbol:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="changeSymbol('BTC-USD')">BTC-USD</button>
-                    <button class="control-button" onclick="changeSymbol('ETH-USD')">ETH-USD</button>
-                    <button class="control-button" onclick="changeSymbol('SOL-USD')">SOL-USD</button>
-                    <button class="control-button" onclick="changeSymbol('AVAX-USD')">AVAX-USD</button>
+                    <button
+                        class="control-button"
+                        onclick="changeSymbol('BTC-USD')"
+                    >
+                        BTC-USD
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeSymbol('ETH-USD')"
+                    >
+                        ETH-USD
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeSymbol('SOL-USD')"
+                    >
+                        SOL-USD
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeSymbol('AVAX-USD')"
+                    >
+                        AVAX-USD
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Timeframe:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="changeGranularity('ONE_MINUTE')">1m</button>
-                    <button class="control-button" onclick="changeGranularity('FIVE_MINUTE')">5m</button>
-                    <button class="control-button" onclick="changeGranularity('FIFTEEN_MINUTE')">15m</button>
-                    <button class="control-button" onclick="changeGranularity('ONE_HOUR')">1h</button>
-                    <button class="control-button" onclick="changeGranularity('SIX_HOUR')">6h</button>
-                    <button class="control-button" onclick="changeGranularity('ONE_DAY')">1d</button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('ONE_MINUTE')"
+                    >
+                        1m
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('FIVE_MINUTE')"
+                    >
+                        5m
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('FIFTEEN_MINUTE')"
+                    >
+                        15m
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('ONE_HOUR')"
+                    >
+                        1h
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('SIX_HOUR')"
+                    >
+                        6h
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="changeGranularity('ONE_DAY')"
+                    >
+                        1d
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Indicators:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="toggleIndicator('volume', 'Volume')">Volume</button>
-                    <button class="control-button" onclick="toggleIndicator('rsi', 'RSI')">RSI</button>
-                    <button class="control-button" onclick="toggleIndicator('macd', 'MACD')">MACD</button>
-                    <button class="control-button" onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')">BB</button>
-                    <button class="control-button" onclick="toggleIndicator('moving-averages', 'Moving Averages')">MA</button>
-                    <button class="control-button" onclick="toggleIndicator('stochastic', 'Stochastic')">Stoch</button>
-                    <button class="control-button" onclick="toggleIndicator('atr', 'ATR')">ATR</button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('volume', 'Volume')"
+                    >
+                        Volume
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('rsi', 'RSI')"
+                    >
+                        RSI
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('macd', 'MACD')"
+                    >
+                        MACD
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
+                    >
+                        BB
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('moving-averages', 'Moving Averages')"
+                    >
+                        MA
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('stochastic', 'Stochastic')"
+                    >
+                        Stoch
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="toggleIndicator('atr', 'ATR')"
+                    >
+                        ATR
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Display:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="toggleFullWindow()">Full Window</button>
-                    <button class="control-button" onclick="toggleFullscreen()">Fullscreen</button>
-                    <button class="control-button" onclick="forceRedraw()">Redraw</button>
+                    <button class="control-button" onclick="toggleFullWindow()">
+                        Full Window
+                    </button>
+                    <button class="control-button" onclick="toggleFullscreen()">
+                        Fullscreen
+                    </button>
+                    <button class="control-button" onclick="forceRedraw()">
+                        Redraw
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Time Range:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="getTimeRange()">Get Range</button>
-                    <button class="control-button" onclick="zoomInTime()">Zoom In</button>
-                    <button class="control-button" onclick="zoomOutTime()">Zoom Out</button>
-                    <button class="control-button" onclick="panLeft()">← Pan</button>
-                    <button class="control-button" onclick="panRight()">Pan →</button>
+                    <button class="control-button" onclick="getTimeRange()">
+                        Get Range
+                    </button>
+                    <button class="control-button" onclick="zoomInTime()">
+                        Zoom In
+                    </button>
+                    <button class="control-button" onclick="zoomOutTime()">
+                        Zoom Out
+                    </button>
+                    <button class="control-button" onclick="panLeft()">
+                        ← Pan
+                    </button>
+                    <button class="control-button" onclick="panRight()">
+                        Pan →
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Price Range:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="getPriceRange()">Get Range</button>
-                    <button class="control-button" onclick="adjustPriceUp()">↑ Expand</button>
-                    <button class="control-button" onclick="adjustPriceDown()">↓ Contract</button>
-                    <button class="control-button" onclick="resetPriceRange()">Auto Fit</button>
+                    <button class="control-button" onclick="getPriceRange()">
+                        Get Range
+                    </button>
+                    <button class="control-button" onclick="adjustPriceUp()">
+                        ↑ Expand
+                    </button>
+                    <button class="control-button" onclick="adjustPriceDown()">
+                        ↓ Contract
+                    </button>
+                    <button class="control-button" onclick="resetPriceRange()">
+                        Auto Fit
+                    </button>
                 </div>
             </div>
 
             <div class="control-group">
                 <label>Trend Lines:</label>
                 <div class="control-buttons">
-                    <button class="control-button" onclick="activateTrendLine()">Draw Line</button>
-                    <button class="control-button" onclick="clearTrendLines()">Clear All</button>
+                    <button
+                        class="control-button"
+                        onclick="activateTrendLine()"
+                    >
+                        Draw Line
+                    </button>
+                    <button class="control-button" onclick="clearTrendLines()">
+                        Clear All
+                    </button>
                 </div>
             </div>
 
-            <div id="trend-line-settings" style="display: none;">
-                <div class="control-group">
-                    <label style="color: #4caf50;">Selected Line:</label>
-                    <div style="font-size: 11px; color: #888; margin-bottom: 10px;" id="selected-line-id">-</div>
+            <div class="control-group">
+                <label>Pattern Highlights:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="highlightBullishPatterns()"
+                        style="color: #4ade80"
+                    >
+                        Bullish
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="highlightBearishPatterns()"
+                        style="color: #ef4444"
+                    >
+                        Bearish
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="highlightNeutralPatterns()"
+                        style="color: #fbbf24"
+                    >
+                        Neutral
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="highlightMixedPatterns()"
+                    >
+                        Mixed
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearPatternHighlights()"
+                    >
+                        Clear
+                    </button>
                 </div>
-                
+            </div>
+
+            <div id="trend-line-settings" style="display: none">
+                <div class="control-group">
+                    <label style="color: #4caf50">Selected Line:</label>
+                    <div
+                        style="
+                            font-size: 11px;
+                            color: #888;
+                            margin-bottom: 10px;
+                        "
+                        id="selected-line-id"
+                    >
+                        -
+                    </div>
+                </div>
+
                 <div class="control-group">
                     <label>Name:</label>
-                    <input type="text" id="line-name" placeholder="Line name" style="width: 100%;">
+                    <input
+                        type="text"
+                        id="line-name"
+                        placeholder="Line name"
+                        style="width: 100%"
+                    />
                 </div>
-                
+
                 <div class="control-group">
                     <label>Description:</label>
-                    <textarea id="line-description" placeholder="Line description" style="width: 100%; min-height: 60px; resize: vertical;"></textarea>
+                    <textarea
+                        id="line-description"
+                        placeholder="Line description"
+                        style="width: 100%; min-height: 60px; resize: vertical"
+                    ></textarea>
                 </div>
-                
+
                 <div class="control-group">
                     <label>Color:</label>
-                    <input type="color" id="line-color" value="#2962ff" style="width: 60px; height: 30px;">
+                    <input
+                        type="color"
+                        id="line-color"
+                        value="#2962ff"
+                        style="width: 60px; height: 30px"
+                    />
                 </div>
-                
+
                 <div class="control-group">
                     <label>Width:</label>
-                    <input type="number" id="line-width" min="1" max="10" value="2" style="width: 60px;">
+                    <input
+                        type="number"
+                        id="line-width"
+                        min="1"
+                        max="10"
+                        value="2"
+                        style="width: 60px"
+                    />
                 </div>
-                
+
                 <div class="control-group">
                     <label>Style:</label>
-                    <select id="line-style" style="width: 100%;">
+                    <select id="line-style" style="width: 100%">
                         <option value="solid">Solid</option>
                         <option value="dashed">Dashed</option>
                         <option value="dotted">Dotted</option>
                     </select>
                 </div>
-                
+
                 <div class="control-group">
                     <label>
-                        <input type="checkbox" id="extend-left" style="margin-right: 5px;">
+                        <input
+                            type="checkbox"
+                            id="extend-left"
+                            style="margin-right: 5px"
+                        />
                         Extend Left
                     </label>
                 </div>
-                
+
                 <div class="control-group">
                     <label>
-                        <input type="checkbox" id="extend-right" style="margin-right: 5px;">
+                        <input
+                            type="checkbox"
+                            id="extend-right"
+                            style="margin-right: 5px"
+                        />
                         Extend Right
                     </label>
                 </div>
 
                 <div class="control-group">
                     <label>Opacity: <span id="opacity-value">100%</span></label>
-                    <input type="range" id="line-opacity" min="0" max="100" value="100" style="width: 100%;">
+                    <input
+                        type="range"
+                        id="line-opacity"
+                        min="0"
+                        max="100"
+                        value="100"
+                        style="width: 100%"
+                    />
                 </div>
 
                 <div class="control-group">
                     <label>Level Type:</label>
-                    <select id="level-type" style="width: 100%;">
+                    <select id="level-type" style="width: 100%">
                         <option value="">None</option>
                         <option value="swing">Swing</option>
                         <option value="horizontal">Horizontal</option>
@@ -405,39 +604,90 @@
 
                 <div class="control-group">
                     <label>Z-Index:</label>
-                    <input type="number" id="z-index" min="0" max="1000" value="0" style="width: 100%;">
+                    <input
+                        type="number"
+                        id="z-index"
+                        min="0"
+                        max="1000"
+                        value="0"
+                        style="width: 100%"
+                    />
                 </div>
 
-                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                <div
+                    class="control-group"
+                    style="
+                        border-top: 1px solid rgba(143, 143, 143, 0.2);
+                        padding-top: 10px;
+                        margin-top: 10px;
+                    "
+                >
                     <label>
-                        <input type="checkbox" id="pulse-animation-enabled" style="margin-right: 5px;">
+                        <input
+                            type="checkbox"
+                            id="pulse-animation-enabled"
+                            style="margin-right: 5px"
+                        />
                         Enable Pulse Animation
                     </label>
                 </div>
 
-                <div id="pulse-animation-settings" style="display: none;">
+                <div id="pulse-animation-settings" style="display: none">
                     <div class="control-group">
-                        <label>Duration: <span id="pulse-duration-value">2000ms</span></label>
-                        <input type="range" id="pulse-duration" min="500" max="5000" value="2000" step="100" style="width: 100%;">
+                        <label
+                            >Duration:
+                            <span id="pulse-duration-value">2000ms</span></label
+                        >
+                        <input
+                            type="range"
+                            id="pulse-duration"
+                            min="500"
+                            max="5000"
+                            value="2000"
+                            step="100"
+                            style="width: 100%"
+                        />
                     </div>
 
                     <div class="control-group">
-                        <label>Intensity: <span id="pulse-intensity-value">30%</span></label>
-                        <input type="range" id="pulse-intensity" min="10" max="100" value="30" step="5" style="width: 100%;">
+                        <label
+                            >Intensity:
+                            <span id="pulse-intensity-value">30%</span></label
+                        >
+                        <input
+                            type="range"
+                            id="pulse-intensity"
+                            min="10"
+                            max="100"
+                            value="30"
+                            step="5"
+                            style="width: 100%"
+                        />
                     </div>
                 </div>
 
-                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                <div
+                    class="control-group"
+                    style="
+                        border-top: 1px solid rgba(143, 143, 143, 0.2);
+                        padding-top: 10px;
+                        margin-top: 10px;
+                    "
+                >
                     <label>
-                        <input type="checkbox" id="markers-enabled" style="margin-right: 5px;">
+                        <input
+                            type="checkbox"
+                            id="markers-enabled"
+                            style="margin-right: 5px"
+                        />
                         Enable Markers
                     </label>
                 </div>
 
-                <div id="marker-settings" style="display: none;">
+                <div id="marker-settings" style="display: none">
                     <div class="control-group">
                         <label>Marker Symbol:</label>
-                        <select id="marker-symbol" style="width: 100%;">
+                        <select id="marker-symbol" style="width: 100%">
                             <option value="diamond">Diamond</option>
                             <option value="circle">Circle</option>
                             <option value="square">Square</option>
@@ -447,32 +697,88 @@
 
                     <div class="control-group">
                         <label>Marker Size:</label>
-                        <input type="number" id="marker-size" min="1" max="20" value="4" style="width: 100%;">
+                        <input
+                            type="number"
+                            id="marker-size"
+                            min="1"
+                            max="20"
+                            value="4"
+                            style="width: 100%"
+                        />
                     </div>
 
                     <div class="control-group">
                         <label>Marker Spacing:</label>
-                        <input type="number" id="marker-spacing" min="10" max="500" value="100" style="width: 100%;">
+                        <input
+                            type="number"
+                            id="marker-spacing"
+                            min="10"
+                            max="500"
+                            value="100"
+                            style="width: 100%"
+                        />
                     </div>
 
                     <div class="control-group">
                         <label>Marker Color:</label>
-                        <input type="color" id="marker-color" value="#2962ff" style="width: 60px; height: 30px;">
+                        <input
+                            type="color"
+                            id="marker-color"
+                            value="#2962ff"
+                            style="width: 60px; height: 30px"
+                        />
                     </div>
                 </div>
 
-                <div class="control-group" style="border-top: 1px solid rgba(143, 143, 143, 0.2); padding-top: 10px; margin-top: 10px;">
+                <div
+                    class="control-group"
+                    style="
+                        border-top: 1px solid rgba(143, 143, 143, 0.2);
+                        padding-top: 10px;
+                        margin-top: 10px;
+                    "
+                >
                     <label>Presets:</label>
                     <div class="control-buttons">
-                        <button class="control-button" onclick="applySwingSupport()" style="background: #4caf50;">Swing Support</button>
-                        <button class="control-button" onclick="applySwingResistance()" style="background: #f44336;">Swing Resistance</button>
-                        <button class="control-button" onclick="applyHorizontalSupport()" style="background: #66bb6a;">Horizontal Support</button>
-                        <button class="control-button" onclick="applyHorizontalResistance()" style="background: #ef5350;">Horizontal Resistance</button>
+                        <button
+                            class="control-button"
+                            onclick="applySwingSupport()"
+                            style="background: #4caf50"
+                        >
+                            Swing Support
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="applySwingResistance()"
+                            style="background: #f44336"
+                        >
+                            Swing Resistance
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="applyHorizontalSupport()"
+                            style="background: #66bb6a"
+                        >
+                            Horizontal Support
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="applyHorizontalResistance()"
+                            style="background: #ef5350"
+                        >
+                            Horizontal Resistance
+                        </button>
                     </div>
                 </div>
 
                 <div class="control-buttons">
-                    <button class="control-button" onclick="deleteTrendLine()" style="background: #ff5252;">Delete Line</button>
+                    <button
+                        class="control-button"
+                        onclick="deleteTrendLine()"
+                        style="background: #ff5252"
+                    >
+                        Delete Line
+                    </button>
                 </div>
             </div>
 
@@ -485,7 +791,6 @@
             <div class="chart-container" id="chart-1"></div>
             <div class="chart-container" id="chart-2"></div>
         </div>
-
 
         <div class="upgrade-backdrop"></div>
         <div class="upgrade-popup">
@@ -507,24 +812,24 @@
                 if (!api || !selectedTrendLineId) return;
 
                 const settings = {
-                    color: '#00FF00',
+                    color: "#00FF00",
                     lineWidth: 3,
-                    style: 'solid',
+                    style: "solid",
                     opacity: 0.9,
-                    levelType: 'swing',
+                    levelType: "swing",
                     zIndex: 100,
                     markers: {
                         enabled: true,
-                        symbol: 'diamond',
+                        symbol: "diamond",
                         size: 4,
                         spacing: 100,
-                        color: '#00FF00'
-                    }
+                        color: "#00FF00",
+                    },
                 };
 
                 api.updateTrendLineSettings(selectedTrendLineId, settings);
                 updateTrendLineUI({ ...settings, id: selectedTrendLineId });
-                updateStatus('Applied Swing Support preset');
+                updateStatus("Applied Swing Support preset");
             }
 
             function applySwingResistance() {
@@ -532,24 +837,24 @@
                 if (!api || !selectedTrendLineId) return;
 
                 const settings = {
-                    color: '#FF0000',
+                    color: "#FF0000",
                     lineWidth: 3,
-                    style: 'solid',
+                    style: "solid",
                     opacity: 0.9,
-                    levelType: 'swing',
+                    levelType: "swing",
                     zIndex: 100,
                     markers: {
                         enabled: true,
-                        symbol: 'diamond',
+                        symbol: "diamond",
                         size: 4,
                         spacing: 100,
-                        color: '#FF0000'
-                    }
+                        color: "#FF0000",
+                    },
                 };
 
                 api.updateTrendLineSettings(selectedTrendLineId, settings);
                 updateTrendLineUI({ ...settings, id: selectedTrendLineId });
-                updateStatus('Applied Swing Resistance preset');
+                updateStatus("Applied Swing Resistance preset");
             }
 
             function applyHorizontalSupport() {
@@ -557,18 +862,18 @@
                 if (!api || !selectedTrendLineId) return;
 
                 const settings = {
-                    color: '#66CC66',
+                    color: "#66CC66",
                     lineWidth: 1.5,
-                    style: 'dashed',
+                    style: "dashed",
                     opacity: 0.7,
-                    levelType: 'horizontal',
+                    levelType: "horizontal",
                     zIndex: 90,
-                    markers: undefined
+                    markers: undefined,
                 };
 
                 api.updateTrendLineSettings(selectedTrendLineId, settings);
                 updateTrendLineUI({ ...settings, id: selectedTrendLineId });
-                updateStatus('Applied Horizontal Support preset');
+                updateStatus("Applied Horizontal Support preset");
             }
 
             function applyHorizontalResistance() {
@@ -576,27 +881,27 @@
                 if (!api || !selectedTrendLineId) return;
 
                 const settings = {
-                    color: '#FF6666',
+                    color: "#FF6666",
                     lineWidth: 1.5,
-                    style: 'dashed',
+                    style: "dashed",
                     opacity: 0.7,
-                    levelType: 'horizontal',
+                    levelType: "horizontal",
                     zIndex: 90,
-                    markers: undefined
+                    markers: undefined,
                 };
 
                 api.updateTrendLineSettings(selectedTrendLineId, settings);
                 updateTrendLineUI({ ...settings, id: selectedTrendLineId });
-                updateStatus('Applied Horizontal Resistance preset');
+                updateStatus("Applied Horizontal Resistance preset");
             }
 
             function toggleDemoControls() {
-                const controls = document.getElementById('demo-controls');
-                controls.classList.toggle('hidden');
+                const controls = document.getElementById("demo-controls");
+                controls.classList.toggle("hidden");
             }
 
             function selectChart() {
-                const select = document.getElementById('chart-select');
+                const select = document.getElementById("chart-select");
                 currentChart = parseInt(select.value);
                 updateStatus();
                 updateActiveButtons();
@@ -609,9 +914,9 @@
             async function changeSymbol(symbol) {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
-                    updateStatus('Changing symbol...');
+                    updateStatus("Changing symbol...");
                     await api.setSymbol(symbol);
                     updateStatus(`Symbol changed to ${symbol}`);
                     updateActiveButtons();
@@ -623,9 +928,9 @@
             async function changeGranularity(granularity) {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
-                    updateStatus('Changing timeframe...');
+                    updateStatus("Changing timeframe...");
                     await api.setGranularity(granularity);
                     updateStatus(`Timeframe changed to ${granularity}`);
                     updateActiveButtons();
@@ -637,7 +942,7 @@
             function toggleIndicator(id, name) {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     api.toggleIndicator(id, { name });
                     updateStatus(`Toggled ${name} indicator`);
@@ -650,10 +955,10 @@
             async function toggleFullscreen() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     await api.toggleFullscreen();
-                    updateStatus('Toggled fullscreen');
+                    updateStatus("Toggled fullscreen");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -662,10 +967,10 @@
             function toggleFullWindow() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     api.toggleFullWindow();
-                    updateStatus('Toggled full window');
+                    updateStatus("Toggled full window");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -674,10 +979,10 @@
             function forceRedraw() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     api.redraw();
-                    updateStatus('Chart redrawn');
+                    updateStatus("Chart redrawn");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -687,12 +992,14 @@
             function getTimeRange() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const range = api.getTimeRange();
                     const startDate = new Date(range.start).toLocaleString();
                     const endDate = new Date(range.end).toLocaleString();
-                    updateStatus(`Time Range:\nStart: ${startDate}\nEnd: ${endDate}`);
+                    updateStatus(
+                        `Time Range:\nStart: ${startDate}\nEnd: ${endDate}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -701,18 +1008,18 @@
             function zoomInTime() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getTimeRange();
                     const duration = currentRange.end - currentRange.start;
                     const center = (currentRange.start + currentRange.end) / 2;
                     const newDuration = duration * 0.5;
-                    
+
                     api.setTimeRange({
                         start: center - newDuration / 2,
-                        end: center + newDuration / 2
+                        end: center + newDuration / 2,
                     });
-                    updateStatus('Zoomed in time 50%');
+                    updateStatus("Zoomed in time 50%");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -721,18 +1028,18 @@
             function zoomOutTime() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getTimeRange();
                     const duration = currentRange.end - currentRange.start;
                     const center = (currentRange.start + currentRange.end) / 2;
                     const newDuration = duration * 2;
-                    
+
                     api.setTimeRange({
                         start: center - newDuration / 2,
-                        end: center + newDuration / 2
+                        end: center + newDuration / 2,
                     });
-                    updateStatus('Zoomed out time 200%');
+                    updateStatus("Zoomed out time 200%");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -741,17 +1048,17 @@
             function panLeft() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getTimeRange();
                     const duration = currentRange.end - currentRange.start;
                     const shift = duration * 0.2;
-                    
+
                     api.setTimeRange({
                         start: currentRange.start - shift,
-                        end: currentRange.end - shift
+                        end: currentRange.end - shift,
                     });
-                    updateStatus('Panned left');
+                    updateStatus("Panned left");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -760,17 +1067,17 @@
             function panRight() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getTimeRange();
                     const duration = currentRange.end - currentRange.start;
                     const shift = duration * 0.2;
-                    
+
                     api.setTimeRange({
                         start: currentRange.start + shift,
-                        end: currentRange.end + shift
+                        end: currentRange.end + shift,
                     });
-                    updateStatus('Panned right');
+                    updateStatus("Panned right");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -780,10 +1087,12 @@
             function getPriceRange() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const range = api.getPriceRange();
-                    updateStatus(`Price Range:\nMin: $${range.min.toFixed(2)}\nMax: $${range.max.toFixed(2)}\nRange: $${range.range.toFixed(2)}`);
+                    updateStatus(
+                        `Price Range:\nMin: $${range.min.toFixed(2)}\nMax: $${range.max.toFixed(2)}\nRange: $${range.range.toFixed(2)}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -792,16 +1101,16 @@
             function adjustPriceUp() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getPriceRange();
                     const adjustment = currentRange.range * 0.1;
-                    
+
                     api.setPriceRange({
                         min: currentRange.min - adjustment,
-                        max: currentRange.max + adjustment
+                        max: currentRange.max + adjustment,
                     });
-                    updateStatus('Expanded price range by 10%');
+                    updateStatus("Expanded price range by 10%");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -810,16 +1119,16 @@
             function adjustPriceDown() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     const currentRange = api.getPriceRange();
                     const adjustment = currentRange.range * 0.1;
-                    
+
                     api.setPriceRange({
                         min: currentRange.min + adjustment,
-                        max: currentRange.max - adjustment
+                        max: currentRange.max - adjustment,
                     });
-                    updateStatus('Contracted price range by 10%');
+                    updateStatus("Contracted price range by 10%");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -828,31 +1137,36 @@
             function resetPriceRange() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     // Get visible candles to determine appropriate price range
                     const state = api.getState();
                     const timeRange = api.getTimeRange();
-                    const visibleCandles = state.priceHistory.getCandlesInRange(timeRange.start, timeRange.end);
-                    
+                    const visibleCandles = state.priceHistory.getCandlesInRange(
+                        timeRange.start,
+                        timeRange.end,
+                    );
+
                     if (visibleCandles.length > 0) {
                         let minPrice = Infinity;
                         let maxPrice = -Infinity;
-                        
+
                         visibleCandles.forEach(([_, candle]) => {
                             minPrice = Math.min(minPrice, candle.low);
                             maxPrice = Math.max(maxPrice, candle.high);
                         });
-                        
+
                         // Add 5% padding
                         const padding = (maxPrice - minPrice) * 0.05;
                         api.setPriceRange({
                             min: minPrice - padding,
-                            max: maxPrice + padding
+                            max: maxPrice + padding,
                         });
-                        updateStatus('Auto-fitted price range to visible data');
+                        updateStatus("Auto-fitted price range to visible data");
                     } else {
-                        updateStatus('No visible candles to determine price range');
+                        updateStatus(
+                            "No visible candles to determine price range",
+                        );
                     }
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
@@ -862,10 +1176,12 @@
             function activateTrendLine() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     api.activateTrendLineTool();
-                    updateStatus('Trend line tool activated - click twice on chart');
+                    updateStatus(
+                        "Trend line tool activated - click twice on chart",
+                    );
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -874,12 +1190,14 @@
             function clearTrendLines() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     api.clearTrendLines();
                     selectedTrendLineId = null;
-                    document.getElementById('trend-line-settings').style.display = 'none';
-                    updateStatus('All trend lines cleared');
+                    document.getElementById(
+                        "trend-line-settings",
+                    ).style.display = "none";
+                    updateStatus("All trend lines cleared");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -888,12 +1206,313 @@
             function deleteTrendLine() {
                 const api = getCurrentApi();
                 if (!api || !selectedTrendLineId) return;
-                
+
                 try {
                     api.removeTrendLine(selectedTrendLineId);
                     selectedTrendLineId = null;
-                    document.getElementById('trend-line-settings').style.display = 'none';
-                    updateStatus('Trend line deleted');
+                    document.getElementById(
+                        "trend-line-settings",
+                    ).style.display = "none";
+                    updateStatus("Trend line deleted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Pattern Highlighting Functions
+            function highlightBullishPatterns() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 20) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "bull_eng_1",
+                            type: "pattern",
+                            patternType: "bullish_engulfing",
+                            name: "Bullish Engulfing",
+                            description:
+                                "Strong bullish reversal pattern. The second candle completely engulfs the first bearish candle, indicating potential trend reversal.",
+                            candleTimestamps: [candles[4][0], candles[5][0]],
+                            significance: "very high",
+                            color: "#10b981",
+                            style: "both", // Shows both outline and striped fill
+                        },
+                        {
+                            id: "hammer_1",
+                            type: "pattern",
+                            patternType: "hammer",
+                            name: "Hammer",
+                            description:
+                                "Bullish reversal pattern with long lower shadow and small body at resistance.",
+                            candleTimestamps: [candles[10][0]],
+                            significance: "high",
+                            color: "#4ade80",
+                            style: "fill", // Striped fill pattern
+                        },
+                        {
+                            id: "morning_1",
+                            type: "pattern",
+                            patternType: "morning_star",
+                            name: "Morning Star",
+                            description:
+                                "Three-candle bullish reversal pattern indicating strong buying pressure.",
+                            candleTimestamps: [
+                                candles[15][0],
+                                candles[16][0],
+                                candles[17][0],
+                            ],
+                            significance: "very high",
+                            color: "#22c55e",
+                            style: "fill",
+                        },
+                    ];
+
+                    api.highlightPatterns(patterns);
+                    updateStatus("Bullish patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightBearishPatterns() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 20) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "bear_eng_1",
+                            type: "pattern",
+                            patternType: "bearish_engulfing",
+                            name: "Bearish Engulfing",
+                            description:
+                                "Strong bearish reversal pattern. Selling pressure overwhelms buying pressure.",
+                            candleTimestamps: [candles[7][0], candles[8][0]],
+                            significance: "very high",
+                            color: "#dc2626",
+                            style: "both",
+                        },
+                        {
+                            id: "shoot_1",
+                            type: "pattern",
+                            patternType: "shooting_star",
+                            name: "Shooting Star",
+                            description:
+                                "Bearish reversal with long upper shadow at resistance level.",
+                            candleTimestamps: [candles[12][0]],
+                            significance: "high",
+                            color: "#ef4444",
+                            style: "outline",
+                        },
+                        {
+                            id: "evening_1",
+                            type: "pattern",
+                            patternType: "evening_star",
+                            name: "Evening Star",
+                            description:
+                                "Three-candle bearish reversal pattern at market top.",
+                            candleTimestamps:
+                                candles.length > 20
+                                    ? [
+                                          candles[18][0],
+                                          candles[19][0],
+                                          candles[20][0],
+                                      ]
+                                    : [
+                                          candles[16][0],
+                                          candles[17][0],
+                                          candles[18][0],
+                                      ],
+                            significance: "very high",
+                            color: "#b91c1c",
+                            style: "fill",
+                        },
+                    ];
+
+                    api.highlightPatterns(patterns);
+                    updateStatus("Bearish patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightNeutralPatterns() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 15) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "doji_1",
+                            type: "pattern",
+                            patternType: "doji",
+                            name: "Doji",
+                            description:
+                                "Market indecision. Open and close are nearly equal, indicating equilibrium.",
+                            candleTimestamps: [candles[3][0]],
+                            significance: "medium",
+                            color: "#fbbf24",
+                            style: "outline",
+                        },
+                        {
+                            id: "spin_1",
+                            type: "pattern",
+                            patternType: "spinning_top",
+                            name: "Spinning Top",
+                            description:
+                                "Indecision pattern with small body and long shadows on both sides.",
+                            candleTimestamps: [candles[8][0]],
+                            significance: "low",
+                            color: "#f59e0b",
+                            style: "outline",
+                        },
+                        {
+                            id: "inside_1",
+                            type: "pattern",
+                            patternType: "inside_bar",
+                            name: "Inside Bar",
+                            description:
+                                "Consolidation pattern. Current bar is within previous bar range.",
+                            candleTimestamps: [candles[11][0], candles[12][0]],
+                            significance: "medium",
+                            color: "#eab308",
+                            style: "fill",
+                        },
+                    ];
+
+                    api.highlightPatterns(patterns);
+                    updateStatus("Neutral/Indecision patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightMixedPatterns() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 25) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "mixed_1",
+                            type: "pattern",
+                            patternType: "bullish_engulfing",
+                            name: "Bullish Engulfing",
+                            description:
+                                "Bullish reversal at support level. Strong buying pressure detected.",
+                            candleTimestamps: [candles[5][0], candles[6][0]],
+                            significance: "very high",
+                            color: "#10b981",
+                            style: "both",
+                            nearLevel: {
+                                type: "support",
+                                price: candles[5][1].low,
+                                distance: 0.5,
+                            },
+                        },
+                        {
+                            id: "mixed_2",
+                            type: "pattern",
+                            patternType: "doji",
+                            name: "Doji",
+                            description: "Market indecision after strong move.",
+                            candleTimestamps: [candles[10][0]],
+                            significance: "medium",
+                            color: "#fbbf24",
+                            style: "outline",
+                        },
+                        {
+                            id: "mixed_3",
+                            type: "pattern",
+                            patternType: "shooting_star",
+                            name: "Shooting Star",
+                            description:
+                                "Potential reversal at resistance. Watch for confirmation.",
+                            candleTimestamps: [candles[15][0]],
+                            significance: "high",
+                            color: "#ef4444",
+                            style: "both",
+                            nearLevel: {
+                                type: "resistance",
+                                price: candles[15][1].high,
+                                distance: 0.3,
+                            },
+                        },
+                        {
+                            id: "mixed_4",
+                            type: "pattern",
+                            patternType: "hammer",
+                            name: "Hammer",
+                            description:
+                                "Bullish reversal signal with strong rejection of lower prices.",
+                            candleTimestamps: [candles[20][0]],
+                            significance: "high",
+                            color: "#22c55e",
+                            style: "outline",
+                        },
+                        {
+                            id: "mixed_5",
+                            type: "pattern",
+                            patternType: "inside_bar",
+                            name: "Inside Bar",
+                            description:
+                                "Consolidation before potential breakout.",
+                            candleTimestamps: [candles[22][0], candles[23][0]],
+                            significance: "low",
+                            color: "#60a5fa",
+                            style: "fill",
+                        },
+                    ];
+
+                    api.highlightPatterns(patterns);
+                    updateStatus(
+                        `${patterns.length} mixed patterns highlighted`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function clearPatternHighlights() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearPatternHighlights();
+                    updateStatus("All pattern highlights cleared");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -902,32 +1521,49 @@
             function updateTrendLineUI(trendLine) {
                 isUpdatingUI = true;
 
-                document.getElementById('selected-line-id').textContent = trendLine.id.substring(0, 20) + '...';
-                document.getElementById('line-name').value = trendLine.name || '';
-                document.getElementById('line-description').value = trendLine.description || '';
-                document.getElementById('line-color').value = trendLine.color || '#2962ff';
-                document.getElementById('line-width').value = trendLine.lineWidth || 2;
-                document.getElementById('line-style').value = trendLine.style || 'solid';
-                document.getElementById('extend-left').checked = trendLine.extendLeft || false;
-                document.getElementById('extend-right').checked = trendLine.extendRight || false;
+                document.getElementById("selected-line-id").textContent =
+                    trendLine.id.substring(0, 20) + "...";
+                document.getElementById("line-name").value =
+                    trendLine.name || "";
+                document.getElementById("line-description").value =
+                    trendLine.description || "";
+                document.getElementById("line-color").value =
+                    trendLine.color || "#2962ff";
+                document.getElementById("line-width").value =
+                    trendLine.lineWidth || 2;
+                document.getElementById("line-style").value =
+                    trendLine.style || "solid";
+                document.getElementById("extend-left").checked =
+                    trendLine.extendLeft || false;
+                document.getElementById("extend-right").checked =
+                    trendLine.extendRight || false;
 
                 // New properties
                 const opacity = (trendLine.opacity ?? 1.0) * 100;
-                document.getElementById('line-opacity').value = opacity;
-                document.getElementById('opacity-value').textContent = Math.round(opacity) + '%';
-                document.getElementById('level-type').value = trendLine.levelType || '';
-                document.getElementById('z-index').value = trendLine.zIndex || 0;
+                document.getElementById("line-opacity").value = opacity;
+                document.getElementById("opacity-value").textContent =
+                    Math.round(opacity) + "%";
+                document.getElementById("level-type").value =
+                    trendLine.levelType || "";
+                document.getElementById("z-index").value =
+                    trendLine.zIndex || 0;
 
                 // Markers
                 const markersEnabled = trendLine.markers?.enabled || false;
-                document.getElementById('markers-enabled').checked = markersEnabled;
-                document.getElementById('marker-settings').style.display = markersEnabled ? 'block' : 'none';
+                document.getElementById("markers-enabled").checked =
+                    markersEnabled;
+                document.getElementById("marker-settings").style.display =
+                    markersEnabled ? "block" : "none";
 
                 if (markersEnabled && trendLine.markers) {
-                    document.getElementById('marker-symbol').value = trendLine.markers.symbol || 'diamond';
-                    document.getElementById('marker-size').value = trendLine.markers.size || 4;
-                    document.getElementById('marker-spacing').value = trendLine.markers.spacing || 100;
-                    document.getElementById('marker-color').value = trendLine.markers.color || trendLine.color || '#2962ff';
+                    document.getElementById("marker-symbol").value =
+                        trendLine.markers.symbol || "diamond";
+                    document.getElementById("marker-size").value =
+                        trendLine.markers.size || 4;
+                    document.getElementById("marker-spacing").value =
+                        trendLine.markers.spacing || 100;
+                    document.getElementById("marker-color").value =
+                        trendLine.markers.color || trendLine.color || "#2962ff";
                 }
 
                 isUpdatingUI = false;
@@ -935,228 +1571,363 @@
 
             function setupTrendLineControls() {
                 // Name change
-                document.getElementById('line-name').addEventListener('input', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { name: e.target.value });
-                        updateStatus(`Line name updated`);
-                    }
-                });
-
-                // Description change
-                document.getElementById('line-description').addEventListener('input', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { description: e.target.value });
-                        updateStatus(`Line description updated`);
-                    }
-                });
-
-                // Color change
-                document.getElementById('line-color').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { color: e.target.value });
-                        updateStatus(`Line color changed`);
-                    }
-                });
-
-                // Width change
-                document.getElementById('line-width').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { lineWidth: parseInt(e.target.value) });
-                        updateStatus(`Line width changed`);
-                    }
-                });
-
-                // Style change
-                document.getElementById('line-style').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { style: e.target.value });
-                        updateStatus(`Line style changed`);
-                    }
-                });
-
-                // Extend left change
-                document.getElementById('extend-left').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { extendLeft: e.target.checked });
-                        updateStatus(`Extend left: ${e.target.checked}`);
-                    }
-                });
-
-                // Extend right change
-                document.getElementById('extend-right').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { extendRight: e.target.checked });
-                        updateStatus(`Extend right: ${e.target.checked}`);
-                    }
-                });
-
-                // Opacity change
-                document.getElementById('line-opacity').addEventListener('input', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const opacity = parseInt(e.target.value) / 100;
-                    document.getElementById('opacity-value').textContent = e.target.value + '%';
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { opacity });
-                        updateStatus(`Opacity: ${e.target.value}%`);
-                    }
-                });
-
-                // Level type change
-                document.getElementById('level-type').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { levelType: e.target.value || undefined });
-                        updateStatus(`Level type: ${e.target.value || 'none'}`);
-                    }
-                });
-
-                // Z-index change
-                document.getElementById('z-index').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        api.updateTrendLineSettings(selectedTrendLineId, { zIndex: parseInt(e.target.value) });
-                        updateStatus(`Z-index: ${e.target.value}`);
-                    }
-                });
-
-                // Pulse Animation controls
-                document.getElementById('pulse-animation-enabled').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        const animationSettings = e.target.checked ? {
-                            animation: {
-                                type: 'pulse',
-                                enabled: true,
-                                duration: parseInt(document.getElementById('pulse-duration').value),
-                                intensity: parseInt(document.getElementById('pulse-intensity').value) / 100
-                            }
-                        } : {
-                            animation: undefined
-                        };
-                        api.updateTrendLineSettings(selectedTrendLineId, animationSettings);
-                        document.getElementById('pulse-animation-settings').style.display = e.target.checked ? 'block' : 'none';
-                        updateStatus(`Pulse animation: ${e.target.checked ? 'enabled' : 'disabled'}`);
-                    }
-                });
-
-                document.getElementById('pulse-duration').addEventListener('input', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        const duration = parseInt(e.target.value);
-                        document.getElementById('pulse-duration-value').textContent = duration + 'ms';
-                        api.updateTrendLineSettings(selectedTrendLineId, {
-                            animation: {
-                                type: 'pulse',
-                                enabled: true,
-                                duration: duration,
-                                intensity: parseInt(document.getElementById('pulse-intensity').value) / 100
-                            }
-                        });
-                        updateStatus(`Pulse duration: ${duration}ms`);
-                    }
-                });
-
-                document.getElementById('pulse-intensity').addEventListener('input', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const api = getCurrentApi();
-                    if (api) {
-                        const intensity = parseInt(e.target.value);
-                        document.getElementById('pulse-intensity-value').textContent = intensity + '%';
-                        api.updateTrendLineSettings(selectedTrendLineId, {
-                            animation: {
-                                type: 'pulse',
-                                enabled: true,
-                                duration: parseInt(document.getElementById('pulse-duration').value),
-                                intensity: intensity / 100
-                            }
-                        });
-                        updateStatus(`Pulse intensity: ${intensity}%`);
-                    }
-                });
-
-                // Markers enabled change
-                document.getElementById('markers-enabled').addEventListener('change', (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const enabled = e.target.checked;
-                    document.getElementById('marker-settings').style.display = enabled ? 'block' : 'none';
-                    const api = getCurrentApi();
-                    if (api) {
-                        if (enabled) {
-                            const markers = {
-                                enabled: true,
-                                symbol: document.getElementById('marker-symbol').value,
-                                size: parseInt(document.getElementById('marker-size').value),
-                                spacing: parseInt(document.getElementById('marker-spacing').value),
-                                color: document.getElementById('marker-color').value
-                            };
-                            api.updateTrendLineSettings(selectedTrendLineId, { markers });
-                        } else {
-                            api.updateTrendLineSettings(selectedTrendLineId, { markers: undefined });
-                        }
-                        updateStatus(`Markers: ${enabled ? 'enabled' : 'disabled'}`);
-                    }
-                });
-
-                // Marker settings changes
-                ['marker-symbol', 'marker-size', 'marker-spacing', 'marker-color'].forEach(id => {
-                    document.getElementById(id).addEventListener('change', (e) => {
+                document
+                    .getElementById("line-name")
+                    .addEventListener("input", (e) => {
                         if (isUpdatingUI || !selectedTrendLineId) return;
                         const api = getCurrentApi();
-                        if (api && document.getElementById('markers-enabled').checked) {
-                            const markers = {
-                                enabled: true,
-                                symbol: document.getElementById('marker-symbol').value,
-                                size: parseInt(document.getElementById('marker-size').value),
-                                spacing: parseInt(document.getElementById('marker-spacing').value),
-                                color: document.getElementById('marker-color').value
-                            };
-                            api.updateTrendLineSettings(selectedTrendLineId, { markers });
-                            updateStatus(`Marker settings updated`);
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                name: e.target.value,
+                            });
+                            updateStatus(`Line name updated`);
                         }
                     });
+
+                // Description change
+                document
+                    .getElementById("line-description")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                description: e.target.value,
+                            });
+                            updateStatus(`Line description updated`);
+                        }
+                    });
+
+                // Color change
+                document
+                    .getElementById("line-color")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                color: e.target.value,
+                            });
+                            updateStatus(`Line color changed`);
+                        }
+                    });
+
+                // Width change
+                document
+                    .getElementById("line-width")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                lineWidth: parseInt(e.target.value),
+                            });
+                            updateStatus(`Line width changed`);
+                        }
+                    });
+
+                // Style change
+                document
+                    .getElementById("line-style")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                style: e.target.value,
+                            });
+                            updateStatus(`Line style changed`);
+                        }
+                    });
+
+                // Extend left change
+                document
+                    .getElementById("extend-left")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                extendLeft: e.target.checked,
+                            });
+                            updateStatus(`Extend left: ${e.target.checked}`);
+                        }
+                    });
+
+                // Extend right change
+                document
+                    .getElementById("extend-right")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                extendRight: e.target.checked,
+                            });
+                            updateStatus(`Extend right: ${e.target.checked}`);
+                        }
+                    });
+
+                // Opacity change
+                document
+                    .getElementById("line-opacity")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const opacity = parseInt(e.target.value) / 100;
+                        document.getElementById("opacity-value").textContent =
+                            e.target.value + "%";
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                opacity,
+                            });
+                            updateStatus(`Opacity: ${e.target.value}%`);
+                        }
+                    });
+
+                // Level type change
+                document
+                    .getElementById("level-type")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                levelType: e.target.value || undefined,
+                            });
+                            updateStatus(
+                                `Level type: ${e.target.value || "none"}`,
+                            );
+                        }
+                    });
+
+                // Z-index change
+                document
+                    .getElementById("z-index")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                zIndex: parseInt(e.target.value),
+                            });
+                            updateStatus(`Z-index: ${e.target.value}`);
+                        }
+                    });
+
+                // Pulse Animation controls
+                document
+                    .getElementById("pulse-animation-enabled")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            const animationSettings = e.target.checked
+                                ? {
+                                      animation: {
+                                          type: "pulse",
+                                          enabled: true,
+                                          duration: parseInt(
+                                              document.getElementById(
+                                                  "pulse-duration",
+                                              ).value,
+                                          ),
+                                          intensity:
+                                              parseInt(
+                                                  document.getElementById(
+                                                      "pulse-intensity",
+                                                  ).value,
+                                              ) / 100,
+                                      },
+                                  }
+                                : {
+                                      animation: undefined,
+                                  };
+                            api.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                animationSettings,
+                            );
+                            document.getElementById(
+                                "pulse-animation-settings",
+                            ).style.display = e.target.checked
+                                ? "block"
+                                : "none";
+                            updateStatus(
+                                `Pulse animation: ${e.target.checked ? "enabled" : "disabled"}`,
+                            );
+                        }
+                    });
+
+                document
+                    .getElementById("pulse-duration")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            const duration = parseInt(e.target.value);
+                            document.getElementById(
+                                "pulse-duration-value",
+                            ).textContent = duration + "ms";
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                animation: {
+                                    type: "pulse",
+                                    enabled: true,
+                                    duration: duration,
+                                    intensity:
+                                        parseInt(
+                                            document.getElementById(
+                                                "pulse-intensity",
+                                            ).value,
+                                        ) / 100,
+                                },
+                            });
+                            updateStatus(`Pulse duration: ${duration}ms`);
+                        }
+                    });
+
+                document
+                    .getElementById("pulse-intensity")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const api = getCurrentApi();
+                        if (api) {
+                            const intensity = parseInt(e.target.value);
+                            document.getElementById(
+                                "pulse-intensity-value",
+                            ).textContent = intensity + "%";
+                            api.updateTrendLineSettings(selectedTrendLineId, {
+                                animation: {
+                                    type: "pulse",
+                                    enabled: true,
+                                    duration: parseInt(
+                                        document.getElementById(
+                                            "pulse-duration",
+                                        ).value,
+                                    ),
+                                    intensity: intensity / 100,
+                                },
+                            });
+                            updateStatus(`Pulse intensity: ${intensity}%`);
+                        }
+                    });
+
+                // Markers enabled change
+                document
+                    .getElementById("markers-enabled")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const enabled = e.target.checked;
+                        document.getElementById(
+                            "marker-settings",
+                        ).style.display = enabled ? "block" : "none";
+                        const api = getCurrentApi();
+                        if (api) {
+                            if (enabled) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                api.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                            } else {
+                                api.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers: undefined },
+                                );
+                            }
+                            updateStatus(
+                                `Markers: ${enabled ? "enabled" : "disabled"}`,
+                            );
+                        }
+                    });
+
+                // Marker settings changes
+                [
+                    "marker-symbol",
+                    "marker-size",
+                    "marker-spacing",
+                    "marker-color",
+                ].forEach((id) => {
+                    document
+                        .getElementById(id)
+                        .addEventListener("change", (e) => {
+                            if (isUpdatingUI || !selectedTrendLineId) return;
+                            const api = getCurrentApi();
+                            if (
+                                api &&
+                                document.getElementById("markers-enabled")
+                                    .checked
+                            ) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                api.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                                updateStatus(`Marker settings updated`);
+                            }
+                        });
                 });
             }
 
             function updateStatus(message) {
                 const api = getCurrentApi();
-                const statusEl = document.getElementById('demo-status');
-                
+                const statusEl = document.getElementById("demo-status");
+
                 if (!api) {
-                    statusEl.textContent = 'No chart API available';
+                    statusEl.textContent = "No chart API available";
                     return;
                 }
-                
+
                 if (message) {
                     statusEl.textContent = message;
                     return;
                 }
-                
+
                 try {
                     const state = api.getState();
                     const status = `Chart ${currentChart}:
 Symbol: ${api.getSymbol()}
 Timeframe: ${api.getGranularity()}
 Loading: ${api.isLoading()}
-Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
+Indicators: ${
+                        api
+                            .getVisibleIndicators()
+                            .map((i) => i.id)
+                            .join(", ") || "None"
+                    }`;
                     statusEl.textContent = status;
                 } catch (error) {
                     statusEl.textContent = `Error getting status: ${error.message}`;
@@ -1166,46 +1937,65 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
             function updateActiveButtons() {
                 const api = getCurrentApi();
                 if (!api) return;
-                
+
                 try {
                     // Update symbol buttons
-                    document.querySelectorAll('.control-button').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            btn.classList.remove("active");
+                        });
+
                     const currentSymbol = api.getSymbol();
                     const currentGranularity = api.getGranularity();
-                    
+
                     // Find and activate current symbol button
-                    document.querySelectorAll('.control-button').forEach(btn => {
-                        const text = btn.textContent.trim();
-                        if (text === currentSymbol || 
-                            (text === '1m' && currentGranularity === 'ONE_MINUTE') ||
-                            (text === '5m' && currentGranularity === 'FIVE_MINUTE') ||
-                            (text === '15m' && currentGranularity === 'FIFTEEN_MINUTE') ||
-                            (text === '1h' && currentGranularity === 'ONE_HOUR') ||
-                            (text === '6h' && currentGranularity === 'SIX_HOUR') ||
-                            (text === '1d' && currentGranularity === 'ONE_DAY')) {
-                            btn.classList.add('active');
-                        }
-                    });
-                    
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const text = btn.textContent.trim();
+                            if (
+                                text === currentSymbol ||
+                                (text === "1m" &&
+                                    currentGranularity === "ONE_MINUTE") ||
+                                (text === "5m" &&
+                                    currentGranularity === "FIVE_MINUTE") ||
+                                (text === "15m" &&
+                                    currentGranularity === "FIFTEEN_MINUTE") ||
+                                (text === "1h" &&
+                                    currentGranularity === "ONE_HOUR") ||
+                                (text === "6h" &&
+                                    currentGranularity === "SIX_HOUR") ||
+                                (text === "1d" &&
+                                    currentGranularity === "ONE_DAY")
+                            ) {
+                                btn.classList.add("active");
+                            }
+                        });
+
                     // Update indicator buttons
                     const indicators = api.getVisibleIndicators();
-                    document.querySelectorAll('.control-button').forEach(btn => {
-                        const onclick = btn.getAttribute('onclick');
-                        if (onclick && onclick.includes('toggleIndicator')) {
-                            const match = onclick.match(/toggleIndicator\('([^']+)'/);
-                            if (match) {
-                                const indicatorId = match[1];
-                                if (api.isIndicatorVisible(indicatorId)) {
-                                    btn.classList.add('active');
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const onclick = btn.getAttribute("onclick");
+                            if (
+                                onclick &&
+                                onclick.includes("toggleIndicator")
+                            ) {
+                                const match = onclick.match(
+                                    /toggleIndicator\('([^']+)'/,
+                                );
+                                if (match) {
+                                    const indicatorId = match[1];
+                                    if (api.isIndicatorVisible(indicatorId)) {
+                                        btn.classList.add("active");
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
                 } catch (error) {
-                    console.error('Error updating buttons:', error);
+                    console.error("Error updating buttons:", error);
                 }
             }
 
@@ -1213,83 +2003,103 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
             function setupChartEventListeners() {
                 if (window.chartApi1) {
                     chart1Api = window.chartApi1;
-                    console.log('Chart 1 API connected');
-                    
+                    console.log("Chart 1 API connected");
+
                     // Chart ready event handler - just update UI, don't auto-enable indicators
-                    chart1Api.on('ready', (data) => {
+                    chart1Api.on("ready", (data) => {
                         console.log(`Chart 1 ready for ${data.symbol}`);
                         updateStatus(`Chart 1 ready`);
                         updateActiveButtons();
                     });
-                    
+
                     // Trend line events
-                    chart1Api.on('trend-line-selected', (data) => {
+                    chart1Api.on("trend-line-selected", (data) => {
                         if (currentChart === 1) {
                             selectedTrendLineId = data.trendLineId;
-                            document.getElementById('trend-line-settings').style.display = 'block';
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "block";
                             updateTrendLineUI(data.trendLine);
-                            updateStatus(`Trend line selected: ${data.trendLineId.substring(0, 20)}...`);
+                            updateStatus(
+                                `Trend line selected: ${data.trendLineId.substring(0, 20)}...`,
+                            );
                         }
                     });
-                    
-                    chart1Api.on('trend-line-deselected', (data) => {
+
+                    chart1Api.on("trend-line-deselected", (data) => {
                         if (currentChart === 1) {
                             selectedTrendLineId = null;
-                            document.getElementById('trend-line-settings').style.display = 'none';
-                            updateStatus('Trend line deselected');
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "none";
+                            updateStatus("Trend line deselected");
                         }
                     });
-                    
-                    chart1Api.on('trend-line-deleted', (data) => {
+
+                    chart1Api.on("trend-line-deleted", (data) => {
                         if (currentChart === 1) {
                             // If the deleted line was selected, clear selection
                             if (selectedTrendLineId === data.trendLineId) {
                                 selectedTrendLineId = null;
-                                document.getElementById('trend-line-settings').style.display = 'none';
+                                document.getElementById(
+                                    "trend-line-settings",
+                                ).style.display = "none";
                             }
-                            updateStatus(`Trend line deleted: ${data.trendLineId.substring(0, 20)}...`);
+                            updateStatus(
+                                `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
+                            );
                         }
                     });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
-                    console.log('Chart 2 API connected');
-                    
+                    console.log("Chart 2 API connected");
+
                     // Chart ready event handler - just update UI, don't auto-enable indicators
-                    chart2Api.on('ready', (data) => {
+                    chart2Api.on("ready", (data) => {
                         console.log(`Chart 2 ready for ${data.symbol}`);
                         if (currentChart === 2) {
                             updateStatus(`Chart 2 ready`);
                             updateActiveButtons();
                         }
                     });
-                    
+
                     // Trend line events
-                    chart2Api.on('trend-line-selected', (data) => {
+                    chart2Api.on("trend-line-selected", (data) => {
                         if (currentChart === 2) {
                             selectedTrendLineId = data.trendLineId;
-                            document.getElementById('trend-line-settings').style.display = 'block';
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "block";
                             updateTrendLineUI(data.trendLine);
-                            updateStatus(`Trend line selected: ${data.trendLineId.substring(0, 20)}...`);
+                            updateStatus(
+                                `Trend line selected: ${data.trendLineId.substring(0, 20)}...`,
+                            );
                         }
                     });
-                    
-                    chart2Api.on('trend-line-deselected', (data) => {
+
+                    chart2Api.on("trend-line-deselected", (data) => {
                         if (currentChart === 2) {
                             selectedTrendLineId = null;
-                            document.getElementById('trend-line-settings').style.display = 'none';
-                            updateStatus('Trend line deselected');
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "none";
+                            updateStatus("Trend line deselected");
                         }
                     });
-                    
-                    chart2Api.on('trend-line-deleted', (data) => {
+
+                    chart2Api.on("trend-line-deleted", (data) => {
                         if (currentChart === 2) {
                             // If the deleted line was selected, clear selection
                             if (selectedTrendLineId === data.trendLineId) {
                                 selectedTrendLineId = null;
-                                document.getElementById('trend-line-settings').style.display = 'none';
+                                document.getElementById(
+                                    "trend-line-settings",
+                                ).style.display = "none";
                             }
-                            updateStatus(`Trend line deleted: ${data.trendLineId.substring(0, 20)}...`);
+                            updateStatus(
+                                `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
+                            );
                         }
                     });
                 }
@@ -1304,19 +2114,19 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
 
                     // Set up other event listeners
                     if (chart1Api) {
-                        chart1Api.on('symbolChange', () => {
+                        chart1Api.on("symbolChange", () => {
                             if (currentChart === 1) {
                                 updateStatus();
                                 updateActiveButtons();
                             }
                         });
-                        chart1Api.on('granularityChange', () => {
+                        chart1Api.on("granularityChange", () => {
                             if (currentChart === 1) {
                                 updateStatus();
                                 updateActiveButtons();
                             }
                         });
-                        chart1Api.on('indicatorChange', () => {
+                        chart1Api.on("indicatorChange", () => {
                             if (currentChart === 1) {
                                 updateStatus();
                                 updateActiveButtons();
@@ -1325,19 +2135,19 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                     }
 
                     if (chart2Api) {
-                        chart2Api.on('symbolChange', () => {
+                        chart2Api.on("symbolChange", () => {
                             if (currentChart === 2) {
                                 updateStatus();
                                 updateActiveButtons();
                             }
                         });
-                        chart2Api.on('granularityChange', () => {
+                        chart2Api.on("granularityChange", () => {
                             if (currentChart === 2) {
                                 updateStatus();
                                 updateActiveButtons();
                             }
                         });
-                        chart2Api.on('indicatorChange', () => {
+                        chart2Api.on("indicatorChange", () => {
                             if (currentChart === 2) {
                                 updateStatus();
                                 updateActiveButtons();
@@ -1350,10 +2160,10 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
             }
 
             // Initialize demo when charts are ready
-            window.addEventListener('load', () => {
+            window.addEventListener("load", () => {
                 // Set up trend line controls
                 setupTrendLineControls();
-                
+
                 // Try to initialize immediately
                 if (!initializeDemo()) {
                     // If APIs aren't ready yet, poll every 100ms
@@ -1364,7 +2174,6 @@ Indicators: ${api.getVisibleIndicators().map(i => i.id).join(', ') || 'None'}`;
                     }, 100);
                 }
             });
-
         </script>
     </body>
 </html>
