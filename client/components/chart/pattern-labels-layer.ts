@@ -46,7 +46,6 @@ export class PatternLabelsLayer extends LitElement {
   @state()
   private tooltipContent = "";
 
-  private documentClickHandler?: (e: MouseEvent) => void;
   private escapeKeyHandler?: (e: KeyboardEvent) => void;
 
   static styles = css`
@@ -62,18 +61,46 @@ export class PatternLabelsLayer extends LitElement {
 
     .tooltip {
       position: absolute;
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 6px;
       padding: 12px 16px;
+      padding-top: 32px;
       font-size: 12px;
       color: #ffffff;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
       max-width: 300px;
       z-index: 1000;
       pointer-events: auto;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .close-btn:active {
+      transform: scale(0.95);
     }
 
     .tooltip-title {
@@ -139,6 +166,26 @@ export class PatternLabelsLayer extends LitElement {
     const significance = parts[2] || "";
 
     return html`
+      <button
+        class="close-btn"
+        @click="${() => this.hideTooltip()}"
+        aria-label="Close"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M1 1L13 13M13 1L1 13"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
       <div class="tooltip-title">${name}</div>
       <div class="tooltip-description">${description}</div>
       <div class="tooltip-significance">${significance}</div>
@@ -290,28 +337,6 @@ export class PatternLabelsLayer extends LitElement {
     // Remove existing listeners if any
     this.removeTooltipEventListeners();
 
-    // Add click outside listener
-    this.documentClickHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const tooltip = this.shadowRoot?.querySelector(".tooltip");
-      const labels = this.shadowRoot?.querySelectorAll(".pattern-label");
-
-      // Check if click is outside tooltip and pattern labels
-      let isOutsideClick = true;
-      if (tooltip?.contains(target)) {
-        isOutsideClick = false;
-      }
-      labels?.forEach((label) => {
-        if (label.contains(target)) {
-          isOutsideClick = false;
-        }
-      });
-
-      if (isOutsideClick) {
-        this.hideTooltip();
-      }
-    };
-
     // Add escape key listener
     this.escapeKeyHandler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -319,18 +344,10 @@ export class PatternLabelsLayer extends LitElement {
       }
     };
 
-    // Delay adding listeners to avoid immediate trigger
-    setTimeout(() => {
-      document.addEventListener("click", this.documentClickHandler!);
-      document.addEventListener("keydown", this.escapeKeyHandler!);
-    }, 100);
+    document.addEventListener("keydown", this.escapeKeyHandler);
   }
 
   private removeTooltipEventListeners() {
-    if (this.documentClickHandler) {
-      document.removeEventListener("click", this.documentClickHandler);
-      this.documentClickHandler = undefined;
-    }
     if (this.escapeKeyHandler) {
       document.removeEventListener("keydown", this.escapeKeyHandler);
       this.escapeKeyHandler = undefined;
