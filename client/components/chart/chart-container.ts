@@ -1150,8 +1150,9 @@ export class ChartContainer extends LitElement {
     }
 
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) * getDpr();
-    const y = (event.clientY - rect.top) * getDpr();
+    // Don't multiply by DPR - our stored positions are in logical pixels
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
     logger.debug("Click position - x:", x, "y:", y);
 
