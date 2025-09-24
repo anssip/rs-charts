@@ -33,19 +33,24 @@ export class CandleTooltip extends LitElement {
       z-index: 1000;
     }
 
-    .tooltip {
+    .tooltip-wrapper {
       position: absolute;
+      pointer-events: auto;
+    }
+
+    .tooltip {
       background: rgba(0, 0, 0, 0.9);
       color: white;
       padding: 0.75em;
       border-radius: 4px;
       font-size: 12px;
       font-family: monospace;
-      pointer-events: auto;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       transition: opacity 0.2s ease;
       min-width: 180px;
       line-height: 1.5;
+      margin-left: 0.5em;
+      margin-bottom: 0.5em;
     }
 
     .tooltip.hidden {
@@ -55,8 +60,9 @@ export class CandleTooltip extends LitElement {
 
     .tooltip-header {
       font-weight: bold;
+      font-size: 11px;
       margin-bottom: 0.5em;
-      padding-bottom: 0.25em;
+      padding-bottom: 0.5em;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
 
@@ -85,11 +91,11 @@ export class CandleTooltip extends LitElement {
     }
 
     .close-button {
-      position: absolute;
-      top: 8px;
+      float: right;
+      top: -4px;
       right: 8px;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border: none;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 4px;
@@ -99,7 +105,6 @@ export class CandleTooltip extends LitElement {
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      padding: 0;
     }
 
     .close-button:hover {
@@ -167,69 +172,76 @@ export class CandleTooltip extends LitElement {
     const colorClass = isGreen ? "green" : "red";
 
     // Calculate position - offset to avoid covering the candle
-    // Add more spacing from the candle
     const tooltipX = Math.min(
-      this.data.x + 20, // Increased left offset from 10 to 20
-      window.innerWidth - 220, // Ensure tooltip stays within viewport
+      this.data.x + 10,
+      window.innerWidth - 250, // Ensure tooltip stays within viewport (accounting for wrapper padding)
     );
-    const tooltipY = Math.max(10, this.data.y - 120); // Increased bottom offset from 100 to 120
+    const tooltipY = Math.max(10, this.data.y - 100);
 
     return html`
       <div
-        class="tooltip ${!this.visible ? "hidden" : ""}"
+        class="tooltip-wrapper"
         style="left: ${tooltipX}px; top: ${tooltipY}px;"
       >
-        <button
-          class="close-button"
-          @click=${this.handleClose}
-          aria-label="Close"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+        <div class="tooltip ${!this.visible ? "hidden" : ""}">
+          <button
+            class="close-button"
+            @click=${this.handleClose}
+            aria-label="Close"
           >
-            <path
-              d="M1 1L13 13M13 1L1 13"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
-        <div class="tooltip-header">
-          ${this.formatTimestamp(this.data.timestamp)}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M1 1L13 13M13 1L1 13"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          <div class="tooltip-header">
+            ${this.formatTimestamp(this.data.timestamp)}
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Open:</span>
+            <span class="tooltip-value"
+              >${this.formatPrice(this.data.open)}</span
+            >
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">High:</span>
+            <span class="tooltip-value"
+              >${this.formatPrice(this.data.high)}</span
+            >
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Low:</span>
+            <span class="tooltip-value"
+              >${this.formatPrice(this.data.low)}</span
+            >
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Close:</span>
+            <span class="tooltip-value ${colorClass}">
+              ${this.formatPrice(this.data.close)}
+            </span>
+          </div>
+          ${this.data.volume !== undefined
+            ? html`
+                <div class="tooltip-row">
+                  <span class="tooltip-label">Volume:</span>
+                  <span class="tooltip-value">
+                    ${this.formatVolume(this.data.volume)}
+                  </span>
+                </div>
+              `
+            : ""}
         </div>
-        <div class="tooltip-row">
-          <span class="tooltip-label">Open:</span>
-          <span class="tooltip-value">${this.formatPrice(this.data.open)}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="tooltip-label">High:</span>
-          <span class="tooltip-value">${this.formatPrice(this.data.high)}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="tooltip-label">Low:</span>
-          <span class="tooltip-value">${this.formatPrice(this.data.low)}</span>
-        </div>
-        <div class="tooltip-row">
-          <span class="tooltip-label">Close:</span>
-          <span class="tooltip-value ${colorClass}">
-            ${this.formatPrice(this.data.close)}
-          </span>
-        </div>
-        ${this.data.volume !== undefined
-          ? html`
-              <div class="tooltip-row">
-                <span class="tooltip-label">Volume:</span>
-                <span class="tooltip-value">
-                  ${this.formatVolume(this.data.volume)}
-                </span>
-              </div>
-            `
-          : ""}
       </div>
     `;
   }
