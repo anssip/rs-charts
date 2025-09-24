@@ -86,30 +86,29 @@ export class CandleTooltip extends LitElement {
 
     .close-button {
       position: absolute;
-      top: 0.25em;
-      right: 0.25em;
-      width: 20px;
-      height: 20px;
-      background: transparent;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
       border: none;
-      color: #999;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.6);
       cursor: pointer;
-      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: color 0.2s ease;
-      font-size: 16px;
-      line-height: 1;
+      transition: all 0.2s ease;
+      padding: 0;
     }
 
     .close-button:hover {
-      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
     }
 
-    .close-button svg {
-      width: 12px;
-      height: 12px;
+    .close-button:active {
+      transform: scale(0.95);
     }
   `;
 
@@ -185,13 +184,18 @@ export class CandleTooltip extends LitElement {
           aria-label="Close"
         >
           <svg
-            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
             fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <path
+              d="M1 1L13 13M13 1L1 13"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
           </svg>
         </button>
         <div class="tooltip-header">
