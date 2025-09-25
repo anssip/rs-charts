@@ -1065,10 +1065,12 @@ export class ChartContainer extends LitElement {
 
   public calculateVisibleCandles(): number {
     if (!this.chart || !this.chart.canvas) return 100; // Return reasonable default
+    // Convert canvas width from physical pixels to logical pixels
+    const canvasLogicalWidth = this.chart.canvas.width / getDpr();
     const availableWidth =
-      this.chart.canvas.width - this.padding.left - this.padding.right;
+      canvasLogicalWidth - this.padding.left - this.padding.right;
     const totalCandleWidth = this.options.candleWidth + this.options.candleGap;
-    return Math.floor(availableWidth / (totalCandleWidth * getDpr()));
+    return Math.floor(availableWidth / totalCandleWidth);
   }
 
   private calculateCandleOptions(): ChartOptions {

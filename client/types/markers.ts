@@ -21,6 +21,7 @@ export interface PatternHighlight extends Marker {
   candleTimestamps: number[]; // Array of timestamps for candles involved in the pattern
   significance: "low" | "medium" | "high" | "very high" | "effect"; // Pattern significance (effect is for visual effects)
   color?: string; // Optional highlight color (defaults based on pattern type)
+  opacity?: number; // Optional opacity value (0-1) for the highlight effect
   style?: "outline" | "fill" | "both"; // How to highlight the candles (default: 'outline')
   nearLevel?: {
     // Optional key level information
