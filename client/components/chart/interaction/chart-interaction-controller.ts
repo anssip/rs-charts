@@ -40,7 +40,7 @@ export class ChartInteractionController {
   constructor(options: ChartInteractionOptions) {
     this.options = options;
     this.ZOOM_FACTOR = options.zoomFactor ?? 0.005;
-    this.BUFFER_MULTIPLIER = options.bufferMultiplier ?? 1;
+    this.BUFFER_MULTIPLIER = options.bufferMultiplier ?? 1.5;
     this.eventTarget = options.container;
   }
 

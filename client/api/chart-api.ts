@@ -1156,9 +1156,9 @@ export class ChartApi {
     numCandles?: number;
   }): void {
     const config = {
-      speed: options?.speed ?? 5,
+      speed: options?.speed ?? 50,
       color: options?.color ?? "#ec4899",
-      numCandles: options?.numCandles ?? 20,
+      numCandles: options?.numCandles ?? 5,
     };
 
     logger.info(
@@ -1176,39 +1176,15 @@ export class ChartApi {
       return;
     }
 
-    let wavePosition = 0;
-
     // Function to create wave patterns
-    const createWavePatterns = (): PatternHighlight[] => {
+    const createWavePatterns = (wavePosition: number): PatternHighlight[] => {
       const patterns: PatternHighlight[] = [];
 
       // Create a single wave that moves left to right
       for (let i = 0; i < config.numCandles; i++) {
         const candleIndex = (wavePosition + i) % candles.length;
 
-        // Calculate opacity gradient - strongest in the middle, fading at edges
-        let opacity: number;
-        const halfWave = config.numCandles / 2;
-        if (i < halfWave) {
-          // Fade in from left edge
-          opacity = i / halfWave;
-        } else {
-          // Fade out to right edge
-          opacity = 2 - i / halfWave;
-        }
-
-        // Apply smooth curve for better gradient
-        opacity = Math.pow(opacity, 2);
-
-        // For now we'll vary the style based on opacity to simulate different intensities
-        let style: "both" | "fill" | "outline";
-        if (opacity > 0.7) {
-          style = "both"; // Full intensity - both fill and outline
-        } else if (opacity > 0.3) {
-          style = "fill"; // Medium intensity - fill only
-        } else {
-          style = "outline"; // Low intensity - outline only
-        }
+        const opacity = 0.3 + (0.7 / config.numCandles) * i;
 
         patterns.push({
           id: `wave_${candleIndex}_${Date.now()}`,
@@ -1219,27 +1195,26 @@ export class ChartApi {
           candleTimestamps: [candles[candleIndex][0]],
           significance: "effect",
           color: config.color,
-          style: style,
+          opacity,
+          style: "fill",
         });
       }
 
       return patterns;
     };
 
-    // Initial wave
-    this.highlightPatterns(createWavePatterns());
-
+    let wavePosition = 0;
     // Animate the wave
     this.waveInterval = setInterval(() => {
       wavePosition = (wavePosition + config.speed) % candles.length;
-      this.highlightPatterns(createWavePatterns());
+      const patterns = createWavePatterns(wavePosition);
+      this.highlightPatterns(patterns);
     }, 40); // 40ms update rate for smooth animation
 
     // Auto-stop after 30 seconds to prevent infinite animation
     setTimeout(() => {
       if (this.waveInterval) {
         this.stopPulseWave();
-        this.clearPatternHighlights();
         logger.info("ChartApi: Wave effect stopped (30s timeout)");
       }
     }, 30000);

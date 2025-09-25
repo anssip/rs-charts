@@ -153,15 +153,15 @@ export class App {
 
     // Calculate minimum candles needed:
     // - Base amount for visible viewport (estimate ~100 candles for typical screen)
-    // - Add buffer for panning (2x the visible amount on each side)
-    // This gives us ~5x the visible amount total
+    // - Add buffer for panning: 3x for historic data (left) + 3x for future (right)
+    // This gives us ~7x the visible amount total to ensure smooth panning
     const visibleCandles =
       this.chartContainer?.calculateVisibleCandles() || 100;
-    const minCandlesNeeded = visibleCandles * 5;
+    const minCandlesNeeded = visibleCandles * 7;
 
-    // Use a minimum of 300 candles to ensure good initial coverage
+    // Use a minimum of 500 candles to ensure good initial coverage
     // but scale up for larger granularities to ensure adequate time coverage
-    const targetCandles = Math.max(300, minCandlesNeeded);
+    const targetCandles = Math.max(500, minCandlesNeeded);
 
     // For daily candles, ensure we have at least 365 days (1 year) of data
     // For 6-hour candles, ensure at least 90 days

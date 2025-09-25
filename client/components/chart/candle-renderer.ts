@@ -124,6 +124,8 @@ export class CandleRenderer {
     const patternStyle = this.highlightPattern?.style
       ? String(this.highlightPattern.style)
       : "both";
+    // Get opacity from pattern, default to 1 if not specified
+    const baseOpacity = this.highlightPattern?.opacity ?? 1;
 
     // COMMENTED OUT - Save state to not affect other drawings
     // ctx.save();
@@ -137,8 +139,8 @@ export class CandleRenderer {
     const drawOutline = patternStyle === "outline" || patternStyle === "both";
 
     // Draw wick with pattern color - always split into two parts to avoid showing through body
-    // Apply pulsation to opacity for a breathing effect
-    ctx.globalAlpha = 0.4 + 0.6 * pulse; // Varies between 0.4 and 1.0
+    // Apply pulsation to opacity for a breathing effect, scaled by baseOpacity
+    ctx.globalAlpha = (0.4 + 0.6 * pulse) * baseOpacity; // Scaled by baseOpacity
     ctx.strokeStyle = patternColor;
     ctx.lineWidth = 2 + pulse; // Varies between 2 and 3
 
@@ -163,19 +165,19 @@ export class CandleRenderer {
 
     // Draw body based on style
     if (drawFill) {
-      // Fill the body with pattern color with pulsating opacity
-      ctx.globalAlpha = 0.3 + 0.7 * pulse; // Varies between 0.3 and 1.0
+      // Fill the body with pattern color with pulsating opacity, scaled by baseOpacity
+      ctx.globalAlpha = (0.3 + 0.7 * pulse) * baseOpacity; // Scaled by baseOpacity
       ctx.fillStyle = patternColor;
       ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
     } else if (drawOutline) {
-      // Draw outline only with pulsating width
-      ctx.globalAlpha = 0.5 + 0.5 * pulse; // Varies between 0.5 and 1.0
+      // Draw outline only with pulsating width, scaled by baseOpacity
+      ctx.globalAlpha = (0.5 + 0.5 * pulse) * baseOpacity; // Scaled by baseOpacity
       ctx.strokeStyle = patternColor;
       ctx.lineWidth = 1 + pulse; // Varies between 1 and 2
       ctx.strokeRect(candleX, bodyTop, candleWidth, bodyHeight);
     } else {
-      // Fallback: draw filled
-      ctx.globalAlpha = 0.3 + 0.7 * pulse;
+      // Fallback: draw filled, scaled by baseOpacity
+      ctx.globalAlpha = (0.3 + 0.7 * pulse) * baseOpacity; // Scaled by baseOpacity
       ctx.fillStyle = patternColor;
       ctx.fillRect(candleX, bodyTop, candleWidth, bodyHeight);
     }
