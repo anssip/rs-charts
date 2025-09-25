@@ -86,6 +86,9 @@ export class ChartContainer extends LitElement {
   @state()
   private contextMenuPosition = { x: 0, y: 0 };
 
+  @state()
+  private contextMenuMousePosition = { x: 0, y: 0 };
+
   @property({ type: Array })
   products: CoinbaseProduct[] = [];
 
@@ -236,12 +239,12 @@ export class ChartContainer extends LitElement {
       this.handleCandleClick as EventListener,
     );
 
-    // Also listen for clicks directly on the chart area
+    // Also listen for double-clicks directly on the chart area
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
       chartAreaElement.addEventListener(
-        "click",
-        this.handleChartAreaClick as EventListener,
+        "dblclick",
+        this.handleChartAreaDoubleClick as EventListener,
       );
     }
 
@@ -533,8 +536,8 @@ export class ChartContainer extends LitElement {
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
       chartAreaElement.removeEventListener(
-        "click",
-        this.handleChartAreaClick as EventListener,
+        "dblclick",
+        this.handleChartAreaDoubleClick as EventListener,
       );
     }
     this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
@@ -726,8 +729,41 @@ export class ChartContainer extends LitElement {
     this.requestUpdate();
   }
 
+  private showCandleTooltipFromContextMenu = () => {
+    if (!this.chart || !this.contextMenuMousePosition) return;
+
+    const chartRect = this.chart.getBoundingClientRect();
+    const x = this.contextMenuMousePosition.x - chartRect.left;
+    const y = this.contextMenuMousePosition.y - chartRect.top;
+
+    const candle = this.chart.getCandleAtPosition(x, y);
+    if (candle) {
+      const containerRect = this.getBoundingClientRect();
+      this.candleTooltipData = {
+        timestamp: candle.timestamp,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume,
+        x: this.contextMenuMousePosition.x - containerRect.left,
+        y: this.contextMenuMousePosition.y - containerRect.top,
+      };
+      this.showCandleTooltip = true;
+      this.showContextMenu = false;
+    }
+  };
+
   render() {
     const menuItems: MenuItem[] = [
+      {
+        label: "Show Candle Details",
+        action: this.showCandleTooltipFromContextMenu,
+      },
+      {
+        label: "separator",
+        separator: true,
+      },
       {
         label: this.isFullWindow ? "Exit Full Window" : "Full Window",
         action: this.toggleFullWindow,
@@ -1151,9 +1187,9 @@ export class ChartContainer extends LitElement {
     }
   };
 
-  private handleChartAreaClick = (event: MouseEvent) => {
+  private handleChartAreaDoubleClick = (event: MouseEvent) => {
     const chartId = (this as any)._chartId || "unknown";
-    logger.debug(`handleChartAreaClick called for chart ${chartId}`);
+    logger.debug(`handleChartAreaDoubleClick called for chart ${chartId}`);
 
     // Try to find the chart and canvas
     const chart = this.renderRoot.querySelector("candlestick-chart") as any;
@@ -1173,7 +1209,7 @@ export class ChartContainer extends LitElement {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    logger.debug(`Click position for chart ${chartId} - x:`, x, "y:", y);
+    logger.debug(`Double-click position for chart ${chartId} - x:`, x, "y:", y);
 
     // Use the drawing strategy to find candle at position
     if (
@@ -1182,7 +1218,10 @@ export class ChartContainer extends LitElement {
     ) {
       logger.debug(`Drawing strategy available for chart ${chartId}`);
       const candle = chart.drawingStrategy.getCandleAtPosition(x, y);
-      logger.debug(`Found candle from click in chart ${chartId}:`, candle);
+      logger.debug(
+        `Found candle from double-click in chart ${chartId}:`,
+        candle,
+      );
 
       if (candle) {
         // Get the chart container's position to convert to relative coordinates
@@ -1539,6 +1578,8 @@ export class ChartContainer extends LitElement {
       onContextMenu: (position) => {
         this.showContextMenu = true;
         this.contextMenuPosition = position;
+        // Store the context menu mouse position for candle tooltip
+        this.contextMenuMousePosition = position;
       },
       bufferMultiplier: BUFFER_MULTIPLIER,
       zoomFactor: this.ZOOM_FACTOR,

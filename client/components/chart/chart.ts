@@ -80,7 +80,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     // Add pointer event listeners for candle tooltip (using capture phase)
     canvas.addEventListener("pointerdown", this.handleCanvasPointerDown, true);
     canvas.addEventListener("pointerup", this.handleCanvasPointerUp, true);
-    canvas.addEventListener("click", this.handleCanvasClick, true);
+    canvas.addEventListener("dblclick", this.handleCanvasDoubleClick, true);
     canvas.addEventListener("touchend", this.handleCanvasTouchEnd, true);
   }
 
@@ -111,7 +111,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
         this.handleCanvasPointerUp,
         true,
       );
-      this.canvas.removeEventListener("click", this.handleCanvasClick, true);
+      this.canvas.removeEventListener(
+        "dblclick",
+        this.handleCanvasDoubleClick,
+        true,
+      );
       this.canvas.removeEventListener(
         "touchend",
         this.handleCanvasTouchEnd,
@@ -290,6 +294,10 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   private pointerDownPosition: { x: number; y: number } | null = null;
   private readonly clickThreshold = 5; // pixels
+  private lastTapTime = 0;
+  private lastTapPosition: { x: number; y: number } | null = null;
+  private readonly DOUBLE_TAP_DELAY = 300; // milliseconds
+  private readonly DOUBLE_TAP_DISTANCE = 40; // pixels
 
   private handleCanvasPointerDown = (event: PointerEvent) => {
     this.pointerDownPosition = { x: event.clientX, y: event.clientY };
@@ -328,7 +336,11 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     this.pointerDownPosition = null;
   };
 
-  private handleCanvasClick = (event: MouseEvent) => {
+  public getCandleAtPosition(x: number, y: number) {
+    return this.drawingStrategy?.getCandleAtPosition(x, y);
+  }
+
+  private handleCanvasDoubleClick = (event: MouseEvent) => {
     if (!this.canvas) return;
 
     const rect = this.canvas.getBoundingClientRect();
@@ -361,20 +373,42 @@ export class CandlestickChart extends CanvasBase implements Drawable {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
 
-    const candle = this.drawingStrategy.getCandleAtPosition(x, y);
-    if (candle) {
-      this.dispatchEvent(
-        new CustomEvent("candle-click", {
-          detail: {
-            candle,
-            x: touch.clientX,
-            y: touch.clientY,
-          },
-          bubbles: true,
-          composed: true,
-        }),
+    const currentTime = Date.now();
+    const timeSinceLastTap = currentTime - this.lastTapTime;
+
+    // Check if this is a double tap
+    if (timeSinceLastTap < this.DOUBLE_TAP_DELAY && this.lastTapPosition) {
+      const distance = Math.sqrt(
+        Math.pow(x - this.lastTapPosition.x, 2) +
+          Math.pow(y - this.lastTapPosition.y, 2),
       );
+
+      // If taps are close enough, treat as double-tap
+      if (distance < this.DOUBLE_TAP_DISTANCE) {
+        const candle = this.drawingStrategy.getCandleAtPosition(x, y);
+        if (candle) {
+          this.dispatchEvent(
+            new CustomEvent("candle-click", {
+              detail: {
+                candle,
+                x: touch.clientX,
+                y: touch.clientY,
+              },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        }
+        // Reset double-tap tracking
+        this.lastTapTime = 0;
+        this.lastTapPosition = null;
+        return;
+      }
     }
+
+    // Store this tap for potential double-tap
+    this.lastTapTime = currentTime;
+    this.lastTapPosition = { x, y };
   };
 
   render() {
