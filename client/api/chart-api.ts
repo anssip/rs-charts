@@ -1222,13 +1222,20 @@ export class ChartApi {
 
   /**
    * Stop the pulsating wave effect if it's running
+   * @param delay Delay in milliseconds before stopping (default: 5000ms)
    */
-  stopPulseWave(): void {
+  stopPulseWave(delay: number = 5000): void {
     if (this.waveInterval) {
-      clearInterval(this.waveInterval);
-      this.clearPatternHighlights();
-      this.waveInterval = null;
-      logger.info("ChartApi: Stopped pulse wave");
+      logger.info(`ChartApi: Stopping pulse wave in ${delay}ms`);
+
+      setTimeout(() => {
+        if (this.waveInterval) {
+          clearInterval(this.waveInterval);
+          this.clearPatternHighlights();
+          this.waveInterval = null;
+          logger.info("ChartApi: Stopped pulse wave");
+        }
+      }, delay);
     }
   }
 

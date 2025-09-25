@@ -835,19 +835,29 @@ api.pulseWave({
 - **Smooth Animation**: Updates at 40ms intervals for smooth visual effect
 - **Style Variation**: Uses different highlight styles (outline, fill, both) based on position in wave
 
-#### `stopPulseWave(): void`
+#### `stopPulseWave(delay?: number): void`
 
-Stop the currently running pulse wave animation.
+Stop the currently running pulse wave animation after an optional delay.
 
 ```typescript
-// Start a wave
-api.pulseWave({ speed: 10 });
+// Stop wave immediately
+api.stopPulseWave(0);
 
-// Stop it manually after 5 seconds
-setTimeout(() => {
-  api.stopPulseWave();
-}, 5000);
+// Stop wave after default 5 seconds
+api.stopPulseWave();
+
+// Stop wave after 10 seconds
+api.stopPulseWave(10000);
+
+// Example: Start a wave and schedule it to stop after 3 seconds
+api.pulseWave({ speed: 10 });
+api.stopPulseWave(3000);
 ```
+
+**Parameters:**
+- `delay` (optional): Delay in milliseconds before stopping the wave (default: 5000ms)
+  - Set to 0 for immediate stop
+  - The delay timer starts when `stopPulseWave()` is called
 
 **Note:** The wave will also stop automatically when:
 - `clearPatternHighlights()` is called
