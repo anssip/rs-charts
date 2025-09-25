@@ -745,7 +745,7 @@ export class CandlestickStrategy implements Drawable {
       // Resume animation if we have highlights and animations are enabled
       if (this.currentHighlights.length > 0 && this.enableAnimations) {
         const patternCount = this.currentHighlights.reduce(
-          (count, pattern) => count + (pattern.timestamps?.length || 0),
+          (count, pattern) => count + (pattern.candleTimestamps?.length || 0),
           0,
         );
 
