@@ -69,6 +69,8 @@ export class CandlestickStrategy implements Drawable {
   private lastAnimationTime = 0;
   private isAnimating = false;
   private currentHighlights: PatternHighlight[] = [];
+  private isInteracting = false;
+  private interactionEndTimeout: number | null = null;
 
   // Store candle positions for hit detection
   private candlePositions: Map<
@@ -161,6 +163,19 @@ export class CandlestickStrategy implements Drawable {
     // Listen for visibility changes to immediately update when chart becomes visible
     this.visibilityChangeHandler = this.handleVisibilityChange.bind(this);
     document.addEventListener("visibilitychange", this.visibilityChangeHandler);
+
+    // Listen for interaction events to pause animations during pan/zoom
+    if (canvasElement?.parentElement) {
+      const container = canvasElement.parentElement;
+
+      container.addEventListener("interaction-start", () => {
+        this.handleInteractionStart();
+      });
+
+      container.addEventListener("interaction-end", () => {
+        this.handleInteractionEnd();
+      });
+    }
   }
 
   private requestRedraw(): void {
@@ -228,7 +243,12 @@ export class CandlestickStrategy implements Drawable {
         this.enableAnimations = true;
       }
 
-      if (!this.isAnimating && this.enableAnimations && patternCount <= 20) {
+      if (
+        !this.isAnimating &&
+        this.enableAnimations &&
+        patternCount <= 20 &&
+        !this.isInteracting
+      ) {
         this.startPulseAnimation();
       } else if (
         this.isAnimating &&
@@ -360,14 +380,14 @@ export class CandlestickStrategy implements Drawable {
           live: isLiveCandle,
         };
 
-        // Draw using renderer (pass animation state)
+        // Draw using renderer (disable animation during interactions or when animations are disabled)
         renderer.draw(
           ctx,
           candleData,
           x,
           candleWidth,
           priceToY,
-          !this.enableAnimations,
+          !this.enableAnimations || this.isInteracting,
         );
 
         // Immediately verify if highlight was drawn
@@ -623,14 +643,14 @@ export class CandlestickStrategy implements Drawable {
       live: true,
     };
 
-    // Draw using renderer (pass animation state)
+    // Draw using renderer (disable animation during interactions or when animations are disabled)
     renderer.draw(
       ctx,
       candleData,
       x,
       candleWidth,
       priceToY,
-      !this.enableAnimations,
+      !this.enableAnimations || this.isInteracting,
     );
 
     // Store position for hit detection
@@ -697,8 +717,48 @@ export class CandlestickStrategy implements Drawable {
     }
   };
 
+  private handleInteractionStart() {
+    this.isInteracting = true;
+
+    // Clear any pending resume timeout
+    if (this.interactionEndTimeout) {
+      clearTimeout(this.interactionEndTimeout);
+      this.interactionEndTimeout = null;
+    }
+
+    // Stop animation if running
+    if (this.isAnimating) {
+      this.stopPulseAnimation();
+    }
+  }
+
+  private handleInteractionEnd() {
+    // Debounce animation resume to avoid flicker during rapid interactions
+    if (this.interactionEndTimeout) {
+      clearTimeout(this.interactionEndTimeout);
+    }
+
+    this.interactionEndTimeout = setTimeout(() => {
+      this.isInteracting = false;
+      this.interactionEndTimeout = null;
+
+      // Resume animation if we have highlights and animations are enabled
+      if (this.currentHighlights.length > 0 && this.enableAnimations) {
+        const patternCount = this.currentHighlights.reduce(
+          (count, pattern) => count + (pattern.timestamps?.length || 0),
+          0,
+        );
+
+        // Only animate if pattern count is reasonable
+        if (patternCount <= 20) {
+          this.startPulseAnimation();
+        }
+      }
+    }, 100) as unknown as number; // 100ms debounce
+  }
+
   private startPulseAnimation() {
-    if (this.isAnimating) return;
+    if (this.isAnimating || this.isInteracting) return;
 
     this.isAnimating = true;
     this.lastAnimationTime = performance.now();

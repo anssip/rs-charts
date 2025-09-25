@@ -33,6 +33,7 @@ export class ChartInteractionController {
   private isZooming = false;
   private readonly ZOOM_FACTOR: number;
   private readonly BUFFER_MULTIPLIER: number;
+  private wheelInteractionTimeout: number | null = null;
 
   private readonly options: ChartInteractionOptions;
   private eventTarget: HTMLElement;
@@ -133,6 +134,14 @@ export class ChartInteractionController {
     this.lastY = e.clientY;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
+
+    // Dispatch interaction start event
+    this.eventTarget.dispatchEvent(
+      new CustomEvent("interaction-start", {
+        detail: { type: "drag" },
+        bubbles: true,
+      }),
+    );
   };
 
   private handleDragMove = (e: MouseEvent) => {
@@ -169,15 +178,52 @@ export class ChartInteractionController {
       // Don't prevent default or stop propagation
     }
 
+    const wasDragging = this.isDragging;
     this.isDragging = false;
+
+    // Dispatch interaction end event if we were dragging
+    if (wasDragging) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-end", {
+          detail: { type: "drag" },
+          bubbles: true,
+        }),
+      );
+    }
   };
 
   private handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
 
+    // Dispatch interaction start on first wheel event
+    if (!this.wheelInteractionTimeout) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-start", {
+          detail: { type: "wheel" },
+          bubbles: true,
+        }),
+      );
+    }
+
+    // Clear existing timeout
+    if (this.wheelInteractionTimeout) {
+      clearTimeout(this.wheelInteractionTimeout);
+    }
+
     this.handlePan(e.deltaX, isTrackpad);
     this.handleVerticalPan(e.deltaY, isTrackpad);
+
+    // Set timeout to dispatch interaction end after wheel stops
+    this.wheelInteractionTimeout = setTimeout(() => {
+      this.wheelInteractionTimeout = null;
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-end", {
+          detail: { type: "wheel" },
+          bubbles: true,
+        }),
+      );
+    }, 150) as unknown as number; // 150ms debounce
   };
 
   private handlePan(deltaX: number, isTrackpad = false) {
@@ -282,6 +328,14 @@ export class ChartInteractionController {
 
     this.isDragging = true;
 
+    // Dispatch interaction start event
+    this.eventTarget.dispatchEvent(
+      new CustomEvent("interaction-start", {
+        detail: { type: "touch" },
+        bubbles: true,
+      }),
+    );
+
     if (e.touches.length === 2) {
       this.isZooming = true;
       this.lastTouchDistance = Math.hypot(
@@ -376,8 +430,19 @@ export class ChartInteractionController {
   };
 
   private handleTouchEnd = () => {
+    const wasDragging = this.isDragging;
     this.isDragging = false;
     this.isZooming = false;
+
+    // Dispatch interaction end event if we were interacting
+    if (wasDragging) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-end", {
+          detail: { type: "touch" },
+          bubbles: true,
+        }),
+      );
+    }
   };
 
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
