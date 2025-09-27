@@ -3,6 +3,7 @@ import { getCandleInterval, getDpr } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
 import { getLogger, LogLevel } from "../../../util/logger";
+import { DragGesture, WheelGesture, PinchGesture } from "@use-gesture/vanilla";
 
 const logger = getLogger("ChartInteractionController");
 logger.setLoggerLevel("ChartInteractionController", LogLevel.ERROR);
@@ -24,19 +25,17 @@ interface ChartInteractionOptions {
 }
 
 export class ChartInteractionController {
-  private isDragging = false;
-  private lastX = 0;
-  private lastY = 0;
-  private lastTouchDistance = 0;
-  private lastTouchDistanceX = 0;
-  private lastTouchDistanceY = 0;
-  private isZooming = false;
   private readonly ZOOM_FACTOR: number;
   private readonly BUFFER_MULTIPLIER: number;
   private wheelInteractionTimeout: number | null = null;
 
   private readonly options: ChartInteractionOptions;
   private eventTarget: HTMLElement;
+
+  // Gesture instances
+  private dragGesture: DragGesture | null = null;
+  private wheelGesture: WheelGesture | null = null;
+  private pinchGesture: PinchGesture | null = null;
 
   constructor(options: ChartInteractionOptions) {
     this.options = options;
@@ -60,26 +59,39 @@ export class ChartInteractionController {
     this.detach();
 
     // Add event listeners
-    logger.debug("Attaching full interaction handlers");
+    logger.debug("Attaching gesture handlers using @use-gesture");
 
-    // Mouse events
-    this.eventTarget.addEventListener("mousedown", this.handleDragStart);
-    this.eventTarget.addEventListener("mousemove", this.handleDragMove);
-    this.eventTarget.addEventListener("mouseup", this.handleDragEnd);
-    this.eventTarget.addEventListener("mouseleave", this.handleDragEnd);
-    this.eventTarget.addEventListener("wheel", this.handleWheel, {
-      passive: false,
-    });
+    // Create drag gesture for panning (handles both mouse and touch)
+    this.dragGesture = new DragGesture(
+      this.eventTarget,
+      (state) => this.handleDragGesture(state),
+      {
+        // Prevent default browser behaviors
+        preventDefault: true,
+        // Filter out right clicks
+        filterTaps: true,
+        // Set pointer lock to prevent text selection during drag
+        pointer: { lock: true },
+      },
+    );
 
-    // Touch events
-    this.eventTarget.addEventListener("touchstart", this.handleTouchStart, {
-      passive: false,
-    });
-    this.eventTarget.addEventListener("touchmove", this.handleTouchMove, {
-      passive: false,
-    });
-    this.eventTarget.addEventListener("touchend", this.handleTouchEnd);
-    this.eventTarget.addEventListener("touchcancel", this.handleTouchEnd);
+    // Create wheel gesture for trackpad/wheel scrolling
+    this.wheelGesture = new WheelGesture(
+      this.eventTarget,
+      (state) => this.handleWheelGesture(state),
+      {
+        preventDefault: true,
+      },
+    );
+
+    // Create pinch gesture for zooming (touch and trackpad)
+    this.pinchGesture = new PinchGesture(
+      this.eventTarget,
+      (state) => this.handlePinchGesture(state),
+      {
+        preventDefault: true,
+      },
+    );
 
     // Add timeline and price axis zoom listeners on the chart container
     this.eventTarget.addEventListener(
@@ -99,16 +111,19 @@ export class ChartInteractionController {
   detach() {
     if (!this.eventTarget) return;
 
-    this.eventTarget.removeEventListener("mousedown", this.handleDragStart);
-    this.eventTarget.removeEventListener("mousemove", this.handleDragMove);
-    this.eventTarget.removeEventListener("mouseup", this.handleDragEnd);
-    this.eventTarget.removeEventListener("mouseleave", this.handleDragEnd);
-    this.eventTarget.removeEventListener("wheel", this.handleWheel);
-
-    this.eventTarget.removeEventListener("touchstart", this.handleTouchStart);
-    this.eventTarget.removeEventListener("touchmove", this.handleTouchMove);
-    this.eventTarget.removeEventListener("touchend", this.handleTouchEnd);
-    this.eventTarget.removeEventListener("touchcancel", this.handleTouchEnd);
+    // Destroy gesture instances
+    if (this.dragGesture) {
+      this.dragGesture.destroy();
+      this.dragGesture = null;
+    }
+    if (this.wheelGesture) {
+      this.wheelGesture.destroy();
+      this.wheelGesture = null;
+    }
+    if (this.pinchGesture) {
+      this.pinchGesture.destroy();
+      this.pinchGesture = null;
+    }
 
     this.eventTarget.removeEventListener(
       "contextmenu",
@@ -124,65 +139,40 @@ export class ChartInteractionController {
     );
   }
 
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private dragThreshold = 5; // pixels - minimum movement to consider it a drag
+  // Gesture handlers
+  private handleDragGesture = (state: any) => {
+    const {
+      active,
+      first,
+      last,
+      movement: [mx, my],
+      delta: [dx, dy],
+      tap,
+    } = state;
 
-  private handleDragStart = (e: MouseEvent) => {
-    this.isDragging = true;
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-    this.dragStartX = e.clientX;
-    this.dragStartY = e.clientY;
+    // Ignore taps/clicks
+    if (tap) return;
 
-    // Dispatch interaction start event
-    this.eventTarget.dispatchEvent(
-      new CustomEvent("interaction-start", {
-        detail: { type: "drag" },
-        bubbles: true,
-      }),
-    );
-  };
-
-  private handleDragMove = (e: MouseEvent) => {
-    if (!this.isDragging) return;
-
-    const deltaX = e.clientX - this.lastX;
-    const deltaY = e.clientY - this.lastY;
-
-    // Check if we've moved enough to consider this a drag
-    const totalMovement = Math.sqrt(
-      Math.pow(e.clientX - this.dragStartX, 2) +
-        Math.pow(e.clientY - this.dragStartY, 2),
-    );
-
-    // Only pan if we've moved beyond the threshold
-    if (totalMovement > this.dragThreshold) {
-      this.handlePan(deltaX);
-      this.handleVerticalPan(deltaY);
+    if (first) {
+      // Dispatch interaction start event
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-start", {
+          detail: { type: "drag" },
+          bubbles: true,
+        }),
+      );
     }
 
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
-  };
-
-  private handleDragEnd = (e: MouseEvent) => {
-    // Check if this was a click (minimal movement)
-    const totalMovement = Math.sqrt(
-      Math.pow(e.clientX - this.dragStartX, 2) +
-        Math.pow(e.clientY - this.dragStartY, 2),
-    );
-
-    if (totalMovement <= this.dragThreshold) {
-      // This was a click, not a drag - let it propagate
-      // Don't prevent default or stop propagation
+    if (active) {
+      // Pan based on delta (frame-to-frame movement)
+      // For drag gestures (mouse and touch), we want the chart to follow the cursor/finger
+      // Pass false for isTrackpad so the movement follows the input naturally
+      this.handlePan(dx, false);
+      this.handleVerticalPan(dy, false);
     }
 
-    const wasDragging = this.isDragging;
-    this.isDragging = false;
-
-    // Dispatch interaction end event if we were dragging
-    if (wasDragging) {
+    if (last) {
+      // Dispatch interaction end event
       this.eventTarget.dispatchEvent(
         new CustomEvent("interaction-end", {
           detail: { type: "drag" },
@@ -192,12 +182,15 @@ export class ChartInteractionController {
     }
   };
 
-  private handleWheel = (e: WheelEvent) => {
-    e.preventDefault();
-    const isTrackpad = Math.abs(e.deltaX) !== 0 || Math.abs(e.deltaY) < 50;
+  private handleWheelGesture = (state: any) => {
+    const {
+      active,
+      first,
+      last,
+      delta: [dx, dy],
+    } = state;
 
-    // Dispatch interaction start on first wheel event
-    if (!this.wheelInteractionTimeout) {
+    if (first) {
       this.eventTarget.dispatchEvent(
         new CustomEvent("interaction-start", {
           detail: { type: "wheel" },
@@ -206,24 +199,70 @@ export class ChartInteractionController {
       );
     }
 
-    // Clear existing timeout
-    if (this.wheelInteractionTimeout) {
-      clearTimeout(this.wheelInteractionTimeout);
-    }
+    // For wheel/trackpad, use the delta values
+    // Don't invert - trackpad natural scrolling is already handled by the OS
+    this.handlePan(dx, true);
+    this.handleVerticalPan(dy, true);
 
-    this.handlePan(e.deltaX, isTrackpad);
-    this.handleVerticalPan(e.deltaY, isTrackpad);
-
-    // Set timeout to dispatch interaction end after wheel stops
-    this.wheelInteractionTimeout = setTimeout(() => {
-      this.wheelInteractionTimeout = null;
+    if (last) {
       this.eventTarget.dispatchEvent(
         new CustomEvent("interaction-end", {
           detail: { type: "wheel" },
           bubbles: true,
         }),
       );
-    }, 150) as unknown as number; // 150ms debounce
+    }
+  };
+
+  private handlePinchGesture = (state: any) => {
+    const {
+      active,
+      first,
+      last,
+      da: [distance, angle],
+      origin: [ox, oy],
+      offset: [scale],
+    } = state;
+
+    if (first) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-start", {
+          detail: { type: "pinch" },
+          bubbles: true,
+        }),
+      );
+    }
+
+    if (active) {
+      // Convert pinch scale to zoom factor
+      const zoomDelta = (scale - 1) * 10; // Adjust sensitivity as needed
+
+      // Get the pinch center relative to the element
+      const rect = this.eventTarget.getBoundingClientRect();
+
+      // Dispatch timeline zoom event
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("timeline-zoom", {
+          detail: {
+            deltaX: zoomDelta,
+            clientX: ox,
+            rect,
+            isTrackpad: true,
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+
+    if (last) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("interaction-end", {
+          detail: { type: "pinch" },
+          bubbles: true,
+        }),
+      );
+    }
   };
 
   private handlePan(deltaX: number, isTrackpad = false) {
@@ -237,10 +276,7 @@ export class ChartInteractionController {
     const viewportWidth = this.eventTarget?.clientWidth ?? 0;
     const timePerPixel = timeRange / viewportWidth;
 
-    // For mouse/touch drag: dragging right (positive deltaX) should pan viewport right (show earlier time)
-    // For trackpad: scrolling right (positive deltaX) should scroll content left (show later time) - natural scrolling
-    // Both need to be inverted because we subtract timeShift from timeRange.start below
-    const adjustedDelta = -deltaX;
+    const adjustedDelta = isTrackpad ? -deltaX : deltaX;
     const timeShift = Math.round(adjustedDelta * timePerPixel);
 
     if (timeShift === 0) return;
@@ -298,9 +334,7 @@ export class ChartInteractionController {
     const pricePerPixel = state.priceRange.range / containerHeight;
 
     const sensitivity = 1.5;
-    // Fix the direction: dragging down (positive deltaY) should show lower prices (negative shift)
-    // For trackpad, the direction is already inverted in the browser
-    const adjustedDelta = (isTrackpad ? -deltaY : -deltaY) * sensitivity;
+    const adjustedDelta = (isTrackpad ? -deltaY : deltaY) * sensitivity;
     const priceShift = adjustedDelta * pricePerPixel;
 
     if (priceShift === 0) return;
@@ -324,127 +358,7 @@ export class ChartInteractionController {
     this.options.onStateChange({ priceRange: state.priceRange });
   }
 
-  private handleTouchStart = (e: TouchEvent) => {
-    e.preventDefault();
-
-    this.isDragging = true;
-
-    // Dispatch interaction start event
-    this.eventTarget.dispatchEvent(
-      new CustomEvent("interaction-start", {
-        detail: { type: "touch" },
-        bubbles: true,
-      }),
-    );
-
-    if (e.touches.length === 2) {
-      this.isZooming = true;
-      this.lastTouchDistance = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-      // Store separate X and Y distances for directional zoom detection
-      this.lastTouchDistanceX = Math.abs(
-        e.touches[0].clientX - e.touches[1].clientX,
-      );
-      this.lastTouchDistanceY = Math.abs(
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-    } else if (e.touches.length === 1) {
-      this.lastX = e.touches[0].clientX;
-      this.lastY = e.touches[0].clientY;
-    }
-  };
-
-  private handleTouchMove = (e: TouchEvent) => {
-    if (!this.isDragging) return;
-    e.preventDefault();
-
-    if (e.touches.length === 2 && this.isZooming) {
-      const currentDistanceX = Math.abs(
-        e.touches[0].clientX - e.touches[1].clientX,
-      );
-      const currentDistanceY = Math.abs(
-        e.touches[0].clientY - e.touches[1].clientY,
-      );
-
-      const deltaDistanceX = currentDistanceX - this.lastTouchDistanceX;
-      const deltaDistanceY = currentDistanceY - this.lastTouchDistanceY;
-
-      const zoomSensitivity = 0.5;
-
-      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-
-      // Determine the dominant zoom direction based on the larger delta
-      const isHorizontalZoom =
-        Math.abs(deltaDistanceX) > Math.abs(deltaDistanceY);
-
-      // Apply directional zoom based on pinch direction
-      if (isHorizontalZoom && Math.abs(deltaDistanceX) > 1) {
-        // Horizontal pinch - zoom timeline (X axis)
-        const adjustedDeltaX = deltaDistanceX * zoomSensitivity;
-
-        this.eventTarget.dispatchEvent(
-          new CustomEvent("timeline-zoom", {
-            detail: {
-              deltaX: adjustedDeltaX,
-              clientX: centerX,
-              rect,
-              isTrackpad: true,
-            },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      } else if (!isHorizontalZoom && Math.abs(deltaDistanceY) > 1) {
-        // Vertical pinch - zoom price axis (Y axis)
-        const adjustedDeltaY = deltaDistanceY * zoomSensitivity;
-
-        this.eventTarget.dispatchEvent(
-          new CustomEvent("price-axis-zoom", {
-            detail: {
-              deltaY: adjustedDeltaY,
-              clientY: centerY,
-              rect,
-              isTrackpad: true,
-            },
-            bubbles: true,
-            composed: true,
-          }),
-        );
-      }
-
-      this.lastTouchDistanceX = currentDistanceX;
-      this.lastTouchDistanceY = currentDistanceY;
-    } else if (e.touches.length === 1) {
-      const deltaX = e.touches[0].clientX - this.lastX;
-      const deltaY = e.touches[0].clientY - this.lastY;
-
-      this.handlePan(deltaX, false);
-      this.handleVerticalPan(deltaY, false);
-
-      this.lastX = e.touches[0].clientX;
-      this.lastY = e.touches[0].clientY;
-    }
-  };
-
-  private handleTouchEnd = () => {
-    const wasDragging = this.isDragging;
-    this.isDragging = false;
-    this.isZooming = false;
-
-    // Dispatch interaction end event if we were interacting
-    if (wasDragging) {
-      this.eventTarget.dispatchEvent(
-        new CustomEvent("interaction-end", {
-          detail: { type: "touch" },
-          bubbles: true,
-        }),
-      );
-    }
-  };
+  // Old touch handlers removed - now handled by @use-gesture
 
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
     const { state } = this.options;

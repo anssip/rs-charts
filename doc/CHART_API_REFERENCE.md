@@ -929,6 +929,91 @@ setTimeout(() => {
 }, 30000); // Clear after 30 seconds
 ```
 
+### Pan and Zoom Control
+
+#### `pan(deltaX: number, deltaY: number, options?: PanOptions): void`
+
+Pan the chart by the specified pixel amounts. The embedding app handles gesture interpretation - this method applies the deltas directly.
+
+```typescript
+// Pan right by 50 pixels, down by 20 pixels
+api.pan(50, 20);
+
+// Pan with custom sensitivity
+api.pan(50, 20, { sensitivity: 2.0 });
+
+// Animated pan over 500ms
+api.pan(100, 0, { animate: true, duration: 500 });
+```
+
+**Parameters:**
+- `deltaX`: Horizontal pan amount in pixels (positive = pan right, negative = pan left)
+- `deltaY`: Vertical pan amount in pixels (positive = pan down, negative = pan up)
+- `options`: Optional configuration
+  - `sensitivity`: Multiplier for pan sensitivity (default: 1.0)
+  - `animate`: Whether to animate the pan (default: false)
+  - `duration`: Animation duration in ms (default: 1000)
+
+#### `panHorizontal(deltaX: number, options?: PanOptions): void`
+
+Pan the chart horizontally (time axis only).
+
+```typescript
+// Pan right by 100 pixels
+api.panHorizontal(100);
+
+// Pan left with animation
+api.panHorizontal(-100, { animate: true });
+```
+
+#### `panVertical(deltaY: number, options?: PanOptions): void`
+
+Pan the chart vertically (price axis only).
+
+```typescript
+// Pan down by 50 pixels
+api.panVertical(50);
+
+// Pan up with high sensitivity
+api.panVertical(-50, { sensitivity: 1.5 });
+```
+
+#### `zoom(delta: number, options?: ZoomOptions): void`
+
+Zoom the time axis (horizontal zoom).
+
+```typescript
+// Zoom in
+api.zoom(10);
+
+// Zoom out
+api.zoom(-10);
+
+// Zoom with custom center point (x in pixels from left)
+api.zoom(10, { center: { x: 400, y: 0 } });
+
+// Zoom with custom sensitivity
+api.zoom(5, { sensitivity: 2.0 });
+```
+
+**Parameters:**
+- `delta`: Zoom amount (positive = zoom in, negative = zoom out)
+- `options`: Optional configuration
+  - `center`: Zoom center point in pixels relative to chart
+  - `sensitivity`: Zoom sensitivity multiplier (default: 1.0)
+
+#### `zoomPrice(delta: number, options?: ZoomOptions): void`
+
+Zoom the price axis (vertical zoom).
+
+```typescript
+// Zoom in on price axis
+api.zoomPrice(10);
+
+// Zoom out with custom center
+api.zoomPrice(-10, { center: { x: 0, y: 200 } });
+```
+
 ### State Access
 
 #### `getState(): ChartState`
