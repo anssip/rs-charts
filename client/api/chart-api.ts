@@ -24,6 +24,7 @@ import {
 } from "../types/trend-line";
 import { PriceRangeImpl } from "../util/price-range";
 import { PatternHighlight } from "../types/markers";
+import { getCandleInterval, getDpr } from "../util/chart-util";
 
 const BUFFER_MULTIPLIER = 1;
 
@@ -112,6 +113,17 @@ export interface TrendLineSettings {
 
 export interface PatternHighlightEvent {
   patterns: PatternHighlight[];
+}
+
+export interface PanOptions {
+  sensitivity?: number; // Multiplier for pan sensitivity (default: 1.0)
+  animate?: boolean; // Whether to animate the pan (default: false)
+  duration?: number; // Animation duration in ms (default: 1000)
+}
+
+export interface ZoomOptions {
+  center?: { x: number; y: number }; // Zoom center point in pixels relative to chart
+  sensitivity?: number; // Zoom sensitivity multiplier (default: 1.0)
 }
 
 /**
@@ -798,6 +810,244 @@ export class ChartApi {
    */
   getApp(): App {
     return this.app;
+  }
+
+  // ============================================================================
+  // Pan and Zoom Control
+  // ============================================================================
+
+  /**
+   * Pan the chart by the specified pixel amounts
+   * @param deltaX Horizontal pan amount in pixels (positive = pan right, negative = pan left)
+   * @param deltaY Vertical pan amount in pixels (positive = pan down, negative = pan up)
+   * @param options Optional configuration for pan behavior
+   */
+  pan(deltaX: number, deltaY: number, options?: PanOptions): void {
+    const sensitivity = options?.sensitivity ?? 1.0;
+    const animate = options?.animate ?? false;
+    const duration = options?.duration ?? 1000;
+
+    if (animate) {
+      // Animated pan
+      this.animatedPan(deltaX * sensitivity, deltaY * sensitivity, duration);
+    } else {
+      // Immediate pan
+      this.immediateHorizontalPan(deltaX * sensitivity);
+      this.immediateVerticalPan(deltaY * sensitivity);
+    }
+  }
+
+  /**
+   * Pan the chart horizontally (time axis)
+   * @param deltaX Horizontal pan amount in pixels (positive = pan right, negative = pan left)
+   * @param options Optional configuration for pan behavior
+   */
+  panHorizontal(deltaX: number, options?: PanOptions): void {
+    this.pan(deltaX, 0, options);
+  }
+
+  /**
+   * Pan the chart vertically (price axis)
+   * @param deltaY Vertical pan amount in pixels (positive = pan down, negative = pan up)
+   * @param options Optional configuration for pan behavior
+   */
+  panVertical(deltaY: number, options?: PanOptions): void {
+    this.pan(0, deltaY, options);
+  }
+
+  /**
+   * Zoom the time axis
+   * @param delta Zoom amount (positive = zoom in, negative = zoom out)
+   * @param options Optional zoom configuration including center point
+   */
+  zoom(delta: number, options?: ZoomOptions): void {
+    const sensitivity = options?.sensitivity ?? 1.0;
+    const centerX = options?.center?.x;
+
+    // Get container dimensions
+    const rect = this.container.getBoundingClientRect();
+
+    // Calculate zoom center (default to chart center)
+    const zoomCenter = centerX !== undefined ? centerX / rect.width : 0.5;
+
+    const timeRange = this.state.timeRange.end - this.state.timeRange.start;
+    const zoomFactor = 0.005; // Base zoom factor
+    const timeAdjustment = timeRange * zoomFactor * delta * sensitivity;
+
+    // Calculate the proposed new time range
+    const proposedTimeRange = timeRange - timeAdjustment;
+
+    // Calculate minimum and maximum time ranges
+    const candleInterval = getCandleInterval(this.state.granularity);
+    const minTimeRange = candleInterval * 10;
+
+    // Calculate maximum time range to prevent candle overlap
+    const FIXED_GAP_WIDTH = 6;
+    const MIN_CANDLE_WIDTH = 5;
+    const dpr = getDpr() ?? 1;
+    const canvasWidth = rect.width * dpr;
+    const pixelsPerCandle = MIN_CANDLE_WIDTH + FIXED_GAP_WIDTH;
+    const maxCandlesInViewport = Math.floor(canvasWidth / pixelsPerCandle);
+    const maxTimeRange = maxCandlesInViewport * candleInterval;
+
+    // Enforce both minimum and maximum time range
+    const newTimeRange = Math.max(
+      minTimeRange,
+      Math.min(proposedTimeRange, maxTimeRange),
+    );
+
+    const rangeDifference = timeRange - newTimeRange;
+
+    const newStart = this.state.timeRange.start + rangeDifference * zoomCenter;
+    const newEnd =
+      this.state.timeRange.end - rangeDifference * (1 - zoomCenter);
+
+    // Update time range
+    this.setTimeRange({ start: newStart, end: newEnd });
+  }
+
+  /**
+   * Zoom the price axis
+   * @param delta Zoom amount (positive = zoom in, negative = zoom out)
+   * @param options Optional zoom configuration including center point
+   */
+  zoomPrice(delta: number, options?: ZoomOptions): void {
+    const sensitivity = options?.sensitivity ?? 1.0;
+    const centerY = options?.center?.y;
+
+    // Get container dimensions
+    const rect = this.container.getBoundingClientRect();
+
+    // Calculate zoom center (default to chart center)
+    const zoomCenter = centerY !== undefined ? centerY / rect.height : 0.5;
+
+    // Apply zoom to price range
+    const adjustedDelta = delta * sensitivity * 0.1; // Scale down for price zoom
+    (this.state.priceRange as PriceRangeImpl).adjust(adjustedDelta, zoomCenter);
+
+    // Force a redraw
+    this.redraw();
+  }
+
+  // Private helper methods for panning
+  private immediateHorizontalPan(deltaX: number): void {
+    const timeRange = this.state.timeRange.end - this.state.timeRange.start;
+    const viewportWidth = this.container.clientWidth;
+    const timePerPixel = timeRange / viewportWidth;
+
+    // Note: We don't invert deltaX here - the embedding app handles gesture interpretation
+    const timeShift = Math.round(deltaX * timePerPixel);
+
+    if (timeShift === 0) return;
+
+    const newStart = this.state.timeRange.start - timeShift;
+    const newEnd = newStart + timeRange;
+
+    // Update time range
+    this.setTimeRange({ start: newStart, end: newEnd });
+  }
+
+  private immediateVerticalPan(deltaY: number): void {
+    if (!this.state.priceRange) {
+      logger.error("Price range not found");
+      return;
+    }
+
+    const containerHeight = this.container.clientHeight;
+    if (containerHeight === 0) {
+      logger.error("Container height is 0");
+      return;
+    }
+
+    const pricePerPixel = this.state.priceRange.range / containerHeight;
+    const priceShift = deltaY * pricePerPixel * 1.5; // 1.5 is sensitivity factor
+
+    if (priceShift === 0) return;
+
+    // Dispatch event for price-axis to update immediately
+    this.container.dispatchEvent(
+      new CustomEvent("price-axis-pan", {
+        detail: {
+          priceShift,
+          newPriceRange: {
+            min: this.state.priceRange.min + priceShift,
+            max: this.state.priceRange.max + priceShift,
+          },
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+
+    this.state.priceRange.shift(priceShift);
+
+    // Force a redraw
+    this.redraw();
+  }
+
+  private animatedPan(deltaX: number, deltaY: number, duration: number): void {
+    const startTime = performance.now();
+    const startTimeRange = { ...this.state.timeRange };
+    const startPriceRange = {
+      min: this.state.priceRange.min,
+      max: this.state.priceRange.max,
+    };
+
+    // Calculate target values
+    const timeRange = startTimeRange.end - startTimeRange.start;
+    const viewportWidth = this.container.clientWidth;
+    const timePerPixel = timeRange / viewportWidth;
+    const timeShift = Math.round(deltaX * timePerPixel);
+
+    const containerHeight = this.container.clientHeight;
+    const pricePerPixel = this.state.priceRange.range / containerHeight;
+    const priceShift = deltaY * pricePerPixel * 1.5;
+
+    const targetTimeRange = {
+      start: startTimeRange.start - timeShift,
+      end: startTimeRange.end - timeShift,
+    };
+
+    const targetPriceRange = {
+      min: startPriceRange.min + priceShift,
+      max: startPriceRange.max + priceShift,
+    };
+
+    const animate = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = this.easeInOutCubic(progress);
+
+      // Update time range
+      const currentTimeStart =
+        startTimeRange.start +
+        (targetTimeRange.start - startTimeRange.start) * easedProgress;
+      const currentTimeEnd =
+        startTimeRange.end +
+        (targetTimeRange.end - startTimeRange.end) * easedProgress;
+      this.setTimeRange({ start: currentTimeStart, end: currentTimeEnd });
+
+      // Update price range
+      if (deltaY !== 0) {
+        const currentPriceMin =
+          startPriceRange.min +
+          (targetPriceRange.min - startPriceRange.min) * easedProgress;
+        const currentPriceMax =
+          startPriceRange.max +
+          (targetPriceRange.max - startPriceRange.max) * easedProgress;
+        this.setPriceRange({ min: currentPriceMin, max: currentPriceMax });
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }
+
+  private easeInOutCubic(x: number): number {
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
   }
 
   // ============================================================================
