@@ -67,14 +67,23 @@ export class CandleRenderer {
     candleWidth: number,
     priceToY: (price: number) => number,
     disableAnimation: boolean = false,
+    sharedPulse?: number,
+    useSharedPulse: boolean = false,
   ) {
     // If highlighted, draw with special colors, otherwise draw normal
     if (this.highlightPattern) {
-      // Calculate more dramatic pulsation for highlighted candles (or static if animation disabled)
-      // Varies from 0.2 to 1.0 for much more striking effect
-      const pulse = disableAnimation
-        ? 1.0
-        : 0.2 + 0.8 * Math.sin(this.pulsePhase);
+      // Use shared pulse if provided and requested, otherwise calculate individual pulse
+      let pulse: number;
+
+      if (disableAnimation) {
+        pulse = 1.0;
+      } else if (useSharedPulse && sharedPulse !== undefined) {
+        // Use shared pulse for synchronized animation
+        pulse = sharedPulse;
+      } else {
+        // Calculate individual pulse for organic variation
+        pulse = 0.2 + 0.8 * Math.sin(this.pulsePhase);
+      }
 
       // Draw the candle with highlight colors and pulsation
       this.drawHighlightedCandleSimple(
