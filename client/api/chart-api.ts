@@ -1226,7 +1226,6 @@ export class ChartApi {
   stopPulseWave(): void {
     if (this.waveInterval) {
       clearInterval(this.waveInterval);
-      this.clearPatternHighlights();
       this.waveInterval = null;
       logger.info("ChartApi: Stopped pulse wave");
     }

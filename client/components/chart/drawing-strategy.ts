@@ -232,6 +232,9 @@ export class CandlestickStrategy implements Drawable {
         }
       }
 
+      // Pass highlight count to pool for optimization
+      this.candlePool.setHighlightCount(highlightTimestamps.size);
+
       // Start animation if not already running
       // Only animate if we have a reasonable number of patterns (performance optimization)
       const patternCount = context.patternHighlights.length;
@@ -380,7 +383,12 @@ export class CandlestickStrategy implements Drawable {
           live: isLiveCandle,
         };
 
-        // Draw using renderer (disable animation during interactions or when animations are disabled)
+        // Draw using renderer with shared pulse optimization for many highlights
+        const useSharedPulse = highlightTimestamps.size > 10;
+        const sharedPulse = useSharedPulse
+          ? this.candlePool.getSharedPulse()
+          : undefined;
+
         renderer.draw(
           ctx,
           candleData,
@@ -388,6 +396,8 @@ export class CandlestickStrategy implements Drawable {
           candleWidth,
           priceToY,
           !this.enableAnimations || this.isInteracting,
+          sharedPulse,
+          useSharedPulse,
         );
 
         // Immediately verify if highlight was drawn
@@ -643,7 +653,22 @@ export class CandlestickStrategy implements Drawable {
       live: true,
     };
 
-    // Draw using renderer (disable animation during interactions or when animations are disabled)
+    // Draw using renderer with shared pulse optimization if many highlights exist
+    // Check total highlight count from current highlights
+    let totalHighlightedCandles = 0;
+    if (this.currentHighlights.length > 0) {
+      const uniqueTimestamps = new Set<number>();
+      for (const pattern of this.currentHighlights) {
+        pattern.candleTimestamps.forEach((ts) => uniqueTimestamps.add(ts));
+      }
+      totalHighlightedCandles = uniqueTimestamps.size;
+    }
+
+    const useSharedPulse = totalHighlightedCandles > 10;
+    const sharedPulse = useSharedPulse
+      ? this.candlePool.getSharedPulse()
+      : undefined;
+
     renderer.draw(
       ctx,
       candleData,
@@ -651,6 +676,8 @@ export class CandlestickStrategy implements Drawable {
       candleWidth,
       priceToY,
       !this.enableAnimations || this.isInteracting,
+      sharedPulse,
+      useSharedPulse,
     );
 
     // Store position for hit detection
