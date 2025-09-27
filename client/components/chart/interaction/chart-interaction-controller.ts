@@ -237,9 +237,10 @@ export class ChartInteractionController {
     const viewportWidth = this.eventTarget?.clientWidth ?? 0;
     const timePerPixel = timeRange / viewportWidth;
 
-    // For mouse drag: dragging left (negative deltaX) should move backward in time
-    // For trackpad: horizontal scroll right (positive deltaX) should move forward in time
-    const adjustedDelta = isTrackpad ? -deltaX : -deltaX;
+    // For mouse/touch drag: dragging right (positive deltaX) should pan viewport right (show earlier time)
+    // For trackpad: scrolling right (positive deltaX) should scroll content left (show later time) - natural scrolling
+    // Both need to be inverted because we subtract timeShift from timeRange.start below
+    const adjustedDelta = -deltaX;
     const timeShift = Math.round(adjustedDelta * timePerPixel);
 
     if (timeShift === 0) return;
@@ -421,8 +422,8 @@ export class ChartInteractionController {
       const deltaX = e.touches[0].clientX - this.lastX;
       const deltaY = e.touches[0].clientY - this.lastY;
 
-      this.handlePan(deltaX, true);
-      this.handleVerticalPan(deltaY, true);
+      this.handlePan(deltaX, false);
+      this.handleVerticalPan(deltaY, false);
 
       this.lastX = e.touches[0].clientX;
       this.lastY = e.touches[0].clientY;
