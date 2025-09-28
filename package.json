@@ -1,6 +1,6 @@
 {
   "name": "@anssip/rs-charts",
-  "version": "1.2.35",
+  "version": "1.2.37",
   "type": "module",
   "description": "Web components for SpotCanvas charting",
   "keywords": [
@@ -45,7 +45,7 @@
     "add-indicators": "bun run ./scripts/add-indicators-to-firestore-admin.ts",
     "test:api": "bun test client/api/__tests__/chart-api-simple.test.ts",
     "test:models": "bun test server/services/price-data/__tests__/price-history-model.test.ts",
-    "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs --external @use-gesture/vanilla ",
+    "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs",
     "build:lib:bundled": "bun build ./client/lib.ts --outdir ./dist/lib-bundled --target browser --format esm && cp -r dist/lib/client dist/lib-bundled/ && echo '{\"name\": \"@anssipiirainen/sc-charts\", \"main\": \"lib.js\", \"types\": \"client/lib.d.ts\", \"type\": \"module\"}' > dist/lib-bundled/package.json",
     "build:lib:types": "tsc --project tsconfig.lib.json --emitDeclarationOnly --outDir dist/lib",
     "build:lib": "rm -rf dist/lib && npm run build:lib:js && npm run build:lib:types",
@@ -63,7 +63,6 @@
   },
   "peerDependencies": {
     "firebase": "^11.8.1",
-    "@use-gesture/vanilla": "^10.3.1",
     "lit": "^3.2.1",
     "lit-element": "^4.1.1",
     "lit-html": "^3.2.1",
