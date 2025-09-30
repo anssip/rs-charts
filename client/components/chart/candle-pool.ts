@@ -5,17 +5,12 @@ const logger = getLogger("CandlePool");
 
 /**
  * Object pool for CandleRenderer instances to avoid garbage collection pressure
- * during animation and frequent redraws.
+ * during frequent redraws.
  */
 export class CandlePool {
   private readonly pool: CandleRenderer[] = [];
   private readonly activeCandles = new Map<number, CandleRenderer>();
   private readonly MAX_POOL_SIZE = 500; // Maximum pool size to prevent memory leaks
-
-  // Shared pulse phase for synchronized animation when many candles are highlighted
-  private sharedPulsePhase: number = 0;
-  private readonly SHARED_PULSE_SPEED = 0.0035; // Same speed as individual pulses
-  private highlightCount: number = 0;
 
   constructor() {
     // Pre-populate pool with some renderers
@@ -44,66 +39,6 @@ export class CandlePool {
     }
 
     return renderer;
-  }
-
-  /**
-   * Set the number of highlighted candles for performance optimization
-   */
-  setHighlightCount(count: number) {
-    this.highlightCount = count;
-  }
-
-  /**
-   * Get the current shared pulse value for synchronized animation
-   */
-  getSharedPulse(): number {
-    // Calculate pulse value from phase (0.2 to 1.0 range for dramatic effect)
-    return 0.2 + 0.8 * Math.sin(this.sharedPulsePhase);
-  }
-
-  /**
-   * Update all active candle renderers
-   * Returns true if any renderer had significant changes
-   */
-  updateAll(deltaTime: number): boolean {
-    let hasChanges = false;
-
-    // Update shared pulse phase once for all highlighted candles
-    if (this.highlightCount > 10) {
-      const oldPhase = this.sharedPulsePhase;
-      this.sharedPulsePhase += deltaTime * this.SHARED_PULSE_SPEED;
-
-      // Keep phase in 0-2π range
-      if (this.sharedPulsePhase > Math.PI * 2) {
-        this.sharedPulsePhase -= Math.PI * 2;
-      }
-
-      // Check if shared pulse changed significantly
-      if (
-        Math.abs(Math.sin(oldPhase) - Math.sin(this.sharedPulsePhase)) > 0.02
-      ) {
-        hasChanges = true;
-      }
-
-      // When using shared pulse, skip individual updates for highlighted candles
-      this.activeCandles.forEach((renderer) => {
-        if (!renderer.highlightPattern) {
-          // Only update non-highlighted candles individually
-          if (renderer.update(deltaTime)) {
-            hasChanges = true;
-          }
-        }
-      });
-    } else {
-      // Normal update for small number of highlights
-      this.activeCandles.forEach((renderer) => {
-        if (renderer.update(deltaTime)) {
-          hasChanges = true;
-        }
-      });
-    }
-
-    return hasChanges;
   }
 
   /**
