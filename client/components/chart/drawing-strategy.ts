@@ -52,7 +52,6 @@ export class CandlestickStrategy implements Drawable {
   private isInitialized: boolean = false;
   private redrawCallback: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
-  private enableAnimations = true; // Can be disabled for better performance
   private lastLoggedState: {
     isInViewport: boolean;
     isRecent: boolean;
@@ -65,12 +64,6 @@ export class CandlestickStrategy implements Drawable {
 
   // Candle rendering system
   private candlePool = new CandlePool();
-  private pulseAnimationId: number | null = null;
-  private lastAnimationTime = 0;
-  private isAnimating = false;
-  private currentHighlights: PatternHighlight[] = [];
-  private isInteracting = false;
-  private interactionEndTimeout: number | null = null;
 
   // Store candle positions for hit detection
   private candlePositions: Map<
@@ -163,19 +156,6 @@ export class CandlestickStrategy implements Drawable {
     // Listen for visibility changes to immediately update when chart becomes visible
     this.visibilityChangeHandler = this.handleVisibilityChange.bind(this);
     document.addEventListener("visibilitychange", this.visibilityChangeHandler);
-
-    // Listen for interaction events to pause animations during pan/zoom
-    if (canvasElement?.parentElement) {
-      const container = canvasElement.parentElement;
-
-      container.addEventListener("interaction-start", () => {
-        this.handleInteractionStart();
-      });
-
-      container.addEventListener("interaction-end", () => {
-        this.handleInteractionEnd();
-      });
-    }
   }
 
   private requestRedraw(): void {
@@ -219,9 +199,6 @@ export class CandlestickStrategy implements Drawable {
     const highlightTimestamps = new Set<number>();
 
     if (context.patternHighlights && context.patternHighlights.length > 0) {
-      // Store current highlights for animation
-      this.currentHighlights = context.patternHighlights;
-
       // Build map with normalized timestamps - more efficient lookup
       for (const pattern of context.patternHighlights) {
         for (const timestamp of pattern.candleTimestamps) {
@@ -231,47 +208,6 @@ export class CandlestickStrategy implements Drawable {
           highlightTimestamps.add(normalizedTimestamp);
         }
       }
-
-      // Pass highlight count to pool for optimization
-      this.candlePool.setHighlightCount(highlightTimestamps.size);
-
-      // Start animation if not already running
-      // Only animate if we have a reasonable number of patterns (performance optimization)
-      const patternCount = context.patternHighlights.length;
-
-      // Disable animations if too many patterns for performance
-      if (patternCount > 10) {
-        this.enableAnimations = false;
-      } else {
-        this.enableAnimations = true;
-      }
-
-      if (
-        !this.isAnimating &&
-        this.enableAnimations &&
-        patternCount <= 20 &&
-        !this.isInteracting
-      ) {
-        this.startPulseAnimation();
-      } else if (
-        this.isAnimating &&
-        (!this.enableAnimations || patternCount > 20)
-      ) {
-        // Stop animation if too many patterns for performance
-        this.stopPulseAnimation();
-        if (patternCount > 10) {
-          logger.debug(
-            "Stopped animation due to high pattern count:",
-            patternCount,
-          );
-        }
-      }
-    } else {
-      // Stop animation if no highlights
-      if (this.isAnimating) {
-        this.stopPulseAnimation();
-      }
-      this.currentHighlights = [];
     }
 
     // 2. Now reset candle pool (it will preserve highlighted renderers)
@@ -383,43 +319,8 @@ export class CandlestickStrategy implements Drawable {
           live: isLiveCandle,
         };
 
-        // Draw using renderer with shared pulse optimization for many highlights
-        const useSharedPulse = highlightTimestamps.size > 10;
-        const sharedPulse = useSharedPulse
-          ? this.candlePool.getSharedPulse()
-          : undefined;
-
-        renderer.draw(
-          ctx,
-          candleData,
-          x,
-          candleWidth,
-          priceToY,
-          !this.enableAnimations || this.isInteracting,
-          sharedPulse,
-          useSharedPulse,
-        );
-
-        // Immediately verify if highlight was drawn
-        if (highlight) {
-          const imageData = ctx.getImageData(
-            Math.floor(x - candleWidth / 2),
-            Math.floor(
-              priceToY(Math.max(candle.high, candle.open, candle.close)),
-            ),
-            Math.ceil(candleWidth),
-            2,
-          );
-
-          const data = imageData.data;
-          let hasWhite = false;
-          for (let i = 0; i < data.length; i += 4) {
-            if (data[i] > 250 && data[i + 1] > 250 && data[i + 2] > 250) {
-              hasWhite = true;
-              break;
-            }
-          }
-        }
+        // Draw using renderer
+        renderer.draw(ctx, candleData, x, candleWidth, priceToY);
 
         // Store position for hit detection
         // Use the same x position that was used for drawing
@@ -441,25 +342,6 @@ export class CandlestickStrategy implements Drawable {
 
     // 6. Draw live candle if it's beyond the current timeline (most recent)
     this.drawLiveCandleIfNeeded(context, candleWidth, dpr);
-
-    // Final verification - check if any white pixels still exist on canvas
-    if (highlightMap.size > 0) {
-      const fullImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const fullData = fullImageData.data;
-      let whitePixelCount = 0;
-      for (let i = 0; i < fullData.length; i += 4) {
-        if (
-          fullData[i] > 250 &&
-          fullData[i + 1] > 250 &&
-          fullData[i + 2] > 250
-        ) {
-          whitePixelCount++;
-        }
-      }
-    }
-
-    // 7. COMMENTED OUT - Restore the canvas state
-    // ctx.restore();
   }
 
   private drawLiveCandleIfNeeded(
@@ -626,10 +508,10 @@ export class CandlestickStrategy implements Drawable {
 
     // Check if live candle should be highlighted
     let highlight: PatternHighlight | null = null;
-    if (this.currentHighlights.length > 0) {
+    if (context.patternHighlights && context.patternHighlights.length > 0) {
       const normalizedTimestamp =
         Math.floor(targetTimestamp / data.granularityMs) * data.granularityMs;
-      for (const pattern of this.currentHighlights) {
+      for (const pattern of context.patternHighlights) {
         if (
           pattern.candleTimestamps.includes(normalizedTimestamp) ||
           pattern.candleTimestamps.includes(targetTimestamp)
@@ -653,32 +535,8 @@ export class CandlestickStrategy implements Drawable {
       live: true,
     };
 
-    // Draw using renderer with shared pulse optimization if many highlights exist
-    // Check total highlight count from current highlights
-    let totalHighlightedCandles = 0;
-    if (this.currentHighlights.length > 0) {
-      const uniqueTimestamps = new Set<number>();
-      for (const pattern of this.currentHighlights) {
-        pattern.candleTimestamps.forEach((ts) => uniqueTimestamps.add(ts));
-      }
-      totalHighlightedCandles = uniqueTimestamps.size;
-    }
-
-    const useSharedPulse = totalHighlightedCandles > 10;
-    const sharedPulse = useSharedPulse
-      ? this.candlePool.getSharedPulse()
-      : undefined;
-
-    renderer.draw(
-      ctx,
-      candleData,
-      x,
-      candleWidth,
-      priceToY,
-      !this.enableAnimations || this.isInteracting,
-      sharedPulse,
-      useSharedPulse,
-    );
+    // Draw using renderer
+    renderer.draw(ctx, candleData, x, candleWidth, priceToY);
 
     // Store position for hit detection
     this.candlePositions.set(targetTimestamp, {
@@ -744,104 +602,7 @@ export class CandlestickStrategy implements Drawable {
     }
   };
 
-  private handleInteractionStart() {
-    this.isInteracting = true;
-
-    // Clear any pending resume timeout
-    if (this.interactionEndTimeout) {
-      clearTimeout(this.interactionEndTimeout);
-      this.interactionEndTimeout = null;
-    }
-
-    // Stop animation if running
-    if (this.isAnimating) {
-      this.stopPulseAnimation();
-    }
-  }
-
-  private handleInteractionEnd() {
-    // Debounce animation resume to avoid flicker during rapid interactions
-    if (this.interactionEndTimeout) {
-      clearTimeout(this.interactionEndTimeout);
-    }
-
-    this.interactionEndTimeout = setTimeout(() => {
-      this.isInteracting = false;
-      this.interactionEndTimeout = null;
-
-      // Resume animation if we have highlights and animations are enabled
-      if (this.currentHighlights.length > 0 && this.enableAnimations) {
-        const patternCount = this.currentHighlights.reduce(
-          (count, pattern) => count + (pattern.candleTimestamps?.length || 0),
-          0,
-        );
-
-        // Only animate if pattern count is reasonable
-        if (patternCount <= 20) {
-          this.startPulseAnimation();
-        }
-      }
-    }, 100) as unknown as number; // 100ms debounce
-  }
-
-  private startPulseAnimation() {
-    if (this.isAnimating || this.isInteracting) return;
-
-    this.isAnimating = true;
-    this.lastAnimationTime = performance.now();
-
-    // Target 30 FPS instead of 60 FPS for better performance
-    const TARGET_FPS = 30;
-    const FRAME_TIME = 1000 / TARGET_FPS;
-    let lastFrameTime = 0;
-
-    const animate = (currentTime: number) => {
-      if (!this.isAnimating) return;
-
-      // Throttle to target FPS
-      if (currentTime - lastFrameTime < FRAME_TIME) {
-        this.pulseAnimationId = requestAnimationFrame(animate);
-        return;
-      }
-      lastFrameTime = currentTime;
-
-      // Calculate delta time
-      const deltaTime = currentTime - this.lastAnimationTime;
-      this.lastAnimationTime = currentTime;
-
-      // Update all active candle renderers
-      // Only redraw if there were significant visual changes
-      const hasChanges = this.candlePool.updateAll(deltaTime);
-
-      // Trigger redraw only if needed
-      if (hasChanges && this.redrawCallback) {
-        this.redrawCallback();
-      }
-
-      this.pulseAnimationId = requestAnimationFrame(animate);
-    };
-
-    this.pulseAnimationId = requestAnimationFrame(animate);
-    logger.debug("Started pulse animation at 30 FPS");
-  }
-
-  private stopPulseAnimation() {
-    if (!this.isAnimating) return;
-
-    this.isAnimating = false;
-
-    if (this.pulseAnimationId !== null) {
-      cancelAnimationFrame(this.pulseAnimationId);
-      this.pulseAnimationId = null;
-    }
-
-    logger.debug("Stopped pulse animation");
-  }
-
   public destroy(): void {
-    // Stop pulse animation
-    this.stopPulseAnimation();
-
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;

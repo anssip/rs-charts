@@ -2,8 +2,8 @@ import { LitElement, html } from "lit";
 import { getLogger, LogLevel } from "../../util/logger";
 import { getDpr } from "../../util/chart-util";
 
-const logger = getLogger('CanvasBase');
-logger.setLoggerLevel('CanvasBase', LogLevel.ERROR);
+const logger = getLogger("CanvasBase");
+logger.setLoggerLevel("CanvasBase", LogLevel.ERROR);
 
 export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
@@ -34,9 +34,7 @@ export abstract class CanvasBase extends LitElement {
         // Find canvas element
         this.canvas = this.renderRoot.querySelector("canvas");
         if (!this.canvas) {
-          logger.warn(
-            `No canvas element found, creating one`
-          );
+          logger.warn(`No canvas element found, creating one`);
           // If no canvas exists, create one and append it to the render root
           const canvasElement = document.createElement("canvas");
           canvasElement.id = this.id;
@@ -44,8 +42,8 @@ export abstract class CanvasBase extends LitElement {
           this.canvas = canvasElement;
         }
 
-        // Get 2D context
-        this.ctx = this.canvas.getContext("2d");
+        // Get 2D context with willReadFrequently for better performance
+        this.ctx = this.canvas.getContext("2d", { willReadFrequently: true });
         if (!this.ctx) {
           logger.warn(`Could not get 2D context`);
           return;
