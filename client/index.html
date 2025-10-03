@@ -402,6 +402,26 @@
             </div>
 
             <div class="control-group">
+                <label>Screenshot:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="takeScreenshot()"
+                        style="background: #4caf50; color: white"
+                    >
+                        📸 Download PNG
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="takeScreenshotJPEG()"
+                        style="background: #2196f3; color: white"
+                    >
+                        📸 Download JPEG
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
                 <label>Time Range:</label>
                 <div class="control-buttons">
                     <button class="control-button" onclick="getTimeRange()">
@@ -1000,6 +1020,52 @@
                     updateStatus("Chart redrawn");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Screenshot functions
+            async function takeScreenshot() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    updateStatus("Taking PNG screenshot...");
+                    const symbol = api.getSymbol();
+                    const granularity = api.getGranularity();
+                    const filename = `${symbol}-${granularity}-${Date.now()}.png`;
+
+                    await api.downloadScreenshot(filename, {
+                        format: 'png',
+                        quality: 1.0,
+                        scale: 2, // 2x resolution for better quality
+                    });
+
+                    updateStatus(`Screenshot saved as ${filename}`);
+                } catch (error) {
+                    updateStatus(`Screenshot error: ${error.message}`);
+                }
+            }
+
+            async function takeScreenshotJPEG() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    updateStatus("Taking JPEG screenshot...");
+                    const symbol = api.getSymbol();
+                    const granularity = api.getGranularity();
+                    const filename = `${symbol}-${granularity}-${Date.now()}.jpg`;
+
+                    await api.downloadScreenshot(filename, {
+                        format: 'jpeg',
+                        quality: 0.95,
+                        backgroundColor: '#1a1a1a', // Dark background to match theme
+                        scale: 2,
+                    });
+
+                    updateStatus(`Screenshot saved as ${filename}`);
+                } catch (error) {
+                    updateStatus(`Screenshot error: ${error.message}`);
                 }
             }
 
