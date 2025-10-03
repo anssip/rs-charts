@@ -25,6 +25,12 @@ import {
 import { PriceRangeImpl } from "../util/price-range";
 import { PatternHighlight } from "../types/markers";
 import { getCandleInterval, getDpr } from "../util/chart-util";
+import {
+  captureChartScreenshot,
+  dataUrlToBlob,
+  downloadScreenshot as downloadScreenshotHelper,
+  ScreenshotOptions,
+} from "../util/screenshot";
 
 const BUFFER_MULTIPLIER = 1;
 
@@ -1479,6 +1485,80 @@ export class ChartApi {
       this.waveInterval = null;
       logger.info("ChartApi: Stopped pulse wave");
     }
+  }
+
+  // ============================================================================
+  // Screenshot
+  // ============================================================================
+
+  /**
+   * Take a screenshot of the chart
+   * Captures the entire chart including main chart, indicators, timeline, price axis, trend lines, and pattern highlights
+   * @param options Screenshot options (format, quality, scale, etc.)
+   * @returns Promise that resolves to a data URL of the screenshot
+   * @example
+   * ```typescript
+   * // Simple PNG screenshot
+   * const dataUrl = await api.takeScreenshot();
+   *
+   * // High-quality JPEG for social media
+   * const dataUrl = await api.takeScreenshot({
+   *   format: 'jpeg',
+   *   quality: 0.95,
+   *   backgroundColor: '#FFFFFF'
+   * });
+   * ```
+   */
+  async takeScreenshot(options?: ScreenshotOptions): Promise<string> {
+    logger.info("ChartApi: Taking screenshot");
+    return captureChartScreenshot(this.container, options);
+  }
+
+  /**
+   * Take a screenshot and return as Blob (useful for uploads)
+   * @param options Screenshot options
+   * @returns Promise that resolves to a Blob of the screenshot
+   * @example
+   * ```typescript
+   * // Get blob for upload to server
+   * const blob = await api.takeScreenshotBlob({ format: 'jpeg' });
+   * const formData = new FormData();
+   * formData.append('image', blob, 'chart.jpg');
+   * await fetch('/api/upload', { method: 'POST', body: formData });
+   * ```
+   */
+  async takeScreenshotBlob(options?: ScreenshotOptions): Promise<Blob> {
+    const dataUrl = await this.takeScreenshot(options);
+    return dataUrlToBlob(dataUrl);
+  }
+
+  /**
+   * Take a screenshot and download it directly
+   * @param filename Optional filename (default: chart-{timestamp}.{format})
+   * @param options Screenshot options
+   * @returns Promise that resolves when download is initiated
+   * @example
+   * ```typescript
+   * // Download as PNG with custom filename
+   * await api.downloadScreenshot('my-chart.png');
+   *
+   * // Download as high-res JPEG
+   * await api.downloadScreenshot('chart.jpg', {
+   *   format: 'jpeg',
+   *   scale: 2,
+   *   quality: 0.95
+   * });
+   * ```
+   */
+  async downloadScreenshot(
+    filename?: string,
+    options?: ScreenshotOptions,
+  ): Promise<void> {
+    logger.info("ChartApi: Downloading screenshot");
+    const dataUrl = await this.takeScreenshot(options);
+    const actualFilename =
+      filename || `chart-${Date.now()}.${options?.format || "png"}`;
+    return downloadScreenshotHelper(dataUrl, actualFilename, options?.format);
   }
 
   // ============================================================================

@@ -1235,6 +1235,235 @@ Clean up the API instance and remove all event listeners.
 api.dispose(); // Call when unmounting/destroying chart
 ```
 
+### Screenshot Methods
+
+#### `takeScreenshot(options?: ScreenshotOptions): Promise<string>`
+
+Take a screenshot of the entire chart view and return it as a data URL. Captures everything including the main chart, indicators, timeline, price axis, trend lines, and pattern highlights.
+
+```typescript
+// Simple PNG screenshot
+const dataUrl = await api.takeScreenshot();
+
+// High-quality JPEG for social media
+const dataUrl = await api.takeScreenshot({
+  format: 'jpeg',
+  quality: 0.95,
+  backgroundColor: '#FFFFFF'
+});
+
+// High-resolution screenshot (2x scale)
+const dataUrl = await api.takeScreenshot({
+  format: 'png',
+  scale: 2,
+  backgroundColor: '#000000'
+});
+
+// WebP format with custom size
+const dataUrl = await api.takeScreenshot({
+  format: 'webp',
+  quality: 0.9,
+  width: 1920,
+  height: 1080
+});
+```
+
+**Parameters:**
+- `options`: Optional `ScreenshotOptions` object
+  - `format`: Image format - 'png' (default), 'jpeg', or 'webp'
+  - `quality`: Quality for JPEG/WebP (0.0 to 1.0, default: 0.95)
+  - `scale`: Scaling factor (default: device pixel ratio)
+  - `backgroundColor`: Background color (default: transparent for PNG, white for JPEG)
+  - `excludeCrosshairs`: Exclude crosshairs from screenshot (default: true)
+  - `excludeContextMenu`: Exclude context menu from screenshot (default: true)
+  - `width`: Optional fixed width in pixels
+  - `height`: Optional fixed height in pixels
+
+**Returns:** Promise that resolves to a data URL string
+
+**Note:** The data URL can be used directly in an `<img>` tag, downloaded, or uploaded to a server.
+
+#### `takeScreenshotBlob(options?: ScreenshotOptions): Promise<Blob>`
+
+Take a screenshot and return it as a Blob, which is useful for uploading to servers or sharing via APIs.
+
+```typescript
+// Get blob for upload to server
+const blob = await api.takeScreenshotBlob({ format: 'jpeg' });
+const formData = new FormData();
+formData.append('image', blob, 'chart.jpg');
+await fetch('/api/upload', { method: 'POST', body: formData });
+
+// Share using Web Share API
+const blob = await api.takeScreenshotBlob({ format: 'png' });
+const file = new File([blob], 'chart.png', { type: 'image/png' });
+if (navigator.share) {
+  await navigator.share({
+    files: [file],
+    title: 'Chart Analysis',
+    text: 'Check out this chart!'
+  });
+}
+```
+
+**Parameters:**
+- `options`: Optional `ScreenshotOptions` object (same as `takeScreenshot`)
+
+**Returns:** Promise that resolves to a Blob
+
+#### `downloadScreenshot(filename?: string, options?: ScreenshotOptions): Promise<void>`
+
+Take a screenshot and immediately download it as a file.
+
+```typescript
+// Download as PNG with custom filename
+await api.downloadScreenshot('my-analysis.png');
+
+// Download as high-quality JPEG
+await api.downloadScreenshot('chart.jpg', {
+  format: 'jpeg',
+  quality: 0.95,
+  backgroundColor: '#FFFFFF'
+});
+
+// Download high-res for printing
+await api.downloadScreenshot('chart-hires.png', {
+  scale: 2,
+  format: 'png'
+});
+
+// Auto-generated filename
+await api.downloadScreenshot(); // Downloads as chart-{timestamp}.png
+```
+
+**Parameters:**
+- `filename`: Optional filename (default: `chart-{timestamp}.{format}`)
+- `options`: Optional `ScreenshotOptions` object (same as `takeScreenshot`)
+
+**Returns:** Promise that resolves when download is initiated
+
+### Screenshot Usage Examples
+
+#### Social Media Sharing
+
+```typescript
+// Prepare optimized image for Twitter/X
+async function shareToTwitter() {
+  const blob = await api.takeScreenshotBlob({
+    format: 'jpeg',
+    quality: 0.92,
+    backgroundColor: '#FFFFFF',
+    scale: 2 // Higher resolution for better quality
+  });
+
+  const file = new File([blob], 'chart.jpg', { type: 'image/jpeg' });
+
+  if (navigator.share) {
+    await navigator.share({
+      files: [file],
+      title: 'BTC Analysis',
+      text: 'Bitcoin breakout imminent! 🚀'
+    });
+  }
+}
+
+// Upload to your server
+async function uploadToServer() {
+  const blob = await api.takeScreenshotBlob({
+    format: 'png',
+    excludeCrosshairs: true
+  });
+
+  const formData = new FormData();
+  formData.append('chart', blob, 'analysis.png');
+  formData.append('symbol', api.getSymbol());
+  formData.append('timestamp', Date.now().toString());
+
+  const response = await fetch('/api/charts/upload', {
+    method: 'POST',
+    body: formData
+  });
+
+  return response.json();
+}
+```
+
+#### Copy to Clipboard
+
+```typescript
+// Copy screenshot to clipboard for easy pasting
+async function copyToClipboard() {
+  const blob = await api.takeScreenshotBlob({ format: 'png' });
+
+  await navigator.clipboard.write([
+    new ClipboardItem({ 'image/png': blob })
+  ]);
+
+  console.log('Chart copied to clipboard!');
+}
+```
+
+#### Display Preview Modal
+
+```typescript
+// Show preview before downloading
+async function showPreview() {
+  const dataUrl = await api.takeScreenshot({
+    format: 'png',
+    scale: 1.5
+  });
+
+  // Create and show modal with preview
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.maxWidth = '100%';
+
+  const modal = document.createElement('div');
+  modal.className = 'screenshot-preview-modal';
+  modal.appendChild(img);
+  document.body.appendChild(modal);
+
+  // Add download button
+  const downloadBtn = document.createElement('button');
+  downloadBtn.textContent = 'Download';
+  downloadBtn.onclick = () => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `chart-${Date.now()}.png`;
+    link.click();
+  };
+  modal.appendChild(downloadBtn);
+}
+```
+
+#### Batch Export Multiple Charts
+
+```typescript
+// Export multiple timeframes
+async function exportMultipleTimeframes() {
+  const granularities = ['FIVE_MINUTE', 'ONE_HOUR', 'ONE_DAY'];
+  const screenshots = [];
+
+  for (const granularity of granularities) {
+    await api.setGranularity(granularity);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for update
+
+    const blob = await api.takeScreenshotBlob({
+      format: 'png',
+      scale: 2
+    });
+
+    screenshots.push({
+      granularity,
+      blob,
+      filename: `${api.getSymbol()}-${granularity}.png`
+    });
+  }
+
+  return screenshots;
+}
+```
+
 ## Event System
 
 ### Event Types

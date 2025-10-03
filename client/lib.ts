@@ -38,6 +38,9 @@ export type {
   ChartApiEventCallback,
 } from "./api/chart-api";
 
+// Export screenshot utilities
+export type { ScreenshotOptions } from "./util/screenshot";
+
 // Export types and utilities from server-side models
 export type { Granularity } from "../server/services/price-data/price-history-model";
 export { getAllGranularities, granularityLabel } from "../server/services/price-data/price-history-model";
