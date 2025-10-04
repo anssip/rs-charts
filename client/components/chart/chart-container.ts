@@ -13,6 +13,7 @@ import "./indicators/volume-chart";
 import "./context-menu";
 import "./candle-tooltip";
 import "./live-candle-display";
+import "./live-price-label";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
@@ -873,6 +874,11 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
               @pattern-click=${this.handlePatternClick}
             ></pattern-labels-layer>
+
+            <!-- Live Price Label -->
+            <live-price-label
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></live-price-label>
 
             <div class="chart">
               ${bottomIndicators.map(
