@@ -45,7 +45,7 @@
     "add-indicators": "bun run ./scripts/add-indicators-to-firestore-admin.ts",
     "test:api": "bun test client/api/__tests__/chart-api-simple.test.ts",
     "test:models": "bun test server/services/price-data/__tests__/price-history-model.test.ts",
-    "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs",
+    "build:lib:js": "bun build ./client/lib.ts --outdir ./dist/lib --target browser --format esm --external lit --external lit-element --external lit-html --external xinjs --external html2canvas",
     "build:lib:bundled": "bun build ./client/lib.ts --outdir ./dist/lib-bundled --target browser --format esm && cp -r dist/lib/client dist/lib-bundled/ && echo '{\"name\": \"@anssipiirainen/sc-charts\", \"main\": \"lib.js\", \"types\": \"client/lib.d.ts\", \"type\": \"module\"}' > dist/lib-bundled/package.json",
     "build:lib:types": "tsc --project tsconfig.lib.json --emitDeclarationOnly --outDir dist/lib",
     "build:lib": "rm -rf dist/lib && npm run build:lib:js && npm run build:lib:types",
@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.1.12",
+    "@types/html2canvas": "^1.0.0",
     "bun-types": "latest",
     "concurrently": "^9.0.1",
     "typescript": "latest"
