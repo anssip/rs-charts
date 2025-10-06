@@ -36,6 +36,12 @@ export async function captureChartScreenshot(
   container: ChartContainer,
   options?: ScreenshotOptions,
 ): Promise<string> {
+  // Get the chart's background color from CSS variable
+  const defaultBackgroundColor =
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-primary-dark")
+      .trim() || "#181818";
+
   const opts: Required<
     Omit<ScreenshotOptions, "width" | "height" | "backgroundColor">
   > & {
@@ -46,16 +52,11 @@ export async function captureChartScreenshot(
     format: "png",
     quality: 0.95,
     scale: window.devicePixelRatio || 1,
-    backgroundColor: null,
+    backgroundColor: defaultBackgroundColor,
     excludeCrosshairs: true,
     excludeContextMenu: true,
     ...options,
   };
-
-  // Use white background for JPEG by default (JPEG doesn't support transparency)
-  if (opts.format === "jpeg" && opts.backgroundColor === null) {
-    opts.backgroundColor = "#FFFFFF";
-  }
 
   logger.info(`Capturing screenshot with format: ${opts.format}`);
 
