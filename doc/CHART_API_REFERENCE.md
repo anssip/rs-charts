@@ -929,6 +929,787 @@ setTimeout(() => {
 }, 30000); // Clear after 30 seconds
 ```
 
+### Trading Overlays (Paper Trading & Backtesting)
+
+The Chart API provides comprehensive support for visualizing trading activity including trade markers, price lines, and position information. These features are designed for both paper trading (real-time simulated trading) and backtesting (historical strategy analysis) scenarios.
+
+**Important:** rs-charts handles visualization and events only. All business logic (order execution, position management, P&L calculations, data persistence) must be handled by the consuming application.
+
+#### Trade Markers
+
+Trade markers visualize buy and sell execution points on the chart with customizable shapes, colors, and tooltips.
+
+##### `addTradeMarker(config: TradeMarkerConfig): string`
+
+Add a trade marker to the chart to mark a buy or sell execution point.
+
+```typescript
+// Add a buy marker
+const buyMarkerId = api.addTradeMarker({
+  timestamp: 1704067200000,
+  price: 45000,
+  side: 'buy',
+  shape: 'arrow',              // 'arrow' | 'flag' | 'triangle' | 'circle'
+  color: '#10b981',            // Green for buy
+  size: 'medium',              // 'small' | 'medium' | 'large'
+  text: 'Entry',               // Optional label
+  tooltip: {
+    title: 'Buy BTC-USD',
+    details: [
+      'Qty: 0.5 BTC',
+      'Price: $45,000',
+      'Total: $22,500'
+    ]
+  },
+  interactive: true,           // Enable click/hover events
+  zIndex: 100                  // Layer ordering
+});
+
+// Add a sell marker
+const sellMarkerId = api.addTradeMarker({
+  timestamp: 1704153600000,
+  price: 48000,
+  side: 'sell',
+  shape: 'flag',
+  color: '#ef4444',            // Red for sell
+  size: 'large',
+  text: 'Exit',
+  tooltip: {
+    title: 'Sell BTC-USD',
+    details: [
+      'Qty: 0.5 BTC',
+      'Price: $48,000',
+      'P&L: +$1,500 (+6.67%)'
+    ]
+  }
+});
+
+// Add a simple marker with defaults
+const markerId = api.addTradeMarker({
+  timestamp: Date.now(),
+  price: 46500,
+  side: 'buy'
+  // Uses default colors, shape (arrow), size (medium)
+});
+```
+
+**Parameters:**
+- `config`: `TradeMarkerConfig` object
+  - `timestamp`: Unix timestamp in milliseconds (X-axis position)
+  - `price`: Price level in dollars (Y-axis position)
+  - `side`: `'buy'` or `'sell'` (determines default color)
+  - `id?`: Optional unique ID (auto-generated if not provided)
+  - `shape?`: Marker shape (default: 'arrow')
+  - `color?`: Custom color (default: green for buy, red for sell)
+  - `size?`: Marker size (default: 'medium')
+  - `text?`: Optional label text displayed near marker
+  - `tooltip?`: Optional hover information
+  - `interactive?`: Enable click/hover events (default: true)
+  - `zIndex?`: Layer ordering (default: 100)
+
+**Returns:** The ID of the created trade marker
+
+**Default Colors:**
+- Buy markers: `#10b981` (green)
+- Sell markers: `#ef4444` (red)
+
+##### `removeTradeMarker(markerId: string): void`
+
+Remove a specific trade marker from the chart.
+
+```typescript
+api.removeTradeMarker(buyMarkerId);
+```
+
+##### `updateTradeMarker(markerId: string, updates: Partial<TradeMarkerConfig>): void`
+
+Update an existing trade marker's properties.
+
+```typescript
+// Update marker color and text
+api.updateTradeMarker(markerId, {
+  color: '#fbbf24',  // Change to yellow
+  text: 'Stop Loss',
+  tooltip: {
+    title: 'Stop Loss Triggered',
+    details: ['Price: $44,500', 'Loss: -$250']
+  }
+});
+
+// Update marker size
+api.updateTradeMarker(markerId, {
+  size: 'large',
+  shape: 'flag'
+});
+```
+
+##### `getTradeMarkers(): TradeMarker[]`
+
+Get all trade markers currently on the chart.
+
+```typescript
+const markers = api.getTradeMarkers();
+console.log(`Chart has ${markers.length} trade markers`);
+
+// Find all buy markers
+const buyMarkers = markers.filter(m => m.side === 'buy');
+
+// Calculate total P&L from marker metadata
+const totalPnL = markers.reduce((sum, marker) => {
+  return sum + (marker.metadata?.pnl || 0);
+}, 0);
+```
+
+##### `clearTradeMarkers(): void`
+
+Remove all trade markers from the chart.
+
+```typescript
+api.clearTradeMarkers();
+```
+
+#### Price Lines
+
+Price lines display horizontal lines at specific price levels for orders, stop losses, take profits, and other price-based alerts.
+
+##### `addPriceLine(config: PriceLineConfig): string`
+
+Add a horizontal price line to the chart.
+
+```typescript
+// Add a limit order line
+const limitOrderId = api.addPriceLine({
+  price: 47000,
+  color: '#3b82f6',            // Blue
+  lineStyle: 'dashed',          // 'solid' | 'dashed' | 'dotted'
+  lineWidth: 2,
+  label: {
+    text: 'Limit Buy @ $47,000',
+    position: 'right',          // 'left' | 'right'
+    backgroundColor: '#3b82f6',
+    textColor: '#ffffff',
+    fontSize: 11
+  },
+  draggable: true,              // Allow user to drag line up/down
+  extendLeft: true,             // Extend to left edge
+  extendRight: true,            // Extend to right edge
+  interactive: true,            // Enable click/hover events
+  showPriceLabel: true,         // Show price on Y-axis
+  metadata: {                   // Store custom data
+    orderId: 'order-123',
+    orderType: 'limit',
+    quantity: 0.5
+  },
+  zIndex: 50
+});
+
+// Add a stop loss line
+const stopLossId = api.addPriceLine({
+  price: 43000,
+  color: '#ef4444',
+  lineStyle: 'solid',
+  lineWidth: 2,
+  label: {
+    text: 'Stop Loss',
+    position: 'left',
+    backgroundColor: '#ef4444'
+  },
+  draggable: true,
+  metadata: {
+    stopType: 'stop-loss',
+    triggerPrice: 43000
+  }
+});
+
+// Add a take profit line
+const takeProfitId = api.addPriceLine({
+  price: 50000,
+  color: '#10b981',
+  lineStyle: 'dashed',
+  lineWidth: 2,
+  label: {
+    text: 'Take Profit',
+    position: 'right'
+  },
+  draggable: true
+});
+```
+
+**Parameters:**
+- `config`: `PriceLineConfig` object
+  - `price`: Price level in dollars (Y-axis position)
+  - `id?`: Optional unique ID (auto-generated if not provided)
+  - `color?`: Line color (default: '#6b7280' gray)
+  - `lineStyle?`: Line style (default: 'solid')
+  - `lineWidth?`: Line thickness in pixels (default: 1)
+  - `label?`: Optional label configuration
+  - `draggable?`: Allow user to drag line (default: false)
+  - `extendLeft?`: Extend line to left edge (default: true)
+  - `extendRight?`: Extend line to right edge (default: true)
+  - `interactive?`: Enable click/hover events (default: true)
+  - `showPriceLabel?`: Show price on Y-axis (default: true)
+  - `metadata?`: Store custom data (e.g., order ID)
+  - `zIndex?`: Layer ordering (default: 50)
+
+**Returns:** The ID of the created price line
+
+##### `removePriceLine(lineId: string): void`
+
+Remove a specific price line from the chart.
+
+```typescript
+api.removePriceLine(limitOrderId);
+```
+
+##### `updatePriceLine(lineId: string, updates: Partial<PriceLineConfig>): void`
+
+Update an existing price line's properties.
+
+```typescript
+// Update line price and label
+api.updatePriceLine(stopLossId, {
+  price: 44000,
+  label: {
+    text: 'Stop Loss @ $44,000',
+    position: 'left'
+  }
+});
+
+// Change line style
+api.updatePriceLine(limitOrderId, {
+  color: '#fbbf24',
+  lineStyle: 'dotted'
+});
+```
+
+##### `getPriceLines(): PriceLine[]`
+
+Get all price lines currently on the chart.
+
+```typescript
+const lines = api.getPriceLines();
+console.log(`Chart has ${lines.length} price lines`);
+
+// Find all limit order lines
+const limitOrders = lines.filter(l => l.metadata?.orderType === 'limit');
+```
+
+##### `getPriceLine(lineId: string): PriceLine | null`
+
+Get a specific price line by its ID.
+
+```typescript
+const line = api.getPriceLine(limitOrderId);
+if (line) {
+  console.log(`Limit order at $${line.price}`);
+}
+```
+
+##### `clearPriceLines(): void`
+
+Remove all price lines from the chart.
+
+```typescript
+api.clearPriceLines();
+```
+
+#### Position Overlay
+
+The position overlay displays current position information including entry price, current price, P&L, and quantity.
+
+##### `setPositionOverlay(config: PositionOverlayConfig | null): void`
+
+Show or update the position overlay. Pass `null` to hide it.
+
+```typescript
+// Show long position
+api.setPositionOverlay({
+  symbol: 'BTC-USD',
+  quantity: 0.5,
+  side: 'long',
+  entryPrice: 45000,
+  currentPrice: 48000,
+  unrealizedPnL: 1500,
+  unrealizedPnLPercent: 6.67,
+  position: 'top-right',        // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  showEntryLine: true,          // Show horizontal line at entry price
+  entryLineColor: '#6b7280',
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  textColor: '#ffffff',
+  opacity: 0.9,
+  compact: false                // Use compact view
+});
+
+// Show short position with compact view
+api.setPositionOverlay({
+  symbol: 'ETH-USD',
+  quantity: 2.0,
+  side: 'short',
+  entryPrice: 3000,
+  currentPrice: 2850,
+  unrealizedPnL: 300,
+  unrealizedPnLPercent: 5.0,
+  position: 'bottom-right',
+  showEntryLine: true,
+  compact: true
+});
+
+// Hide position overlay
+api.setPositionOverlay(null);
+```
+
+**Parameters:**
+- `config`: `PositionOverlayConfig` object or `null` to hide
+  - `symbol`: Trading pair symbol (e.g., 'BTC-USD')
+  - `quantity`: Position size
+  - `side`: `'long'` or `'short'`
+  - `entryPrice`: Average entry price
+  - `currentPrice`: Current market price
+  - `unrealizedPnL`: Profit/loss in dollars
+  - `unrealizedPnLPercent`: Profit/loss as percentage
+  - `position?`: Overlay position (default: 'top-right')
+  - `showEntryLine?`: Show line at entry price (default: true)
+  - `entryLineColor?`: Entry line color (default: '#6b7280')
+  - `backgroundColor?`: Overlay background (default: 'rgba(0, 0, 0, 0.9)')
+  - `textColor?`: Text color (default: '#ffffff')
+  - `opacity?`: Overlay opacity 0-1 (default: 0.9)
+  - `compact?`: Use compact view (default: false)
+
+##### `getPositionOverlay(): PositionOverlayConfig | null`
+
+Get the current position overlay configuration.
+
+```typescript
+const position = api.getPositionOverlay();
+if (position) {
+  console.log(`Position: ${position.side} ${position.quantity} ${position.symbol}`);
+  console.log(`P&L: $${position.unrealizedPnL} (${position.unrealizedPnLPercent}%)`);
+}
+```
+
+##### `updatePositionOverlay(updates: Partial<PositionOverlayConfig>): void`
+
+Update the current position overlay with new values (e.g., live P&L updates).
+
+```typescript
+// Update P&L as price changes
+api.updatePositionOverlay({
+  currentPrice: 48500,
+  unrealizedPnL: 1750,
+  unrealizedPnLPercent: 7.78
+});
+
+// Switch to compact view
+api.updatePositionOverlay({
+  compact: true
+});
+```
+
+#### Trading Overlay Events
+
+Trading overlays emit events for user interactions that your application can listen to.
+
+##### Trade Marker Events
+
+```typescript
+// Marker clicked
+api.on('trade-marker-clicked', (event) => {
+  console.log('Marker clicked:', event.markerId);
+  console.log('Trade details:', event.marker);
+  // Could show trade details modal, edit order, etc.
+});
+
+// Marker hovered
+api.on('trade-marker-hovered', (event) => {
+  console.log('Hovering over marker:', event.markerId);
+  // Tooltip is shown automatically
+});
+```
+
+##### Price Line Events
+
+```typescript
+// Line dragged (for adjusting order prices)
+api.on('price-line-dragged', (event) => {
+  console.log(`Line ${event.lineId} dragged from $${event.oldPrice} to $${event.newPrice}`);
+
+  // Update order in your system
+  if (event.line.metadata?.orderId) {
+    updateOrderPrice(event.line.metadata.orderId, event.newPrice);
+  }
+});
+
+// Line clicked
+api.on('price-line-clicked', (event) => {
+  console.log('Price line clicked:', event.lineId);
+  // Could show order details, modify, or cancel
+});
+
+// Line hovered
+api.on('price-line-hovered', (event) => {
+  console.log('Hovering over line:', event.lineId);
+});
+```
+
+##### Chart Interaction Events
+
+```typescript
+// Price clicked (for click-to-trade features)
+api.on('price-clicked', (event) => {
+  console.log(`Clicked price: $${event.price} at time ${event.timestamp}`);
+  // Could show order entry form at clicked price
+});
+
+// Time clicked
+api.on('time-clicked', (event) => {
+  console.log(`Clicked time: ${new Date(event.timestamp)}`);
+});
+
+// Crosshair moved
+api.on('crosshair-moved', (event) => {
+  if (event.price && event.timestamp) {
+    console.log(`Crosshair at $${event.price} @ ${new Date(event.timestamp)}`);
+  }
+});
+
+// Chart context menu
+api.on('chart-context-menu', (event) => {
+  console.log(`Right-clicked at $${event.price}, ${new Date(event.timestamp)}`);
+  // Could show custom context menu with trading options
+});
+```
+
+#### Paper Trading Example
+
+Complete example showing paper trading implementation with the Chart API:
+
+```typescript
+import { ChartApi } from '@anssipiirainen/sc-charts';
+
+class PaperTradingManager {
+  private api: ChartApi;
+  private position: Position | null = null;
+  private orders: Map<string, Order> = new Map();
+
+  constructor(api: ChartApi) {
+    this.api = api;
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    // Handle price line drags (order price adjustments)
+    this.api.on('price-line-dragged', (event) => {
+      const order = this.orders.get(event.line.metadata?.orderId);
+      if (order) {
+        order.price = event.newPrice;
+        this.api.updatePriceLine(event.lineId, {
+          price: event.newPrice,
+          label: {
+            text: `${order.type} @ $${event.newPrice.toFixed(2)}`,
+            position: 'right'
+          }
+        });
+      }
+    });
+
+    // Handle marker clicks (view trade details)
+    this.api.on('trade-marker-clicked', (event) => {
+      this.showTradeDetails(event.marker.metadata?.tradeId);
+    });
+
+    // Handle price clicks (quick order entry)
+    this.api.on('price-clicked', (event) => {
+      this.showOrderEntry(event.price);
+    });
+  }
+
+  // Place a limit order
+  placeLimitOrder(side: 'buy' | 'sell', price: number, quantity: number) {
+    const orderId = `order-${Date.now()}`;
+    const order: Order = {
+      id: orderId,
+      side,
+      price,
+      quantity,
+      type: 'limit',
+      status: 'open'
+    };
+
+    this.orders.set(orderId, order);
+
+    // Add price line for the order
+    const lineId = this.api.addPriceLine({
+      price,
+      color: side === 'buy' ? '#3b82f6' : '#f59e0b',
+      lineStyle: 'dashed',
+      draggable: true,
+      label: {
+        text: `${side.toUpperCase()} ${quantity} @ $${price}`,
+        position: 'right'
+      },
+      metadata: { orderId }
+    });
+
+    order.lineId = lineId;
+    return orderId;
+  }
+
+  // Execute a trade (fill an order)
+  executeTrade(orderId: string, price: number) {
+    const order = this.orders.get(orderId);
+    if (!order) return;
+
+    // Remove order price line
+    if (order.lineId) {
+      this.api.removePriceLine(order.lineId);
+    }
+
+    // Add trade marker
+    const markerId = this.api.addTradeMarker({
+      timestamp: Date.now(),
+      price,
+      side: order.side,
+      shape: 'arrow',
+      text: order.side === 'buy' ? 'Entry' : 'Exit',
+      tooltip: {
+        title: `${order.side.toUpperCase()} ${this.api.getSymbol()}`,
+        details: [
+          `Qty: ${order.quantity}`,
+          `Price: $${price.toFixed(2)}`,
+          `Total: $${(order.quantity * price).toFixed(2)}`
+        ]
+      },
+      metadata: { orderId, tradeId: `trade-${Date.now()}` }
+    });
+
+    // Update position
+    if (order.side === 'buy') {
+      this.openPosition(order.quantity, price);
+    } else {
+      this.closePosition(price);
+    }
+
+    order.status = 'filled';
+    order.markerId = markerId;
+  }
+
+  // Open a new position
+  private openPosition(quantity: number, entryPrice: number) {
+    this.position = {
+      symbol: this.api.getSymbol(),
+      quantity,
+      side: 'long',
+      entryPrice,
+      currentPrice: entryPrice,
+      unrealizedPnL: 0,
+      unrealizedPnLPercent: 0
+    };
+
+    this.api.setPositionOverlay(this.position);
+
+    // Start live P&L updates
+    this.startPnLUpdates();
+  }
+
+  // Close the current position
+  private closePosition(exitPrice: number) {
+    if (!this.position) return;
+
+    const pnl = (exitPrice - this.position.entryPrice) * this.position.quantity;
+    const pnlPercent = ((exitPrice - this.position.entryPrice) / this.position.entryPrice) * 100;
+
+    console.log(`Position closed: P&L = $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)`);
+
+    this.api.setPositionOverlay(null);
+    this.position = null;
+    this.stopPnLUpdates();
+  }
+
+  // Update P&L as price changes
+  private startPnLUpdates() {
+    this.pnlUpdateInterval = setInterval(() => {
+      if (!this.position) return;
+
+      const currentPrice = this.getCurrentPrice();
+      const pnl = (currentPrice - this.position.entryPrice) * this.position.quantity;
+      const pnlPercent = ((currentPrice - this.position.entryPrice) / this.position.entryPrice) * 100;
+
+      this.api.updatePositionOverlay({
+        currentPrice,
+        unrealizedPnL: pnl,
+        unrealizedPnLPercent: pnlPercent
+      });
+    }, 1000);
+  }
+
+  private stopPnLUpdates() {
+    if (this.pnlUpdateInterval) {
+      clearInterval(this.pnlUpdateInterval);
+    }
+  }
+
+  private getCurrentPrice(): number {
+    // Get current price from chart state or live candle
+    const state = this.api.getState();
+    return state.liveCandle?.close || state.priceHistory.getLatestCandle()?.close || 0;
+  }
+}
+```
+
+#### Backtesting Example
+
+Example showing backtesting visualization with the Chart API:
+
+```typescript
+class BacktestVisualizer {
+  private api: ChartApi;
+
+  constructor(api: ChartApi) {
+    this.api = api;
+  }
+
+  // Visualize backtest results
+  async visualizeBacktest(results: BacktestResults) {
+    // Clear previous overlays
+    this.api.clearTradeMarkers();
+    this.api.clearPriceLines();
+    this.api.setPositionOverlay(null);
+
+    // Add markers for all trades
+    results.trades.forEach(trade => {
+      // Entry marker
+      this.api.addTradeMarker({
+        timestamp: trade.entryTime,
+        price: trade.entryPrice,
+        side: trade.side,
+        shape: 'arrow',
+        text: 'Entry',
+        tooltip: {
+          title: `${trade.side.toUpperCase()} Entry`,
+          details: [
+            `Qty: ${trade.quantity}`,
+            `Entry: $${trade.entryPrice.toFixed(2)}`,
+            `Strategy: ${trade.strategy}`
+          ]
+        }
+      });
+
+      // Exit marker
+      this.api.addTradeMarker({
+        timestamp: trade.exitTime,
+        price: trade.exitPrice,
+        side: trade.side === 'buy' ? 'sell' : 'buy',
+        shape: 'flag',
+        text: trade.pnl > 0 ? 'Win' : 'Loss',
+        color: trade.pnl > 0 ? '#10b981' : '#ef4444',
+        tooltip: {
+          title: `${trade.side.toUpperCase()} Exit`,
+          details: [
+            `Exit: $${trade.exitPrice.toFixed(2)}`,
+            `P&L: $${trade.pnl.toFixed(2)}`,
+            `Return: ${trade.pnlPercent.toFixed(2)}%`,
+            `Duration: ${this.formatDuration(trade.exitTime - trade.entryTime)}`
+          ]
+        }
+      });
+
+      // Add stop loss line if applicable
+      if (trade.stopLoss) {
+        this.api.addPriceLine({
+          price: trade.stopLoss,
+          color: '#ef4444',
+          lineStyle: 'dashed',
+          label: {
+            text: 'Stop Loss',
+            position: 'left'
+          }
+        });
+      }
+
+      // Add take profit line if applicable
+      if (trade.takeProfit) {
+        this.api.addPriceLine({
+          price: trade.takeProfit,
+          color: '#10b981',
+          lineStyle: 'dashed',
+          label: {
+            text: 'Take Profit',
+            position: 'right'
+          }
+        });
+      }
+    });
+
+    // Show summary statistics
+    console.log('Backtest Results:');
+    console.log(`Total Trades: ${results.trades.length}`);
+    console.log(`Win Rate: ${results.winRate.toFixed(2)}%`);
+    console.log(`Total P&L: $${results.totalPnL.toFixed(2)}`);
+    console.log(`Max Drawdown: ${results.maxDrawdown.toFixed(2)}%`);
+  }
+
+  // Play back trades in sequence
+  async playbackTrades(trades: Trade[], speed: number = 1000) {
+    for (const trade of trades) {
+      // Navigate to trade time
+      const timeRange = this.api.getTimeRange();
+      const duration = timeRange.end - timeRange.start;
+
+      this.api.setTimeRange({
+        start: trade.entryTime - duration / 2,
+        end: trade.entryTime + duration / 2
+      });
+
+      // Show entry
+      const entryMarkerId = this.api.addTradeMarker({
+        timestamp: trade.entryTime,
+        price: trade.entryPrice,
+        side: trade.side,
+        shape: 'arrow',
+        size: 'large'
+      });
+
+      // Show position overlay during trade
+      this.api.setPositionOverlay({
+        symbol: this.api.getSymbol(),
+        quantity: trade.quantity,
+        side: trade.side === 'buy' ? 'long' : 'short',
+        entryPrice: trade.entryPrice,
+        currentPrice: trade.entryPrice,
+        unrealizedPnL: 0,
+        unrealizedPnLPercent: 0
+      });
+
+      await this.sleep(speed);
+
+      // Show exit
+      this.api.addTradeMarker({
+        timestamp: trade.exitTime,
+        price: trade.exitPrice,
+        side: trade.side === 'buy' ? 'sell' : 'buy',
+        shape: 'flag',
+        size: 'large',
+        color: trade.pnl > 0 ? '#10b981' : '#ef4444'
+      });
+
+      this.api.setPositionOverlay(null);
+
+      await this.sleep(speed);
+    }
+  }
+
+  private formatDuration(ms: number): string {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+```
+
 ### Pan and Zoom Control
 
 #### `pan(deltaX: number, deltaY: number, options?: PanOptions): void`

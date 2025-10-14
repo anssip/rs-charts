@@ -46,6 +46,13 @@ import { TrendLineLayer } from "./trend-line-layer";
 import "./pattern-labels-layer";
 import { PatternLabelsLayer } from "./pattern-labels-layer";
 import { PatternHighlight } from "../../types/markers";
+import "./trading-markers-layer";
+import "./price-lines-layer";
+import "./position-overlay";
+import { TradingMarkersLayer } from "./trading-markers-layer";
+import { PriceLinesLayer } from "./price-lines-layer";
+import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
+import { TradeMarker, PriceLine, PositionOverlayConfig } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -134,6 +141,15 @@ export class ChartContainer extends LitElement {
   private trendLines: TrendLine[] = [];
 
   @state()
+  private tradeMarkers: TradeMarker[] = [];
+
+  @state()
+  private priceLines: PriceLine[] = [];
+
+  @state()
+  private positionOverlay: PositionOverlayConfig | null = null;
+
+  @state()
   private candleTooltipData: any = null;
 
   @state()
@@ -143,6 +159,9 @@ export class ChartContainer extends LitElement {
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
+  private tradingMarkersLayer?: TradingMarkersLayer;
+  private priceLinesLayer?: PriceLinesLayer;
+  private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
     super();
@@ -231,6 +250,39 @@ export class ChartContainer extends LitElement {
       // Set initial dimensions after a small delay to ensure chart is ready
       setTimeout(() => {
         this.updatePatternLabelsLayer();
+      }, 100);
+    }
+
+    // Get trading markers layer reference and set initial dimensions
+    this.tradingMarkersLayer = this.renderRoot.querySelector(
+      "trading-markers-layer",
+    ) as TradingMarkersLayer;
+    if (this.tradingMarkersLayer) {
+      logger.debug("ChartContainer: Found trading markers layer");
+      setTimeout(() => {
+        this.updateTradingMarkersLayer();
+      }, 100);
+    }
+
+    // Get price lines layer reference and set initial dimensions
+    this.priceLinesLayer = this.renderRoot.querySelector(
+      "price-lines-layer",
+    ) as PriceLinesLayer;
+    if (this.priceLinesLayer) {
+      logger.debug("ChartContainer: Found price lines layer");
+      setTimeout(() => {
+        this.updatePriceLinesLayer();
+      }, 100);
+    }
+
+    // Get position overlay reference and set initial dimensions
+    this.positionOverlayComponent = this.renderRoot.querySelector(
+      "position-overlay",
+    ) as PositionOverlayComponent;
+    if (this.positionOverlayComponent) {
+      logger.debug("ChartContainer: Found position overlay");
+      setTimeout(() => {
+        this.updatePositionOverlay();
       }, 100);
     }
 
@@ -416,6 +468,11 @@ export class ChartContainer extends LitElement {
 
     // Update pattern labels layer with current state
     this.updatePatternLabelsLayer();
+
+    // Update trading overlay layers
+    this.updateTradingMarkersLayer();
+    this.updatePriceLinesLayer();
+    this.updatePositionOverlay();
   }
 
   // Helper method to force redraw of all indicators
@@ -466,6 +523,63 @@ export class ChartContainer extends LitElement {
       patternLabelsLayer.timeRange = this._state.timeRange;
       patternLabelsLayer.priceRange = this._state.priceRange;
       patternLabelsLayer.requestUpdate();
+    }
+  }
+
+  private updateTradingMarkersLayer() {
+    const tradingMarkersLayer = this.renderRoot.querySelector(
+      "trading-markers-layer",
+    ) as TradingMarkersLayer;
+    if (tradingMarkersLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        tradingMarkersLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        tradingMarkersLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      tradingMarkersLayer.state = this._state;
+      tradingMarkersLayer.requestUpdate();
+    }
+  }
+
+  private updatePriceLinesLayer() {
+    const priceLinesLayer = this.renderRoot.querySelector(
+      "price-lines-layer",
+    ) as PriceLinesLayer;
+    if (priceLinesLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        priceLinesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        priceLinesLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      priceLinesLayer.state = this._state;
+      priceLinesLayer.requestUpdate();
+    }
+  }
+
+  private updatePositionOverlay() {
+    const positionOverlay = this.renderRoot.querySelector(
+      "position-overlay",
+    ) as PositionOverlayComponent;
+    if (positionOverlay && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        positionOverlay.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        positionOverlay.height = this.chart.canvas.height / dpr;
+      }
+
+      positionOverlay.state = this._state;
+      positionOverlay.requestUpdate();
     }
   }
 
@@ -874,6 +988,27 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
               @pattern-click=${this.handlePatternClick}
             ></pattern-labels-layer>
+
+            <!-- Price Lines Layer (z-index: 50) -->
+            <price-lines-layer
+              .lines=${this._state.priceLines || []}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></price-lines-layer>
+
+            <!-- Position Overlay (z-index: 75) -->
+            <position-overlay
+              .config=${this._state.positionOverlay}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></position-overlay>
+
+            <!-- Trading Markers Layer (z-index: 100) -->
+            <trading-markers-layer
+              .markers=${this._state.tradeMarkers || []}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></trading-markers-layer>
 
             <!-- Live Price Label -->
             <live-price-label
@@ -1549,6 +1684,140 @@ export class ChartContainer extends LitElement {
    */
   public getPatternHighlights(): PatternHighlight[] {
     return this._state.patternHighlights || [];
+  }
+
+  // ============================================================================
+  // Trading Overlay Methods (Paper Trading & Backtesting)
+  // ============================================================================
+
+  /**
+   * Add a trade marker to the chart
+   */
+  public addTradeMarker(marker: TradeMarker): void {
+    if (!this._state.tradeMarkers) {
+      this._state.tradeMarkers = [];
+    }
+    this._state.tradeMarkers.push(marker);
+    touch("state.tradeMarkers");
+    this.requestUpdate();
+    this.updateTradingMarkersLayer();
+    logger.debug(`ChartContainer: Added trade marker ${marker.id}`);
+  }
+
+  /**
+   * Remove a trade marker from the chart
+   */
+  public removeTradeMarker(markerId: string): void {
+    if (!this._state.tradeMarkers) return;
+
+    const index = this._state.tradeMarkers.findIndex((m) => m.id === markerId);
+    if (index !== -1) {
+      this._state.tradeMarkers.splice(index, 1);
+      touch("state.tradeMarkers");
+      this.requestUpdate();
+      this.updateTradingMarkersLayer();
+      logger.debug(`ChartContainer: Removed trade marker ${markerId}`);
+    }
+  }
+
+  /**
+   * Update an existing trade marker
+   */
+  public updateTradeMarker(markerId: string, marker: TradeMarker): void {
+    if (!this._state.tradeMarkers) return;
+
+    const index = this._state.tradeMarkers.findIndex((m) => m.id === markerId);
+    if (index !== -1) {
+      this._state.tradeMarkers[index] = marker;
+      touch("state.tradeMarkers");
+      this.requestUpdate();
+      this.updateTradingMarkersLayer();
+      logger.debug(`ChartContainer: Updated trade marker ${markerId}`);
+    }
+  }
+
+  /**
+   * Clear all trade markers
+   */
+  public clearTradeMarkers(): void {
+    this._state.tradeMarkers = [];
+    touch("state.tradeMarkers");
+    this.requestUpdate();
+    this.updateTradingMarkersLayer();
+    logger.debug("ChartContainer: Cleared all trade markers");
+  }
+
+  /**
+   * Add a price line to the chart
+   */
+  public addPriceLine(line: PriceLine): void {
+    if (!this._state.priceLines) {
+      this._state.priceLines = [];
+    }
+    this._state.priceLines.push(line);
+    touch("state.priceLines");
+    this.requestUpdate();
+    this.updatePriceLinesLayer();
+    logger.debug(`ChartContainer: Added price line ${line.id}`);
+  }
+
+  /**
+   * Remove a price line from the chart
+   */
+  public removePriceLine(lineId: string): void {
+    if (!this._state.priceLines) return;
+
+    const index = this._state.priceLines.findIndex((l) => l.id === lineId);
+    if (index !== -1) {
+      this._state.priceLines.splice(index, 1);
+      touch("state.priceLines");
+      this.requestUpdate();
+      this.updatePriceLinesLayer();
+      logger.debug(`ChartContainer: Removed price line ${lineId}`);
+    }
+  }
+
+  /**
+   * Update an existing price line
+   */
+  public updatePriceLine(lineId: string, line: PriceLine): void {
+    if (!this._state.priceLines) return;
+
+    const index = this._state.priceLines.findIndex((l) => l.id === lineId);
+    if (index !== -1) {
+      this._state.priceLines[index] = line;
+      touch("state.priceLines");
+      this.requestUpdate();
+      this.updatePriceLinesLayer();
+      logger.debug(`ChartContainer: Updated price line ${lineId}`);
+    }
+  }
+
+  /**
+   * Clear all price lines
+   */
+  public clearPriceLines(): void {
+    this._state.priceLines = [];
+    touch("state.priceLines");
+    this.requestUpdate();
+    this.updatePriceLinesLayer();
+    logger.debug("ChartContainer: Cleared all price lines");
+  }
+
+  /**
+   * Set or update the position overlay
+   */
+  public setPositionOverlay(config: PositionOverlayConfig | null): void {
+    this._state.positionOverlay = config;
+    touch("state.positionOverlay");
+    this.requestUpdate();
+    this.updatePositionOverlay();
+
+    if (config) {
+      logger.debug(`ChartContainer: Set position overlay for ${config.symbol}`);
+    } else {
+      logger.debug("ChartContainer: Cleared position overlay");
+    }
   }
 
   private initializeInteractionController() {

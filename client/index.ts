@@ -39,6 +39,10 @@ export type ChartState = {
   trendLines?: TrendLine[];
   patternHighlights?: PatternHighlight[]; // Store pattern highlights in state
   isTransitioning?: boolean; // Flag to prevent drawing during state transitions
+  // Trading overlays for paper trading & backtesting
+  tradeMarkers?: import("./types/trading-overlays").TradeMarker[];
+  priceLines?: import("./types/trading-overlays").PriceLine[];
+  positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
 };
 
 declare global {
