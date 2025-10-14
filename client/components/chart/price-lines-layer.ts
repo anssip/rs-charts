@@ -297,7 +297,8 @@ export class PriceLinesLayer extends LitElement {
       <div
         class="line-label ${position}"
         style="
-          top: ${y - 12}px;
+          top: 0;
+          transform: translateY(-50%);
           background-color: ${bgColor};
           color: ${textColor};
           font-size: ${fontSize}px;
@@ -318,7 +319,8 @@ export class PriceLinesLayer extends LitElement {
       <div
         class="price-label"
         style="
-          top: ${y - 10}px;
+          top: 0;
+          transform: translateY(-50%);
           background-color: ${line.color};
         "
       >

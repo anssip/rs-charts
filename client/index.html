@@ -529,6 +529,104 @@
                 </div>
             </div>
 
+            <div class="control-group">
+                <label>Trade Markers:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="addBuyMarker()"
+                        style="background: #10b981; color: white"
+                    >
+                        + Buy Marker
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addSellMarker()"
+                        style="background: #ef4444; color: white"
+                    >
+                        + Sell Marker
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearAllTradeMarkers()"
+                    >
+                        Clear Markers
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Price Lines:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="addLimitOrderLine()"
+                        style="background: #3b82f6; color: white"
+                    >
+                        + Limit Order
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addStopLossLine()"
+                        style="background: #ef4444; color: white"
+                    >
+                        + Stop Loss
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addTakeProfitLine()"
+                        style="background: #10b981; color: white"
+                    >
+                        + Take Profit
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearAllPriceLines()"
+                    >
+                        Clear Lines
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Position Overlay:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="showLongPosition()"
+                        style="background: #10b981; color: white"
+                    >
+                        Long Position
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="showShortPosition()"
+                        style="background: #ef4444; color: white"
+                    >
+                        Short Position
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="togglePositionCompact()"
+                    >
+                        Toggle Compact
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="hidePositionOverlay()"
+                    >
+                        Hide Position
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="simulatePnLUpdate()"
+                        style="background: #fbbf24; color: white"
+                    >
+                        Update P&L
+                    </button>
+                </div>
+            </div>
+
             <div id="trend-line-settings" style="display: none">
                 <div class="control-group">
                     <label style="color: #4caf50">Selected Line:</label>
@@ -1035,7 +1133,7 @@
                     const filename = `${symbol}-${granularity}-${Date.now()}.png`;
 
                     await api.downloadScreenshot(filename, {
-                        format: 'png',
+                        format: "png",
                         quality: 1.0,
                         scale: 2, // 2x resolution for better quality
                     });
@@ -1057,9 +1155,9 @@
                     const filename = `${symbol}-${granularity}-${Date.now()}.jpg`;
 
                     await api.downloadScreenshot(filename, {
-                        format: 'jpeg',
+                        format: "jpeg",
                         quality: 0.95,
-                        backgroundColor: '#1a1a1a', // Dark background to match theme
+                        backgroundColor: "#1a1a1a", // Dark background to match theme
                         scale: 2,
                     });
 
@@ -1596,6 +1694,432 @@
                     updateStatus("All pattern highlights cleared");
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Trading Overlays - Trade Marker Functions
+            function addBuyMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const markerId = api.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "buy",
+                        shape: "arrow",
+                        size: "medium",
+                        text: "Entry",
+                        tooltip: {
+                            title: "Buy " + api.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `Total: $${(0.5 * candle.close).toFixed(2)}`,
+                                `Time: ${new Date(timestamp).toLocaleString()}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = api.getTradeMarkers();
+                    updateStatus(
+                        `Added buy marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding buy marker: ${error.message}`);
+                }
+            }
+
+            function addSellMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const markerId = api.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "sell",
+                        shape: "flag",
+                        size: "medium",
+                        text: "Exit",
+                        tooltip: {
+                            title: "Sell " + api.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `Total: $${(0.5 * candle.close).toFixed(2)}`,
+                                `P&L: +$${(Math.random() * 1000).toFixed(2)}`,
+                                `Time: ${new Date(timestamp).toLocaleString()}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = api.getTradeMarkers();
+                    updateStatus(
+                        `Added sell marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding sell marker: ${error.message}`);
+                }
+            }
+
+            function clearAllTradeMarkers() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTradeMarkers();
+                    updateStatus("All trade markers cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing trade markers: ${error.message}`,
+                    );
+                }
+            }
+
+            // Trading Overlays - Price Line Functions
+            function addLimitOrderLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place limit order 2% above current min price
+                    const price = priceRange.min + priceRange.range * 0.3;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#3b82f6",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Limit Buy @ $${price.toFixed(2)}`,
+                            position: "right",
+                            backgroundColor: "#3b82f6",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            orderType: "limit",
+                            side: "buy",
+                            quantity: 0.5,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added limit order line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding limit order line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addStopLossLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place stop loss 5% below max price
+                    const price = priceRange.max - priceRange.range * 0.3;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#ef4444",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        label: {
+                            text: `Stop Loss @ $${price.toFixed(2)}`,
+                            position: "left",
+                            backgroundColor: "#ef4444",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            stopType: "stop-loss",
+                            triggerPrice: price,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added stop loss line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding stop loss line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addTakeProfitLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place take profit 3% above max price
+                    const price = priceRange.max + priceRange.range * 0.1;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#10b981",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Take Profit @ $${price.toFixed(2)}`,
+                            position: "right",
+                            backgroundColor: "#10b981",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            orderType: "take-profit",
+                            targetPrice: price,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added take profit line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding take profit line: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllPriceLines() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearPriceLines();
+                    updateStatus("All price lines cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing price lines: ${error.message}`,
+                    );
+                }
+            }
+
+            // Trading Overlays - Position Overlay Functions
+            function showLongPosition() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.6;
+                    const quantity = 0.5;
+                    const unrealizedPnL =
+                        (currentPrice - entryPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((currentPrice - entryPrice) / entryPrice) * 100;
+
+                    api.setPositionOverlay({
+                        symbol: api.getSymbol(),
+                        quantity,
+                        side: "long",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-right",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(0, 0, 0, 0.9)",
+                        textColor: "#ffffff",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Long position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing long position: ${error.message}`,
+                    );
+                }
+            }
+
+            function showShortPosition() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.5;
+                    const quantity = 1.0;
+                    const unrealizedPnL =
+                        (entryPrice - currentPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((entryPrice - currentPrice) / entryPrice) * 100;
+
+                    api.setPositionOverlay({
+                        symbol: api.getSymbol(),
+                        quantity,
+                        side: "short",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-left",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                        textColor: "#000000",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Short position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing short position: ${error.message}`,
+                    );
+                }
+            }
+
+            function togglePositionCompact() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const currentPosition = api.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to toggle");
+                        return;
+                    }
+
+                    // Convert compact to boolean (handles Proxy values from xinjs state)
+                    // Use loose equality to coerce Proxy values to their primitive boolean
+                    const isCurrentlyCompact = currentPosition.compact == true;
+
+                    api.updatePositionOverlay({
+                        compact: !isCurrentlyCompact,
+                    });
+
+                    updateStatus(
+                        `Position overlay toggled to ${!isCurrentlyCompact ? "compact" : "full"} view`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error toggling position compact: ${error.message}`,
+                    );
+                }
+            }
+
+            function hidePositionOverlay() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.setPositionOverlay(null);
+                    updateStatus("Position overlay hidden");
+                } catch (error) {
+                    updateStatus(
+                        `Error hiding position overlay: ${error.message}`,
+                    );
+                }
+            }
+
+            function simulatePnLUpdate() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const currentPosition = api.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to update");
+                        return;
+                    }
+
+                    // Simulate price movement (+/- 2%)
+                    const priceChange =
+                        currentPosition.currentPrice *
+                        (Math.random() * 0.04 - 0.02);
+                    const newPrice = currentPosition.currentPrice + priceChange;
+
+                    let newPnL, newPnLPercent;
+                    if (currentPosition.side === "long") {
+                        newPnL =
+                            (newPrice - currentPosition.entryPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((newPrice - currentPosition.entryPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    } else {
+                        newPnL =
+                            (currentPosition.entryPrice - newPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((currentPosition.entryPrice - newPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    }
+
+                    api.updatePositionOverlay({
+                        currentPrice: newPrice,
+                        unrealizedPnL: newPnL,
+                        unrealizedPnLPercent: newPnLPercent,
+                    });
+
+                    updateStatus(
+                        `P&L updated: $${newPnL.toFixed(2)} (${newPnLPercent.toFixed(2)}%) @ $${newPrice.toFixed(2)}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error updating P&L: ${error.message}`);
                 }
             }
 
@@ -2151,6 +2675,70 @@ Indicators: ${
                             );
                         }
                     });
+
+                    // Trading Overlays - Trade Marker events
+                    chart1Api.on("trade-marker-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade marker clicked:", event);
+                            updateStatus(
+                                `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("trade-marker-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade marker hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Price Line events
+                    chart1Api.on("price-line-dragged", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line dragged:", event);
+                            updateStatus(
+                                `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("price-line-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line clicked:", event);
+                            updateStatus(
+                                `Price line clicked: ${event.lineId.substring(0, 30)}... at $${event.line.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("price-line-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Chart interaction events
+                    chart1Api.on("price-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price clicked:", event);
+                            updateStatus(
+                                `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("crosshair-moved", (event) => {
+                        if (
+                            currentChart === 1 &&
+                            event.price &&
+                            event.timestamp
+                        ) {
+                            // Only log occasionally to avoid spam
+                            if (Math.random() < 0.05) {
+                                console.log("Crosshair moved:", event);
+                            }
+                        }
+                    });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
@@ -2201,6 +2789,70 @@ Indicators: ${
                             updateStatus(
                                 `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
                             );
+                        }
+                    });
+
+                    // Trading Overlays - Trade Marker events
+                    chart2Api.on("trade-marker-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade marker clicked:", event);
+                            updateStatus(
+                                `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("trade-marker-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade marker hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Price Line events
+                    chart2Api.on("price-line-dragged", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line dragged:", event);
+                            updateStatus(
+                                `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("price-line-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line clicked:", event);
+                            updateStatus(
+                                `Price line clicked: ${event.lineId.substring(0, 30)}... at $${event.line.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("price-line-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Chart interaction events
+                    chart2Api.on("price-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price clicked:", event);
+                            updateStatus(
+                                `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("crosshair-moved", (event) => {
+                        if (
+                            currentChart === 2 &&
+                            event.price &&
+                            event.timestamp
+                        ) {
+                            // Only log occasionally to avoid spam
+                            if (Math.random() < 0.05) {
+                                console.log("Crosshair moved:", event);
+                            }
                         }
                     });
                 }

@@ -28,6 +28,7 @@ The Rekt Sense Charts API provides a comprehensive interface for controlling and
 12. [Migration from Legacy API](#migration-from-legacy-api)
 13. [Library Exports](#library-exports)
 14. [Build & Distribution](#build--distribution)
+15. [Trading Overlays](#trading-overlays)
 
 ## Quick Start
 
@@ -143,8 +144,8 @@ const { app, api } = await initChartWithApi(chartContainer, firebaseConfig, init
 import { initChartWithApi } from '@anssipiirainen/sc-charts';
 
 const { app, api } = await initChartWithApi(
-  chartContainer, 
-  firebaseConfig, 
+  chartContainer,
+  firebaseConfig,
   initialState?
 );
 ```
@@ -929,7 +930,9 @@ setTimeout(() => {
 }, 30000); // Clear after 30 seconds
 ```
 
-### Trading Overlays (Paper Trading & Backtesting)
+### Trading Overlays
+
+Trading Overlays are utilized in paper trading and backtesting.
 
 The Chart API provides comprehensive support for visualizing trading activity including trade markers, price lines, and position information. These features are designed for both paper trading (real-time simulated trading) and backtesting (historical strategy analysis) scenarios.
 
@@ -1959,12 +1962,12 @@ const visibleCandles = state.priceHistory.getCandlesInRange(
 if (visibleCandles.length > 0) {
   let minPrice = Infinity;
   let maxPrice = -Infinity;
-  
+
   visibleCandles.forEach(([_, candle]) => {
     minPrice = Math.min(minPrice, candle.low);
     maxPrice = Math.max(maxPrice, candle.high);
   });
-  
+
   // Add 5% padding
   const padding = (maxPrice - minPrice) * 0.05;
   api.setPriceRange({
@@ -2353,7 +2356,7 @@ api.on("ready", (data) => {
   // Now safe to call other API methods like showIndicator()
 });
 
-// Listen for symbol changes  
+// Listen for symbol changes
 api.on("symbolChange", (data) => {
   console.log(`Symbol changed: ${data.oldSymbol} → ${data.newSymbol}`);
 });
@@ -2433,7 +2436,7 @@ api.on("trend-line-selected", (data) => {
     extendLeft: data.trendLine.extendLeft,
     extendRight: data.trendLine.extendRight
   });
-  
+
   // Update UI controls to show current settings
   updateColorPicker(data.trendLine.color);
   updateLineWidthSlider(data.trendLine.lineWidth);
@@ -2703,14 +2706,14 @@ function useChart(firebaseConfig: any, initialState?: any) {
     const initChart = async () => {
       const chartContainer = createChartContainer();
       containerRef.current!.appendChild(chartContainer);
-      
+
       const { api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
       setApi(api);
       setLoading(false);
     };
 
     initChart();
-    
+
     return () => {
       api?.dispose();
     };
@@ -2736,7 +2739,7 @@ export function useChart(firebaseConfig: any, initialState?: any) {
 
     const chartContainer = createChartContainer();
     containerRef.value.appendChild(chartContainer);
-    
+
     const result = await initChartWithApi(chartContainer, firebaseConfig, initialState);
     api.value = result.api;
     loading.value = false;
@@ -2765,7 +2768,7 @@ export class ChartService {
   async initializeChart(container: HTMLElement, firebaseConfig: any, initialState?: any): Promise<ChartApi> {
     const chartContainer = createChartContainer();
     container.appendChild(chartContainer);
-    
+
     const { api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
     this.api = api;
     return api;
@@ -2961,17 +2964,17 @@ function restoreIndicatorState() {
 The Chart API is fully typed for TypeScript users:
 
 ```typescript
-import { 
-  ChartApi, 
-  Granularity, 
+import {
+  ChartApi,
+  Granularity,
   ApiIndicatorConfig,
   InitChartResult,
-  TrendLine 
+  TrendLine
 } from '@anssipiirainen/sc-charts';
 
 // Strongly typed API usage
 const { app, api }: InitChartResult = await initChartWithApi(
-  container, 
+  container,
   firebaseConfig
 );
 

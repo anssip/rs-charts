@@ -403,4 +403,21 @@ export const getStyles = (
     width: 100%;
     flex: 1;
   }
+
+  /* Flexbox container for top overlays (live-candle-display and position-overlay) */
+  .top-overlays-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .top-overlays-container > * {
+    pointer-events: auto;
+  }
 `;

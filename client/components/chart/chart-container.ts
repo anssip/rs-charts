@@ -996,12 +996,26 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></price-lines-layer>
 
-            <!-- Position Overlay (z-index: 75) -->
+            <!-- Position Overlay Entry Line Layer (full width, z-index: 75) -->
             <position-overlay
               .config=${this._state.positionOverlay}
               .state=${this._state}
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></position-overlay>
+
+            <!-- Top Overlays Container (Live Candle Display + Position Info) -->
+            <div class="top-overlays-container">
+              <!-- Live Candle Display -->
+              <live-candle-display></live-candle-display>
+
+              <!-- Position Info Box -->
+              <position-overlay
+                .config=${this._state.positionOverlay}
+                .state=${this._state}
+                .hideEntryLine=${true}
+                style="--price-axis-width: ${this.priceAxisWidth}px"
+              ></position-overlay>
+            </div>
 
             <!-- Trading Markers Layer (z-index: 100) -->
             <trading-markers-layer
@@ -1123,8 +1137,6 @@ export class ChartContainer extends LitElement {
           this.showCandleTooltip = false;
         }}
       ></candle-tooltip>
-      <!-- Live Candle Display -->
-      <live-candle-display></live-candle-display>
     `;
   }
 
