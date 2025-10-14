@@ -2,6 +2,7 @@
 import { ChartContainer } from "../components/chart/chart-container";
 import { App } from "../app";
 import { ChartState } from "../index";
+import { xinValue } from "xinjs";
 import {
   Granularity,
   getAllGranularities,
@@ -408,7 +409,7 @@ export class ChartApi {
    * Get all currently visible indicators
    */
   getVisibleIndicators(): IndicatorConfig[] {
-    return this.state.indicators || [];
+    return (xinValue(this.state.indicators) as IndicatorConfig[]) || [];
   }
 
   /**
@@ -735,7 +736,28 @@ export class ChartApi {
    * Get the current chart state
    */
   getState(): ChartState {
-    return this.state;
+    // Return a plain object with all proxy values unwrapped
+    return {
+      timeRange: {
+        start: Number(xinValue(this.state.timeRange.start)),
+        end: Number(xinValue(this.state.timeRange.end)),
+      },
+      symbol: String(xinValue(this.state.symbol)),
+      granularity: String(xinValue(this.state.granularity)) as Granularity,
+      priceRange: xinValue(this.state.priceRange) as PriceRange,
+      priceHistory: xinValue(this.state.priceHistory),
+      liveCandle: xinValue(this.state.liveCandle) as LiveCandle | null,
+      loading: Boolean(xinValue(this.state.loading)),
+      canvasWidth: Number(xinValue(this.state.canvasWidth)) || 0,
+      canvasHeight: Number(xinValue(this.state.canvasHeight)) || 0,
+      indicators: (xinValue(this.state.indicators) as IndicatorConfig[]) || [],
+      trendLines: xinValue(this.state.trendLines) || [],
+      patternHighlights: xinValue(this.state.patternHighlights) || [],
+      isTransitioning: Boolean(xinValue(this.state.isTransitioning)),
+      tradeMarkers: xinValue(this.state.tradeMarkers) || [],
+      priceLines: xinValue(this.state.priceLines) || [],
+      positionOverlay: xinValue(this.state.positionOverlay) || null,
+    };
   }
 
   /**
@@ -830,8 +852,8 @@ export class ChartApi {
    * @returns PriceRange object with min, max, and range values
    */
   getPriceRange(): PriceRange {
-    // Return the actual PriceRange object to preserve methods
-    return this.state.priceRange;
+    // Return the actual PriceRange object to preserve methods, unwrapped from proxy
+    return xinValue(this.state.priceRange) as PriceRange;
   }
 
   /**
@@ -841,9 +863,10 @@ export class ChartApi {
   getCandles(): [number, Candle][] {
     // Get candles from the price history within the current time range
     const timeRange = this.state.timeRange;
-    return this.state.priceHistory.getCandlesInRange(
-      timeRange.start,
-      timeRange.end,
+    const priceHistory = xinValue(this.state.priceHistory);
+    return priceHistory.getCandlesInRange(
+      Number(xinValue(timeRange.start)),
+      Number(xinValue(timeRange.end)),
     );
   }
 
@@ -1675,7 +1698,7 @@ export class ChartApi {
    * @returns Array of trade markers
    */
   getTradeMarkers(): TradeMarker[] {
-    return this.state.tradeMarkers || [];
+    return (xinValue(this.state.tradeMarkers) as TradeMarker[]) || [];
   }
 
   /**
@@ -1810,7 +1833,7 @@ export class ChartApi {
    * @returns Array of price lines
    */
   getPriceLines(): PriceLine[] {
-    return this.state.priceLines || [];
+    return (xinValue(this.state.priceLines) as PriceLine[]) || [];
   }
 
   /**
@@ -1819,8 +1842,9 @@ export class ChartApi {
    * @returns The price line or null if not found
    */
   getPriceLine(lineId: string): PriceLine | null {
-    if (!this.state.priceLines) return null;
-    return this.state.priceLines.find((l) => l.id === lineId) || null;
+    const priceLines = xinValue(this.state.priceLines) as PriceLine[];
+    if (!priceLines) return null;
+    return priceLines.find((l) => l.id === lineId) || null;
   }
 
   /**
@@ -1870,7 +1894,7 @@ export class ChartApi {
    * @returns Position overlay config or null if not set
    */
   getPositionOverlay(): PositionOverlayConfig | null {
-    return this.state.positionOverlay || null;
+    return (xinValue(this.state.positionOverlay) as PositionOverlayConfig) || null;
   }
 
   /**
