@@ -2,7 +2,6 @@ import { elements } from "xinjs";
 import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
-import "./components/chart/click-to-trade-overlay";
 import { ChartContainer } from "./components/chart/chart-container";
 import {
   IndicatorConfig,

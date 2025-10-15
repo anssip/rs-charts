@@ -32,8 +32,6 @@ import "./indicators/market-indicator";
 import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
-import "./click-to-trade-overlay";
-import { ClickToTradeOverlay } from "./click-to-trade-overlay";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
@@ -162,7 +160,6 @@ export class ChartContainer extends LitElement {
 
   private interactionController?: ChartInteractionController;
   private clickToTradeController?: ClickToTradeController;
-  private clickToTradeOverlay?: ClickToTradeOverlay;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -1169,13 +1166,6 @@ export class ChartContainer extends LitElement {
                 class="grid-crosshairs"
               ></chart-crosshairs>`
             : ""}
-
-          <!-- Click-to-Trade Overlay -->
-          <click-to-trade-overlay
-            class="click-to-trade-overlay"
-            .config=${this._state.clickToTrade}
-            style="display: ${this._state.clickToTrade?.enabled ? 'block' : 'none'}"
-          ></click-to-trade-overlay>
         </div>
 
         <div class="timeline-container">
@@ -1958,13 +1948,6 @@ export class ChartContainer extends LitElement {
     touch("state.clickToTrade");
     this.requestUpdate();
 
-    // Get overlay reference if not already cached
-    if (!this.clickToTradeOverlay) {
-      this.clickToTradeOverlay = this.renderRoot.querySelector(
-        "click-to-trade-overlay"
-      ) as ClickToTradeOverlay;
-    }
-
     // Initialize controller if not exists
     if (!this.clickToTradeController) {
       this.clickToTradeController = new ClickToTradeController({
@@ -1982,11 +1965,6 @@ export class ChartContainer extends LitElement {
           );
         },
         onPriceHover: (data: PriceHoverEvent) => {
-          // Update overlay with hover data
-          if (this.clickToTradeOverlay) {
-            this.clickToTradeOverlay.updateHover(data);
-          }
-
           // Emit event for Chart API
           this.dispatchEvent(
             new CustomEvent("price-hover", {
@@ -2024,11 +2002,6 @@ export class ChartContainer extends LitElement {
     // Disable controller
     if (this.clickToTradeController) {
       this.clickToTradeController.disable();
-    }
-
-    // Clear overlay hover state
-    if (this.clickToTradeOverlay) {
-      this.clickToTradeOverlay.updateHover(null);
     }
 
     logger.info("ChartContainer: Click-to-trade mode disabled");

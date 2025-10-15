@@ -8,6 +8,7 @@ import { LiveCandle } from "../api/live-candle-subscription";
 import { PriceRange } from "../../server/services/price-data/price-history-model";
 import { SimplePriceHistory } from "../../server/services/price-data/price-history-model";
 import { IndicatorConfig } from "../components/chart/indicators/indicator-types";
+import { ClickToTradeConfig } from "../types/trading-overlays";
 
 export class ChartStateManager {
   constructor() {
@@ -74,6 +75,14 @@ export class ChartStateManager {
     xin["state.loading"] = value;
   }
 
+  get clickToTrade(): ClickToTradeConfig | null {
+    return xinValue(xin["state.clickToTrade"]) as ClickToTradeConfig | null;
+  }
+
+  set clickToTrade(value: ClickToTradeConfig | null) {
+    xin["state.clickToTrade"] = value;
+  }
+
   // Helper methods for common operations
   updateTimeRange(start: number, end: number) {
     this.timeRange = { start, end };
@@ -97,6 +106,7 @@ export class ChartStateManager {
       canvasWidth: Number(xinValue(xin["state.canvasWidth"])) || 0,
       canvasHeight: Number(xinValue(xin["state.canvasHeight"])) || 0,
       indicators: (xinValue(xin["state.indicators"]) as IndicatorConfig[]) || [],
+      clickToTrade: this.clickToTrade,
     };
   }
 }

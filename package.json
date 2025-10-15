@@ -1,6 +1,6 @@
 {
   "name": "@anssip/rs-charts",
-  "version": "1.2.44",
+  "version": "1.2.46",
   "type": "module",
   "description": "Web components for SpotCanvas charting",
   "keywords": [
