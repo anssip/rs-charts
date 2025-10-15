@@ -204,12 +204,18 @@ export const getStyles = (
     min-height: 0;
     overflow: hidden;
     height: 100%;
-    pointer-events: auto;
+    pointer-events: none;
     cursor: crosshair;
   }
 
   indicator-stack.main-chart:active {
     cursor: grabbing;
+  }
+
+  /* Allow specific interactive elements to receive pointer events */
+  indicator-stack.main-chart candlestick-chart,
+  indicator-stack.main-chart price-axis {
+    pointer-events: auto;
   }
 
   /* Style elements by their grid area attribute */

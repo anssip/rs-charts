@@ -177,6 +177,7 @@ export interface TradeZoneConfig {
   borderColor?: string;           // Border color
   borderWidth?: number;           // Border thickness
   showPnL?: boolean;              // Display P&L text in zone (default: true)
+  textColor?: string;             // Text color for P&L label (default: auto based on P&L - green/red)
   metadata?: {
     quantity?: number;
     pnl?: number;
@@ -190,9 +191,26 @@ export interface TradeZoneConfig {
 /**
  * Complete trade zone with generated ID
  */
-export interface TradeZone extends Required<Omit<TradeZoneConfig, 'id' | 'metadata'>> {
+export interface TradeZone extends Required<Omit<TradeZoneConfig, 'id' | 'metadata' | 'textColor'>> {
   id: string;
+  textColor?: string;
   metadata?: TradeZoneConfig['metadata'];
+}
+
+/**
+ * Event emitted when a trade zone is clicked
+ */
+export interface TradeZoneClickedEvent {
+  zoneId: string;
+  zone: TradeZone;
+}
+
+/**
+ * Event emitted when mouse hovers over a trade zone
+ */
+export interface TradeZoneHoveredEvent {
+  zoneId: string;
+  zone: TradeZone;
 }
 
 // ============================================================================

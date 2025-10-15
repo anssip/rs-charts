@@ -627,6 +627,46 @@
                 </div>
             </div>
 
+            <div class="control-group">
+                <label>Trade Zones:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="addProfitableTradeZone()"
+                        style="background: #10b981; color: white"
+                    >
+                        + Profit Zone
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addLosingTradeZone()"
+                        style="background: #ef4444; color: white"
+                    >
+                        + Loss Zone
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addLongTradeZone()"
+                        style="background: #3b82f6; color: white"
+                    >
+                        + Long Trade
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addShortTradeZone()"
+                        style="background: #f59e0b; color: white"
+                    >
+                        + Short Trade
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearAllTradeZones()"
+                    >
+                        Clear Zones
+                    </button>
+                </div>
+            </div>
+
             <div id="trend-line-settings" style="display: none">
                 <div class="control-group">
                     <label style="color: #4caf50">Selected Line:</label>
@@ -2123,6 +2163,198 @@
                 }
             }
 
+            // Trading Overlays - Trade Zone Functions
+            function addProfitableTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus("Not enough candles visible to add trade zone");
+                        return;
+                    }
+
+                    // Pick a random range for the trade
+                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const duration = 5 + Math.floor(Math.random() * 8); // 5-12 candles
+                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 1.03; // 3% profit
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        textColor: '#ffffff', // White text for better visibility over candles
+                        metadata: {
+                            side: 'long',
+                            quantity,
+                            pnl,
+                            pnlPercent
+                        }
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding profitable trade zone: ${error.message}`);
+                }
+            }
+
+            function addLosingTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus("Not enough candles visible to add trade zone");
+                        return;
+                    }
+
+                    // Pick a random range for the trade
+                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const duration = 3 + Math.floor(Math.random() * 5); // 3-7 candles (shorter losing trade)
+                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 0.98; // 2% loss
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: 'long',
+                            quantity,
+                            pnl,
+                            pnlPercent
+                        }
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding losing trade zone: ${error.message}`);
+                }
+            }
+
+            function addLongTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Create a trade zone in the middle of the visible range
+                    const duration = (timeRange.end - timeRange.start) * 0.2; // 20% of visible time
+                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const exitPrice = priceRange.min + priceRange.range * 0.6; // Higher exit = profit
+
+                    const quantity = 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: 'long',
+                            quantity,
+                            pnl,
+                            pnlPercent
+                        }
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added long trade zone. Total zones: ${zones.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding long trade zone: ${error.message}`);
+                }
+            }
+
+            function addShortTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Create a trade zone in the middle of the visible range
+                    const duration = (timeRange.end - timeRange.start) * 0.15; // 15% of visible time
+                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const exitPrice = priceRange.min + priceRange.range * 0.5; // Lower exit = profit for short
+
+                    const quantity = 0.3;
+                    const pnl = (entryPrice - exitPrice) * quantity; // Reversed for short
+                    const pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: 'short',
+                            quantity,
+                            pnl,
+                            pnlPercent
+                        }
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added short trade zone. Total zones: ${zones.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding short trade zone: ${error.message}`);
+                }
+            }
+
+            function clearAllTradeZones() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTradeZones();
+                    updateStatus("All trade zones cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing trade zones: ${error.message}`);
+                }
+            }
+
             // Pulsating Wave Effect Function
             function createPulseWave() {
                 const api = getCurrentApi();
@@ -2717,6 +2949,31 @@ Indicators: ${
                         }
                     });
 
+                    // Trading Overlays - Trade Zone events
+                    chart1Api.on("trade-zone-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade zone clicked:", event);
+                            updateStatus(
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`
+                            );
+                        }
+                    });
+
+                    chart1Api.on("trade-zone-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade zone hovered:", event);
+                            const pnlText = event.zone.metadata?.pnl !== undefined
+                                ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                : '';
+                            const pnlPercentText = event.zone.metadata?.pnlPercent !== undefined
+                                ? `(${event.zone.metadata.pnlPercent >= 0 ? '+' : ''}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                : '';
+                            updateStatus(
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim()
+                            );
+                        }
+                    });
+
                     // Trading Overlays - Chart interaction events
                     chart1Api.on("price-clicked", (event) => {
                         if (currentChart === 1) {
@@ -2830,6 +3087,31 @@ Indicators: ${
                     chart2Api.on("price-line-hovered", (event) => {
                         if (currentChart === 2) {
                             console.log("Price line hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Trade Zone events
+                    chart2Api.on("trade-zone-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade zone clicked:", event);
+                            updateStatus(
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`
+                            );
+                        }
+                    });
+
+                    chart2Api.on("trade-zone-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade zone hovered:", event);
+                            const pnlText = event.zone.metadata?.pnl !== undefined
+                                ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                : '';
+                            const pnlPercentText = event.zone.metadata?.pnlPercent !== undefined
+                                ? `(${event.zone.metadata.pnlPercent >= 0 ? '+' : ''}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                : '';
+                            updateStatus(
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim()
+                            );
                         }
                     });
 

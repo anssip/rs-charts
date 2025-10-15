@@ -48,11 +48,13 @@ import { PatternLabelsLayer } from "./pattern-labels-layer";
 import { PatternHighlight } from "../../types/markers";
 import "./trading-markers-layer";
 import "./price-lines-layer";
+import "./trade-zones-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
+import { TradeZonesLayer } from "./trade-zones-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
-import { TradeMarker, PriceLine, PositionOverlayConfig } from "../../types/trading-overlays";
+import { TradeMarker, PriceLine, TradeZone, PositionOverlayConfig } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -161,6 +163,7 @@ export class ChartContainer extends LitElement {
   private patternLabelsLayer?: PatternLabelsLayer;
   private tradingMarkersLayer?: TradingMarkersLayer;
   private priceLinesLayer?: PriceLinesLayer;
+  private tradeZonesLayer?: TradeZonesLayer;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -272,6 +275,17 @@ export class ChartContainer extends LitElement {
       logger.debug("ChartContainer: Found price lines layer");
       setTimeout(() => {
         this.updatePriceLinesLayer();
+      }, 100);
+    }
+
+    // Get trade zones layer reference and set initial dimensions
+    this.tradeZonesLayer = this.renderRoot.querySelector(
+      "trade-zones-layer",
+    ) as TradeZonesLayer;
+    if (this.tradeZonesLayer) {
+      logger.debug("ChartContainer: Found trade zones layer");
+      setTimeout(() => {
+        this.updateTradeZonesLayer();
       }, 100);
     }
 
@@ -472,6 +486,7 @@ export class ChartContainer extends LitElement {
     // Update trading overlay layers
     this.updateTradingMarkersLayer();
     this.updatePriceLinesLayer();
+    this.updateTradeZonesLayer();
     this.updatePositionOverlay();
   }
 
@@ -561,6 +576,25 @@ export class ChartContainer extends LitElement {
 
       priceLinesLayer.state = this._state;
       priceLinesLayer.requestUpdate();
+    }
+  }
+
+  private updateTradeZonesLayer() {
+    const tradeZonesLayer = this.renderRoot.querySelector(
+      "trade-zones-layer",
+    ) as TradeZonesLayer;
+    if (tradeZonesLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        tradeZonesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        tradeZonesLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      tradeZonesLayer.state = this._state;
+      tradeZonesLayer.requestUpdate();
     }
   }
 
@@ -988,6 +1022,13 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
               @pattern-click=${this.handlePatternClick}
             ></pattern-labels-layer>
+
+            <!-- Trade Zones Layer (z-index: 0) -->
+            <trade-zones-layer
+              .zones=${this._state.tradeZones || []}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></trade-zones-layer>
 
             <!-- Price Lines Layer (z-index: 50) -->
             <price-lines-layer
@@ -1814,6 +1855,63 @@ export class ChartContainer extends LitElement {
     this.requestUpdate();
     this.updatePriceLinesLayer();
     logger.debug("ChartContainer: Cleared all price lines");
+  }
+
+  /**
+   * Add a trade zone to the chart
+   */
+  public addTradeZone(zone: TradeZone): void {
+    if (!this._state.tradeZones) {
+      this._state.tradeZones = [];
+    }
+    this._state.tradeZones.push(zone);
+    touch("state.tradeZones");
+    this.requestUpdate();
+    this.updateTradeZonesLayer();
+    logger.debug(`ChartContainer: Added trade zone ${zone.id}`);
+  }
+
+  /**
+   * Remove a trade zone from the chart
+   */
+  public removeTradeZone(zoneId: string): void {
+    if (!this._state.tradeZones) return;
+
+    const index = this._state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index !== -1) {
+      this._state.tradeZones.splice(index, 1);
+      touch("state.tradeZones");
+      this.requestUpdate();
+      this.updateTradeZonesLayer();
+      logger.debug(`ChartContainer: Removed trade zone ${zoneId}`);
+    }
+  }
+
+  /**
+   * Update an existing trade zone
+   */
+  public updateTradeZone(zoneId: string, zone: TradeZone): void {
+    if (!this._state.tradeZones) return;
+
+    const index = this._state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index !== -1) {
+      this._state.tradeZones[index] = zone;
+      touch("state.tradeZones");
+      this.requestUpdate();
+      this.updateTradeZonesLayer();
+      logger.debug(`ChartContainer: Updated trade zone ${zoneId}`);
+    }
+  }
+
+  /**
+   * Clear all trade zones
+   */
+  public clearTradeZones(): void {
+    this._state.tradeZones = [];
+    touch("state.tradeZones");
+    this.requestUpdate();
+    this.updateTradeZonesLayer();
+    logger.debug("ChartContainer: Cleared all trade zones");
   }
 
   /**

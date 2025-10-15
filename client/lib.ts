@@ -48,6 +48,28 @@ export { getAllGranularities, granularityLabel } from "../server/services/price-
 // Export trend line types
 export type { TrendLine, TrendLineDefaults, TrendLineEvent, TrendLinePoint } from "./types/trend-line";
 
+// Export trading overlay types for paper trading and backtesting
+export type {
+  TradeMarker,
+  TradeMarkerConfig,
+  TradeMarkerClickedEvent,
+  TradeMarkerHoveredEvent,
+  PriceLine,
+  PriceLineConfig,
+  PriceLineDraggedEvent,
+  PriceLineClickedEvent,
+  PriceLineHoveredEvent,
+  TradeZone,
+  TradeZoneConfig,
+  TradeZoneClickedEvent,
+  TradeZoneHoveredEvent,
+  PositionOverlayConfig,
+  PriceClickedEvent,
+  TimeClickedEvent,
+  CrosshairMovedEvent,
+} from "./types/trading-overlays";
+export { TRADING_OVERLAY_COLORS, TRADE_MARKER_SIZES } from "./types/trading-overlays";
+
 // You might want to export related types if consumers need them
 export type { ChartState } from "./index"; // Export ChartState type as well
 // Consider defining shared types in a separate file if needed.

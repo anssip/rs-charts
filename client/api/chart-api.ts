@@ -3,6 +3,7 @@ import { ChartContainer } from "../components/chart/chart-container";
 import { App } from "../app";
 import { ChartState } from "../index";
 import { xinValue } from "xinjs";
+import { LiveCandle } from "./live-candle-subscription";
 import {
   Granularity,
   getAllGranularities,
@@ -42,6 +43,10 @@ import {
   PriceLineDraggedEvent,
   PriceLineClickedEvent,
   PriceLineHoveredEvent,
+  TradeZone,
+  TradeZoneConfig,
+  TradeZoneClickedEvent,
+  TradeZoneHoveredEvent,
   PositionOverlayConfig,
   PriceClickedEvent,
   TimeClickedEvent,
@@ -174,6 +179,8 @@ export interface ChartApiEventMap {
   "price-line-dragged": PriceLineDraggedEvent;
   "price-line-clicked": PriceLineClickedEvent;
   "price-line-hovered": PriceLineHoveredEvent;
+  "trade-zone-clicked": TradeZoneClickedEvent;
+  "trade-zone-hovered": TradeZoneHoveredEvent;
   "price-clicked": PriceClickedEvent;
   "time-clicked": TimeClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
@@ -289,6 +296,16 @@ export class ChartApi {
     this.container.addEventListener("price-line-hovered", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("price-line-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("trade-zone-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-zone-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("trade-zone-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-zone-hovered", customEvent.detail);
     });
 
     this.container.addEventListener("price-clicked", (event: Event) => {
@@ -756,6 +773,7 @@ export class ChartApi {
       isTransitioning: Boolean(xinValue(this.state.isTransitioning)),
       tradeMarkers: xinValue(this.state.tradeMarkers) || [],
       priceLines: xinValue(this.state.priceLines) || [],
+      tradeZones: xinValue(this.state.tradeZones) || [],
       positionOverlay: xinValue(this.state.positionOverlay) || null,
     };
   }
@@ -1914,6 +1932,162 @@ export class ChartApi {
 
     this.setPositionOverlay(updatedOverlay);
     logger.info("ChartApi: Updated position overlay");
+  }
+
+  // ============================================================================
+  // Trade Zones (Completed Trade Duration Visualization)
+  // ============================================================================
+
+  /**
+   * Add a trade zone to the chart
+   * @param config Trade zone configuration
+   * @returns The ID of the created trade zone
+   */
+  addTradeZone(config: TradeZoneConfig): string {
+    const id = config.id || `trade-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Determine fill color if not specified
+    let fillColor = config.fillColor;
+    if (!fillColor && config.metadata?.side) {
+      // Auto-detect profit/loss based on entry/exit prices and side
+      const isProfitable = config.metadata.side === 'short'
+        ? config.entryPrice > config.exitPrice
+        : config.exitPrice > config.entryPrice;
+      fillColor = isProfitable ? TRADING_OVERLAY_COLORS.profitZone : TRADING_OVERLAY_COLORS.lossZone;
+    }
+
+    // Create full zone with defaults
+    const zone: TradeZone = {
+      id,
+      startTimestamp: config.startTimestamp,
+      endTimestamp: config.endTimestamp,
+      entryPrice: config.entryPrice,
+      exitPrice: config.exitPrice,
+      fillColor: fillColor || TRADING_OVERLAY_COLORS.profitZone,
+      fillOpacity: config.fillOpacity !== undefined ? config.fillOpacity : 0.2,
+      borderColor: config.borderColor || fillColor || TRADING_OVERLAY_COLORS.profitZone,
+      borderWidth: config.borderWidth !== undefined ? config.borderWidth : 1,
+      showPnL: config.showPnL !== undefined ? config.showPnL : true,
+      textColor: config.textColor,
+      metadata: config.metadata,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 0,
+    };
+
+    // Add to state array
+    if (!this.state.tradeZones) {
+      this.state.tradeZones = [];
+    }
+    this.state.tradeZones.push(zone);
+
+    // Notify container about new zone
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addTradeZone) {
+      chartContainer.addTradeZone(zone);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Added trade zone ${id} (${config.entryPrice} -> ${config.exitPrice})`);
+    return id;
+  }
+
+  /**
+   * Remove a trade zone from the chart
+   * @param zoneId The ID of the trade zone to remove
+   */
+  removeTradeZone(zoneId: string): void {
+    if (!this.state.tradeZones) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const index = this.state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found`);
+      return;
+    }
+
+    this.state.tradeZones.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeTradeZone) {
+      chartContainer.removeTradeZone(zoneId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed trade zone ${zoneId}`);
+  }
+
+  /**
+   * Update an existing trade zone
+   * @param zoneId The ID of the trade zone to update
+   * @param updates Partial trade zone updates
+   */
+  updateTradeZone(zoneId: string, updates: Partial<TradeZoneConfig>): void {
+    if (!this.state.tradeZones) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const index = this.state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const zone = this.state.tradeZones[index];
+    const updatedZone: TradeZone = {
+      ...zone,
+      ...updates,
+      id: zoneId, // Preserve ID
+    };
+
+    this.state.tradeZones[index] = updatedZone;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateTradeZone) {
+      chartContainer.updateTradeZone(zoneId, updatedZone);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated trade zone ${zoneId}`);
+  }
+
+  /**
+   * Get all trade zones
+   * @returns Array of trade zones
+   */
+  getTradeZones(): TradeZone[] {
+    return (xinValue(this.state.tradeZones) as TradeZone[]) || [];
+  }
+
+  /**
+   * Get a specific trade zone by ID
+   * @param zoneId The ID of the trade zone
+   * @returns The trade zone or null if not found
+   */
+  getTradeZone(zoneId: string): TradeZone | null {
+    const tradeZones = xinValue(this.state.tradeZones) as TradeZone[];
+    if (!tradeZones) return null;
+    return tradeZones.find((z) => z.id === zoneId) || null;
+  }
+
+  /**
+   * Clear all trade zones
+   */
+  clearTradeZones(): void {
+    this.state.tradeZones = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearTradeZones) {
+      chartContainer.clearTradeZones();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all trade zones");
   }
 
   // ============================================================================

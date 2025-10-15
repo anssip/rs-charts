@@ -42,6 +42,7 @@ export type ChartState = {
   // Trading overlays for paper trading & backtesting
   tradeMarkers?: import("./types/trading-overlays").TradeMarker[];
   priceLines?: import("./types/trading-overlays").PriceLine[];
+  tradeZones?: import("./types/trading-overlays").TradeZone[];
   positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
 };
 
@@ -212,6 +213,41 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
 
+  // Add sample trade zones for testing after chart is ready
+  chart1Result.api.on('ready', () => {
+    logger.info("Chart 1 ready - adding sample trade zones");
+
+    // Add a profitable long trade zone
+    chart1Result.api.addTradeZone({
+      startTimestamp: now - 15 * hourInMs,
+      endTimestamp: now - 10 * hourInMs,
+      entryPrice: 99000,
+      exitPrice: 101000,
+      metadata: {
+        side: 'long',
+        quantity: 0.1,
+        pnl: 200,
+        pnlPercent: 2.02
+      }
+    });
+
+    // Add a losing short trade zone
+    chart1Result.api.addTradeZone({
+      startTimestamp: now - 8 * hourInMs,
+      endTimestamp: now - 5 * hourInMs,
+      entryPrice: 100000,
+      exitPrice: 101500,
+      metadata: {
+        side: 'short',
+        quantity: 0.05,
+        pnl: -75,
+        pnlPercent: -1.5
+      }
+    });
+
+    logger.info("Sample trade zones added to chart 1");
+  });
+
   // Initialize second chart if it exists
   let chartContainerElement2: ChartContainer | null = null;
   let chart2Result: any = null;
@@ -284,6 +320,41 @@ window.addEventListener("DOMContentLoaded", () => {
       trendLines: ethTrendLines,
     });
     logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
+
+    // Add sample trade zones for testing after chart is ready
+    chart2Result.api.on('ready', () => {
+      logger.info("Chart 2 ready - adding sample trade zones");
+
+      // Add a profitable short trade zone for ETH
+      chart2Result.api.addTradeZone({
+        startTimestamp: now - 12 * hourInMs,
+        endTimestamp: now - 7 * hourInMs,
+        entryPrice: 3800,
+        exitPrice: 3700,
+        metadata: {
+          side: 'short',
+          quantity: 2,
+          pnl: 200,
+          pnlPercent: 2.63
+        }
+      });
+
+      // Add a losing long trade zone for ETH
+      chart2Result.api.addTradeZone({
+        startTimestamp: now - 5 * hourInMs,
+        endTimestamp: now - 2 * hourInMs,
+        entryPrice: 3750,
+        exitPrice: 3700,
+        metadata: {
+          side: 'long',
+          quantity: 1.5,
+          pnl: -75,
+          pnlPercent: -1.33
+        }
+      });
+
+      logger.info("Sample trade zones added to chart 2");
+    });
   }
 
   logger.info(
