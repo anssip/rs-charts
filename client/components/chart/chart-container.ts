@@ -31,6 +31,9 @@ import "./indicators/indicator-container";
 import "./indicators/market-indicator";
 import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
+import { ClickToTradeController } from "./interaction/click-to-trade-controller";
+import "./click-to-trade-overlay";
+import { ClickToTradeOverlay } from "./click-to-trade-overlay";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
@@ -54,7 +57,7 @@ import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
 import { TradeZonesLayer } from "./trade-zones-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
-import { TradeMarker, PriceLine, TradeZone, PositionOverlayConfig } from "../../types/trading-overlays";
+import { TradeMarker, PriceLine, TradeZone, PositionOverlayConfig, ClickToTradeConfig, OrderRequestData, PriceHoverEvent } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -158,6 +161,8 @@ export class ChartContainer extends LitElement {
   private showCandleTooltip = false;
 
   private interactionController?: ChartInteractionController;
+  private clickToTradeController?: ClickToTradeController;
+  private clickToTradeOverlay?: ClickToTradeOverlay;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -708,6 +713,7 @@ export class ChartContainer extends LitElement {
     }
 
     this.interactionController?.detach();
+    this.clickToTradeController?.disable();
   }
 
   @property({ type: Object })
@@ -1163,6 +1169,13 @@ export class ChartContainer extends LitElement {
                 class="grid-crosshairs"
               ></chart-crosshairs>`
             : ""}
+
+          <!-- Click-to-Trade Overlay -->
+          <click-to-trade-overlay
+            class="click-to-trade-overlay"
+            .config=${this._state.clickToTrade}
+            style="display: ${this._state.clickToTrade?.enabled ? 'block' : 'none'}"
+          ></click-to-trade-overlay>
         </div>
 
         <div class="timeline-container">
@@ -1928,6 +1941,104 @@ export class ChartContainer extends LitElement {
     } else {
       logger.debug("ChartContainer: Cleared position overlay");
     }
+  }
+
+  // ============================================================================
+  // Click-to-Trade Methods
+  // ============================================================================
+
+  /**
+   * Enable click-to-trade mode with the specified configuration
+   */
+  public enableClickToTrade(config: ClickToTradeConfig): void {
+    logger.info("ChartContainer: Enabling click-to-trade mode");
+
+    // Update state
+    this._state.clickToTrade = { ...config, enabled: true };
+    touch("state.clickToTrade");
+    this.requestUpdate();
+
+    // Get overlay reference if not already cached
+    if (!this.clickToTradeOverlay) {
+      this.clickToTradeOverlay = this.renderRoot.querySelector(
+        "click-to-trade-overlay"
+      ) as ClickToTradeOverlay;
+    }
+
+    // Initialize controller if not exists
+    if (!this.clickToTradeController) {
+      this.clickToTradeController = new ClickToTradeController({
+        container: this as HTMLElement,
+        state: this._state,
+        config: this._state.clickToTrade,
+        onOrderRequest: (data: OrderRequestData) => {
+          // Emit event for Chart API
+          this.dispatchEvent(
+            new CustomEvent("order-request", {
+              detail: data,
+              bubbles: true,
+              composed: true,
+            })
+          );
+        },
+        onPriceHover: (data: PriceHoverEvent) => {
+          // Update overlay with hover data
+          if (this.clickToTradeOverlay) {
+            this.clickToTradeOverlay.updateHover(data);
+          }
+
+          // Emit event for Chart API
+          this.dispatchEvent(
+            new CustomEvent("price-hover", {
+              detail: data,
+              bubbles: true,
+              composed: true,
+            })
+          );
+        },
+      });
+    } else {
+      // Update existing controller config
+      this.clickToTradeController.updateConfig(this._state.clickToTrade);
+    }
+
+    // Enable the controller
+    this.clickToTradeController.enable();
+
+    logger.info("ChartContainer: Click-to-trade mode enabled");
+  }
+
+  /**
+   * Disable click-to-trade mode
+   */
+  public disableClickToTrade(): void {
+    logger.info("ChartContainer: Disabling click-to-trade mode");
+
+    // Update state
+    if (this._state.clickToTrade) {
+      this._state.clickToTrade = { ...this._state.clickToTrade, enabled: false };
+      touch("state.clickToTrade");
+      this.requestUpdate();
+    }
+
+    // Disable controller
+    if (this.clickToTradeController) {
+      this.clickToTradeController.disable();
+    }
+
+    // Clear overlay hover state
+    if (this.clickToTradeOverlay) {
+      this.clickToTradeOverlay.updateHover(null);
+    }
+
+    logger.info("ChartContainer: Click-to-trade mode disabled");
+  }
+
+  /**
+   * Check if click-to-trade mode is enabled
+   */
+  public isClickToTradeEnabled(): boolean {
+    return this._state.clickToTrade?.enabled === true;
   }
 
   private initializeInteractionController() {

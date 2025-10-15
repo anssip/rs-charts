@@ -2,6 +2,7 @@ import { elements } from "xinjs";
 import "./components/chart/chart-container";
 import "./components/chart/chart";
 import "./components/chart/timeline";
+import "./components/chart/click-to-trade-overlay";
 import { ChartContainer } from "./components/chart/chart-container";
 import {
   IndicatorConfig,
@@ -44,6 +45,7 @@ export type ChartState = {
   priceLines?: import("./types/trading-overlays").PriceLine[];
   tradeZones?: import("./types/trading-overlays").TradeZone[];
   positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
+  clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
 };
 
 declare global {

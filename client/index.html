@@ -667,6 +667,46 @@
                 </div>
             </div>
 
+            <!-- Click-to-Trade Section -->
+            <div
+                class="control-group"
+                style="
+                    border-top: 1px solid rgba(143, 143, 143, 0.2);
+                    padding-top: 10px;
+                    margin-top: 10px;
+                "
+            >
+                <label>Click-to-Trade:</label>
+                <div class="control-buttons">
+                    <button
+                        id="enable-click-to-trade-btn"
+                        class="control-button"
+                        onclick="enableClickToTradeMode()"
+                        style="background: #10b981; color: white"
+                    >
+                        Enable Click-to-Trade
+                    </button>
+                    <button
+                        id="disable-click-to-trade-btn"
+                        class="control-button"
+                        onclick="disableClickToTradeMode()"
+                        style="background: #ef4444; color: white"
+                    >
+                        Disable Click-to-Trade
+                    </button>
+                </div>
+                <div
+                    style="
+                        font-size: 11px;
+                        color: #888;
+                        margin-top: 8px;
+                        line-height: 1.4;
+                    "
+                >
+                    Click chart to place order. Hold Shift to toggle buy/sell.
+                </div>
+            </div>
+
             <div id="trend-line-settings" style="display: none">
                 <div class="control-group">
                     <label style="color: #4caf50">Selected Line:</label>
@@ -2355,6 +2395,63 @@
                 }
             }
 
+            // Click-to-Trade Functions
+            function enableClickToTradeMode() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    // Enable click-to-trade with default configuration
+                    api.enableClickToTrade({
+                        enabled: true,
+                        defaultSide: 'buy',
+                        showCrosshair: true,
+                        showPriceLabel: true,
+                        showOrderPreview: true,
+                        allowSideToggle: true,
+                        clickBehavior: 'single'
+                    });
+
+                    // Listen for order-request events
+                    api.on('order-request', (data) => {
+                        const modifiers = [];
+                        if (data.modifiers.shift) modifiers.push('Shift');
+                        if (data.modifiers.ctrl) modifiers.push('Ctrl');
+                        if (data.modifiers.alt) modifiers.push('Alt');
+
+                        const timestamp = new Date(data.timestamp);
+                        const timeStr = timestamp.toLocaleTimeString();
+                        const dateStr = timestamp.toLocaleDateString();
+
+                        updateStatus(
+                            `ORDER REQUEST:\n` +
+                            `Side: ${data.side.toUpperCase()}\n` +
+                            `Price: $${data.price.toFixed(2)}\n` +
+                            `Time: ${dateStr} ${timeStr}\n` +
+                            `Modifiers: ${modifiers.join(', ') || 'None'}`
+                        );
+                    });
+
+                    updateStatus('Click-to-Trade ENABLED\nClick on chart to place orders\nHold Shift to toggle buy/sell');
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error enabling click-to-trade: ${error.message}`);
+                }
+            }
+
+            function disableClickToTradeMode() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.disableClickToTrade();
+                    updateStatus('Click-to-Trade DISABLED');
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error disabling click-to-trade: ${error.message}`);
+                }
+            }
+
             // Pulsating Wave Effect Function
             function createPulseWave() {
                 const api = getCurrentApi();
@@ -2851,6 +2948,22 @@ Indicators: ${
                                 }
                             }
                         });
+
+                    // Update click-to-trade buttons
+                    const enableBtn = document.getElementById("enable-click-to-trade-btn");
+                    const disableBtn = document.getElementById("disable-click-to-trade-btn");
+
+                    if (enableBtn && disableBtn) {
+                        const isEnabled = api.isClickToTradeEnabled();
+
+                        if (isEnabled) {
+                            enableBtn.classList.add("active");
+                            disableBtn.classList.remove("active");
+                        } else {
+                            enableBtn.classList.remove("active");
+                            disableBtn.classList.add("active");
+                        }
+                    }
                 } catch (error) {
                     console.error("Error updating buttons:", error);
                 }

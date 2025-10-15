@@ -52,6 +52,9 @@ import {
   TimeClickedEvent,
   CrosshairMovedEvent,
   ContextMenuEvent as ChartContextMenuEvent,
+  OrderRequestData,
+  PriceHoverEvent,
+  ClickToTradeConfig,
   TRADING_OVERLAY_COLORS,
   TRADE_MARKER_SIZES,
 } from "../types/trading-overlays";
@@ -185,6 +188,9 @@ export interface ChartApiEventMap {
   "time-clicked": TimeClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
   "chart-context-menu": ChartContextMenuEvent;
+  // Click-to-trade events
+  "order-request": OrderRequestData;
+  "price-hover": PriceHoverEvent;
 }
 
 /**
@@ -326,6 +332,17 @@ export class ChartApi {
     this.container.addEventListener("chart-context-menu", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("chart-context-menu", customEvent.detail);
+    });
+
+    // Listen for click-to-trade events
+    this.container.addEventListener("order-request", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("order-request", customEvent.detail);
+    });
+
+    this.container.addEventListener("price-hover", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("price-hover", customEvent.detail);
     });
   }
 
@@ -2088,6 +2105,69 @@ export class ChartApi {
 
     this.redraw();
     logger.info("ChartApi: Cleared all trade zones");
+  }
+
+  // ============================================================================
+  // Click-to-Trade Interface
+  // ============================================================================
+
+  /**
+   * Enable click-to-trade mode with the specified configuration
+   * When enabled, users can click on the chart to request order placement
+   * @param config Click-to-trade configuration
+   * @example
+   * ```typescript
+   * // Enable with buy mode by default
+   * api.enableClickToTrade({
+   *   enabled: true,
+   *   defaultSide: 'buy',
+   *   showCrosshair: true,
+   *   showPriceLabel: true,
+   *   onOrderRequest: (data) => {
+   *     console.log('Order requested:', data.price, data.side);
+   *     // Show order form dialog in sc-app
+   *   }
+   * });
+   * ```
+   */
+  enableClickToTrade(config: ClickToTradeConfig): void {
+    logger.info("ChartApi: Enabling click-to-trade mode");
+
+    // Delegate to chart container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.enableClickToTrade) {
+      chartContainer.enableClickToTrade(config);
+    }
+
+    logger.info(`ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || 'buy'})`);
+  }
+
+  /**
+   * Disable click-to-trade mode
+   * Removes all visual feedback and event listeners
+   */
+  disableClickToTrade(): void {
+    logger.info("ChartApi: Disabling click-to-trade mode");
+
+    // Delegate to chart container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.disableClickToTrade) {
+      chartContainer.disableClickToTrade();
+    }
+
+    logger.info("ChartApi: Click-to-trade disabled");
+  }
+
+  /**
+   * Check if click-to-trade mode is currently enabled
+   * @returns true if click-to-trade is enabled
+   */
+  isClickToTradeEnabled(): boolean {
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.isClickToTradeEnabled) {
+      return chartContainer.isClickToTradeEnabled();
+    }
+    return false;
   }
 
   // ============================================================================
