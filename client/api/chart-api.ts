@@ -47,6 +47,11 @@ import {
   TradeZoneConfig,
   TradeZoneClickedEvent,
   TradeZoneHoveredEvent,
+  Annotation,
+  AnnotationConfig,
+  AnnotationClickedEvent,
+  AnnotationHoveredEvent,
+  AnnotationDraggedEvent,
   PositionOverlayConfig,
   PriceClickedEvent,
   TimeClickedEvent,
@@ -184,6 +189,9 @@ export interface ChartApiEventMap {
   "price-line-hovered": PriceLineHoveredEvent;
   "trade-zone-clicked": TradeZoneClickedEvent;
   "trade-zone-hovered": TradeZoneHoveredEvent;
+  "annotation-clicked": AnnotationClickedEvent;
+  "annotation-hovered": AnnotationHoveredEvent;
+  "annotation-dragged": AnnotationDraggedEvent;
   "price-clicked": PriceClickedEvent;
   "time-clicked": TimeClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
@@ -343,6 +351,22 @@ export class ChartApi {
     this.container.addEventListener("price-hover", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("price-hover", customEvent.detail);
+    });
+
+    // Listen for annotation events
+    this.container.addEventListener("annotation-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("annotation-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("annotation-dragged", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-dragged", customEvent.detail);
     });
   }
 
@@ -791,6 +815,7 @@ export class ChartApi {
       tradeMarkers: xinValue(this.state.tradeMarkers) || [],
       priceLines: xinValue(this.state.priceLines) || [],
       tradeZones: xinValue(this.state.tradeZones) || [],
+      annotations: xinValue(this.state.annotations) || [],
       positionOverlay: xinValue(this.state.positionOverlay) || null,
     };
   }
@@ -2105,6 +2130,185 @@ export class ChartApi {
 
     this.redraw();
     logger.info("ChartApi: Cleared all trade zones");
+  }
+
+  // ============================================================================
+  // Annotations (Custom Notes and Alerts)
+  // ============================================================================
+
+  /**
+   * Add an annotation to the chart
+   * @param config Annotation configuration
+   * @returns The ID of the created annotation
+   * @example
+   * ```typescript
+   * // Add a note at a specific price and time
+   * api.addAnnotation({
+   *   timestamp: Date.now() - 3600000, // 1 hour ago
+   *   price: 100000,
+   *   text: 'Important support level',
+   *   type: 'note',
+   *   position: 'above',
+   *   color: '#ffffff',
+   *   backgroundColor: '#8b5cf6',
+   *   icon: '📝'
+   * });
+   *
+   * // Add a draggable alert anchored to top
+   * api.addAnnotation({
+   *   timestamp: Date.now(),
+   *   text: 'Price Alert',
+   *   type: 'alert',
+   *   position: 'below', // anchors to top when no price
+   *   draggable: true,
+   *   icon: '🔔'
+   * });
+   * ```
+   */
+  addAnnotation(config: AnnotationConfig): string {
+    const id = config.id || `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full annotation with defaults
+    const annotation: Annotation = {
+      id,
+      timestamp: config.timestamp,
+      price: config.price,
+      text: config.text,
+      type: config.type || 'note',
+      position: config.position || 'above',
+      color: config.color || '#ffffff',
+      backgroundColor: config.backgroundColor || TRADING_OVERLAY_COLORS.annotation,
+      borderColor: config.borderColor || (config.backgroundColor || TRADING_OVERLAY_COLORS.annotation),
+      fontSize: config.fontSize !== undefined ? config.fontSize : 12,
+      icon: config.icon || '',
+      draggable: config.draggable !== undefined ? config.draggable : false,
+      showLine: config.showLine !== undefined ? config.showLine : true,
+      lineStyle: config.lineStyle || 'solid',
+      zIndex: config.zIndex !== undefined ? config.zIndex : 200,
+      interactive: true, // Always true for annotations
+    };
+
+    // Add to state array
+    if (!this.state.annotations) {
+      this.state.annotations = [];
+    }
+    this.state.annotations.push(annotation);
+
+    // Notify container about new annotation
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addAnnotation) {
+      chartContainer.addAnnotation(annotation);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Added annotation ${id} at ${annotation.timestamp}${annotation.price !== undefined ? ` (price: ${annotation.price})` : ''}`);
+    return id;
+  }
+
+  /**
+   * Remove an annotation from the chart
+   * @param annotationId The ID of the annotation to remove
+   */
+  removeAnnotation(annotationId: string): void {
+    if (!this.state.annotations) {
+      logger.warn(`ChartApi: Annotation ${annotationId} not found (no annotations)`);
+      return;
+    }
+
+    const index = this.state.annotations.findIndex((a) => a.id === annotationId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Annotation ${annotationId} not found`);
+      return;
+    }
+
+    this.state.annotations.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeAnnotation) {
+      chartContainer.removeAnnotation(annotationId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed annotation ${annotationId}`);
+  }
+
+  /**
+   * Update an existing annotation
+   * @param annotationId The ID of the annotation to update
+   * @param updates Partial annotation updates
+   */
+  updateAnnotation(annotationId: string, updates: Partial<AnnotationConfig>): void {
+    if (!this.state.annotations) {
+      logger.warn(`ChartApi: Annotation ${annotationId} not found (no annotations)`);
+      return;
+    }
+
+    const index = this.state.annotations.findIndex((a) => a.id === annotationId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Annotation ${annotationId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const annotation = this.state.annotations[index];
+    const updatedAnnotation: Annotation = {
+      ...annotation,
+      ...updates,
+      id: annotationId, // Preserve ID
+      interactive: true, // Always true for annotations
+    };
+
+    // Create new array reference to trigger Lit's reactive update
+    this.state.annotations = [
+      ...this.state.annotations.slice(0, index),
+      updatedAnnotation,
+      ...this.state.annotations.slice(index + 1),
+    ];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateAnnotation) {
+      chartContainer.updateAnnotation(annotationId, updatedAnnotation);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated annotation ${annotationId}`);
+  }
+
+  /**
+   * Get all annotations
+   * @returns Array of annotations
+   */
+  getAnnotations(): Annotation[] {
+    return (xinValue(this.state.annotations) as Annotation[]) || [];
+  }
+
+  /**
+   * Get a specific annotation by ID
+   * @param annotationId The ID of the annotation
+   * @returns The annotation or null if not found
+   */
+  getAnnotation(annotationId: string): Annotation | null {
+    const annotations = xinValue(this.state.annotations) as Annotation[];
+    if (!annotations) return null;
+    return annotations.find((a) => a.id === annotationId) || null;
+  }
+
+  /**
+   * Clear all annotations from the chart
+   */
+  clearAnnotations(): void {
+    this.state.annotations = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearAnnotations) {
+      chartContainer.clearAnnotations();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all annotations");
   }
 
   // ============================================================================

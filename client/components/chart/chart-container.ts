@@ -50,12 +50,14 @@ import { PatternHighlight } from "../../types/markers";
 import "./trading-markers-layer";
 import "./price-lines-layer";
 import "./trade-zones-layer";
+import "./annotations-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
 import { TradeZonesLayer } from "./trade-zones-layer";
+import { AnnotationsLayer } from "./annotations-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
-import { TradeMarker, PriceLine, TradeZone, PositionOverlayConfig, ClickToTradeConfig, OrderRequestData, PriceHoverEvent } from "../../types/trading-overlays";
+import { TradeMarker, PriceLine, TradeZone, Annotation, PositionOverlayConfig, ClickToTradeConfig, OrderRequestData, PriceHoverEvent } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -150,6 +152,9 @@ export class ChartContainer extends LitElement {
   private priceLines: PriceLine[] = [];
 
   @state()
+  private annotations: Annotation[] = [];
+
+  @state()
   private positionOverlay: PositionOverlayConfig | null = null;
 
   @state()
@@ -166,6 +171,7 @@ export class ChartContainer extends LitElement {
   private tradingMarkersLayer?: TradingMarkersLayer;
   private priceLinesLayer?: PriceLinesLayer;
   private tradeZonesLayer?: TradeZonesLayer;
+  private annotationsLayer?: AnnotationsLayer;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -288,6 +294,17 @@ export class ChartContainer extends LitElement {
       logger.debug("ChartContainer: Found trade zones layer");
       setTimeout(() => {
         this.updateTradeZonesLayer();
+      }, 100);
+    }
+
+    // Get annotations layer reference and set initial dimensions
+    this.annotationsLayer = this.renderRoot.querySelector(
+      "annotations-layer",
+    ) as AnnotationsLayer;
+    if (this.annotationsLayer) {
+      logger.debug("ChartContainer: Found annotations layer");
+      setTimeout(() => {
+        this.updateAnnotationsLayer();
       }, 100);
     }
 
@@ -489,6 +506,7 @@ export class ChartContainer extends LitElement {
     this.updateTradingMarkersLayer();
     this.updatePriceLinesLayer();
     this.updateTradeZonesLayer();
+    this.updateAnnotationsLayer();
     this.updatePositionOverlay();
   }
 
@@ -597,6 +615,25 @@ export class ChartContainer extends LitElement {
 
       tradeZonesLayer.state = this._state;
       tradeZonesLayer.requestUpdate();
+    }
+  }
+
+  private updateAnnotationsLayer() {
+    const annotationsLayer = this.renderRoot.querySelector(
+      "annotations-layer",
+    ) as AnnotationsLayer;
+    if (annotationsLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        annotationsLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        annotationsLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      annotationsLayer.state = this._state;
+      annotationsLayer.requestUpdate();
     }
   }
 
@@ -1067,6 +1104,13 @@ export class ChartContainer extends LitElement {
               .state=${this._state}
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></trading-markers-layer>
+
+            <!-- Annotations Layer (z-index: 200) -->
+            <annotations-layer
+              .annotations=${this._state.annotations || []}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></annotations-layer>
 
             <!-- Live Price Label -->
             <live-price-label
@@ -1931,6 +1975,77 @@ export class ChartContainer extends LitElement {
     } else {
       logger.debug("ChartContainer: Cleared position overlay");
     }
+  }
+
+  /**
+   * Add an annotation to the chart
+   */
+  public addAnnotation(annotation: Annotation): void {
+    if (!this._state.annotations) {
+      this._state.annotations = [];
+    }
+    this._state.annotations.push(annotation);
+    touch("state.annotations");
+    this.requestUpdate();
+    this.updateAnnotationsLayer();
+    logger.debug(`ChartContainer: Added annotation ${annotation.id}`);
+  }
+
+  /**
+   * Remove an annotation from the chart
+   */
+  public removeAnnotation(annotationId: string): void {
+    if (!this._state.annotations) return;
+
+    const index = this._state.annotations.findIndex((a) => a.id === annotationId);
+    if (index !== -1) {
+      this._state.annotations.splice(index, 1);
+      touch("state.annotations");
+      this.requestUpdate();
+      this.updateAnnotationsLayer();
+      logger.debug(`ChartContainer: Removed annotation ${annotationId}`);
+    }
+  }
+
+  /**
+   * Update an existing annotation
+   */
+  public updateAnnotation(annotationId: string, annotation: Annotation): void {
+    if (!this._state.annotations) return;
+
+    const index = this._state.annotations.findIndex((a) => a.id === annotationId);
+    if (index !== -1) {
+      this._state.annotations[index] = annotation;
+      touch("state.annotations");
+      this.requestUpdate();
+      this.updateAnnotationsLayer();
+      logger.debug(`ChartContainer: Updated annotation ${annotationId}`);
+    }
+  }
+
+  /**
+   * Clear all annotations
+   */
+  public clearAnnotations(): void {
+    this._state.annotations = [];
+    touch("state.annotations");
+    this.requestUpdate();
+    this.updateAnnotationsLayer();
+    logger.debug("ChartContainer: Cleared all annotations");
+  }
+
+  /**
+   * Get all annotations
+   */
+  public getAnnotations(): Annotation[] {
+    return this._state.annotations || [];
+  }
+
+  /**
+   * Get a specific annotation by ID
+   */
+  public getAnnotation(annotationId: string): Annotation | undefined {
+    return this._state.annotations?.find((a) => a.id === annotationId);
   }
 
   // ============================================================================

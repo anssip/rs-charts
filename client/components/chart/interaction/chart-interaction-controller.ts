@@ -129,6 +129,25 @@ export class ChartInteractionController {
   private dragThreshold = 5; // pixels - minimum movement to consider it a drag
 
   private handleDragStart = (e: MouseEvent) => {
+    // Check if the event originated from a draggable element
+    // We need to check the composed path because events from shadow DOM
+    // get retargeted, so e.target won't be the actual clicked element
+    const path = e.composedPath();
+    const isDraggableElement = path.some((element) => {
+      if (element instanceof HTMLElement) {
+        // Check for draggable annotations, trend lines, or price lines
+        return element.classList.contains('annotation') && element.classList.contains('draggable') ||
+               element.classList.contains('trend-line') ||
+               element.classList.contains('price-line') && element.classList.contains('draggable');
+      }
+      return false;
+    });
+
+    if (isDraggableElement) {
+      // Let the element's own drag handler take over
+      return;
+    }
+
     this.isDragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;

@@ -97,9 +97,19 @@
                 z-index: 1000;
                 backdrop-filter: blur(8px);
                 box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-                max-width: 300px;
+                max-width: 660px;
                 max-height: 80vh;
                 overflow-y: auto;
+            }
+
+            .controls-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+
+            .controls-header {
+                grid-column: 1 / -1;
             }
 
             .demo-controls h3 {
@@ -256,16 +266,19 @@
         </div>
 
         <div class="demo-controls" id="demo-controls">
-            <h3>Chart API Demo</h3>
+            <div class="controls-header">
+                <h3>Chart API Demo</h3>
 
-            <div class="chart-selector">
-                <label>Select Chart:</label>
-                <select id="chart-select" onchange="selectChart()">
-                    <option value="1">Chart 1 (BTC-USD)</option>
-                    <option value="2">Chart 2 (ETH-USD)</option>
-                </select>
+                <div class="chart-selector">
+                    <label>Select Chart:</label>
+                    <select id="chart-select" onchange="selectChart()">
+                        <option value="1">Chart 1 (BTC-USD)</option>
+                        <option value="2">Chart 2 (ETH-USD)</option>
+                    </select>
+                </div>
             </div>
 
+            <div class="controls-grid">
             <div class="control-group">
                 <label>Symbol:</label>
                 <div class="control-buttons">
@@ -666,6 +679,48 @@
                     </button>
                 </div>
             </div>
+
+            <div class="control-group">
+                <label>Annotations:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="addNoteAnnotation()"
+                        style="background: #8b5cf6; color: white"
+                    >
+                        📝 Add Note
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addAlertAnnotation()"
+                        style="background: #f59e0b; color: white"
+                    >
+                        🔔 Add Alert
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addMilestoneAnnotation()"
+                        style="background: #10b981; color: white"
+                    >
+                        🏁 Add Milestone
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="addDraggableAnnotation()"
+                        style="background: #3b82f6; color: white"
+                    >
+                        ✋ Draggable
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearAllAnnotations()"
+                    >
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            </div><!-- End controls-grid -->
 
             <!-- Click-to-Trade Section -->
             <div
@@ -2392,6 +2447,186 @@
                     updateStatus("All trade zones cleared");
                 } catch (error) {
                     updateStatus(`Error clearing trade zones: ${error.message}`);
+                }
+            }
+
+            // Annotations Functions
+            function addNoteAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const [timestamp, candle] = candles[randomIndex];
+                    const price = candle.close;
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price,
+                        text: "Important Level",
+                        type: "note",
+                        position: "above",
+                        icon: "📝",
+                        color: "#ffffff",
+                        backgroundColor: "#8b5cf6",
+                        showLine: true,
+                        lineStyle: "dashed",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added note annotation. Total annotations: ${annotations.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding note annotation: ${error.message}`);
+                }
+            }
+
+            function addAlertAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price: candle.high,
+                        text: "Price Alert",
+                        type: "alert",
+                        position: "right",
+                        icon: "🔔",
+                        color: "#ffffff",
+                        backgroundColor: "#f59e0b",
+                        borderColor: "#d97706",
+                        showLine: true,
+                        lineStyle: "solid",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added alert annotation. Total annotations: ${annotations.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding alert annotation: ${error.message}`);
+                }
+            }
+
+            function addMilestoneAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price: candle.low,
+                        text: "Milestone",
+                        type: "milestone",
+                        position: "below",
+                        icon: "🏁",
+                        color: "#ffffff",
+                        backgroundColor: "#10b981",
+                        borderColor: "#059669",
+                        showLine: true,
+                        lineStyle: "dotted",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added milestone annotation. Total annotations: ${annotations.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding milestone annotation: ${error.message}`);
+                }
+            }
+
+            function addDraggableAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Place in middle of visible range
+                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const price = priceRange.min + priceRange.range * 0.5;
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price,
+                        text: "Drag Me!",
+                        type: "custom",
+                        position: "left",
+                        icon: "✋",
+                        color: "#ffffff",
+                        backgroundColor: "#3b82f6",
+                        borderColor: "#2563eb",
+                        draggable: true,
+                        showLine: true,
+                        lineStyle: "solid",
+                        fontSize: 14,
+                    });
+
+                    // Listen for drag events and update annotation position
+                    api.on("annotation-dragged", (data) => {
+                        // Update the annotation position in real-time
+                        api.updateAnnotation(data.annotationId, {
+                            timestamp: data.newTimestamp,
+                            price: data.newPrice
+                        });
+
+                        const newDate = new Date(data.newTimestamp);
+                        updateStatus(
+                            `Annotation dragged:\n` +
+                            `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
+                            `New time: ${newDate.toLocaleString()}`
+                        );
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added draggable annotation. Total annotations: ${annotations.length}`
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding draggable annotation: ${error.message}`);
+                }
+            }
+
+            function clearAllAnnotations() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearAnnotations();
+                    updateStatus("All annotations cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing annotations: ${error.message}`);
                 }
             }
 

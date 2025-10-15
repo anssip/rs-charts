@@ -43,6 +43,7 @@ export type ChartState = {
   tradeMarkers?: import("./types/trading-overlays").TradeMarker[];
   priceLines?: import("./types/trading-overlays").PriceLine[];
   tradeZones?: import("./types/trading-overlays").TradeZone[];
+  annotations?: import("./types/trading-overlays").Annotation[];
   positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
   clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
 };

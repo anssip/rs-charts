@@ -235,6 +235,7 @@ export interface AnnotationConfig {
   draggable?: boolean;            // Allow repositioning (default: false)
   showLine?: boolean;             // Show line connecting to price level (default: true)
   lineStyle?: 'solid' | 'dashed' | 'dotted';
+  interactive?: boolean;          // Enable click/hover events (default: true)
   zIndex?: number;                // Layer ordering (default: 200)
 }
 
@@ -244,6 +245,34 @@ export interface AnnotationConfig {
 export interface Annotation extends Required<Omit<AnnotationConfig, 'id' | 'price'>> {
   id: string;
   price?: number;
+}
+
+/**
+ * Event emitted when an annotation is clicked
+ */
+export interface AnnotationClickedEvent {
+  annotationId: string;
+  annotation: Annotation;
+}
+
+/**
+ * Event emitted when mouse hovers over an annotation
+ */
+export interface AnnotationHoveredEvent {
+  annotationId: string;
+  annotation: Annotation;
+}
+
+/**
+ * Event emitted when a draggable annotation is moved
+ */
+export interface AnnotationDraggedEvent {
+  annotationId: string;
+  oldTimestamp: number;
+  oldPrice?: number;
+  newTimestamp: number;
+  newPrice?: number;
+  annotation: Annotation;
 }
 
 // ============================================================================

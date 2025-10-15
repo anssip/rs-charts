@@ -80,7 +80,13 @@ export class ChartStateManager {
   }
 
   set clickToTrade(value: ClickToTradeConfig | null) {
-    xin["state.clickToTrade"] = value;
+    // xinjs doesn't accept null or undefined - only set when value is present
+    if (value !== null && value !== undefined) {
+      xin["state.clickToTrade"] = value;
+    } else {
+      // Clear the property when null
+      delete (xin as any)["state.clickToTrade"];
+    }
   }
 
   // Helper methods for common operations
