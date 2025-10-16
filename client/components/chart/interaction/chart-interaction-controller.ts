@@ -5,7 +5,7 @@ import { CandlestickChart } from "../chart";
 import { getLogger, LogLevel } from "../../../util/logger";
 
 const logger = getLogger("ChartInteractionController");
-logger.setLoggerLevel("ChartInteractionController", LogLevel.ERROR);
+logger.setLoggerLevel("ChartInteractionController", LogLevel.DEBUG);
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -135,16 +135,27 @@ export class ChartInteractionController {
     const path = e.composedPath();
     const isDraggableElement = path.some((element) => {
       if (element instanceof HTMLElement) {
-        // Check for draggable annotations, trend lines, or price lines
-        return element.classList.contains('annotation') && element.classList.contains('draggable') ||
-               element.classList.contains('trend-line') ||
-               element.classList.contains('price-line') && element.classList.contains('draggable');
+        // Check for draggable annotations
+        const isDraggableAnnotation =
+          element.classList.contains("annotation") &&
+          element.classList.contains("draggable");
+
+        // Check for trend lines
+        const isTrendLine = element.classList.contains("trend-line");
+
+        // Check for draggable price lines
+        const isDraggablePriceLine =
+          element.classList.contains("price-line") &&
+          element.classList.contains("draggable");
+
+        return isDraggableAnnotation || isTrendLine || isDraggablePriceLine;
       }
       return false;
     });
 
     if (isDraggableElement) {
       // Let the element's own drag handler take over
+      logger.debug("Skipping chart drag - draggable element detected");
       return;
     }
 

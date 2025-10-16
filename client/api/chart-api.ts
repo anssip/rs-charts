@@ -1654,7 +1654,9 @@ export class ChartApi {
    * @returns The ID of the created trade marker
    */
   addTradeMarker(config: TradeMarkerConfig): string {
-    const id = config.id || `trade-marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id =
+      config.id ||
+      `trade-marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Create full marker with defaults
     const marker: TradeMarker = {
@@ -1662,10 +1664,14 @@ export class ChartApi {
       timestamp: config.timestamp,
       price: config.price,
       side: config.side,
-      shape: config.shape || 'arrow',
-      color: config.color || (config.side === 'buy' ? TRADING_OVERLAY_COLORS.buyMarker : TRADING_OVERLAY_COLORS.sellMarker),
-      size: config.size || 'medium',
-      text: config.text || '',
+      shape: config.shape || "arrow",
+      color:
+        config.color ||
+        (config.side === "buy"
+          ? TRADING_OVERLAY_COLORS.buyMarker
+          : TRADING_OVERLAY_COLORS.sellMarker),
+      size: config.size || "medium",
+      text: config.text || "",
       tooltip: config.tooltip,
       interactive: config.interactive !== undefined ? config.interactive : true,
       zIndex: config.zIndex !== undefined ? config.zIndex : 100,
@@ -1684,7 +1690,9 @@ export class ChartApi {
     }
 
     this.redraw();
-    logger.info(`ChartApi: Added trade marker ${id} at ${marker.price} (${marker.side})`);
+    logger.info(
+      `ChartApi: Added trade marker ${id} at ${marker.price} (${marker.side})`,
+    );
     return id;
   }
 
@@ -1721,7 +1729,10 @@ export class ChartApi {
    * @param markerId The ID of the trade marker to update
    * @param updates Partial trade marker updates
    */
-  updateTradeMarker(markerId: string, updates: Partial<TradeMarkerConfig>): void {
+  updateTradeMarker(
+    markerId: string,
+    updates: Partial<TradeMarkerConfig>,
+  ): void {
     if (!this.state.tradeMarkers) {
       logger.warn(`ChartApi: Trade marker ${markerId} not found (no markers)`);
       return;
@@ -1787,21 +1798,24 @@ export class ChartApi {
    * @returns The ID of the created price line
    */
   addPriceLine(config: PriceLineConfig): string {
-    const id = config.id || `price-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id =
+      config.id ||
+      `price-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Create full price line with defaults
     const priceLine: PriceLine = {
       id,
       price: config.price,
       color: config.color || TRADING_OVERLAY_COLORS.priceLine,
-      lineStyle: config.lineStyle || 'solid',
+      lineStyle: config.lineStyle || "solid",
       lineWidth: config.lineWidth !== undefined ? config.lineWidth : 1,
       label: config.label,
       draggable: config.draggable !== undefined ? config.draggable : false,
       extendLeft: config.extendLeft !== undefined ? config.extendLeft : true,
       extendRight: config.extendRight !== undefined ? config.extendRight : true,
       interactive: config.interactive !== undefined ? config.interactive : true,
-      showPriceLabel: config.showPriceLabel !== undefined ? config.showPriceLabel : true,
+      showPriceLabel:
+        config.showPriceLabel !== undefined ? config.showPriceLabel : true,
       metadata: config.metadata,
       zIndex: config.zIndex !== undefined ? config.zIndex : 50,
     };
@@ -1943,7 +1957,9 @@ export class ChartApi {
     this.redraw();
 
     if (config) {
-      logger.info(`ChartApi: Set position overlay for ${config.symbol} (${config.side} ${config.quantity})`);
+      logger.info(
+        `ChartApi: Set position overlay for ${config.symbol} (${config.side} ${config.quantity})`,
+      );
     } else {
       logger.info("ChartApi: Cleared position overlay");
     }
@@ -1954,7 +1970,9 @@ export class ChartApi {
    * @returns Position overlay config or null if not set
    */
   getPositionOverlay(): PositionOverlayConfig | null {
-    return (xinValue(this.state.positionOverlay) as PositionOverlayConfig) || null;
+    return (
+      (xinValue(this.state.positionOverlay) as PositionOverlayConfig) || null
+    );
   }
 
   /**
@@ -1986,16 +2004,21 @@ export class ChartApi {
    * @returns The ID of the created trade zone
    */
   addTradeZone(config: TradeZoneConfig): string {
-    const id = config.id || `trade-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id =
+      config.id ||
+      `trade-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Determine fill color if not specified
     let fillColor = config.fillColor;
     if (!fillColor && config.metadata?.side) {
       // Auto-detect profit/loss based on entry/exit prices and side
-      const isProfitable = config.metadata.side === 'short'
-        ? config.entryPrice > config.exitPrice
-        : config.exitPrice > config.entryPrice;
-      fillColor = isProfitable ? TRADING_OVERLAY_COLORS.profitZone : TRADING_OVERLAY_COLORS.lossZone;
+      const isProfitable =
+        config.metadata.side === "short"
+          ? config.entryPrice > config.exitPrice
+          : config.exitPrice > config.entryPrice;
+      fillColor = isProfitable
+        ? TRADING_OVERLAY_COLORS.profitZone
+        : TRADING_OVERLAY_COLORS.lossZone;
     }
 
     // Create full zone with defaults
@@ -2007,7 +2030,8 @@ export class ChartApi {
       exitPrice: config.exitPrice,
       fillColor: fillColor || TRADING_OVERLAY_COLORS.profitZone,
       fillOpacity: config.fillOpacity !== undefined ? config.fillOpacity : 0.2,
-      borderColor: config.borderColor || fillColor || TRADING_OVERLAY_COLORS.profitZone,
+      borderColor:
+        config.borderColor || fillColor || TRADING_OVERLAY_COLORS.profitZone,
       borderWidth: config.borderWidth !== undefined ? config.borderWidth : 1,
       showPnL: config.showPnL !== undefined ? config.showPnL : true,
       textColor: config.textColor,
@@ -2028,7 +2052,9 @@ export class ChartApi {
     }
 
     this.redraw();
-    logger.info(`ChartApi: Added trade zone ${id} (${config.entryPrice} -> ${config.exitPrice})`);
+    logger.info(
+      `ChartApi: Added trade zone ${id} (${config.entryPrice} -> ${config.exitPrice})`,
+    );
     return id;
   }
 
@@ -2166,7 +2192,9 @@ export class ChartApi {
    * ```
    */
   addAnnotation(config: AnnotationConfig): string {
-    const id = config.id || `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id =
+      config.id ||
+      `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Create full annotation with defaults
     const annotation: Annotation = {
@@ -2174,34 +2202,34 @@ export class ChartApi {
       timestamp: config.timestamp,
       price: config.price,
       text: config.text,
-      type: config.type || 'note',
-      position: config.position || 'above',
-      color: config.color || '#ffffff',
-      backgroundColor: config.backgroundColor || TRADING_OVERLAY_COLORS.annotation,
-      borderColor: config.borderColor || (config.backgroundColor || TRADING_OVERLAY_COLORS.annotation),
+      type: config.type || "note",
+      position: config.position || "above",
+      color: config.color || "#ffffff",
+      backgroundColor:
+        config.backgroundColor || TRADING_OVERLAY_COLORS.annotation,
+      borderColor:
+        config.borderColor ||
+        config.backgroundColor ||
+        TRADING_OVERLAY_COLORS.annotation,
       fontSize: config.fontSize !== undefined ? config.fontSize : 12,
-      icon: config.icon || '',
+      icon: config.icon || "",
       draggable: config.draggable !== undefined ? config.draggable : false,
       showLine: config.showLine !== undefined ? config.showLine : true,
-      lineStyle: config.lineStyle || 'solid',
+      lineStyle: config.lineStyle || "solid",
       zIndex: config.zIndex !== undefined ? config.zIndex : 200,
       interactive: true, // Always true for annotations
     };
 
-    // Add to state array
-    if (!this.state.annotations) {
-      this.state.annotations = [];
-    }
-    this.state.annotations.push(annotation);
-
-    // Notify container about new annotation
+    // Add annotation via container (container will handle state management)
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.addAnnotation) {
       chartContainer.addAnnotation(annotation);
     }
 
     this.redraw();
-    logger.info(`ChartApi: Added annotation ${id} at ${annotation.timestamp}${annotation.price !== undefined ? ` (price: ${annotation.price})` : ''}`);
+    logger.info(
+      `ChartApi: Added annotation ${id} at ${annotation.timestamp}${annotation.price !== undefined ? ` (price: ${annotation.price})` : ""}`,
+    );
     return id;
   }
 
@@ -2211,11 +2239,15 @@ export class ChartApi {
    */
   removeAnnotation(annotationId: string): void {
     if (!this.state.annotations) {
-      logger.warn(`ChartApi: Annotation ${annotationId} not found (no annotations)`);
+      logger.warn(
+        `ChartApi: Annotation ${annotationId} not found (no annotations)`,
+      );
       return;
     }
 
-    const index = this.state.annotations.findIndex((a) => a.id === annotationId);
+    const index = this.state.annotations.findIndex(
+      (a) => a.id === annotationId,
+    );
     if (index === -1) {
       logger.warn(`ChartApi: Annotation ${annotationId} not found`);
       return;
@@ -2238,13 +2270,20 @@ export class ChartApi {
    * @param annotationId The ID of the annotation to update
    * @param updates Partial annotation updates
    */
-  updateAnnotation(annotationId: string, updates: Partial<AnnotationConfig>): void {
+  updateAnnotation(
+    annotationId: string,
+    updates: Partial<AnnotationConfig>,
+  ): void {
     if (!this.state.annotations) {
-      logger.warn(`ChartApi: Annotation ${annotationId} not found (no annotations)`);
+      logger.warn(
+        `ChartApi: Annotation ${annotationId} not found (no annotations)`,
+      );
       return;
     }
 
-    const index = this.state.annotations.findIndex((a) => a.id === annotationId);
+    const index = this.state.annotations.findIndex(
+      (a) => a.id === annotationId,
+    );
     if (index === -1) {
       logger.warn(`ChartApi: Annotation ${annotationId} not found`);
       return;
@@ -2343,7 +2382,9 @@ export class ChartApi {
       chartContainer.enableClickToTrade(config);
     }
 
-    logger.info(`ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || 'buy'})`);
+    logger.info(
+      `ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || "buy"})`,
+    );
   }
 
   /**

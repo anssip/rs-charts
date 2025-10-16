@@ -45,6 +45,12 @@ export class AnnotationsLayer extends LitElement {
   @state()
   private dragStartPrice: number | undefined = undefined;
 
+  @state()
+  private currentDragTimestamp: number | null = null;
+
+  @state()
+  private currentDragPrice: number | undefined = undefined;
+
   static styles = css`
     :host {
       position: absolute;
@@ -52,7 +58,7 @@ export class AnnotationsLayer extends LitElement {
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
+      pointer-events: none; /* Allow events to pass through to layers below */
       z-index: 200; /* Higher than markers (100) */
       overflow: hidden;
     }
@@ -61,7 +67,7 @@ export class AnnotationsLayer extends LitElement {
       position: relative;
       width: 100%;
       height: 100%;
-      pointer-events: none;
+      pointer-events: none; /* Container doesn't capture events */
       overflow: hidden;
     }
 
@@ -95,19 +101,22 @@ export class AnnotationsLayer extends LitElement {
       font-weight: 500;
       white-space: nowrap;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      pointer-events: none; /* Allow events to pass through to parent .annotation */
+      pointer-events: auto; /* Capture mouse events for the entire box */
+      cursor: inherit; /* Inherit cursor from parent .annotation */
     }
 
     .annotation-icon {
       font-size: 16px;
       line-height: 1;
       flex-shrink: 0;
-      pointer-events: none; /* Allow events to pass through to parent .annotation */
+      pointer-events: auto; /* Capture events */
+      cursor: inherit;
     }
 
     .annotation-text {
       line-height: 1.2;
-      pointer-events: none; /* Allow events to pass through to parent .annotation */
+      pointer-events: auto; /* Capture events */
+      cursor: inherit;
     }
 
     .annotation-line {
@@ -276,9 +285,22 @@ export class AnnotationsLayer extends LitElement {
    * Handle drag start
    */
   private handleDragStart(annotation: Annotation, event: MouseEvent): void {
-    if (!annotation.draggable) return;
+    logger.debug(
+      `Annotation mousedown handler called for: ${annotation.id}, draggable: ${annotation.draggable}`,
+    );
 
+    // Always stop propagation for annotation clicks to prevent chart panning
+    // Use stopImmediatePropagation to prevent other handlers on the same element
+    event.stopImmediatePropagation();
     event.stopPropagation();
+
+    if (!annotation.draggable) {
+      logger.debug(
+        `Annotation ${annotation.id} is not draggable, stopping here`,
+      );
+      return;
+    }
+
     event.preventDefault();
 
     this.draggedAnnotationId = annotation.id;
@@ -319,6 +341,10 @@ export class AnnotationsLayer extends LitElement {
       newPrice = this.yToPrice(currentY);
     }
 
+    // Store current drag position for visual feedback
+    this.currentDragTimestamp = newTimestamp;
+    this.currentDragPrice = newPrice;
+
     // Emit drag event
     const dragEvent: AnnotationDraggedEvent = {
       annotationId: annotation.id,
@@ -336,6 +362,8 @@ export class AnnotationsLayer extends LitElement {
         composed: true,
       }),
     );
+
+    this.requestUpdate();
   };
 
   /**
@@ -344,13 +372,53 @@ export class AnnotationsLayer extends LitElement {
   private handleDragEnd = (event: MouseEvent): void => {
     if (!this.draggedAnnotationId) return;
 
-    logger.debug(`Finished dragging annotation: ${this.draggedAnnotationId}`);
+    const annotation = this.annotations.find(
+      (a) => a.id === this.draggedAnnotationId,
+    );
+
+    if (annotation) {
+      // Calculate final position based on mouse movement
+      const deltaX = event.clientX - this.dragStartX;
+      const deltaY = event.clientY - this.dragStartY;
+
+      // Convert delta to time and price
+      const currentX = this.timestampToX(this.dragStartTimestamp) + deltaX;
+      const newTimestamp = this.xToTimestamp(currentX);
+
+      let newPrice: number | undefined = this.dragStartPrice;
+      if (this.dragStartPrice !== undefined) {
+        const currentY = this.priceToY(this.dragStartPrice) + deltaY;
+        newPrice = this.yToPrice(currentY);
+      }
+
+      // Update the annotation position via the chart container
+      // Use getRootNode().host to access the shadow DOM host (chart-container)
+      const root = this.getRootNode() as ShadowRoot;
+      const container = root?.host as any;
+
+      if (container && container.updateAnnotation) {
+        // Merge new position with existing annotation properties
+        const updatedAnnotation = {
+          ...annotation,
+          timestamp: newTimestamp,
+          price: newPrice,
+        };
+
+        container.updateAnnotation(this.draggedAnnotationId, updatedAnnotation);
+      }
+
+      logger.debug(
+        `Finished dragging annotation: ${this.draggedAnnotationId} to timestamp: ${newTimestamp}, price: ${newPrice}`,
+      );
+    }
 
     this.draggedAnnotationId = null;
     this.dragStartX = 0;
     this.dragStartY = 0;
     this.dragStartTimestamp = 0;
     this.dragStartPrice = undefined;
+    this.currentDragTimestamp = null;
+    this.currentDragPrice = undefined;
 
     // Remove global listeners
     document.removeEventListener("mousemove", this.handleDragMove);
@@ -447,6 +515,9 @@ export class AnnotationsLayer extends LitElement {
     `;
   }
 
+  // Removed firstUpdated() - the @mousedown handler on annotation elements
+  // already handles stopPropagation() properly
+
   disconnectedCallback() {
     super.disconnectedCallback();
     // Clean up drag listeners if component is removed while dragging
@@ -460,17 +531,28 @@ export class AnnotationsLayer extends LitElement {
     return html`
       <div class="annotations-container">
         ${visibleAnnotations.map((annotation) => {
-          const x = this.timestampToX(annotation.timestamp);
           const isDragging = this.draggedAnnotationId === annotation.id;
+
+          // Use current drag position if dragging, otherwise use annotation position
+          const displayTimestamp =
+            isDragging && this.currentDragTimestamp !== null
+              ? this.currentDragTimestamp
+              : annotation.timestamp;
+          const displayPrice =
+            isDragging && this.currentDragPrice !== undefined
+              ? this.currentDragPrice
+              : annotation.price;
+
+          const x = this.timestampToX(displayTimestamp);
 
           // Determine Y position
           let y: number;
           let isAnchored = false;
           let anchorClass = "";
 
-          if (annotation.price !== undefined) {
+          if (displayPrice !== undefined) {
             // Anchored to price level
-            y = this.priceToY(annotation.price);
+            y = this.priceToY(displayPrice);
           } else {
             // Anchored to top or bottom
             isAnchored = true;

@@ -279,448 +279,469 @@
             </div>
 
             <div class="controls-grid">
-            <div class="control-group">
-                <label>Symbol:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('BTC-USD')"
-                    >
-                        BTC-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('ETH-USD')"
-                    >
-                        ETH-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('SOL-USD')"
-                    >
-                        SOL-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('AVAX-USD')"
-                    >
-                        AVAX-USD
-                    </button>
+                <div class="control-group">
+                    <label>Symbol:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('BTC-USD')"
+                        >
+                            BTC-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('ETH-USD')"
+                        >
+                            ETH-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('SOL-USD')"
+                        >
+                            SOL-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('AVAX-USD')"
+                        >
+                            AVAX-USD
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_MINUTE')"
+                        >
+                            1m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIVE_MINUTE')"
+                        >
+                            5m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIFTEEN_MINUTE')"
+                        >
+                            15m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_HOUR')"
+                        >
+                            1h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('SIX_HOUR')"
+                        >
+                            6h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_DAY')"
+                        >
+                            1d
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Indicators:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('volume', 'Volume')"
+                        >
+                            Volume
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('rsi', 'RSI')"
+                        >
+                            RSI
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('macd', 'MACD')"
+                        >
+                            MACD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
+                        >
+                            BB
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('moving-averages', 'Moving Averages')"
+                        >
+                            MA
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('stochastic', 'Stochastic')"
+                        >
+                            Stoch
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('atr', 'ATR')"
+                        >
+                            ATR
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Display:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleFullWindow()"
+                        >
+                            Full Window
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleFullscreen()"
+                        >
+                            Fullscreen
+                        </button>
+                        <button class="control-button" onclick="forceRedraw()">
+                            Redraw
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Screenshot:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshot()"
+                            style="background: #4caf50; color: white"
+                        >
+                            📸 Download PNG
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshotJPEG()"
+                            style="background: #2196f3; color: white"
+                        >
+                            📸 Download JPEG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <div class="control-buttons">
+                        <button class="control-button" onclick="getTimeRange()">
+                            Get Range
+                        </button>
+                        <button class="control-button" onclick="zoomInTime()">
+                            Zoom In
+                        </button>
+                        <button class="control-button" onclick="zoomOutTime()">
+                            Zoom Out
+                        </button>
+                        <button class="control-button" onclick="panLeft()">
+                            ← Pan
+                        </button>
+                        <button class="control-button" onclick="panRight()">
+                            Pan →
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Range:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="getPriceRange()"
+                        >
+                            Get Range
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceUp()"
+                        >
+                            ↑ Expand
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceDown()"
+                        >
+                            ↓ Contract
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="resetPriceRange()"
+                        >
+                            Auto Fit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trend Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="activateTrendLine()"
+                        >
+                            Draw Line
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearTrendLines()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Pattern Highlights:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="highlightBullishPatterns()"
+                            style="color: #4ade80"
+                        >
+                            Bullish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightBearishPatterns()"
+                            style="color: #ef4444"
+                        >
+                            Bearish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightNeutralPatterns()"
+                            style="color: #fbbf24"
+                        >
+                            Neutral
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightMixedPatterns()"
+                        >
+                            Mixed
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="createPulseWave()"
+                            style="
+                                background: linear-gradient(
+                                    90deg,
+                                    #10b981,
+                                    #3b82f6,
+                                    #a855f7
+                                );
+                                color: white;
+                            "
+                        >
+                            Pulse Wave
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearPatternHighlights()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addBuyMarker()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Buy Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSellMarker()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Sell Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeMarkers()"
+                        >
+                            Clear Markers
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addLimitOrderLine()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Limit Order
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addStopLossLine()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Stop Loss
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addTakeProfitLine()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Take Profit
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllPriceLines()"
+                        >
+                            Clear Lines
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Position Overlay:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showLongPosition()"
+                            style="background: #10b981; color: white"
+                        >
+                            Long Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showShortPosition()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Short Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="togglePositionCompact()"
+                        >
+                            Toggle Compact
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="hidePositionOverlay()"
+                        >
+                            Hide Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulatePnLUpdate()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            Update P&L
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addProfitableTradeZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Profit Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLosingTradeZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLongTradeZone()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Long Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addShortTradeZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            + Short Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeZones()"
+                        >
+                            Clear Zones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Annotations:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNoteAnnotation()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📝 Add Note
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addAlertAnnotation()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            🔔 Add Alert
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMilestoneAnnotation()"
+                            style="background: #10b981; color: white"
+                        >
+                            🏁 Add Milestone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addDraggableAnnotation()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            ✋ Draggable
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllAnnotations()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
                 </div>
             </div>
-
-            <div class="control-group">
-                <label>Timeframe:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_MINUTE')"
-                    >
-                        1m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIVE_MINUTE')"
-                    >
-                        5m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIFTEEN_MINUTE')"
-                    >
-                        15m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_HOUR')"
-                    >
-                        1h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('SIX_HOUR')"
-                    >
-                        6h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_DAY')"
-                    >
-                        1d
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Indicators:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('volume', 'Volume')"
-                    >
-                        Volume
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('rsi', 'RSI')"
-                    >
-                        RSI
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('macd', 'MACD')"
-                    >
-                        MACD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
-                    >
-                        BB
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('moving-averages', 'Moving Averages')"
-                    >
-                        MA
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('stochastic', 'Stochastic')"
-                    >
-                        Stoch
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('atr', 'ATR')"
-                    >
-                        ATR
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Display:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="toggleFullWindow()">
-                        Full Window
-                    </button>
-                    <button class="control-button" onclick="toggleFullscreen()">
-                        Fullscreen
-                    </button>
-                    <button class="control-button" onclick="forceRedraw()">
-                        Redraw
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Screenshot:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshot()"
-                        style="background: #4caf50; color: white"
-                    >
-                        📸 Download PNG
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshotJPEG()"
-                        style="background: #2196f3; color: white"
-                    >
-                        📸 Download JPEG
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Time Range:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="getTimeRange()">
-                        Get Range
-                    </button>
-                    <button class="control-button" onclick="zoomInTime()">
-                        Zoom In
-                    </button>
-                    <button class="control-button" onclick="zoomOutTime()">
-                        Zoom Out
-                    </button>
-                    <button class="control-button" onclick="panLeft()">
-                        ← Pan
-                    </button>
-                    <button class="control-button" onclick="panRight()">
-                        Pan →
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Price Range:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="getPriceRange()">
-                        Get Range
-                    </button>
-                    <button class="control-button" onclick="adjustPriceUp()">
-                        ↑ Expand
-                    </button>
-                    <button class="control-button" onclick="adjustPriceDown()">
-                        ↓ Contract
-                    </button>
-                    <button class="control-button" onclick="resetPriceRange()">
-                        Auto Fit
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trend Lines:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="activateTrendLine()"
-                    >
-                        Draw Line
-                    </button>
-                    <button class="control-button" onclick="clearTrendLines()">
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Pattern Highlights:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="highlightBullishPatterns()"
-                        style="color: #4ade80"
-                    >
-                        Bullish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightBearishPatterns()"
-                        style="color: #ef4444"
-                    >
-                        Bearish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightNeutralPatterns()"
-                        style="color: #fbbf24"
-                    >
-                        Neutral
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightMixedPatterns()"
-                    >
-                        Mixed
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="createPulseWave()"
-                        style="
-                            background: linear-gradient(
-                                90deg,
-                                #10b981,
-                                #3b82f6,
-                                #a855f7
-                            );
-                            color: white;
-                        "
-                    >
-                        Pulse Wave
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearPatternHighlights()"
-                    >
-                        Clear
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trade Markers:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addBuyMarker()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Buy Marker
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addSellMarker()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Sell Marker
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllTradeMarkers()"
-                    >
-                        Clear Markers
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Price Lines:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addLimitOrderLine()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        + Limit Order
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addStopLossLine()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Stop Loss
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addTakeProfitLine()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Take Profit
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllPriceLines()"
-                    >
-                        Clear Lines
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Position Overlay:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="showLongPosition()"
-                        style="background: #10b981; color: white"
-                    >
-                        Long Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="showShortPosition()"
-                        style="background: #ef4444; color: white"
-                    >
-                        Short Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="togglePositionCompact()"
-                    >
-                        Toggle Compact
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="hidePositionOverlay()"
-                    >
-                        Hide Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="simulatePnLUpdate()"
-                        style="background: #fbbf24; color: white"
-                    >
-                        Update P&L
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trade Zones:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addProfitableTradeZone()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Profit Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addLosingTradeZone()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Loss Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addLongTradeZone()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        + Long Trade
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addShortTradeZone()"
-                        style="background: #f59e0b; color: white"
-                    >
-                        + Short Trade
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllTradeZones()"
-                    >
-                        Clear Zones
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Annotations:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addNoteAnnotation()"
-                        style="background: #8b5cf6; color: white"
-                    >
-                        📝 Add Note
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addAlertAnnotation()"
-                        style="background: #f59e0b; color: white"
-                    >
-                        🔔 Add Alert
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addMilestoneAnnotation()"
-                        style="background: #10b981; color: white"
-                    >
-                        🏁 Add Milestone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addDraggableAnnotation()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        ✋ Draggable
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllAnnotations()"
-                    >
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            </div><!-- End controls-grid -->
+            <!-- End controls-grid -->
 
             <!-- Click-to-Trade Section -->
             <div
@@ -2266,14 +2287,21 @@
                 try {
                     const candles = api.getCandles();
                     if (candles.length < 10) {
-                        updateStatus("Not enough candles visible to add trade zone");
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
                         return;
                     }
 
                     // Pick a random range for the trade
-                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
                     const duration = 5 + Math.floor(Math.random() * 8); // 5-12 candles
-                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
 
                     const startTimestamp = candles[startIndex][0];
                     const endTimestamp = candles[endIndex][0];
@@ -2282,28 +2310,31 @@
 
                     const quantity = 0.1 + Math.random() * 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     const zoneId = api.addTradeZone({
                         startTimestamp,
                         endTimestamp,
                         entryPrice,
                         exitPrice,
-                        textColor: '#ffffff', // White text for better visibility over candles
+                        textColor: "#ffffff", // White text for better visibility over candles
                         metadata: {
-                            side: 'long',
+                            side: "long",
                             quantity,
                             pnl,
-                            pnlPercent
-                        }
+                            pnlPercent,
+                        },
                     });
 
                     const zones = api.getTradeZones();
                     updateStatus(
-                        `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`
+                        `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding profitable trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding profitable trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2314,14 +2345,21 @@
                 try {
                     const candles = api.getCandles();
                     if (candles.length < 10) {
-                        updateStatus("Not enough candles visible to add trade zone");
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
                         return;
                     }
 
                     // Pick a random range for the trade
-                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
                     const duration = 3 + Math.floor(Math.random() * 5); // 3-7 candles (shorter losing trade)
-                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
 
                     const startTimestamp = candles[startIndex][0];
                     const endTimestamp = candles[endIndex][0];
@@ -2330,7 +2368,8 @@
 
                     const quantity = 0.1 + Math.random() * 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     const zoneId = api.addTradeZone({
                         startTimestamp,
@@ -2338,19 +2377,21 @@
                         entryPrice,
                         exitPrice,
                         metadata: {
-                            side: 'long',
+                            side: "long",
                             quantity,
                             pnl,
-                            pnlPercent
-                        }
+                            pnlPercent,
+                        },
                     });
 
                     const zones = api.getTradeZones();
                     updateStatus(
-                        `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`
+                        `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding losing trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding losing trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2364,7 +2405,9 @@
 
                     // Create a trade zone in the middle of the visible range
                     const duration = (timeRange.end - timeRange.start) * 0.2; // 20% of visible time
-                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
                     const endTimestamp = startTimestamp + duration;
 
                     const entryPrice = priceRange.min + priceRange.range * 0.4;
@@ -2372,7 +2415,8 @@
 
                     const quantity = 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     const zoneId = api.addTradeZone({
                         startTimestamp,
@@ -2380,19 +2424,21 @@
                         entryPrice,
                         exitPrice,
                         metadata: {
-                            side: 'long',
+                            side: "long",
                             quantity,
                             pnl,
-                            pnlPercent
-                        }
+                            pnlPercent,
+                        },
                     });
 
                     const zones = api.getTradeZones();
                     updateStatus(
-                        `Added long trade zone. Total zones: ${zones.length}`
+                        `Added long trade zone. Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding long trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding long trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2406,7 +2452,9 @@
 
                     // Create a trade zone in the middle of the visible range
                     const duration = (timeRange.end - timeRange.start) * 0.15; // 15% of visible time
-                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
                     const endTimestamp = startTimestamp + duration;
 
                     const entryPrice = priceRange.min + priceRange.range * 0.7;
@@ -2414,7 +2462,8 @@
 
                     const quantity = 0.3;
                     const pnl = (entryPrice - exitPrice) * quantity; // Reversed for short
-                    const pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((entryPrice - exitPrice) / entryPrice) * 100;
 
                     const zoneId = api.addTradeZone({
                         startTimestamp,
@@ -2422,19 +2471,21 @@
                         entryPrice,
                         exitPrice,
                         metadata: {
-                            side: 'short',
+                            side: "short",
                             quantity,
                             pnl,
-                            pnlPercent
-                        }
+                            pnlPercent,
+                        },
                     });
 
                     const zones = api.getTradeZones();
                     updateStatus(
-                        `Added short trade zone. Total zones: ${zones.length}`
+                        `Added short trade zone. Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding short trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding short trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2446,7 +2497,9 @@
                     api.clearTradeZones();
                     updateStatus("All trade zones cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing trade zones: ${error.message}`);
+                    updateStatus(
+                        `Error clearing trade zones: ${error.message}`,
+                    );
                 }
             }
 
@@ -2463,7 +2516,9 @@
                     }
 
                     // Pick a random candle from the visible range
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
                     const price = candle.close;
 
@@ -2482,10 +2537,12 @@
 
                     const annotations = api.getAnnotations();
                     updateStatus(
-                        `Added note annotation. Total annotations: ${annotations.length}`
+                        `Added note annotation. Total annotations: ${annotations.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding note annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding note annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2501,7 +2558,9 @@
                     }
 
                     // Pick a random candle from the visible range
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     const annotationId = api.addAnnotation({
@@ -2520,10 +2579,12 @@
 
                     const annotations = api.getAnnotations();
                     updateStatus(
-                        `Added alert annotation. Total annotations: ${annotations.length}`
+                        `Added alert annotation. Total annotations: ${annotations.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding alert annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding alert annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2539,7 +2600,9 @@
                     }
 
                     // Pick a random candle from the visible range
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     const annotationId = api.addAnnotation({
@@ -2558,10 +2621,12 @@
 
                     const annotations = api.getAnnotations();
                     updateStatus(
-                        `Added milestone annotation. Total annotations: ${annotations.length}`
+                        `Added milestone annotation. Total annotations: ${annotations.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding milestone annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding milestone annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2574,7 +2639,9 @@
                     const priceRange = api.getPriceRange();
 
                     // Place in middle of visible range
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
                     const price = priceRange.min + priceRange.range * 0.5;
 
                     const annotationId = api.addAnnotation({
@@ -2593,28 +2660,14 @@
                         fontSize: 14,
                     });
 
-                    // Listen for drag events and update annotation position
-                    api.on("annotation-dragged", (data) => {
-                        // Update the annotation position in real-time
-                        api.updateAnnotation(data.annotationId, {
-                            timestamp: data.newTimestamp,
-                            price: data.newPrice
-                        });
-
-                        const newDate = new Date(data.newTimestamp);
-                        updateStatus(
-                            `Annotation dragged:\n` +
-                            `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
-                            `New time: ${newDate.toLocaleString()}`
-                        );
-                    });
-
                     const annotations = api.getAnnotations();
                     updateStatus(
-                        `Added draggable annotation. Total annotations: ${annotations.length}`
+                        `Added draggable annotation. Total annotations: ${annotations.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding draggable annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding draggable annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2626,7 +2679,9 @@
                     api.clearAnnotations();
                     updateStatus("All annotations cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing annotations: ${error.message}`);
+                    updateStatus(
+                        `Error clearing annotations: ${error.message}`,
+                    );
                 }
             }
 
@@ -2639,20 +2694,20 @@
                     // Enable click-to-trade with default configuration
                     api.enableClickToTrade({
                         enabled: true,
-                        defaultSide: 'buy',
+                        defaultSide: "buy",
                         showCrosshair: true,
                         showPriceLabel: true,
                         showOrderPreview: true,
                         allowSideToggle: true,
-                        clickBehavior: 'single'
+                        clickBehavior: "single",
                     });
 
                     // Listen for order-request events
-                    api.on('order-request', (data) => {
+                    api.on("order-request", (data) => {
                         const modifiers = [];
-                        if (data.modifiers.shift) modifiers.push('Shift');
-                        if (data.modifiers.ctrl) modifiers.push('Ctrl');
-                        if (data.modifiers.alt) modifiers.push('Alt');
+                        if (data.modifiers.shift) modifiers.push("Shift");
+                        if (data.modifiers.ctrl) modifiers.push("Ctrl");
+                        if (data.modifiers.alt) modifiers.push("Alt");
 
                         const timestamp = new Date(data.timestamp);
                         const timeStr = timestamp.toLocaleTimeString();
@@ -2660,17 +2715,21 @@
 
                         updateStatus(
                             `ORDER REQUEST:\n` +
-                            `Side: ${data.side.toUpperCase()}\n` +
-                            `Price: $${data.price.toFixed(2)}\n` +
-                            `Time: ${dateStr} ${timeStr}\n` +
-                            `Modifiers: ${modifiers.join(', ') || 'None'}`
+                                `Side: ${data.side.toUpperCase()}\n` +
+                                `Price: $${data.price.toFixed(2)}\n` +
+                                `Time: ${dateStr} ${timeStr}\n` +
+                                `Modifiers: ${modifiers.join(", ") || "None"}`,
                         );
                     });
 
-                    updateStatus('Click-to-Trade ENABLED\nClick on chart to place orders\nHold Shift to toggle buy/sell');
+                    updateStatus(
+                        "Click-to-Trade ENABLED\nClick on chart to place orders\nHold Shift to toggle buy/sell",
+                    );
                     updateActiveButtons();
                 } catch (error) {
-                    updateStatus(`Error enabling click-to-trade: ${error.message}`);
+                    updateStatus(
+                        `Error enabling click-to-trade: ${error.message}`,
+                    );
                 }
             }
 
@@ -2680,10 +2739,12 @@
 
                 try {
                     api.disableClickToTrade();
-                    updateStatus('Click-to-Trade DISABLED');
+                    updateStatus("Click-to-Trade DISABLED");
                     updateActiveButtons();
                 } catch (error) {
-                    updateStatus(`Error disabling click-to-trade: ${error.message}`);
+                    updateStatus(
+                        `Error disabling click-to-trade: ${error.message}`,
+                    );
                 }
             }
 
@@ -3185,8 +3246,12 @@ Indicators: ${
                         });
 
                     // Update click-to-trade buttons
-                    const enableBtn = document.getElementById("enable-click-to-trade-btn");
-                    const disableBtn = document.getElementById("disable-click-to-trade-btn");
+                    const enableBtn = document.getElementById(
+                        "enable-click-to-trade-btn",
+                    );
+                    const disableBtn = document.getElementById(
+                        "disable-click-to-trade-btn",
+                    );
 
                     if (enableBtn && disableBtn) {
                         const isEnabled = api.isClickToTradeEnabled();
@@ -3302,7 +3367,7 @@ Indicators: ${
                         if (currentChart === 1) {
                             console.log("Trade zone clicked:", event);
                             updateStatus(
-                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
                             );
                         }
                     });
@@ -3310,14 +3375,16 @@ Indicators: ${
                     chart1Api.on("trade-zone-hovered", (event) => {
                         if (currentChart === 1) {
                             console.log("Trade zone hovered:", event);
-                            const pnlText = event.zone.metadata?.pnl !== undefined
-                                ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
-                                : '';
-                            const pnlPercentText = event.zone.metadata?.pnlPercent !== undefined
-                                ? `(${event.zone.metadata.pnlPercent >= 0 ? '+' : ''}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
-                                : '';
+                            const pnlText =
+                                event.zone.metadata?.pnl !== undefined
+                                    ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                    : "";
+                            const pnlPercentText =
+                                event.zone.metadata?.pnlPercent !== undefined
+                                    ? `(${event.zone.metadata.pnlPercent >= 0 ? "+" : ""}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                    : "";
                             updateStatus(
-                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim()
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim(),
                             );
                         }
                     });
@@ -3342,6 +3409,18 @@ Indicators: ${
                             if (Math.random() < 0.05) {
                                 console.log("Crosshair moved:", event);
                             }
+                        }
+                    });
+
+                    // Annotation events
+                    chart1Api.on("annotation-dragged", (data) => {
+                        if (currentChart === 1) {
+                            const newDate = new Date(data.newTimestamp);
+                            updateStatus(
+                                `Annotation dragged:\n` +
+                                    `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
+                                    `New time: ${newDate.toLocaleString()}`,
+                            );
                         }
                     });
                 }
@@ -3443,7 +3522,7 @@ Indicators: ${
                         if (currentChart === 2) {
                             console.log("Trade zone clicked:", event);
                             updateStatus(
-                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
                             );
                         }
                     });
@@ -3451,14 +3530,16 @@ Indicators: ${
                     chart2Api.on("trade-zone-hovered", (event) => {
                         if (currentChart === 2) {
                             console.log("Trade zone hovered:", event);
-                            const pnlText = event.zone.metadata?.pnl !== undefined
-                                ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
-                                : '';
-                            const pnlPercentText = event.zone.metadata?.pnlPercent !== undefined
-                                ? `(${event.zone.metadata.pnlPercent >= 0 ? '+' : ''}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
-                                : '';
+                            const pnlText =
+                                event.zone.metadata?.pnl !== undefined
+                                    ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                    : "";
+                            const pnlPercentText =
+                                event.zone.metadata?.pnlPercent !== undefined
+                                    ? `(${event.zone.metadata.pnlPercent >= 0 ? "+" : ""}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                    : "";
                             updateStatus(
-                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim()
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim(),
                             );
                         }
                     });
@@ -3483,6 +3564,18 @@ Indicators: ${
                             if (Math.random() < 0.05) {
                                 console.log("Crosshair moved:", event);
                             }
+                        }
+                    });
+
+                    // Annotation events
+                    chart2Api.on("annotation-dragged", (data) => {
+                        if (currentChart === 2) {
+                            const newDate = new Date(data.newTimestamp);
+                            updateStatus(
+                                `Annotation dragged:\n` +
+                                    `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
+                                    `New time: ${newDate.toLocaleString()}`,
+                            );
                         }
                     });
                 }

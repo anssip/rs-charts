@@ -57,7 +57,16 @@ import { PriceLinesLayer } from "./price-lines-layer";
 import { TradeZonesLayer } from "./trade-zones-layer";
 import { AnnotationsLayer } from "./annotations-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
-import { TradeMarker, PriceLine, TradeZone, Annotation, PositionOverlayConfig, ClickToTradeConfig, OrderRequestData, PriceHoverEvent } from "../../types/trading-overlays";
+import {
+  TradeMarker,
+  PriceLine,
+  TradeZone,
+  Annotation,
+  PositionOverlayConfig,
+  ClickToTradeConfig,
+  OrderRequestData,
+  PriceHoverEvent,
+} from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
 const logger = getLogger("ChartContainer");
@@ -762,6 +771,12 @@ export class ChartContainer extends LitElement {
     // This prevents loss of highlights when app.ts updates the state
     if (this._state.patternHighlights && !state.patternHighlights) {
       state.patternHighlights = this._state.patternHighlights;
+    }
+
+    // Preserve annotations if they exist in current state but not in new state
+    // This prevents loss of annotations when app.ts updates the state
+    if (this._state.annotations && !state.annotations) {
+      state.annotations = this._state.annotations;
     }
 
     this._state = state;
@@ -1997,7 +2012,9 @@ export class ChartContainer extends LitElement {
   public removeAnnotation(annotationId: string): void {
     if (!this._state.annotations) return;
 
-    const index = this._state.annotations.findIndex((a) => a.id === annotationId);
+    const index = this._state.annotations.findIndex(
+      (a) => a.id === annotationId,
+    );
     if (index !== -1) {
       this._state.annotations.splice(index, 1);
       touch("state.annotations");
@@ -2013,9 +2030,16 @@ export class ChartContainer extends LitElement {
   public updateAnnotation(annotationId: string, annotation: Annotation): void {
     if (!this._state.annotations) return;
 
-    const index = this._state.annotations.findIndex((a) => a.id === annotationId);
+    const index = this._state.annotations.findIndex(
+      (a) => a.id === annotationId,
+    );
     if (index !== -1) {
-      this._state.annotations[index] = annotation;
+      // Create new array reference to trigger Lit's reactive update
+      this._state.annotations = [
+        ...this._state.annotations.slice(0, index),
+        annotation,
+        ...this._state.annotations.slice(index + 1),
+      ];
       touch("state.annotations");
       this.requestUpdate();
       this.updateAnnotationsLayer();
@@ -2076,7 +2100,7 @@ export class ChartContainer extends LitElement {
               detail: data,
               bubbles: true,
               composed: true,
-            })
+            }),
           );
         },
         onPriceHover: (data: PriceHoverEvent) => {
@@ -2086,7 +2110,7 @@ export class ChartContainer extends LitElement {
               detail: data,
               bubbles: true,
               composed: true,
-            })
+            }),
           );
         },
       });
@@ -2109,7 +2133,10 @@ export class ChartContainer extends LitElement {
 
     // Update state
     if (this._state.clickToTrade) {
-      this._state.clickToTrade = { ...this._state.clickToTrade, enabled: false };
+      this._state.clickToTrade = {
+        ...this._state.clickToTrade,
+        enabled: false,
+      };
       touch("state.clickToTrade");
       this.requestUpdate();
     }
