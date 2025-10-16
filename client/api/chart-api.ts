@@ -1677,13 +1677,7 @@ export class ChartApi {
       zIndex: config.zIndex !== undefined ? config.zIndex : 100,
     };
 
-    // Add to state array
-    if (!this.state.tradeMarkers) {
-      this.state.tradeMarkers = [];
-    }
-    this.state.tradeMarkers.push(marker);
-
-    // Notify container about new marker
+    // Add trade marker via container (container will handle state management)
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.addTradeMarker) {
       chartContainer.addTradeMarker(marker);
@@ -1820,13 +1814,7 @@ export class ChartApi {
       zIndex: config.zIndex !== undefined ? config.zIndex : 50,
     };
 
-    // Add to state array
-    if (!this.state.priceLines) {
-      this.state.priceLines = [];
-    }
-    this.state.priceLines.push(priceLine);
-
-    // Notify container
+    // Add price line via container (container will handle state management)
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.addPriceLine) {
       chartContainer.addPriceLine(priceLine);
@@ -2039,13 +2027,7 @@ export class ChartApi {
       zIndex: config.zIndex !== undefined ? config.zIndex : 0,
     };
 
-    // Add to state array
-    if (!this.state.tradeZones) {
-      this.state.tradeZones = [];
-    }
-    this.state.tradeZones.push(zone);
-
-    // Notify container about new zone
+    // Add trade zone via container (container will handle state management)
     const chartContainer = this.container as any;
     if (chartContainer && chartContainer.addTradeZone) {
       chartContainer.addTradeZone(zone);

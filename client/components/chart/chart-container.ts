@@ -32,6 +32,10 @@ import "./indicators/market-indicator";
 import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
+import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
+import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
+import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
+import { LiveCandleInteractionLayer } from "./interaction/layers/live-candle-layer";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
@@ -332,6 +336,16 @@ export class ChartContainer extends LitElement {
     this.addEventListener(
       "candle-click",
       this.handleCandleClick as EventListener,
+    );
+
+    // Add event listeners for dragging interactions from interaction layers
+    this.addEventListener(
+      "price-line-dragged",
+      this.handlePriceLineDragged as EventListener,
+    );
+    this.addEventListener(
+      "annotation-dragged",
+      this.handleAnnotationDragged as EventListener,
     );
 
     // Also listen for double-clicks directly on the chart area
@@ -1414,6 +1428,32 @@ export class ChartContainer extends LitElement {
     );
   };
 
+  /**
+   * Handle price line dragged events from interaction layer
+   */
+  private handlePriceLineDragged = (event: CustomEvent) => {
+    const { lineId, newPrice, line } = event.detail;
+
+    // Update the price line with the new price
+    const updatedLine = { ...line, price: newPrice };
+    this.updatePriceLine(lineId, updatedLine);
+  };
+
+  /**
+   * Handle annotation dragged events from interaction layer
+   */
+  private handleAnnotationDragged = (event: CustomEvent) => {
+    const { annotationId, newTimestamp, newPrice, annotation } = event.detail;
+
+    // Update the annotation with the new position
+    const updatedAnnotation = {
+      ...annotation,
+      timestamp: newTimestamp,
+      price: newPrice
+    };
+    this.updateAnnotation(annotationId, updatedAnnotation);
+  };
+
   private handleDocumentClick = (event: MouseEvent) => {
     // Hide tooltip if clicking outside the chart
     const target = event.target as Element;
@@ -2188,5 +2228,40 @@ export class ChartContainer extends LitElement {
     });
 
     this.interactionController.attach(true);
+
+    // Register interaction layers (highest priority first)
+    // Priority order: Annotations (100) > Price Lines (90) > Trend Lines (80) > Live Candle (10)
+
+    // Annotations layer - highest priority (100)
+    const annotationsLayer = new AnnotationsInteractionLayer(
+      this as HTMLElement,
+      this._state,
+      () => this._state.annotations || []
+    );
+    this.interactionController.registerLayer(annotationsLayer);
+
+    // Price lines layer - priority 90
+    const priceLinesLayer = new PriceLinesInteractionLayer(
+      this as HTMLElement,
+      this._state,
+      () => this._state.priceLines || []
+    );
+    this.interactionController.registerLayer(priceLinesLayer);
+
+    // Trend lines layer - priority 80
+    const trendLinesLayer = new TrendLinesInteractionLayer(
+      this as HTMLElement,
+      this._state
+    );
+    this.interactionController.registerLayer(trendLinesLayer);
+
+    // Live candle layer - lowest priority (10)
+    const liveCandleLayer = new LiveCandleInteractionLayer(
+      this as HTMLElement,
+      this._state
+    );
+    this.interactionController.registerLayer(liveCandleLayer);
+
+    logger.debug("ChartContainer: All interaction layers registered");
   }
 }
