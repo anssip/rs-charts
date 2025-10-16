@@ -461,31 +461,59 @@ export class AnnotationsLayer extends LitElement {
     // Calculate line endpoint (at price level)
     const priceY = this.priceToY(annotation.price);
 
+    // Estimate annotation box dimensions for offset calculations
+    const estimatedBoxHeight = 32; // Approximate height of annotation box
+    const estimatedBoxWidth = 120; // Approximate width of annotation box
+    const gap = 8; // Gap from CSS transforms (translateY/translateX)
+
     // Determine line start point based on position
+    // The annotation div is positioned at (x, y) where y = priceY
+    // CSS transforms move the box, so we need to adjust the line start accordingly
     let startX = x;
     let startY = y;
     let endX = x;
     let endY = priceY;
 
-    // Adjust based on annotation position
+    // Adjust based on annotation position to account for CSS transforms
     switch (annotation.position) {
       case "above":
-        startY = y; // Start at annotation bottom
+        // Box is moved up by 100% of height + gap
+        // Line should start from bottom edge of box to exact price level
+        startY = y - estimatedBoxHeight - gap;
+        endY = priceY;
         break;
       case "below":
-        startY = y; // Start at annotation top
+        // Box is moved down by gap
+        // Line should start from top edge of box to exact price level
+        startY = y + gap;
+        endY = priceY;
         break;
       case "left":
-        startX = x; // Start at annotation right
+        // Box is moved left by 100% of width + gap
+        // Line should start from right edge of box to exact timestamp
+        startX = x - gap;
+        endX = x;
+        startY = y; // Vertically centered
+        endY = y; // Horizontal line
         break;
       case "right":
-        startX = x; // Start at annotation left
+        // Box is moved right by gap
+        // Line should start from left edge of box to exact timestamp
+        startX = x + gap;
+        endX = x;
+        startY = y; // Vertically centered
+        endY = y; // Horizontal line
         break;
     }
 
+    // Calculate line length to exact price/time coordinates
     const lineLength = Math.sqrt(
       Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2),
     );
+
+    // Only render if line has meaningful length
+    if (lineLength < 2) return null;
+
     const angle = Math.atan2(endY - startY, endX - startX) * (180 / Math.PI);
 
     return html`
@@ -499,16 +527,24 @@ export class AnnotationsLayer extends LitElement {
           transform-origin: 0 0;
         "
       >
-        <svg class="line-svg" width="${lineLength}" height="1">
+        <svg class="line-svg" width="${lineLength}" height="10">
           <line
             x1="0"
-            y1="0"
+            y1="5"
             x2="${lineLength}"
-            y2="0"
+            y2="5"
             stroke="${lineColor}"
-            stroke-width="1"
+            stroke-width="2"
             stroke-dasharray="${this.getStrokeDashArray(lineStyle)}"
             vector-effect="non-scaling-stroke"
+          />
+          <circle
+            cx="${lineLength}"
+            cy="5"
+            r="4"
+            fill="${lineColor}"
+            stroke="${lineColor}"
+            stroke-width="1"
           />
         </svg>
       </div>
