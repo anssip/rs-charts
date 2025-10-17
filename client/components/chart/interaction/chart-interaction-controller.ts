@@ -397,8 +397,28 @@ export class ChartInteractionController {
     );
 
     if (totalMovement <= this.dragThreshold) {
-      // This was a click, not a drag - let it propagate
-      // Don't prevent default or stop propagation
+      // This was a click, not a drag
+      // Emit chart-clicked event
+      const rect = this.eventTarget.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const price = this.calculatePriceFromY(mouseY);
+      const timestamp = this.calculateTimestampFromX(mouseX);
+
+      // Emit chart-clicked event
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("chart-clicked", {
+          detail: {
+            price,
+            timestamp,
+            mouseX,
+            mouseY,
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
     }
 
     const wasDragging = this.isDragging;
@@ -822,8 +842,64 @@ export class ChartInteractionController {
 
   private handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
+
+    // Calculate price and timestamp from mouse position
+    const rect = this.eventTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const price = this.calculatePriceFromY(mouseY);
+    const timestamp = this.calculateTimestampFromX(mouseX);
+
+    // Emit enhanced context-menu event with price and timestamp
+    this.eventTarget.dispatchEvent(
+      new CustomEvent("chart-context-menu", {
+        detail: {
+          price,
+          timestamp,
+          mouseX,
+          mouseY,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+
+    // Keep backward compatibility callback
     if (this.options.onContextMenu) {
       this.options.onContextMenu({ x: e.clientX, y: e.clientY });
     }
   };
+
+  /**
+   * Calculate price from Y position (top to bottom)
+   */
+  private calculatePriceFromY(y: number): number {
+    const { state } = this.options;
+    if (!state.priceRange) return 0;
+
+    const containerHeight = this.eventTarget?.clientHeight ?? 0;
+    if (containerHeight === 0) return 0;
+
+    const priceRange = state.priceRange.max - state.priceRange.min;
+    const price = state.priceRange.max - (y / containerHeight) * priceRange;
+
+    return price;
+  }
+
+  /**
+   * Calculate timestamp from X position (left to right)
+   */
+  private calculateTimestampFromX(x: number): number {
+    const { state } = this.options;
+    if (!state.timeRange) return 0;
+
+    const containerWidth = this.eventTarget?.clientWidth ?? 0;
+    if (containerWidth === 0) return 0;
+
+    const timeSpan = state.timeRange.end - state.timeRange.start;
+    const timestamp = state.timeRange.start + (x / containerWidth) * timeSpan;
+
+    return timestamp;
+  }
 }

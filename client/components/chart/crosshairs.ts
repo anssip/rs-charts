@@ -43,7 +43,7 @@ export class Crosshairs extends CanvasBase {
 
     const state = xin[this._chartId] as ChartState;
     if (!state || !state.timeRange) return;
-    
+
     const timeRange = state.timeRange;
 
     this.mouseX = event.clientX - rect.left;
@@ -68,6 +68,27 @@ export class Crosshairs extends CanvasBase {
     const timePosition = (this.cursorTime - timeRange.start) / timeSpan;
     this.snappedX = timePosition * rect.width;
 
+    // Calculate price at mouse position
+    let price: number | null = null;
+    if (state.priceRange && this.mouseY < rect.height - TIMELINE_HEIGHT) {
+      const priceRange = state.priceRange.max - state.priceRange.min;
+      price = state.priceRange.max - (this.mouseY / rect.height) * priceRange;
+    }
+
+    // Emit crosshair-moved event
+    this.dispatchEvent(
+      new CustomEvent("crosshair-moved", {
+        detail: {
+          price,
+          timestamp: this.cursorTime,
+          mouseX: this.mouseX,
+          mouseY: this.mouseY,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+
     this.draw();
   };
 
@@ -81,6 +102,21 @@ export class Crosshairs extends CanvasBase {
   private handleMouseLeave = () => {
     this.mouseX = -1;
     this.mouseY = -1;
+
+    // Emit crosshair-moved event with null values when leaving chart
+    this.dispatchEvent(
+      new CustomEvent("crosshair-moved", {
+        detail: {
+          price: null,
+          timestamp: null,
+          mouseX: -1,
+          mouseY: -1,
+        },
+        bubbles: true,
+        composed: true,
+      })
+    );
+
     this.draw();
   };
 

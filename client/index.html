@@ -250,6 +250,103 @@
             .demo-controls {
                 top: 80px; /* Move down to avoid header */
             }
+
+            /* Event Footer Styles */
+            .event-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 150px;
+                background: var(--color-primary-dark);
+                border-top: 1px solid rgba(143, 143, 143, 0.3);
+                z-index: 900;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .event-footer-header {
+                padding: 8px 12px;
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(143, 143, 143, 0.2);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .event-footer-title {
+                color: var(--color-accent-2);
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .event-footer-clear {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                color: var(--color-accent-2);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .event-footer-clear:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .event-log {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+                font-family: "Courier New", monospace;
+                font-size: 11px;
+                line-height: 1.6;
+            }
+
+            .event-entry {
+                padding: 4px 8px;
+                margin-bottom: 2px;
+                border-radius: 4px;
+                background: rgba(0, 0, 0, 0.2);
+                display: flex;
+                gap: 8px;
+            }
+
+            .event-time {
+                color: #888;
+                min-width: 80px;
+            }
+
+            .event-type {
+                color: #4caf50;
+                font-weight: 600;
+                min-width: 140px;
+            }
+
+            .event-data {
+                color: var(--color-accent-2);
+                flex: 1;
+            }
+
+            .event-entry.crosshair-moved .event-type {
+                color: #64b5f6;
+            }
+
+            .event-entry.chart-clicked .event-type {
+                color: #ffa726;
+            }
+
+            .event-entry.chart-context-menu .event-type {
+                color: #ef5350;
+            }
+
+            .charts-wrapper {
+                margin-bottom: 150px; /* Make room for footer */
+            }
         </style>
     </head>
 
@@ -1087,6 +1184,17 @@
             <button class="upgrade-button">Upgrade</button>
         </div>
 
+        <!-- Event Footer -->
+        <div class="event-footer">
+            <div class="event-footer-header">
+                <div class="event-footer-title">Chart Events Log</div>
+                <button class="event-footer-clear" onclick="clearEventLog()">
+                    Clear Log
+                </button>
+            </div>
+            <div class="event-log" id="event-log"></div>
+        </div>
+
         <script>
             // Chart API Demo functionality
             let currentChart = 1;
@@ -1094,6 +1202,88 @@
             let chart2Api = null;
             let selectedTrendLineId = null;
             let isUpdatingUI = false; // Prevent feedback loops
+
+            // Event Log functionality
+            const MAX_EVENT_LOG_ENTRIES = 100;
+            let eventLogThrottle = {
+                'crosshair-moved': 0
+            };
+
+            function addEventToLog(eventType, eventData) {
+                const eventLog = document.getElementById('event-log');
+                if (!eventLog) return;
+
+                // Throttle crosshair-moved events to reduce spam
+                if (eventType === 'crosshair-moved') {
+                    const now = Date.now();
+                    if (now - eventLogThrottle['crosshair-moved'] < 500) {
+                        return; // Skip this event
+                    }
+                    eventLogThrottle['crosshair-moved'] = now;
+                }
+
+                // Create event entry
+                const entry = document.createElement('div');
+                entry.className = `event-entry ${eventType}`;
+
+                const time = new Date().toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    fractionalSecondDigits: 1
+                });
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'event-time';
+                timeSpan.textContent = time;
+
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'event-type';
+                typeSpan.textContent = eventType;
+
+                const dataSpan = document.createElement('span');
+                dataSpan.className = 'event-data';
+                dataSpan.textContent = formatEventData(eventType, eventData);
+
+                entry.appendChild(timeSpan);
+                entry.appendChild(typeSpan);
+                entry.appendChild(dataSpan);
+
+                // Add to top of log
+                eventLog.insertBefore(entry, eventLog.firstChild);
+
+                // Limit number of entries
+                while (eventLog.children.length > MAX_EVENT_LOG_ENTRIES) {
+                    eventLog.removeChild(eventLog.lastChild);
+                }
+            }
+
+            function formatEventData(eventType, data) {
+                switch (eventType) {
+                    case 'crosshair-moved':
+                        if (data.price === null || data.timestamp === null) {
+                            return 'Left chart';
+                        }
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case 'chart-clicked':
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case 'chart-context-menu':
+                        return `Right-clicked at Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    default:
+                        return JSON.stringify(data);
+                }
+            }
+
+            function clearEventLog() {
+                const eventLog = document.getElementById('event-log');
+                if (eventLog) {
+                    eventLog.innerHTML = '';
+                }
+            }
 
             // Preset functions for support/resistance
             function applySwingSupport() {
@@ -3390,9 +3580,10 @@ Indicators: ${
                     });
 
                     // Trading Overlays - Chart interaction events
-                    chart1Api.on("price-clicked", (event) => {
+                    chart1Api.on("chart-clicked", (event) => {
+                        addEventToLog("chart-clicked", event);
                         if (currentChart === 1) {
-                            console.log("Price clicked:", event);
+                            console.log("Chart clicked:", event);
                             updateStatus(
                                 `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
                             );
@@ -3400,6 +3591,7 @@ Indicators: ${
                     });
 
                     chart1Api.on("crosshair-moved", (event) => {
+                        addEventToLog("crosshair-moved", event);
                         if (
                             currentChart === 1 &&
                             event.price &&
@@ -3409,6 +3601,13 @@ Indicators: ${
                             if (Math.random() < 0.05) {
                                 console.log("Crosshair moved:", event);
                             }
+                        }
+                    });
+
+                    chart1Api.on("chart-context-menu", (event) => {
+                        addEventToLog("chart-context-menu", event);
+                        if (currentChart === 1) {
+                            console.log("Chart context menu:", event);
                         }
                     });
 
@@ -3545,9 +3744,10 @@ Indicators: ${
                     });
 
                     // Trading Overlays - Chart interaction events
-                    chart2Api.on("price-clicked", (event) => {
+                    chart2Api.on("chart-clicked", (event) => {
+                        addEventToLog("chart-clicked", event);
                         if (currentChart === 2) {
-                            console.log("Price clicked:", event);
+                            console.log("Chart clicked:", event);
                             updateStatus(
                                 `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
                             );
@@ -3555,6 +3755,7 @@ Indicators: ${
                     });
 
                     chart2Api.on("crosshair-moved", (event) => {
+                        addEventToLog("crosshair-moved", event);
                         if (
                             currentChart === 2 &&
                             event.price &&
@@ -3564,6 +3765,13 @@ Indicators: ${
                             if (Math.random() < 0.05) {
                                 console.log("Crosshair moved:", event);
                             }
+                        }
+                    });
+
+                    chart2Api.on("chart-context-menu", (event) => {
+                        addEventToLog("chart-context-menu", event);
+                        if (currentChart === 2) {
+                            console.log("Chart context menu:", event);
                         }
                     });
 

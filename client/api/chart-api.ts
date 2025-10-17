@@ -54,7 +54,6 @@ import {
   AnnotationDraggedEvent,
   PositionOverlayConfig,
   PriceClickedEvent,
-  TimeClickedEvent,
   CrosshairMovedEvent,
   ContextMenuEvent as ChartContextMenuEvent,
   OrderRequestData,
@@ -192,8 +191,7 @@ export interface ChartApiEventMap {
   "annotation-clicked": AnnotationClickedEvent;
   "annotation-hovered": AnnotationHoveredEvent;
   "annotation-dragged": AnnotationDraggedEvent;
-  "price-clicked": PriceClickedEvent;
-  "time-clicked": TimeClickedEvent;
+  "chart-clicked": PriceClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
   "chart-context-menu": ChartContextMenuEvent;
   // Click-to-trade events
@@ -322,14 +320,9 @@ export class ChartApi {
       this.emitEvent("trade-zone-hovered", customEvent.detail);
     });
 
-    this.container.addEventListener("price-clicked", (event: Event) => {
+    this.container.addEventListener("chart-clicked", (event: Event) => {
       const customEvent = event as CustomEvent;
-      this.emitEvent("price-clicked", customEvent.detail);
-    });
-
-    this.container.addEventListener("time-clicked", (event: Event) => {
-      const customEvent = event as CustomEvent;
-      this.emitEvent("time-clicked", customEvent.detail);
+      this.emitEvent("chart-clicked", customEvent.detail);
     });
 
     this.container.addEventListener("crosshair-moved", (event: Event) => {
