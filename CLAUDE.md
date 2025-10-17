@@ -75,6 +75,107 @@ bun run update:linked        # Build bundled version for local development
 - Methods: symbol/granularity control, indicators, fullscreen, position overlays, trend lines
 - Event system: `symbolChange`, `granularityChange`, `indicatorChange`, `fullscreenChange`
 
+## Interaction Layer System
+
+**Chart Interaction Controller (`client/components/chart/interaction/chart-interaction-controller.ts`)**
+
+The chart uses a priority-based interaction layer system to handle mouse and touch events. This architecture allows multiple interactive elements (annotations, trend lines, price lines, etc.) to coexist and claim interactions without interfering with default chart panning/zooming.
+
+### How It Works
+
+1. **Layer Registration**: Interactive components register themselves as layers with a priority level
+   ```typescript
+   controller.registerLayer({
+     id: "my-layer",
+     priority: 100, // Higher priority layers are queried first
+     hitTest: (event) => { /* ... */ },
+     handleInteraction: (event) => { /* ... */ },
+     onTransform: (transform) => { /* ... */ }
+   });
+   ```
+
+2. **Hit Testing**: When a user interacts (mousedown, touchstart), the controller queries all registered layers in priority order
+   - Each layer's `hitTest()` method determines if it should handle the interaction
+   - The first layer to return a truthy `HitTestResult` claims the interaction
+   - If no layer claims it, the default chart panning behavior is used
+
+3. **Interaction Handling**: Once a layer claims an interaction:
+   - All subsequent drag/move/end events are routed to that layer's `handleInteraction()` method
+   - The cursor can be updated based on the hit result
+   - Other layers and default chart behavior are bypassed during this interaction
+
+4. **Viewport Broadcasting**: When the chart pans or zooms:
+   - The controller broadcasts `ViewportTransform` updates to all registered layers
+   - Layers use this to update their coordinate calculations and redraw if needed
+
+### Key Interfaces
+
+**InteractionLayer**:
+```typescript
+interface InteractionLayer {
+  id: string;
+  priority: number;
+  hitTest(event: MouseEvent | TouchEvent): HitTestResult | null;
+  handleInteraction(event: InteractionEvent): void;
+  onTransform?(transform: ViewportTransform): void;
+  destroy?(): void;
+}
+```
+
+**HitTestResult**:
+```typescript
+interface HitTestResult {
+  type: string;          // Type of interaction (e.g., "drag-annotation", "resize-line")
+  cursor?: string;       // Optional cursor style (e.g., "move", "ns-resize")
+  data?: any;            // Optional data about what was hit
+}
+```
+
+**InteractionEvent**:
+```typescript
+interface InteractionEvent {
+  type: "dragstart" | "drag" | "dragend" | "click" | "hover";
+  originalEvent: MouseEvent | TouchEvent;
+  position: { x: number; y: number };           // Screen coordinates
+  canvasPosition: { x: number; y: number };     // Canvas coordinates (with DPR)
+  modifiers: { shift, ctrl, alt, meta };
+}
+```
+
+**ViewportTransform**:
+```typescript
+interface ViewportTransform {
+  timeRange: { start: number; end: number };
+  priceRange: { min: number; max: number };
+  canvasWidth: number;
+  canvasHeight: number;
+  dpr: number;
+}
+```
+
+### Event Flow
+
+1. **User initiates interaction** (mousedown/touchstart)
+2. **Controller queries layers** by priority (highest first)
+3. **Layer claims interaction** via `hitTest()` returning a result
+4. **Controller routes events** to the active layer's `handleInteraction()`
+5. **User completes interaction** (mouseup/touchend)
+6. **Controller resets** active layer and cursor
+
+### Default Chart Behavior
+
+If no layer claims an interaction:
+- **Pan**: Drag moves the chart horizontally (timeline) and vertically (price axis)
+- **Zoom**: Mouse wheel or pinch gestures zoom timeline and price axis
+- **Click**: Emits `chart-clicked` event with price and timestamp
+- **Context Menu**: Emits `chart-context-menu` event with price and timestamp
+
+### Backward Compatibility
+
+The controller includes legacy support for draggable elements detected via composed path:
+- Elements with classes `annotation.draggable`, `trend-line`, or `price-line.draggable`
+- This is maintained for backward compatibility but new features should use the layer system
+
 ## State Management Important Notes
 
 1. **XinJS Proxies**: The application state uses XinJS reactive proxies. String comparisons can fail if proxy values aren't first converted to strings:
@@ -158,6 +259,61 @@ observe(`${this._chartId}.symbol`, (newSymbol) => {
     this.refetchData();
   }
 });
+```
+
+### Implementing an Interaction Layer
+
+To create a new interactive feature (e.g., draggable annotation, resizable shape):
+
+```typescript
+import { InteractionLayer, HitTestResult, InteractionEvent } from './interaction-layer';
+
+class MyInteractionLayer implements InteractionLayer {
+  id = "my-layer";
+  priority = 100; // Higher priority = queried first
+
+  hitTest(event: MouseEvent | TouchEvent): HitTestResult | null {
+    // Determine if this layer should handle the interaction
+    const { x, y } = this.getEventPosition(event);
+
+    if (this.isOverMyElement(x, y)) {
+      return {
+        type: "drag-my-element",
+        cursor: "move",
+        data: { elementId: "..." }
+      };
+    }
+
+    return null; // Don't claim this interaction
+  }
+
+  handleInteraction(event: InteractionEvent): void {
+    switch (event.type) {
+      case "dragstart":
+        // Initialize drag operation
+        break;
+      case "drag":
+        // Update element position
+        break;
+      case "dragend":
+        // Finalize drag, save state
+        break;
+    }
+  }
+
+  onTransform(transform: ViewportTransform): void {
+    // Update coordinate calculations when chart pans/zooms
+    this.updatePositions(transform);
+  }
+
+  destroy(): void {
+    // Cleanup resources
+  }
+}
+
+// Register the layer
+const layer = new MyInteractionLayer();
+chartInteractionController.registerLayer(layer);
 ```
 
 ### Using the Chart API (External Integration)
