@@ -143,7 +143,7 @@ export class PriceLinesInteractionLayer extends BaseInteractionLayer {
       return false;
     }
 
-    const line = hitResult.metadata.line;
+    const line = hitResult.metadata!.line!;
     this.draggedLine = line;
     this.dragStartY = containerPos.y;
     this.dragStartPrice = line.price;

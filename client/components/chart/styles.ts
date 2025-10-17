@@ -78,6 +78,7 @@ export const getStyles = (
     height: 100%;
     overflow: hidden;
     pointer-events: auto;
+    z-index: 1; /* Below all overlay layers (time markers: 50, price lines: 50, etc.) */
   }
 
   chart-timeline {
@@ -216,6 +217,8 @@ export const getStyles = (
     height: 100%;
     pointer-events: none;
     cursor: crosshair;
+    position: relative;
+    z-index: 0; /* Ensure indicator-stack stays below overlay layers */
   }
 
   indicator-stack.main-chart:active {

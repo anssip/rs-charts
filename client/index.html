@@ -837,6 +837,46 @@
                         </button>
                     </div>
                 </div>
+
+                <div class="control-group">
+                    <label>Time Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNewsReleaseMarker()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📰 News Release
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMarketOpenMarker()"
+                            style="background: #4ade80; color: white"
+                        >
+                            🔔 Market Open
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addEarningsMarker()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            💰 Earnings
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addCustomTimeMarker()"
+                            style="background: #6b7280; color: white"
+                        >
+                            ⏱️ Custom
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTimeMarkers()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
             </div>
             <!-- End controls-grid -->
 
@@ -1273,8 +1313,33 @@
                     case 'chart-context-menu':
                         return `Right-clicked at Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
 
+                    case 'time-marker-clicked':
+                        return `Marker: ${data.marker.label || 'Unlabeled'} at ${new Date(data.marker.timestamp).toLocaleString()}`;
+
+                    case 'time-marker-hovered':
+                        return `Hovering marker: ${data.marker.label || 'Unlabeled'}`;
+
+                    case 'trade-marker-clicked':
+                        return `${data.marker.side.toUpperCase()} marker at $${data.marker.price.toFixed(2)}`;
+
+                    case 'price-line-dragged':
+                        return `Line moved: $${data.oldPrice.toFixed(2)} → $${data.newPrice.toFixed(2)}`;
+
+                    case 'trade-zone-clicked':
+                        return `Trade zone: Entry $${data.zone.entryPrice.toFixed(2)}, Exit $${data.zone.exitPrice.toFixed(2)}`;
+
+                    case 'annotation-clicked':
+                        return `Annotation: ${data.annotation.text}`;
+
+                    case 'annotation-dragged':
+                        const newDate = new Date(data.newTimestamp);
+                        return `Annotation moved to ${newDate.toLocaleTimeString()}`;
+
+                    case 'status-update':
+                        return data.message;
+
                     default:
-                        return JSON.stringify(data);
+                        return JSON.stringify(data).substring(0, 100);
                 }
             }
 
@@ -2875,6 +2940,123 @@
                 }
             }
 
+            // Time Marker Functions
+            function addNewsReleaseMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker somewhere in visible range
+                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "News Release",
+                        color: "#ff6b6b",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(`Added news release marker. Total markers: ${markers.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding news marker: ${error.message}`);
+                }
+            }
+
+            function addMarketOpenMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 40% of visible range
+                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.4;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Market Open",
+                        color: "#4ade80",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "bottom",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(`Added market open marker. Total markers: ${markers.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding market open marker: ${error.message}`);
+                }
+            }
+
+            function addEarningsMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 60% of visible range
+                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.6;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Earnings Report",
+                        color: "#fbbf24",
+                        lineStyle: "dotted",
+                        lineWidth: 3,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(`Added earnings marker. Total markers: ${markers.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding earnings marker: ${error.message}`);
+                }
+            }
+
+            function addCustomTimeMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 75% of visible range
+                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.75;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Custom Event",
+                        color: "#8b5cf6",
+                        lineStyle: "solid",
+                        lineWidth: 1,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(`Added custom marker. Total markers: ${markers.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding custom marker: ${error.message}`);
+                }
+            }
+
+            function clearAllTimeMarkers() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTimeMarkers();
+                    updateStatus("All time markers cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing time markers: ${error.message}`);
+                }
+            }
+
             // Click-to-Trade Functions
             function enableClickToTradeMode() {
                 const api = getCurrentApi();
@@ -3352,6 +3534,10 @@
                 }
 
                 if (message) {
+                    // Log important status messages to event log
+                    if (!message.includes('Symbol:') && !message.includes('Timeframe:')) {
+                        addEventToLog('status-update', { message });
+                    }
                     statusEl.textContent = message;
                     return;
                 }
@@ -3622,6 +3808,31 @@ Indicators: ${
                             );
                         }
                     });
+
+                    chart1Api.on("annotation-clicked", (event) => {
+                        addEventToLog("annotation-clicked", event);
+                        if (currentChart === 1) {
+                            updateStatus(`Annotation clicked: ${event.annotation.text}`);
+                        }
+                    });
+
+                    // Time Marker events
+                    chart1Api.on("time-marker-clicked", (event) => {
+                        addEventToLog("time-marker-clicked", event);
+                        if (currentChart === 1) {
+                            console.log("Time marker clicked:", event);
+                            updateStatus(
+                                `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("time-marker-hovered", (event) => {
+                        addEventToLog("time-marker-hovered", event);
+                        if (currentChart === 1) {
+                            console.log("Time marker hovered:", event);
+                        }
+                    });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
@@ -3784,6 +3995,31 @@ Indicators: ${
                                     `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
                                     `New time: ${newDate.toLocaleString()}`,
                             );
+                        }
+                    });
+
+                    chart2Api.on("annotation-clicked", (event) => {
+                        addEventToLog("annotation-clicked", event);
+                        if (currentChart === 2) {
+                            updateStatus(`Annotation clicked: ${event.annotation.text}`);
+                        }
+                    });
+
+                    // Time Marker events
+                    chart2Api.on("time-marker-clicked", (event) => {
+                        addEventToLog("time-marker-clicked", event);
+                        if (currentChart === 2) {
+                            console.log("Time marker clicked:", event);
+                            updateStatus(
+                                `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("time-marker-hovered", (event) => {
+                        addEventToLog("time-marker-hovered", event);
+                        if (currentChart === 2) {
+                            console.log("Time marker hovered:", event);
                         }
                     });
                 }

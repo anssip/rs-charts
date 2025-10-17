@@ -149,7 +149,7 @@ export class AnnotationsInteractionLayer extends BaseInteractionLayer {
       return false;
     }
 
-    const annotation = hitResult.metadata.annotation;
+    const annotation = hitResult.metadata!.annotation!;
     this.draggedAnnotation = annotation;
     this.dragStartX = containerPos.x;
     this.dragStartY = containerPos.y;

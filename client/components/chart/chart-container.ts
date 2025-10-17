@@ -35,6 +35,7 @@ import { ClickToTradeController } from "./interaction/click-to-trade-controller"
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
+import { TimeMarkersInteractionLayer } from "./interaction/layers/time-markers-layer";
 import { LiveCandleInteractionLayer } from "./interaction/layers/live-candle-layer";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
@@ -55,17 +56,20 @@ import "./trading-markers-layer";
 import "./price-lines-layer";
 import "./trade-zones-layer";
 import "./annotations-layer";
+import "./time-markers-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
 import { TradeZonesLayer } from "./trade-zones-layer";
 import { AnnotationsLayer } from "./annotations-layer";
+import { TimeMarkersLayer } from "./time-markers-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
 import {
   TradeMarker,
   PriceLine,
   TradeZone,
   Annotation,
+  TimeMarker,
   PositionOverlayConfig,
   ClickToTradeConfig,
   OrderRequestData,
@@ -168,6 +172,9 @@ export class ChartContainer extends LitElement {
   private annotations: Annotation[] = [];
 
   @state()
+  private timeMarkers: TimeMarker[] = [];
+
+  @state()
   private positionOverlay: PositionOverlayConfig | null = null;
 
   @state()
@@ -185,6 +192,7 @@ export class ChartContainer extends LitElement {
   private priceLinesLayer?: PriceLinesLayer;
   private tradeZonesLayer?: TradeZonesLayer;
   private annotationsLayer?: AnnotationsLayer;
+  private timeMarkersLayer?: TimeMarkersLayer;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -318,6 +326,17 @@ export class ChartContainer extends LitElement {
       logger.debug("ChartContainer: Found annotations layer");
       setTimeout(() => {
         this.updateAnnotationsLayer();
+      }, 100);
+    }
+
+    // Get time markers layer reference and set initial dimensions
+    this.timeMarkersLayer = this.renderRoot.querySelector(
+      "time-markers-layer",
+    ) as TimeMarkersLayer;
+    if (this.timeMarkersLayer) {
+      logger.debug("ChartContainer: Found time markers layer");
+      setTimeout(() => {
+        this.updateTimeMarkersLayer();
       }, 100);
     }
 
@@ -530,6 +549,7 @@ export class ChartContainer extends LitElement {
     this.updatePriceLinesLayer();
     this.updateTradeZonesLayer();
     this.updateAnnotationsLayer();
+    this.updateTimeMarkersLayer();
     this.updatePositionOverlay();
   }
 
@@ -657,6 +677,25 @@ export class ChartContainer extends LitElement {
 
       annotationsLayer.state = this._state;
       annotationsLayer.requestUpdate();
+    }
+  }
+
+  private updateTimeMarkersLayer() {
+    const timeMarkersLayer = this.renderRoot.querySelector(
+      "time-markers-layer",
+    ) as TimeMarkersLayer;
+    if (timeMarkersLayer) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea) {
+        timeMarkersLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        // Use full chart-area height to span over all indicators
+        timeMarkersLayer.height = chartArea.clientHeight;
+      }
+
+      timeMarkersLayer.state = this._state;
+      timeMarkersLayer.requestUpdate();
     }
   }
 
@@ -1098,6 +1137,13 @@ export class ChartContainer extends LitElement {
               .state=${this._state}
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></trade-zones-layer>
+
+            <!-- Time Markers Layer (z-index: 25) -->
+            <time-markers-layer
+              .markers=${this._state.timeMarkers || []}
+              .state=${this._state}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></time-markers-layer>
 
             <!-- Price Lines Layer (z-index: 50) -->
             <price-lines-layer
@@ -2112,6 +2158,77 @@ export class ChartContainer extends LitElement {
     return this._state.annotations?.find((a) => a.id === annotationId);
   }
 
+  /**
+   * Add a time marker to the chart
+   */
+  public addTimeMarker(marker: TimeMarker): void {
+    if (!this._state.timeMarkers) {
+      this._state.timeMarkers = [];
+    }
+    this._state.timeMarkers.push(marker);
+    touch("state.timeMarkers");
+    this.requestUpdate();
+    this.updateTimeMarkersLayer();
+    logger.debug(`ChartContainer: Added time marker ${marker.id}`);
+  }
+
+  /**
+   * Remove a time marker from the chart
+   */
+  public removeTimeMarker(markerId: string): void {
+    if (!this._state.timeMarkers) return;
+
+    const index = this._state.timeMarkers.findIndex((m) => m.id === markerId);
+    if (index !== -1) {
+      this._state.timeMarkers.splice(index, 1);
+      touch("state.timeMarkers");
+      this.requestUpdate();
+      this.updateTimeMarkersLayer();
+      logger.debug(`ChartContainer: Removed time marker ${markerId}`);
+    }
+  }
+
+  /**
+   * Update an existing time marker
+   */
+  public updateTimeMarker(markerId: string, marker: TimeMarker): void {
+    if (!this._state.timeMarkers) return;
+
+    const index = this._state.timeMarkers.findIndex((m) => m.id === markerId);
+    if (index !== -1) {
+      this._state.timeMarkers[index] = marker;
+      touch("state.timeMarkers");
+      this.requestUpdate();
+      this.updateTimeMarkersLayer();
+      logger.debug(`ChartContainer: Updated time marker ${markerId}`);
+    }
+  }
+
+  /**
+   * Clear all time markers
+   */
+  public clearTimeMarkers(): void {
+    this._state.timeMarkers = [];
+    touch("state.timeMarkers");
+    this.requestUpdate();
+    this.updateTimeMarkersLayer();
+    logger.debug("ChartContainer: Cleared all time markers");
+  }
+
+  /**
+   * Get all time markers
+   */
+  public getTimeMarkers(): TimeMarker[] {
+    return this._state.timeMarkers || [];
+  }
+
+  /**
+   * Get a specific time marker by ID
+   */
+  public getTimeMarker(markerId: string): TimeMarker | undefined {
+    return this._state.timeMarkers?.find((m) => m.id === markerId);
+  }
+
   // ============================================================================
   // Click-to-Trade Methods
   // ============================================================================
@@ -2230,7 +2347,7 @@ export class ChartContainer extends LitElement {
     this.interactionController.attach(true);
 
     // Register interaction layers (highest priority first)
-    // Priority order: Annotations (100) > Price Lines (90) > Trend Lines (80) > Live Candle (10)
+    // Priority order: Annotations (100) > Price Lines (90) > Trend Lines (80) > Time Markers (40) > Live Candle (10)
 
     // Annotations layer - highest priority (100)
     const annotationsLayer = new AnnotationsInteractionLayer(
@@ -2254,6 +2371,14 @@ export class ChartContainer extends LitElement {
       this._state
     );
     this.interactionController.registerLayer(trendLinesLayer);
+
+    // Time markers layer - priority 40
+    const timeMarkersLayer = new TimeMarkersInteractionLayer(
+      this as HTMLElement,
+      this._state,
+      () => this._state.timeMarkers || []
+    );
+    this.interactionController.registerLayer(timeMarkersLayer);
 
     // Live candle layer - lowest priority (10)
     const liveCandleLayer = new LiveCandleInteractionLayer(

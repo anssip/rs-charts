@@ -375,6 +375,7 @@ export interface TimeMarkerConfig {
   lineWidth?: number;
   showLabel?: boolean;            // Show label at top/bottom (default: true)
   labelPosition?: 'top' | 'bottom';
+  interactive?: boolean;          // Enable click/hover events (default: true)
   zIndex?: number;                // Layer ordering (default: 25)
 }
 
@@ -384,6 +385,22 @@ export interface TimeMarkerConfig {
 export interface TimeMarker extends Required<Omit<TimeMarkerConfig, 'id' | 'label'>> {
   id: string;
   label?: string;
+}
+
+/**
+ * Event emitted when a time marker is clicked
+ */
+export interface TimeMarkerClickedEvent {
+  markerId: string;
+  marker: TimeMarker;
+}
+
+/**
+ * Event emitted when mouse hovers over a time marker
+ */
+export interface TimeMarkerHoveredEvent {
+  markerId: string;
+  marker: TimeMarker;
 }
 
 // ============================================================================

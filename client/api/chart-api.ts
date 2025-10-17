@@ -52,6 +52,10 @@ import {
   AnnotationClickedEvent,
   AnnotationHoveredEvent,
   AnnotationDraggedEvent,
+  TimeMarker,
+  TimeMarkerConfig,
+  TimeMarkerClickedEvent,
+  TimeMarkerHoveredEvent,
   PositionOverlayConfig,
   PriceClickedEvent,
   CrosshairMovedEvent,
@@ -191,6 +195,8 @@ export interface ChartApiEventMap {
   "annotation-clicked": AnnotationClickedEvent;
   "annotation-hovered": AnnotationHoveredEvent;
   "annotation-dragged": AnnotationDraggedEvent;
+  "time-marker-clicked": TimeMarkerClickedEvent;
+  "time-marker-hovered": TimeMarkerHoveredEvent;
   "chart-clicked": PriceClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
   "chart-context-menu": ChartContextMenuEvent;
@@ -360,6 +366,17 @@ export class ChartApi {
     this.container.addEventListener("annotation-dragged", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("annotation-dragged", customEvent.detail);
+    });
+
+    // Listen for time marker events
+    this.container.addEventListener("time-marker-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("time-marker-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("time-marker-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("time-marker-hovered", customEvent.detail);
     });
   }
 
@@ -2323,6 +2340,167 @@ export class ChartApi {
 
     this.redraw();
     logger.info("ChartApi: Cleared all annotations");
+  }
+
+  // ============================================================================
+  // Time Markers (Vertical Event Lines)
+  // ============================================================================
+
+  /**
+   * Add a time marker to the chart
+   * @param config Time marker configuration
+   * @returns The ID of the created time marker
+   * @example
+   * ```typescript
+   * // Add a simple time marker at current time
+   * api.addTimeMarker({
+   *   timestamp: Date.now(),
+   *   label: 'News Release',
+   *   color: '#ff6b6b'
+   * });
+   *
+   * // Add a marker with custom styling
+   * api.addTimeMarker({
+   *   timestamp: Date.now() - 3600000, // 1 hour ago
+   *   label: 'Market Open',
+   *   color: '#4ade80',
+   *   lineStyle: 'dashed',
+   *   lineWidth: 2,
+   *   labelPosition: 'bottom'
+   * });
+   * ```
+   */
+  addTimeMarker(config: TimeMarkerConfig): string {
+    const id =
+      config.id ||
+      `time-marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full marker with defaults
+    const marker: TimeMarker = {
+      id,
+      timestamp: config.timestamp,
+      label: config.label,
+      color: config.color || "#6b7280",
+      lineStyle: config.lineStyle || "solid",
+      lineWidth: config.lineWidth !== undefined ? config.lineWidth : 1,
+      showLabel: config.showLabel !== undefined ? config.showLabel : true,
+      labelPosition: config.labelPosition || "top",
+      interactive: config.interactive !== undefined ? config.interactive : true,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 25,
+    };
+
+    // Add time marker via container (container will handle state management)
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addTimeMarker) {
+      chartContainer.addTimeMarker(marker);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Added time marker ${id} at ${marker.timestamp}`);
+    return id;
+  }
+
+  /**
+   * Remove a time marker from the chart
+   * @param markerId The ID of the time marker to remove
+   */
+  removeTimeMarker(markerId: string): void {
+    if (!this.state.timeMarkers) {
+      logger.warn(`ChartApi: Time marker ${markerId} not found (no markers)`);
+      return;
+    }
+
+    const index = this.state.timeMarkers.findIndex((m) => m.id === markerId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Time marker ${markerId} not found`);
+      return;
+    }
+
+    this.state.timeMarkers.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeTimeMarker) {
+      chartContainer.removeTimeMarker(markerId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed time marker ${markerId}`);
+  }
+
+  /**
+   * Update an existing time marker
+   * @param markerId The ID of the time marker to update
+   * @param updates Partial time marker updates
+   */
+  updateTimeMarker(
+    markerId: string,
+    updates: Partial<TimeMarkerConfig>,
+  ): void {
+    if (!this.state.timeMarkers) {
+      logger.warn(`ChartApi: Time marker ${markerId} not found (no markers)`);
+      return;
+    }
+
+    const index = this.state.timeMarkers.findIndex((m) => m.id === markerId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Time marker ${markerId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const marker = this.state.timeMarkers[index];
+    const updatedMarker: TimeMarker = {
+      ...marker,
+      ...updates,
+      id: markerId, // Preserve ID
+    };
+
+    this.state.timeMarkers[index] = updatedMarker;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateTimeMarker) {
+      chartContainer.updateTimeMarker(markerId, updatedMarker);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated time marker ${markerId}`);
+  }
+
+  /**
+   * Get all time markers
+   * @returns Array of time markers
+   */
+  getTimeMarkers(): TimeMarker[] {
+    return (xinValue(this.state.timeMarkers) as TimeMarker[]) || [];
+  }
+
+  /**
+   * Get a specific time marker by ID
+   * @param markerId The ID of the time marker
+   * @returns The time marker or null if not found
+   */
+  getTimeMarker(markerId: string): TimeMarker | null {
+    const timeMarkers = xinValue(this.state.timeMarkers) as TimeMarker[];
+    if (!timeMarkers) return null;
+    return timeMarkers.find((m) => m.id === markerId) || null;
+  }
+
+  /**
+   * Clear all time markers from the chart
+   */
+  clearTimeMarkers(): void {
+    this.state.timeMarkers = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearTimeMarkers) {
+      chartContainer.clearTimeMarkers();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all time markers");
   }
 
   // ============================================================================
