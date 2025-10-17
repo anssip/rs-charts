@@ -433,6 +433,22 @@ export interface RiskZone extends Required<Omit<RiskZoneConfig, 'id' | 'label'>>
   label?: string;
 }
 
+/**
+ * Event emitted when a risk zone is clicked
+ */
+export interface RiskZoneClickedEvent {
+  zoneId: string;
+  zone: RiskZone;
+}
+
+/**
+ * Event emitted when mouse hovers over a risk zone
+ */
+export interface RiskZoneHoveredEvent {
+  zoneId: string;
+  zone: RiskZone;
+}
+
 // ============================================================================
 // Equity Curve Overlay
 // ============================================================================

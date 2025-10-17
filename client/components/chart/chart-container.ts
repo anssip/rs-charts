@@ -57,6 +57,7 @@ import "./price-lines-layer";
 import "./trade-zones-layer";
 import "./annotations-layer";
 import "./time-markers-layer";
+import "./risk-zones-canvas-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
@@ -64,12 +65,14 @@ import { TradeZonesLayer } from "./trade-zones-layer";
 import { AnnotationsLayer } from "./annotations-layer";
 import { TimeMarkersLayer } from "./time-markers-layer";
 import { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
+import { RiskZonesLayer } from "./risk-zones-layer";
 import {
   TradeMarker,
   PriceLine,
   TradeZone,
   Annotation,
   TimeMarker,
+  RiskZone,
   PositionOverlayConfig,
   ClickToTradeConfig,
   OrderRequestData,
@@ -175,6 +178,9 @@ export class ChartContainer extends LitElement {
   private timeMarkers: TimeMarker[] = [];
 
   @state()
+  private riskZones: RiskZone[] = [];
+
+  @state()
   private positionOverlay: PositionOverlayConfig | null = null;
 
   @state()
@@ -193,6 +199,8 @@ export class ChartContainer extends LitElement {
   private tradeZonesLayer?: TradeZonesLayer;
   private annotationsLayer?: AnnotationsLayer;
   private timeMarkersLayer?: TimeMarkersLayer;
+  private riskZonesInteractionLayer?: RiskZonesLayer;
+  private riskZonesCanvasLayer?: any;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -340,6 +348,17 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
+    // Get risk zones canvas layer reference and set initial dimensions
+    this.riskZonesCanvasLayer = this.renderRoot.querySelector(
+      "risk-zones-canvas-layer",
+    ) as any;
+    if (this.riskZonesCanvasLayer) {
+      logger.debug("ChartContainer: Found risk zones canvas layer");
+      setTimeout(() => {
+        this.updateRiskZonesCanvasLayer();
+      }, 100);
+    }
+
     // Get position overlay reference and set initial dimensions
     this.positionOverlayComponent = this.renderRoot.querySelector(
       "position-overlay",
@@ -365,6 +384,16 @@ export class ChartContainer extends LitElement {
     this.addEventListener(
       "annotation-dragged",
       this.handleAnnotationDragged as EventListener,
+    );
+
+    // Add event listeners for risk zone interactions
+    this.addEventListener(
+      "risk-zone-clicked",
+      this.handleRiskZoneClicked as EventListener,
+    );
+    this.addEventListener(
+      "risk-zone-hovered",
+      this.handleRiskZoneHovered as EventListener,
     );
 
     // Also listen for double-clicks directly on the chart area
@@ -550,6 +579,7 @@ export class ChartContainer extends LitElement {
     this.updateTradeZonesLayer();
     this.updateAnnotationsLayer();
     this.updateTimeMarkersLayer();
+    this.updateRiskZonesCanvasLayer();
     this.updatePositionOverlay();
   }
 
@@ -715,6 +745,27 @@ export class ChartContainer extends LitElement {
 
       positionOverlay.state = this._state;
       positionOverlay.requestUpdate();
+    }
+  }
+
+  private updateRiskZonesCanvasLayer() {
+    const riskZonesLayer = this.renderRoot.querySelector(
+      "risk-zones-canvas-layer",
+    ) as any;
+    if (riskZonesLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        riskZonesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        riskZonesLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      riskZonesLayer.state = this._state;
+      riskZonesLayer.timeRange = this._state.timeRange;
+      riskZonesLayer.priceRange = this._state.priceRange;
+      riskZonesLayer.requestUpdate();
     }
   }
 
@@ -1138,6 +1189,17 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></trade-zones-layer>
 
+            <!-- Risk Zones Canvas Layer (z-index: 1) -->
+            <risk-zones-canvas-layer
+              .zones=${this._state.riskZones || []}
+              .state=${this._state}
+              .timeRange=${this._state.timeRange}
+              .priceRange=${this._state.priceRange}
+              .width=${this.chart?.canvas ? this.chart.canvas.width / getDpr() : 0}
+              .height=${this.chart?.canvas ? this.chart.canvas.height / getDpr() : 0}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></risk-zones-canvas-layer>
+
             <!-- Time Markers Layer (z-index: 25) -->
             <time-markers-layer
               .markers=${this._state.timeMarkers || []}
@@ -1498,6 +1560,40 @@ export class ChartContainer extends LitElement {
       price: newPrice
     };
     this.updateAnnotation(annotationId, updatedAnnotation);
+  };
+
+  /**
+   * Handle risk zone clicked events from interaction layer
+   */
+  private handleRiskZoneClicked = (event: CustomEvent) => {
+    const { zoneId, zone } = event.detail;
+    logger.debug(`ChartContainer: Risk zone clicked: ${zoneId}`);
+
+    // Forward event to Chart API
+    this.dispatchEvent(
+      new CustomEvent("risk-zone-clicked", {
+        detail: { zoneId, zone },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  };
+
+  /**
+   * Handle risk zone hovered events from interaction layer
+   */
+  private handleRiskZoneHovered = (event: CustomEvent) => {
+    const { zoneId, zone } = event.detail;
+    logger.debug(`ChartContainer: Risk zone hovered: ${zoneId}`);
+
+    // Forward event to Chart API
+    this.dispatchEvent(
+      new CustomEvent("risk-zone-hovered", {
+        detail: { zoneId, zone },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   };
 
   private handleDocumentClick = (event: MouseEvent) => {
@@ -2230,6 +2326,105 @@ export class ChartContainer extends LitElement {
   }
 
   // ============================================================================
+  // Risk Zones Methods
+  // ============================================================================
+
+  /**
+   * Add a risk zone to the chart
+   */
+  public addRiskZone(zone: RiskZone): void {
+    if (!this._state.riskZones) {
+      this._state.riskZones = [];
+    }
+    this._state.riskZones.push(zone);
+    this.riskZones = this._state.riskZones;
+    touch("state.riskZones");
+
+    // Update the interaction layer
+    if (this.riskZonesInteractionLayer) {
+      this.riskZonesInteractionLayer.setZones(this._state.riskZones);
+    }
+
+    this.requestUpdate();
+    logger.debug(`ChartContainer: Added risk zone ${zone.id}`);
+  }
+
+  /**
+   * Remove a risk zone from the chart
+   */
+  public removeRiskZone(zoneId: string): void {
+    if (!this._state.riskZones) return;
+
+    const index = this._state.riskZones.findIndex((z: RiskZone) => z.id === zoneId);
+    if (index !== -1) {
+      this._state.riskZones.splice(index, 1);
+      this.riskZones = this._state.riskZones;
+      touch("state.riskZones");
+
+      // Update the interaction layer
+      if (this.riskZonesInteractionLayer) {
+        this.riskZonesInteractionLayer.setZones(this._state.riskZones);
+      }
+
+      this.requestUpdate();
+      logger.debug(`ChartContainer: Removed risk zone ${zoneId}`);
+    }
+  }
+
+  /**
+   * Update an existing risk zone
+   */
+  public updateRiskZone(zoneId: string, zone: RiskZone): void {
+    if (!this._state.riskZones) return;
+
+    const index = this._state.riskZones.findIndex((z: RiskZone) => z.id === zoneId);
+    if (index !== -1) {
+      this._state.riskZones[index] = zone;
+      this.riskZones = this._state.riskZones;
+      touch("state.riskZones");
+
+      // Update the interaction layer
+      if (this.riskZonesInteractionLayer) {
+        this.riskZonesInteractionLayer.setZones(this._state.riskZones);
+      }
+
+      this.requestUpdate();
+      logger.debug(`ChartContainer: Updated risk zone ${zoneId}`);
+    }
+  }
+
+  /**
+   * Clear all risk zones
+   */
+  public clearRiskZones(): void {
+    this._state.riskZones = [];
+    this.riskZones = [];
+    touch("state.riskZones");
+
+    // Update the interaction layer
+    if (this.riskZonesInteractionLayer) {
+      this.riskZonesInteractionLayer.setZones([]);
+    }
+
+    this.requestUpdate();
+    logger.debug("ChartContainer: Cleared all risk zones");
+  }
+
+  /**
+   * Get all risk zones
+   */
+  public getRiskZones(): RiskZone[] {
+    return this._state.riskZones || [];
+  }
+
+  /**
+   * Get a specific risk zone by ID
+   */
+  public getRiskZone(zoneId: string): RiskZone | undefined {
+    return this._state.riskZones?.find((z: RiskZone) => z.id === zoneId);
+  }
+
+  // ============================================================================
   // Click-to-Trade Methods
   // ============================================================================
 
@@ -2379,6 +2574,13 @@ export class ChartContainer extends LitElement {
       () => this._state.timeMarkers || []
     );
     this.interactionController.registerLayer(timeMarkersLayer);
+
+    // Risk zones layer - priority 10 (canvas-based rendering)
+    if (this.chart.canvas) {
+      this.riskZonesInteractionLayer = new RiskZonesLayer(this.chart.canvas);
+      this.riskZonesInteractionLayer.setZones(this._state.riskZones || []);
+      this.interactionController.registerLayer(this.riskZonesInteractionLayer);
+    }
 
     // Live candle layer - lowest priority (10)
     const liveCandleLayer = new LiveCandleInteractionLayer(

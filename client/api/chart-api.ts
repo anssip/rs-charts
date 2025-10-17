@@ -56,6 +56,10 @@ import {
   TimeMarkerConfig,
   TimeMarkerClickedEvent,
   TimeMarkerHoveredEvent,
+  RiskZone,
+  RiskZoneConfig,
+  RiskZoneClickedEvent,
+  RiskZoneHoveredEvent,
   PositionOverlayConfig,
   PriceClickedEvent,
   CrosshairMovedEvent,
@@ -197,6 +201,8 @@ export interface ChartApiEventMap {
   "annotation-dragged": AnnotationDraggedEvent;
   "time-marker-clicked": TimeMarkerClickedEvent;
   "time-marker-hovered": TimeMarkerHoveredEvent;
+  "risk-zone-clicked": RiskZoneClickedEvent;
+  "risk-zone-hovered": RiskZoneHoveredEvent;
   "chart-clicked": PriceClickedEvent;
   "crosshair-moved": CrosshairMovedEvent;
   "chart-context-menu": ChartContextMenuEvent;
@@ -377,6 +383,17 @@ export class ChartApi {
     this.container.addEventListener("time-marker-hovered", (event: Event) => {
       const customEvent = event as CustomEvent;
       this.emitEvent("time-marker-hovered", customEvent.detail);
+    });
+
+    // Listen for risk zone events
+    this.container.addEventListener("risk-zone-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("risk-zone-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("risk-zone-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("risk-zone-hovered", customEvent.detail);
     });
   }
 
@@ -826,6 +843,8 @@ export class ChartApi {
       priceLines: xinValue(this.state.priceLines) || [],
       tradeZones: xinValue(this.state.tradeZones) || [],
       annotations: xinValue(this.state.annotations) || [],
+      timeMarkers: xinValue(this.state.timeMarkers) || [],
+      riskZones: xinValue(this.state.riskZones) || [],
       positionOverlay: xinValue(this.state.positionOverlay) || null,
     };
   }
@@ -2501,6 +2520,178 @@ export class ChartApi {
 
     this.redraw();
     logger.info("ChartApi: Cleared all time markers");
+  }
+
+  // ============================================================================
+  // Risk Zones (Price Range Highlights)
+  // ============================================================================
+
+  /**
+   * Add a risk zone to the chart
+   * @param config Risk zone configuration
+   * @returns The ID of the created risk zone
+   * @example
+   * ```typescript
+   * // Add a stop loss zone in red
+   * api.addRiskZone({
+   *   startPrice: 95000,
+   *   endPrice: 97000,
+   *   label: 'Stop Loss Zone',
+   *   color: '#ef4444',
+   *   opacity: 0.2,
+   *   pattern: 'striped'
+   * });
+   *
+   * // Add a liquidation zone with custom styling
+   * api.addRiskZone({
+   *   startPrice: 92000,
+   *   endPrice: 94000,
+   *   label: 'Liquidation Risk',
+   *   color: '#dc2626',
+   *   opacity: 0.3,
+   *   pattern: 'solid',
+   *   borderColor: '#991b1b',
+   *   borderWidth: 2
+   * });
+   * ```
+   */
+  addRiskZone(config: RiskZoneConfig): string {
+    const id =
+      config.id ||
+      `risk-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full risk zone with defaults
+    const zone: RiskZone = {
+      id,
+      startPrice: config.startPrice,
+      endPrice: config.endPrice,
+      label: config.label,
+      color: config.color || TRADING_OVERLAY_COLORS.riskZone,
+      opacity: config.opacity !== undefined ? config.opacity : 0.2,
+      pattern: config.pattern || "solid",
+      borderColor:
+        config.borderColor || config.color || TRADING_OVERLAY_COLORS.riskZone,
+      borderWidth: config.borderWidth !== undefined ? config.borderWidth : 0,
+      extendLeft: config.extendLeft !== undefined ? config.extendLeft : true,
+      extendRight: config.extendRight !== undefined ? config.extendRight : true,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 1,
+    };
+
+    // Add risk zone via container (container will handle state management)
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addRiskZone) {
+      chartContainer.addRiskZone(zone);
+    }
+
+    this.redraw();
+    logger.info(
+      `ChartApi: Added risk zone ${id} (${zone.startPrice} - ${zone.endPrice})`,
+    );
+    return id;
+  }
+
+  /**
+   * Remove a risk zone from the chart
+   * @param zoneId The ID of the risk zone to remove
+   */
+  removeRiskZone(zoneId: string): void {
+    if (!this.state.riskZones) {
+      logger.warn(`ChartApi: Risk zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
+    const index = riskZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Risk zone ${zoneId} not found`);
+      return;
+    }
+
+    riskZones.splice(index, 1);
+    this.state.riskZones = riskZones;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeRiskZone) {
+      chartContainer.removeRiskZone(zoneId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed risk zone ${zoneId}`);
+  }
+
+  /**
+   * Update an existing risk zone
+   * @param zoneId The ID of the risk zone to update
+   * @param updates Partial risk zone updates
+   */
+  updateRiskZone(zoneId: string, updates: Partial<RiskZoneConfig>): void {
+    if (!this.state.riskZones) {
+      logger.warn(`ChartApi: Risk zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
+    const index = riskZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Risk zone ${zoneId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const zone = riskZones[index];
+    const updatedZone: RiskZone = {
+      ...zone,
+      ...updates,
+      id: zoneId, // Preserve ID
+    };
+
+    riskZones[index] = updatedZone;
+    this.state.riskZones = riskZones;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateRiskZone) {
+      chartContainer.updateRiskZone(zoneId, updatedZone);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated risk zone ${zoneId}`);
+  }
+
+  /**
+   * Get all risk zones
+   * @returns Array of risk zones
+   */
+  getRiskZones(): RiskZone[] {
+    return (xinValue(this.state.riskZones) as RiskZone[]) || [];
+  }
+
+  /**
+   * Get a specific risk zone by ID
+   * @param zoneId The ID of the risk zone
+   * @returns The risk zone or null if not found
+   */
+  getRiskZone(zoneId: string): RiskZone | null {
+    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
+    if (!riskZones) return null;
+    return riskZones.find((z) => z.id === zoneId) || null;
+  }
+
+  /**
+   * Clear all risk zones from the chart
+   */
+  clearRiskZones(): void {
+    this.state.riskZones = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearRiskZones) {
+      chartContainer.clearRiskZones();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all risk zones");
   }
 
   // ============================================================================

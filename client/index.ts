@@ -45,6 +45,7 @@ export type ChartState = {
   tradeZones?: import("./types/trading-overlays").TradeZone[];
   annotations?: import("./types/trading-overlays").Annotation[];
   timeMarkers?: import("./types/trading-overlays").TimeMarker[];
+  riskZones?: import("./types/trading-overlays").RiskZone[];
   positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
   clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
 };
@@ -249,6 +250,29 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     logger.info("Sample trade zones added to chart 1");
+
+    // Add sample risk zones for testing
+    chart1Result.api.addRiskZone({
+      startPrice: 96000,
+      endPrice: 98000,
+      label: 'Stop Loss Zone',
+      color: '#ef4444',
+      opacity: 0.15,
+      pattern: 'striped',
+      borderColor: '#dc2626',
+      borderWidth: 1
+    });
+
+    chart1Result.api.addRiskZone({
+      startPrice: 104000,
+      endPrice: 106000,
+      label: 'Resistance Zone',
+      color: '#f59e0b',
+      opacity: 0.1,
+      pattern: 'solid'
+    });
+
+    logger.info("Sample risk zones added to chart 1");
   });
 
   // Initialize second chart if it exists
@@ -357,6 +381,29 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       logger.info("Sample trade zones added to chart 2");
+
+      // Add sample risk zones for testing
+      chart2Result.api.addRiskZone({
+        startPrice: 3500,
+        endPrice: 3600,
+        label: 'Support Zone',
+        color: '#10b981',
+        opacity: 0.12,
+        pattern: 'dotted',
+        borderColor: '#059669',
+        borderWidth: 1
+      });
+
+      chart2Result.api.addRiskZone({
+        startPrice: 3950,
+        endPrice: 4050,
+        label: 'Liquidation Risk',
+        color: '#dc2626',
+        opacity: 0.18,
+        pattern: 'striped'
+      });
+
+      logger.info("Sample risk zones added to chart 2");
     });
   }
 
