@@ -48,6 +48,7 @@ export type ChartState = {
   riskZones?: import("./types/trading-overlays").RiskZone[];
   positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
   clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
+  equityCurve?: import("./types/trading-overlays").EquityCurveConfig | null;
 };
 
 declare global {
@@ -273,6 +274,32 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     logger.info("Sample risk zones added to chart 1");
+
+    // Add sample equity curve for testing
+    // Simulate a portfolio starting at $10,000 with some fluctuation
+    const equityData = [];
+    const startingEquity = 10000;
+    let currentEquity = startingEquity;
+
+    for (let i = 20; i >= 0; i--) {
+      const timestamp = now - i * hourInMs;
+      // Add some random variation
+      const change = (Math.random() - 0.5) * 500;
+      currentEquity += change;
+      equityData.push({
+        timestamp,
+        equity: Math.max(startingEquity * 0.8, Math.min(startingEquity * 1.3, currentEquity))
+      });
+    }
+
+    chart1Result.api.showEquityCurve(equityData, {
+      color: '#3b82f6',
+      lineWidth: 2,
+      showArea: true,
+      opacity: 0.8
+    });
+
+    logger.info("Sample equity curve added to chart 1");
   });
 
   // Initialize second chart if it exists
@@ -404,6 +431,35 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       logger.info("Sample risk zones added to chart 2");
+
+      // Add sample equity curve for testing (ETH chart)
+      // Simulate a portfolio with different pattern
+      const equityData2 = [];
+      const startingEquity2 = 25000;
+      let currentEquity2 = startingEquity2;
+
+      for (let i = 22; i >= 0; i--) {
+        const timestamp = now - i * hourInMs;
+        // Add some trend + variation
+        const trend = (22 - i) * 50; // Upward trend
+        const noise = (Math.random() - 0.5) * 300;
+        currentEquity2 = startingEquity2 + trend + noise;
+        equityData2.push({
+          timestamp,
+          equity: Math.max(startingEquity2 * 0.9, Math.min(startingEquity2 * 1.4, currentEquity2))
+        });
+      }
+
+      chart2Result.api.showEquityCurve(equityData2, {
+        color: '#10b981',
+        lineWidth: 3,
+        showArea: true,
+        areaColor: '#10b981',
+        opacity: 0.85,
+        lineStyle: 'solid'
+      });
+
+      logger.info("Sample equity curve added to chart 2");
     });
   }
 

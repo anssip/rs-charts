@@ -58,6 +58,7 @@ import "./trade-zones-layer";
 import "./annotations-layer";
 import "./time-markers-layer";
 import "./risk-zones-canvas-layer";
+import "./equity-curve-canvas-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
@@ -77,6 +78,8 @@ import {
   ClickToTradeConfig,
   OrderRequestData,
   PriceHoverEvent,
+  EquityPoint,
+  EquityCurveConfig,
 } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 
@@ -184,6 +187,9 @@ export class ChartContainer extends LitElement {
   private positionOverlay: PositionOverlayConfig | null = null;
 
   @state()
+  private equityCurve: EquityCurveConfig | null = null;
+
+  @state()
   private candleTooltipData: any = null;
 
   @state()
@@ -201,6 +207,7 @@ export class ChartContainer extends LitElement {
   private timeMarkersLayer?: TimeMarkersLayer;
   private riskZonesInteractionLayer?: RiskZonesLayer;
   private riskZonesCanvasLayer?: any;
+  private equityCurveCanvasLayer?: any;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -356,6 +363,17 @@ export class ChartContainer extends LitElement {
       logger.debug("ChartContainer: Found risk zones canvas layer");
       setTimeout(() => {
         this.updateRiskZonesCanvasLayer();
+      }, 100);
+    }
+
+    // Get equity curve canvas layer reference and set initial dimensions
+    this.equityCurveCanvasLayer = this.renderRoot.querySelector(
+      "equity-curve-canvas-layer",
+    ) as any;
+    if (this.equityCurveCanvasLayer) {
+      logger.debug("ChartContainer: Found equity curve canvas layer");
+      setTimeout(() => {
+        this.updateEquityCurveCanvasLayer();
       }, 100);
     }
 
@@ -580,6 +598,7 @@ export class ChartContainer extends LitElement {
     this.updateAnnotationsLayer();
     this.updateTimeMarkersLayer();
     this.updateRiskZonesCanvasLayer();
+    this.updateEquityCurveCanvasLayer();
     this.updatePositionOverlay();
   }
 
@@ -766,6 +785,29 @@ export class ChartContainer extends LitElement {
       riskZonesLayer.timeRange = this._state.timeRange;
       riskZonesLayer.priceRange = this._state.priceRange;
       riskZonesLayer.requestUpdate();
+    }
+  }
+
+  private updateEquityCurveCanvasLayer() {
+    const equityCurveLayer = this.renderRoot.querySelector(
+      "equity-curve-canvas-layer",
+    ) as any;
+    if (equityCurveLayer && this.chart?.canvas) {
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        equityCurveLayer.width = chartArea.clientWidth - this.priceAxisWidth;
+        const dpr = getDpr();
+        equityCurveLayer.height = this.chart.canvas.height / dpr;
+      }
+
+      equityCurveLayer.state = this._state;
+      equityCurveLayer.timeRange = this._state.timeRange;
+      equityCurveLayer.priceRange = this._state.priceRange;
+      equityCurveLayer.config = this.equityCurve;
+      equityCurveLayer.data = this.equityCurve?.data || [];
+      equityCurveLayer.requestUpdate();
     }
   }
 
@@ -1199,6 +1241,22 @@ export class ChartContainer extends LitElement {
               .height=${this.chart?.canvas ? this.chart.canvas.height / getDpr() : 0}
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></risk-zones-canvas-layer>
+
+            <!-- Equity Curve Canvas Layer (z-index: 15) -->
+            ${this.equityCurve
+              ? html`
+                  <equity-curve-canvas-layer
+                    .data=${this.equityCurve.data}
+                    .config=${this.equityCurve}
+                    .state=${this._state}
+                    .timeRange=${this._state.timeRange}
+                    .priceRange=${this._state.priceRange}
+                    .width=${this.chart?.canvas ? this.chart.canvas.width / getDpr() : 0}
+                    .height=${this.chart?.canvas ? this.chart.canvas.height / getDpr() : 0}
+                    style="--price-axis-width: ${this.priceAxisWidth}px"
+                  ></equity-curve-canvas-layer>
+                `
+              : ""}
 
             <!-- Time Markers Layer (z-index: 25) -->
             <time-markers-layer
@@ -2422,6 +2480,112 @@ export class ChartContainer extends LitElement {
    */
   public getRiskZone(zoneId: string): RiskZone | undefined {
     return this._state.riskZones?.find((z: RiskZone) => z.id === zoneId);
+  }
+
+  // ============================================================================
+  // Equity Curve Methods
+  // ============================================================================
+
+  /**
+   * Show equity curve overlay with the provided data
+   */
+  public showEquityCurve(data: EquityPoint[], config?: Partial<EquityCurveConfig>): void {
+    this.equityCurve = {
+      data,
+      color: config?.color,
+      lineWidth: config?.lineWidth,
+      lineStyle: config?.lineStyle,
+      showArea: config?.showArea,
+      areaColor: config?.areaColor,
+      opacity: config?.opacity,
+      yAxisPosition: config?.yAxisPosition,
+    };
+
+    // Update state
+    this._state.equityCurve = this.equityCurve;
+    touch("state.equityCurve");
+    this.requestUpdate();
+    this.updateEquityCurveCanvasLayer();
+
+    logger.info(`ChartContainer: Showing equity curve with ${data.length} points`);
+
+    // Emit API event
+    this.dispatchEvent(
+      new CustomEvent("equity-curve-shown", {
+        detail: { config: this.equityCurve },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Hide equity curve overlay
+   */
+  public hideEquityCurve(): void {
+    this.equityCurve = null;
+
+    // Update state
+    this._state.equityCurve = null;
+    touch("state.equityCurve");
+    this.requestUpdate();
+    this.updateEquityCurveCanvasLayer();
+
+    logger.info("ChartContainer: Hiding equity curve");
+
+    // Emit API event
+    this.dispatchEvent(
+      new CustomEvent("equity-curve-hidden", {
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Update equity curve data
+   */
+  public updateEquityCurve(data: EquityPoint[]): void {
+    if (!this.equityCurve) {
+      logger.warn("ChartContainer: Cannot update equity curve - not currently shown");
+      return;
+    }
+
+    this.equityCurve = {
+      ...this.equityCurve,
+      data,
+    };
+
+    // Update state
+    this._state.equityCurve = this.equityCurve;
+    touch("state.equityCurve");
+    this.requestUpdate();
+    this.updateEquityCurveCanvasLayer();
+
+    logger.debug(`ChartContainer: Updated equity curve with ${data.length} points`);
+
+    // Emit API event
+    this.dispatchEvent(
+      new CustomEvent("equity-curve-updated", {
+        detail: { data },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /**
+   * Check if equity curve is currently visible
+   */
+  public isEquityCurveVisible(): boolean {
+    return this.equityCurve !== null && this.equityCurve.data.length > 0;
+  }
+
+  /**
+   * Get current equity curve configuration
+   */
+  public getEquityCurve(): EquityCurveConfig | null {
+    return this.equityCurve;
   }
 
   // ============================================================================
