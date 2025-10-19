@@ -2,7 +2,6 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { RiskZone } from "../../types/trading-overlays";
 import { ChartState } from "../..";
-import { TimeRange, PriceRange } from "../../../server/services/price-data/price-history-model";
 import { RiskZonesRenderer } from "./risk-zones-renderer";
 import { getDpr } from "../../util/chart-util";
 import { getLogger } from "../../util/logger";
@@ -22,10 +21,10 @@ export class RiskZonesCanvasLayer extends LitElement {
   state!: ChartState;
 
   @property({ type: Object })
-  timeRange!: TimeRange;
+  timeRange: any;
 
   @property({ type: Object })
-  priceRange!: PriceRange;
+  priceRange: any;
 
   @property({ type: Number })
   width: number = 0;

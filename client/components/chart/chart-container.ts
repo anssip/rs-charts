@@ -571,7 +571,7 @@ export class ChartContainer extends LitElement {
 
     // Special cases with unique requirements
     this.updateTimeMarkersLayer(); // Uses full chart height
-    this.updateRiskZonesCanvasLayer(); // Sets timeRange/priceRange
+    this.updateRiskZonesCanvasLayer(); // Sets timeRange and priceRange
     this.updateEquityCurveCanvasLayer(); // Delegates to controller
     this.updatePositionOverlay(); // Multiple components
   }
@@ -649,7 +649,7 @@ export class ChartContainer extends LitElement {
 
   /**
    * Update risk zones canvas layer
-   * Special case: Sets additional timeRange and priceRange properties
+   * Special case: Sets timeRange and priceRange properties for coordinate mapping
    */
   private updateRiskZonesCanvasLayer() {
     const riskZonesLayer = this.renderRoot.querySelector(
