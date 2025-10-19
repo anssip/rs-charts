@@ -1549,12 +1549,13 @@ export class ChartApi {
     logger.info(`ChartApi: Highlighting ${patterns.length} patterns`);
 
     const chartContainer = this.container as ChartContainer;
-    if (chartContainer && chartContainer.setPatternHighlights) {
-      chartContainer.setPatternHighlights(patterns);
+    if (chartContainer?.patternHighlightsController) {
+      chartContainer.patternHighlightsController.set(patterns);
+    } else {
+      logger.error("ChartApi: Pattern highlights controller not initialized");
     }
 
-    // Emit event
-    this.emitEvent("patterns-highlighted", { patterns });
+    this.redraw();
   }
 
   /**
@@ -1566,13 +1567,14 @@ export class ChartApi {
     // Stop any running wave animation
     this.stopPulseWave();
 
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.clearPatternHighlights) {
-      chartContainer.clearPatternHighlights();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.patternHighlightsController) {
+      chartContainer.patternHighlightsController.clear();
+    } else {
+      logger.error("ChartApi: Pattern highlights controller not initialized");
     }
 
-    // Emit event
-    this.emitEvent("patterns-cleared", undefined);
+    this.redraw();
   }
 
   /**

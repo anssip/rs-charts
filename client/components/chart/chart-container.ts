@@ -32,11 +32,13 @@ import "./indicators/market-indicator";
 import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
+import { initializeControllers } from "./interaction/controller-factory";
 import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { TimeMarkersController } from "./interaction/time-markers-controller";
 import { AnnotationsController } from "./interaction/annotations-controller";
 import { PositionOverlayController } from "./interaction/position-overlay-controller";
+import { PatternHighlightsController } from "./interaction/pattern-highlights-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -204,17 +206,18 @@ export class ChartContainer extends LitElement {
   public timeMarkersController?: TimeMarkersController;
   public annotationsController?: AnnotationsController;
   public positionOverlayController?: PositionOverlayController;
+  public patternHighlightsController?: PatternHighlightsController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
-  private patternLabelsLayer?: PatternLabelsLayer;
+  public patternLabelsLayer?: PatternLabelsLayer;
   private tradingMarkersLayer?: TradingMarkersLayer;
   private priceLinesLayer?: PriceLinesLayer;
   private tradeZonesLayer?: TradeZonesLayer;
-  private annotationsLayer?: AnnotationsLayer;
-  private timeMarkersLayer?: TimeMarkersLayer;
+  public annotationsLayer?: AnnotationsLayer;
+  public timeMarkersLayer?: TimeMarkersLayer;
   private riskZonesInteractionLayer?: RiskZonesLayer;
-  private riskZonesCanvasLayer?: any;
-  private equityCurveCanvasLayer?: any;
+  public riskZonesCanvasLayer?: any;
+  public equityCurveCanvasLayer?: any;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -284,195 +287,56 @@ export class ChartContainer extends LitElement {
     // Initialize trend line tool
     this.initializeTrendLineTool();
 
-    const initLayer = <T extends HTMLElement>(
-      elementName: string,
-      updateLayer: () => void,
-    ) => {
-      const layer = this.renderRoot.querySelector(elementName) as T;
-      if (layer) {
-        layer.style.width = `${width}px`;
-        layer.style.height = `${height}px`;
-      }
+    const initLayer = (elementName: string): Layer => {
+      const elem = this.renderRoot.querySelector(elementName);
+      if (!elem) throw new Error(`Element ${elementName} not found`);
+
+      const layer = elem as unknown as Layer;
+      layer.style.width = `${width}px`;
+      layer.style.height = `${height}px`;
+
+      setTimeout(() => {
+        this.updateLayer(layer as Layer);
+      }, 100);
+      return layer;
     };
 
-    // Get trend line layer reference and set initial dimensions
-    this.trendLineLayer = this.renderRoot.querySelector(
-      "trend-line-layer",
-    ) as TrendLineLayer;
-    if (this.trendLineLayer) {
-      // Set initial dimensions after a small delay to ensure chart is ready
-      setTimeout(() => {
-        this.updateTrendLineLayer();
-      }, 100);
-    }
+    // Initialize layers using initLayer helper
+    const layersToInit = [
+      { selector: "trend-line-layer", property: "trendLineLayer" as const },
+      {
+        selector: "pattern-labels-layer",
+        property: "patternLabelsLayer" as const,
+      },
+      {
+        selector: "trading-markers-layer",
+        property: "tradingMarkersLayer" as const,
+      },
+      { selector: "price-lines-layer", property: "priceLinesLayer" as const },
+      { selector: "trade-zones-layer", property: "tradeZonesLayer" as const },
+    ];
 
-    // Get pattern labels layer reference and set initial dimensions
-    this.patternLabelsLayer = this.renderRoot.querySelector(
-      "pattern-labels-layer",
-    ) as PatternLabelsLayer;
-    if (this.patternLabelsLayer) {
-      logger.debug("ChartContainer: Found pattern labels layer");
-      // Set initial dimensions after a small delay to ensure chart is ready
-      setTimeout(() => {
-        this.updatePatternLabelsLayer();
-      }, 100);
-    }
+    layersToInit.forEach(({ selector, property }) => {
+      try {
+        this[property] = initLayer(selector) as any;
+        logger.debug(`ChartContainer: Initialized ${selector}`);
+      } catch (error) {
+        logger.warn(`ChartContainer: Could not initialize ${selector}`, error);
+      }
+    });
 
-    // Get trading markers layer reference and set initial dimensions
-    this.tradingMarkersLayer = this.renderRoot.querySelector(
-      "trading-markers-layer",
-    ) as TradingMarkersLayer;
-    if (this.tradingMarkersLayer) {
-      logger.debug("ChartContainer: Found trading markers layer");
-      setTimeout(() => {
-        this.updateTradingMarkersLayer();
-      }, 100);
-    }
-
-    // Get price lines layer reference and set initial dimensions
-    this.priceLinesLayer = this.renderRoot.querySelector(
-      "price-lines-layer",
-    ) as PriceLinesLayer;
-    if (this.priceLinesLayer) {
-      logger.debug("ChartContainer: Found price lines layer");
-      setTimeout(() => {
-        this.updatePriceLinesLayer();
-      }, 100);
-    }
-
-    // Get trade zones layer reference and set initial dimensions
-    this.tradeZonesLayer = this.renderRoot.querySelector(
-      "trade-zones-layer",
-    ) as TradeZonesLayer;
-    if (this.tradeZonesLayer) {
-      logger.debug("ChartContainer: Found trade zones layer");
-      setTimeout(() => {
-        this.updateTradeZonesLayer();
-      }, 100);
-    }
-
-    // Get annotations layer reference and initialize controller
-    this.annotationsLayer = this.renderRoot.querySelector(
-      "annotations-layer",
-    ) as AnnotationsLayer;
-    if (this.annotationsLayer) {
-      logger.debug("ChartContainer: Found annotations layer");
-
-      // Initialize annotations controller with drag callback
-      this.annotationsController = new AnnotationsController({
-        container: this,
-        state: this._state,
-        annotationsLayer: this.annotationsLayer,
-        onAnnotationDragged: (data) => {
-          // Callback from interaction layer via controller
-          const { annotationId, newTimestamp, newPrice, annotation } = data;
-          const updatedAnnotation = {
-            ...annotation,
-            timestamp: newTimestamp,
-            price: newPrice,
-          };
-          this.annotationsController?.update(annotationId, updatedAnnotation);
-        },
-      });
-      logger.debug("ChartContainer: Initialized annotations controller");
-
-      setTimeout(() => {
-        this.updateAnnotationsLayer();
-      }, 100);
-    }
-
-    // Get time markers layer reference and initialize controller
-    this.timeMarkersLayer = this.renderRoot.querySelector(
-      "time-markers-layer",
-    ) as TimeMarkersLayer;
-    if (this.timeMarkersLayer) {
-      logger.debug("ChartContainer: Found time markers layer");
-
-      // Initialize time markers controller
-      this.timeMarkersController = new TimeMarkersController({
-        container: this,
-        state: this._state,
-        timeMarkersLayer: this.timeMarkersLayer,
-      });
-      logger.debug("ChartContainer: Initialized time markers controller");
-
-      setTimeout(() => {
-        this.updateTimeMarkersLayer();
-      }, 100);
-    }
-
-    // Get risk zones canvas layer reference and initialize controller
-    this.riskZonesCanvasLayer = this.renderRoot.querySelector(
-      "risk-zones-canvas-layer",
-    ) as any;
-    if (this.riskZonesCanvasLayer) {
-      logger.debug("ChartContainer: Found risk zones canvas layer");
-
-      // Initialize risk zones controller
-      this.riskZonesController = new RiskZonesController({
-        container: this,
-        state: this._state,
-        riskZonesCanvasLayer: this.riskZonesCanvasLayer,
-      });
-      logger.debug("ChartContainer: Initialized risk zones controller");
-
-      setTimeout(() => {
-        this.updateRiskZonesCanvasLayer();
-      }, 100);
-    }
-
-    // Get equity curve canvas layer reference and initialize controller
-    this.equityCurveCanvasLayer = this.renderRoot.querySelector(
-      "equity-curve-canvas-layer",
-    ) as any;
-    if (this.equityCurveCanvasLayer) {
-      logger.debug("ChartContainer: Found equity curve canvas layer");
-
-      // Initialize equity curve controller
-      this.equityCurveController = new EquityCurveController({
-        container: this,
-        state: this._state,
-        equityCurveLayer: this.equityCurveCanvasLayer,
-      });
-      logger.debug("ChartContainer: Initialized equity curve controller");
-
-      setTimeout(() => {
-        this.updateEquityCurveCanvasLayer();
-      }, 100);
-    }
-
-    // Get both position overlay component references and initialize controller
-    const positionOverlays = this.renderRoot.querySelectorAll(
-      "position-overlay",
-    ) as NodeListOf<PositionOverlayComponent>;
-
-    if (positionOverlays.length >= 2) {
-      // First one is the entry line layer, second one is the info box
-      const entryLineComponent = positionOverlays[0];
-      const infoBoxComponent = positionOverlays[1];
-
-      logger.debug("ChartContainer: Found both position overlay components", {
-        entryLineHideAttribute: entryLineComponent.hideEntryLine,
-        infoBoxHideAttribute: infoBoxComponent.hideEntryLine,
-      });
-
-      // Initialize position overlay controller with both components
-      this.positionOverlayController = new PositionOverlayController({
-        container: this,
-        state: this._state,
-        entryLineComponent,
-        infoBoxComponent,
-      });
-      logger.debug("ChartContainer: Initialized position overlay controller");
-
-      setTimeout(() => {
-        this.updatePositionOverlay();
-      }, 100);
-    } else {
-      logger.warn(
-        "ChartContainer: Could not find both position overlay components",
-      );
-    }
+    // Initialize all controllers using factory
+    initializeControllers({
+      container: this,
+      renderRoot: this.renderRoot,
+      state: this._state,
+      updateLayer: this.updateLayer.bind(this),
+      updateTimeMarkersLayer: this.updateTimeMarkersLayer.bind(this),
+      updateRiskZonesCanvasLayer: this.updateRiskZonesCanvasLayer.bind(this),
+      updateEquityCurveCanvasLayer:
+        this.updateEquityCurveCanvasLayer.bind(this),
+      updatePositionOverlay: this.updatePositionOverlay.bind(this),
+    });
 
     // Initialize click-to-trade controller (disabled by default)
     this.clickToTradeController = new ClickToTradeController({
@@ -697,24 +561,22 @@ export class ChartContainer extends LitElement {
     // Force redraw on indicators
     this.redrawIndicators();
 
-    // Update trend line layer with current state
-    this.updateTrendLineLayer();
+    // Update all layers with current state
+    if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
+    if (this.patternLabelsLayer) this.updateLayer(this.patternLabelsLayer);
+    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
+    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
+    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
+    if (this.annotationsLayer) this.updateLayer(this.annotationsLayer);
 
-    // Update pattern labels layer with current state
-    this.updatePatternLabelsLayer();
-
-    // Update trading overlay layers
-    this.updateTradingMarkersLayer();
-    this.updatePriceLinesLayer();
-    this.updateTradeZonesLayer();
-    this.updateAnnotationsLayer();
-    this.updateTimeMarkersLayer();
-    this.updateRiskZonesCanvasLayer();
-    this.updateEquityCurveCanvasLayer();
-    this.updatePositionOverlay();
+    // Special cases with unique requirements
+    this.updateTimeMarkersLayer(); // Uses full chart height
+    this.updateRiskZonesCanvasLayer(); // Sets timeRange/priceRange
+    this.updateEquityCurveCanvasLayer(); // Delegates to controller
+    this.updatePositionOverlay(); // Multiple components
   }
 
-  private updateLayer(layer: Layer) {
+  private updateLayer(layer: Layer | undefined) {
     if (!layer) return;
     if (this.chart?.canvas) {
       // Get the chart area dimensions
@@ -736,131 +598,10 @@ export class ChartContainer extends LitElement {
     }
   }
 
-  // Helper method to force redraw of all indicators
-  private updateTrendLineLayer() {
-    const trendLineLayer = this.renderRoot.querySelector(
-      "trend-line-layer",
-    ) as TrendLineLayer;
-    if (trendLineLayer && this.chart?.canvas) {
-      // Get the chart area dimensions
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        // Use the chart area width minus price axis (same as what the tool uses)
-        trendLineLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-
-        // Use the actual canvas height
-        const dpr = getDpr(); // Use fixed DPR
-        trendLineLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      // Update the state to ensure trend lines recalculate positions
-      trendLineLayer.state = this._state;
-      trendLineLayer.requestUpdate();
-    }
-  }
-
-  private updatePatternLabelsLayer() {
-    const patternLabelsLayer = this.renderRoot.querySelector(
-      "pattern-labels-layer",
-    ) as PatternLabelsLayer;
-    if (patternLabelsLayer && this.chart?.canvas) {
-      // Get the chart area dimensions
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        // Use the chart area width minus price axis (same as what the tool uses)
-        patternLabelsLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-
-        // Use the actual canvas height
-        const dpr = getDpr(); // Use fixed DPR
-        patternLabelsLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      // Update the state to ensure labels recalculate positions
-      patternLabelsLayer.state = this._state;
-      patternLabelsLayer.requestUpdate();
-    }
-  }
-
-  private updateTradingMarkersLayer() {
-    const tradingMarkersLayer = this.renderRoot.querySelector(
-      "trading-markers-layer",
-    ) as TradingMarkersLayer;
-    if (tradingMarkersLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        tradingMarkersLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        tradingMarkersLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      tradingMarkersLayer.state = this._state;
-      tradingMarkersLayer.requestUpdate();
-    }
-  }
-
-  private updatePriceLinesLayer() {
-    const priceLinesLayer = this.renderRoot.querySelector(
-      "price-lines-layer",
-    ) as PriceLinesLayer;
-    if (priceLinesLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        priceLinesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        priceLinesLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      priceLinesLayer.state = this._state;
-      priceLinesLayer.requestUpdate();
-    }
-  }
-
-  private updateTradeZonesLayer() {
-    const tradeZonesLayer = this.renderRoot.querySelector(
-      "trade-zones-layer",
-    ) as TradeZonesLayer;
-    if (tradeZonesLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        tradeZonesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        tradeZonesLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      tradeZonesLayer.state = this._state;
-      tradeZonesLayer.requestUpdate();
-    }
-  }
-
-  private updateAnnotationsLayer() {
-    const annotationsLayer = this.renderRoot.querySelector(
-      "annotations-layer",
-    ) as AnnotationsLayer;
-    if (annotationsLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        annotationsLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        annotationsLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      annotationsLayer.state = this._state;
-      annotationsLayer.requestUpdate();
-    }
-  }
-
+  /**
+   * Update time markers layer
+   * Special case: Uses full chart area height to span over all indicators
+   */
   private updateTimeMarkersLayer() {
     const timeMarkersLayer = this.renderRoot.querySelector(
       "time-markers-layer",
@@ -880,25 +621,36 @@ export class ChartContainer extends LitElement {
     }
   }
 
+  /**
+   * Update position overlay components
+   * Special case: Controller manages two components (entry line + info box)
+   */
   private updatePositionOverlay() {
-    const positionOverlay = this.renderRoot.querySelector(
+    const positionOverlays = this.renderRoot.querySelectorAll(
       "position-overlay",
-    ) as PositionOverlayComponent;
-    if (positionOverlay && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        positionOverlay.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        positionOverlay.height = this.chart.canvas.height / dpr;
-      }
+    ) as NodeListOf<PositionOverlayComponent>;
 
-      positionOverlay.state = this._state;
-      positionOverlay.requestUpdate();
-    }
+    positionOverlays.forEach((overlay) => {
+      if (overlay && this.chart?.canvas) {
+        const chartArea = this.renderRoot.querySelector(
+          ".chart-area",
+        ) as HTMLElement;
+        if (chartArea && this.chart.canvas) {
+          overlay.width = chartArea.clientWidth - this.priceAxisWidth;
+          const dpr = getDpr();
+          overlay.height = this.chart.canvas.height / dpr;
+        }
+
+        overlay.state = this._state;
+        overlay.requestUpdate();
+      }
+    });
   }
 
+  /**
+   * Update risk zones canvas layer
+   * Special case: Sets additional timeRange and priceRange properties
+   */
   private updateRiskZonesCanvasLayer() {
     const riskZonesLayer = this.renderRoot.querySelector(
       "risk-zones-canvas-layer",
@@ -920,6 +672,10 @@ export class ChartContainer extends LitElement {
     }
   }
 
+  /**
+   * Update equity curve canvas layer
+   * Special case: Delegates to controller for state/data updates
+   */
   private updateEquityCurveCanvasLayer() {
     if (!this.equityCurveController) {
       return;
@@ -1101,7 +857,7 @@ export class ChartContainer extends LitElement {
         logger.debug(
           `ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`,
         );
-        this.updateTrendLineLayer();
+        if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
 
         // Ensure no trend lines are selected on initialization
         if (this.trendLineLayer) {
@@ -1591,7 +1347,7 @@ export class ChartContainer extends LitElement {
     }
 
     // Update trend line layer after resize
-    this.updateTrendLineLayer();
+    if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {
@@ -1975,57 +1731,14 @@ export class ChartContainer extends LitElement {
         id: `trend-line-${Date.now()}`,
         ...trendLineData,
       };
-
-      this.addTrendLine(trendLine);
+      this.trendLineLayer!.addTrendLine(trendLine);
     });
-  }
-
-  private handleTrendLineToolToggle = () => {
-    if (!this.trendLineTool) return;
-
-    if (this.trendLineTool.isToolActive()) {
-      this.trendLineTool.deactivate();
-    } else {
-      this.trendLineTool.activate();
-    }
-  };
-
-  private addTrendLine(trendLine: TrendLine) {
-    this.trendLines = [...this.trendLines, trendLine];
-
-    // Force update to trigger re-render with new trend line
-    this.requestUpdate();
-
-    // Update state
-    this._state.trendLines = this.trendLines;
-    touch("state.trendLines");
-
-    // Select the newly created trend line
-    if (this.trendLineLayer) {
-      this.trendLineLayer.selectLine(trendLine.id);
-    }
-
-    // Ensure trend line layer has correct dimensions after adding line
-    // Use requestAnimationFrame to wait for render to complete
-    requestAnimationFrame(() => {
-      this.updateTrendLineLayer();
-    });
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("trend-line-added", {
-        detail: { trendLine },
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 
   private handleTrendLineAdd = (event: CustomEvent) => {
-    logger.debug(
+    logger.warn(
       `ChartContainer: handleTrendLineAdd called (should not be used)`,
     );
-    // This is already handled by the layer itself
   };
 
   private handleTrendLineUpdate = (event: CustomEvent) => {
@@ -2119,53 +1832,13 @@ export class ChartContainer extends LitElement {
   };
 
   /**
-   * Set pattern highlights to be displayed on the chart
+   * Pattern highlight management methods have been moved to PatternHighlightsController.
+   * Use this.patternHighlightsController.set() and this.patternHighlightsController.clear()
+   *
+   * For external API access, use ChartApi methods:
+   * - api.highlightPatterns(patterns)
+   * - api.clearPatternHighlights()
    */
-  public setPatternHighlights(patterns: PatternHighlight[]) {
-    // Store in state like we do with trendLines
-    this._state.patternHighlights = patterns;
-    touch("state.patternHighlights");
-
-    if (this.patternLabelsLayer) {
-      // Ensure dimensions are up to date before setting patterns
-      this.updatePatternLabelsLayer();
-      this.patternLabelsLayer.setPatterns(patterns);
-    }
-    this.requestUpdate();
-
-    // Force immediate redraw to show highlights
-    this.draw();
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("patterns-highlighted", {
-        detail: { patterns },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  /**
-   * Clear all pattern highlights
-   */
-  public clearPatternHighlights() {
-    this._state.patternHighlights = [];
-    touch("state.patternHighlights");
-
-    if (this.patternLabelsLayer) {
-      this.patternLabelsLayer.clearPatterns();
-    }
-    this.requestUpdate();
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("patterns-cleared", {
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
 
   /**
    * Get current pattern highlights
@@ -2188,7 +1861,7 @@ export class ChartContainer extends LitElement {
     this._state.tradeMarkers.push(marker);
     touch("state.tradeMarkers");
     this.requestUpdate();
-    this.updateTradingMarkersLayer();
+    this.updateLayer(this.tradingMarkersLayer);
     logger.debug(`ChartContainer: Added trade marker ${marker.id}`);
   }
 
@@ -2203,7 +1876,7 @@ export class ChartContainer extends LitElement {
       this._state.tradeMarkers.splice(index, 1);
       touch("state.tradeMarkers");
       this.requestUpdate();
-      this.updateTradingMarkersLayer();
+      if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
       logger.debug(`ChartContainer: Removed trade marker ${markerId}`);
     }
   }
@@ -2219,7 +1892,7 @@ export class ChartContainer extends LitElement {
       this._state.tradeMarkers[index] = marker;
       touch("state.tradeMarkers");
       this.requestUpdate();
-      this.updateTradingMarkersLayer();
+      this.updateLayer(this.tradingMarkersLayer);
       logger.debug(`ChartContainer: Updated trade marker ${markerId}`);
     }
   }
@@ -2231,7 +1904,7 @@ export class ChartContainer extends LitElement {
     this._state.tradeMarkers = [];
     touch("state.tradeMarkers");
     this.requestUpdate();
-    this.updateTradingMarkersLayer();
+    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
     logger.debug("ChartContainer: Cleared all trade markers");
   }
 
@@ -2245,7 +1918,7 @@ export class ChartContainer extends LitElement {
     this._state.priceLines.push(line);
     touch("state.priceLines");
     this.requestUpdate();
-    this.updatePriceLinesLayer();
+    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
     logger.debug(`ChartContainer: Added price line ${line.id}`);
   }
 
@@ -2260,7 +1933,7 @@ export class ChartContainer extends LitElement {
       this._state.priceLines.splice(index, 1);
       touch("state.priceLines");
       this.requestUpdate();
-      this.updatePriceLinesLayer();
+      if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
       logger.debug(`ChartContainer: Removed price line ${lineId}`);
     }
   }
@@ -2276,7 +1949,7 @@ export class ChartContainer extends LitElement {
       this._state.priceLines[index] = line;
       touch("state.priceLines");
       this.requestUpdate();
-      this.updatePriceLinesLayer();
+      if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
       logger.debug(`ChartContainer: Updated price line ${lineId}`);
     }
   }
@@ -2288,7 +1961,7 @@ export class ChartContainer extends LitElement {
     this._state.priceLines = [];
     touch("state.priceLines");
     this.requestUpdate();
-    this.updatePriceLinesLayer();
+    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
     logger.debug("ChartContainer: Cleared all price lines");
   }
 
@@ -2302,7 +1975,7 @@ export class ChartContainer extends LitElement {
     this._state.tradeZones.push(zone);
     touch("state.tradeZones");
     this.requestUpdate();
-    this.updateTradeZonesLayer();
+    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
     logger.debug(`ChartContainer: Added trade zone ${zone.id}`);
   }
 
@@ -2317,7 +1990,7 @@ export class ChartContainer extends LitElement {
       this._state.tradeZones.splice(index, 1);
       touch("state.tradeZones");
       this.requestUpdate();
-      this.updateTradeZonesLayer();
+      if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
       logger.debug(`ChartContainer: Removed trade zone ${zoneId}`);
     }
   }
@@ -2333,7 +2006,7 @@ export class ChartContainer extends LitElement {
       this._state.tradeZones[index] = zone;
       touch("state.tradeZones");
       this.requestUpdate();
-      this.updateTradeZonesLayer();
+      if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
       logger.debug(`ChartContainer: Updated trade zone ${zoneId}`);
     }
   }
@@ -2345,125 +2018,9 @@ export class ChartContainer extends LitElement {
     this._state.tradeZones = [];
     touch("state.tradeZones");
     this.requestUpdate();
-    this.updateTradeZonesLayer();
+    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
     logger.debug("ChartContainer: Cleared all trade zones");
   }
-
-  // ============================================================================
-  // Position Overlay Methods (Removed - use Chart API with direct controller access)
-  // ============================================================================
-  // The following method has been moved to PositionOverlayController:
-  // - setPositionOverlay()
-  //
-  // Access via Chart API:
-  //   chartApi.setPositionOverlay(config)
-  //   chartApi.updatePositionOverlay(updates)
-  //   chartApi.getPositionOverlay()
-  //
-  // Or directly via controller:
-  //   chartContainer.positionOverlayController.set(config)
-  //   chartContainer.positionOverlayController.update(updates)
-  //   chartContainer.positionOverlayController.get()
-  //   chartContainer.positionOverlayController.clear()
-
-  // ============================================================================
-  // Annotations Methods (Removed - use Chart API with direct controller access)
-  // ============================================================================
-  // The following methods have been moved to AnnotationsController:
-  // - addAnnotation()
-  // - removeAnnotation()
-  // - updateAnnotation()
-  // - clearAnnotations()
-  // - getAnnotations()
-  // - getAnnotation()
-  //
-  // Access via Chart API:
-  //   chartApi.addAnnotation(config)
-  //   chartApi.removeAnnotation(annotationId)
-  //   chartApi.updateAnnotation(annotationId, updates)
-  //   chartApi.clearAnnotations()
-  //   chartApi.getAnnotations()
-  //   chartApi.getAnnotation(annotationId)
-  //
-  // Or directly via controller:
-  //   chartContainer.annotationsController.add(annotation)
-  //   chartContainer.annotationsController.remove(annotationId)
-  //   chartContainer.annotationsController.update(annotationId, updates)
-  //   chartContainer.annotationsController.clear()
-  //   chartContainer.annotationsController.getAll()
-  //   chartContainer.annotationsController.get(annotationId)
-
-  /**
-   * Add a time marker to the chart
-   */
-  // ============================================================================
-  // Time Markers Methods (Removed - use Chart API with direct controller access)
-  // ============================================================================
-  // The following methods have been moved to TimeMarkersController:
-  // - addTimeMarker()
-  // - removeTimeMarker()
-  // - updateTimeMarker()
-  // - clearTimeMarkers()
-  // - getTimeMarkers()
-  // - getTimeMarker()
-  //
-  // Access via Chart API:
-  //   chartApi.addTimeMarker(config)
-  //   chartApi.removeTimeMarker(markerId)
-  //   chartApi.updateTimeMarker(markerId, updates)
-  //   chartApi.clearTimeMarkers()
-  //   chartApi.getTimeMarkers()
-  //   chartApi.getTimeMarker(markerId)
-  //
-  // Or directly via controller:
-  //   chartContainer.timeMarkersController.add(marker)
-  //   chartContainer.timeMarkersController.remove(markerId)
-  //   chartContainer.timeMarkersController.update(markerId, updates)
-  //   chartContainer.timeMarkersController.clear()
-  //   chartContainer.timeMarkersController.getAll()
-  //   chartContainer.timeMarkersController.get(markerId)
-
-  // ============================================================================
-  // Risk Zones Methods
-  // ============================================================================
-
-  /**
-   * Add a risk zone to the chart
-   */
-  // ============================================================================
-  // Risk Zones Methods (Removed - use Chart API with direct controller access)
-  // ============================================================================
-  // The following methods have been moved to RiskZonesController:
-  // - addRiskZone()
-  // - removeRiskZone()
-  // - updateRiskZone()
-  // - clearRiskZones()
-  // - getRiskZones()
-  // - getRiskZone()
-  //
-  // Access via Chart API:
-  //   chartApi.addRiskZone(zone)
-  //   chartApi.removeRiskZone(zoneId)
-  //   chartApi.updateRiskZone(zoneId, zone)
-  //   chartApi.clearRiskZones()
-  //   chartApi.getRiskZones()
-  //   chartApi.getRiskZone(zoneId)
-  //
-  // Or directly via controller:
-  //   chartContainer.riskZonesController.add(zone)
-  //   chartContainer.riskZonesController.remove(zoneId)
-  //   chartContainer.riskZonesController.update(zoneId, updates)
-  //   chartContainer.riskZonesController.clear()
-  //   chartContainer.riskZonesController.getAll()
-  //   chartContainer.riskZonesController.get(zoneId)
-
-  // ============================================================================
-  // Click-to-Trade Methods (Removed - use Chart API with direct controller access)
-  // ============================================================================
-
-  // Public click-to-trade methods have been removed.
-  // Access controller directly via: chartContainer.clickToTradeController
-  // The Chart API provides the public interface for enabling/disabling click-to-trade mode.
 
   private initializeInteractionController() {
     if (!this.chart) return;

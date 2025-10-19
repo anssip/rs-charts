@@ -25,12 +25,12 @@ import { getAuth } from "firebase/auth";
 import { TrendLine } from "./types/trend-line";
 import { PatternHighlight } from "./types/markers";
 
-export type Layer = {
+export interface Layer extends HTMLElement {
   requestUpdate: () => void;
   set state(state: ChartState);
   set width(width: number);
   set height(height: number);
-};
+}
 
 export type ChartState = {
   priceRange: PriceRange;

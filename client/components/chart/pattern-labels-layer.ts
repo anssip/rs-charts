@@ -9,12 +9,12 @@ import {
   TimeRange,
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
-import { ChartState } from "../..";
+import { ChartState, Layer } from "../..";
 
 @customElement("pattern-labels-layer")
-export class PatternLabelsLayer extends LitElement {
+export class PatternLabelsLayer extends LitElement implements Layer {
   @property({ type: Object })
-  state?: ChartState;
+  state!: ChartState;
 
   @property({ type: Number })
   width = 0;
@@ -24,12 +24,6 @@ export class PatternLabelsLayer extends LitElement {
 
   @property({ type: Array })
   patterns: PatternHighlight[] = [];
-
-  @state()
-  private hoveredPatternId: string | null = null;
-
-  @state()
-  private selectedPatternId: string | null = null;
 
   @state()
   private showTooltip = false;
@@ -280,7 +274,6 @@ export class PatternLabelsLayer extends LitElement {
   }
 
   private handleLabelClick(pattern: PatternHighlight) {
-    this.selectedPatternId = pattern.id;
     this.showPatternDescription(pattern);
 
     // Emit pattern click event
@@ -297,13 +290,9 @@ export class PatternLabelsLayer extends LitElement {
     );
   }
 
-  private handleLabelHover(pattern: PatternHighlight) {
-    this.hoveredPatternId = pattern.id;
-  }
+  private handleLabelHover(_pattern: PatternHighlight) {}
 
-  private handleLabelLeave() {
-    this.hoveredPatternId = null;
-  }
+  private handleLabelLeave() {}
 
   private showPatternDescription(pattern: PatternHighlight) {
     this.tooltipContent = `${pattern.name}\n\n${pattern.description}\n\nSignificance: ${pattern.significance}`;
@@ -361,8 +350,6 @@ export class PatternLabelsLayer extends LitElement {
 
   clearPatterns() {
     this.patterns = [];
-    this.selectedPatternId = null;
-    this.hoveredPatternId = null;
     this.showTooltip = false;
     this.removeTooltipEventListeners();
     this.requestUpdate();
