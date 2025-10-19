@@ -2233,10 +2233,12 @@ export class ChartApi {
       interactive: true, // Always true for annotations
     };
 
-    // Add annotation via container (container will handle state management)
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.addAnnotation) {
-      chartContainer.addAnnotation(annotation);
+    // Add annotation via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.add(annotation);
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
     }
 
     this.redraw();
@@ -2251,27 +2253,12 @@ export class ChartApi {
    * @param annotationId The ID of the annotation to remove
    */
   removeAnnotation(annotationId: string): void {
-    if (!this.state.annotations) {
-      logger.warn(
-        `ChartApi: Annotation ${annotationId} not found (no annotations)`,
-      );
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.remove(annotationId);
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
       return;
-    }
-
-    const index = this.state.annotations.findIndex(
-      (a) => a.id === annotationId,
-    );
-    if (index === -1) {
-      logger.warn(`ChartApi: Annotation ${annotationId} not found`);
-      return;
-    }
-
-    this.state.annotations.splice(index, 1);
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.removeAnnotation) {
-      chartContainer.removeAnnotation(annotationId);
     }
 
     this.redraw();
@@ -2287,41 +2274,17 @@ export class ChartApi {
     annotationId: string,
     updates: Partial<AnnotationConfig>,
   ): void {
-    if (!this.state.annotations) {
-      logger.warn(
-        `ChartApi: Annotation ${annotationId} not found (no annotations)`,
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      // Ensure interactive is always true for annotations
+      const annotationUpdates = { ...updates, interactive: true };
+      chartContainer.annotationsController.update(
+        annotationId,
+        annotationUpdates,
       );
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
       return;
-    }
-
-    const index = this.state.annotations.findIndex(
-      (a) => a.id === annotationId,
-    );
-    if (index === -1) {
-      logger.warn(`ChartApi: Annotation ${annotationId} not found`);
-      return;
-    }
-
-    // Apply updates
-    const annotation = this.state.annotations[index];
-    const updatedAnnotation: Annotation = {
-      ...annotation,
-      ...updates,
-      id: annotationId, // Preserve ID
-      interactive: true, // Always true for annotations
-    };
-
-    // Create new array reference to trigger Lit's reactive update
-    this.state.annotations = [
-      ...this.state.annotations.slice(0, index),
-      updatedAnnotation,
-      ...this.state.annotations.slice(index + 1),
-    ];
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.updateAnnotation) {
-      chartContainer.updateAnnotation(annotationId, updatedAnnotation);
     }
 
     this.redraw();
@@ -2333,7 +2296,8 @@ export class ChartApi {
    * @returns Array of annotations
    */
   getAnnotations(): Annotation[] {
-    return (xinValue(this.state.annotations) as Annotation[]) || [];
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.annotationsController?.getAll() || [];
   }
 
   /**
@@ -2342,21 +2306,20 @@ export class ChartApi {
    * @returns The annotation or null if not found
    */
   getAnnotation(annotationId: string): Annotation | null {
-    const annotations = xinValue(this.state.annotations) as Annotation[];
-    if (!annotations) return null;
-    return annotations.find((a) => a.id === annotationId) || null;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.annotationsController?.get(annotationId) || null;
   }
 
   /**
    * Clear all annotations from the chart
    */
   clearAnnotations(): void {
-    this.state.annotations = [];
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.clearAnnotations) {
-      chartContainer.clearAnnotations();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.clear();
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
+      return;
     }
 
     this.redraw();

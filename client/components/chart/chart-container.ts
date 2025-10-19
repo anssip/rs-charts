@@ -35,6 +35,7 @@ import { ClickToTradeController } from "./interaction/click-to-trade-controller"
 import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { TimeMarkersController } from "./interaction/time-markers-controller";
+import { AnnotationsController } from "./interaction/annotations-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -200,6 +201,7 @@ export class ChartContainer extends LitElement {
   public equityCurveController?: EquityCurveController;
   public riskZonesController?: RiskZonesController;
   public timeMarkersController?: TimeMarkersController;
+  public annotationsController?: AnnotationsController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -347,12 +349,31 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
-    // Get annotations layer reference and set initial dimensions
+    // Get annotations layer reference and initialize controller
     this.annotationsLayer = this.renderRoot.querySelector(
       "annotations-layer",
     ) as AnnotationsLayer;
     if (this.annotationsLayer) {
       logger.debug("ChartContainer: Found annotations layer");
+
+      // Initialize annotations controller with drag callback
+      this.annotationsController = new AnnotationsController({
+        container: this,
+        state: this._state,
+        annotationsLayer: this.annotationsLayer,
+        onAnnotationDragged: (data) => {
+          // Callback from interaction layer via controller
+          const { annotationId, newTimestamp, newPrice, annotation } = data;
+          const updatedAnnotation = {
+            ...annotation,
+            timestamp: newTimestamp,
+            price: newPrice,
+          };
+          this.annotationsController?.update(annotationId, updatedAnnotation);
+        },
+      });
+      logger.debug("ChartContainer: Initialized annotations controller");
+
       setTimeout(() => {
         this.updateAnnotationsLayer();
       }, 100);
@@ -468,7 +489,7 @@ export class ChartContainer extends LitElement {
     );
     this.addEventListener(
       "annotation-dragged",
-      this.handleAnnotationDragged as EventListener,
+      this.handleAnnotationDraggedEvent as EventListener,
     );
 
     // Add event listeners for risk zone interactions
@@ -1700,17 +1721,12 @@ export class ChartContainer extends LitElement {
 
   /**
    * Handle annotation dragged events from interaction layer
+   * Routes to controller's callback
    */
-  private handleAnnotationDragged = (event: CustomEvent) => {
-    const { annotationId, newTimestamp, newPrice, annotation } = event.detail;
-
-    // Update the annotation with the new position
-    const updatedAnnotation = {
-      ...annotation,
-      timestamp: newTimestamp,
-      price: newPrice,
-    };
-    this.updateAnnotation(annotationId, updatedAnnotation);
+  private handleAnnotationDraggedEvent = (event: CustomEvent) => {
+    if (this.annotationsController) {
+      this.annotationsController.handleAnnotationDragged(event.detail);
+    }
   };
 
   /**
@@ -2325,85 +2341,32 @@ export class ChartContainer extends LitElement {
     }
   }
 
-  /**
-   * Add an annotation to the chart
-   */
-  public addAnnotation(annotation: Annotation): void {
-    if (!this._state.annotations) {
-      this._state.annotations = [];
-    }
-    this._state.annotations.push(annotation);
-    touch("state.annotations");
-    this.requestUpdate();
-    this.updateAnnotationsLayer();
-    logger.debug(`ChartContainer: Added annotation ${annotation.id}`);
-  }
-
-  /**
-   * Remove an annotation from the chart
-   */
-  public removeAnnotation(annotationId: string): void {
-    if (!this._state.annotations) return;
-
-    const index = this._state.annotations.findIndex(
-      (a) => a.id === annotationId,
-    );
-    if (index !== -1) {
-      this._state.annotations.splice(index, 1);
-      touch("state.annotations");
-      this.requestUpdate();
-      this.updateAnnotationsLayer();
-      logger.debug(`ChartContainer: Removed annotation ${annotationId}`);
-    }
-  }
-
-  /**
-   * Update an existing annotation
-   */
-  public updateAnnotation(annotationId: string, annotation: Annotation): void {
-    if (!this._state.annotations) return;
-
-    const index = this._state.annotations.findIndex(
-      (a) => a.id === annotationId,
-    );
-    if (index !== -1) {
-      // Create new array reference to trigger Lit's reactive update
-      this._state.annotations = [
-        ...this._state.annotations.slice(0, index),
-        annotation,
-        ...this._state.annotations.slice(index + 1),
-      ];
-      touch("state.annotations");
-      this.requestUpdate();
-      this.updateAnnotationsLayer();
-      logger.debug(`ChartContainer: Updated annotation ${annotationId}`);
-    }
-  }
-
-  /**
-   * Clear all annotations
-   */
-  public clearAnnotations(): void {
-    this._state.annotations = [];
-    touch("state.annotations");
-    this.requestUpdate();
-    this.updateAnnotationsLayer();
-    logger.debug("ChartContainer: Cleared all annotations");
-  }
-
-  /**
-   * Get all annotations
-   */
-  public getAnnotations(): Annotation[] {
-    return this._state.annotations || [];
-  }
-
-  /**
-   * Get a specific annotation by ID
-   */
-  public getAnnotation(annotationId: string): Annotation | undefined {
-    return this._state.annotations?.find((a) => a.id === annotationId);
-  }
+  // ============================================================================
+  // Annotations Methods (Removed - use Chart API with direct controller access)
+  // ============================================================================
+  // The following methods have been moved to AnnotationsController:
+  // - addAnnotation()
+  // - removeAnnotation()
+  // - updateAnnotation()
+  // - clearAnnotations()
+  // - getAnnotations()
+  // - getAnnotation()
+  //
+  // Access via Chart API:
+  //   chartApi.addAnnotation(config)
+  //   chartApi.removeAnnotation(annotationId)
+  //   chartApi.updateAnnotation(annotationId, updates)
+  //   chartApi.clearAnnotations()
+  //   chartApi.getAnnotations()
+  //   chartApi.getAnnotation(annotationId)
+  //
+  // Or directly via controller:
+  //   chartContainer.annotationsController.add(annotation)
+  //   chartContainer.annotationsController.remove(annotationId)
+  //   chartContainer.annotationsController.update(annotationId, updates)
+  //   chartContainer.annotationsController.clear()
+  //   chartContainer.annotationsController.getAll()
+  //   chartContainer.annotationsController.get(annotationId)
 
   /**
    * Add a time marker to the chart
@@ -2520,6 +2483,11 @@ export class ChartContainer extends LitElement {
       () => this._state.annotations || [],
     );
     this.interactionController.registerLayer(annotationsLayer);
+
+    // Set interaction layer on the controller
+    if (this.annotationsController) {
+      this.annotationsController.setInteractionLayer(annotationsLayer);
+    }
 
     // Price lines layer - priority 90
     const priceLinesLayer = new PriceLinesInteractionLayer(
