@@ -2576,10 +2576,12 @@ export class ChartApi {
       zIndex: config.zIndex !== undefined ? config.zIndex : 1,
     };
 
-    // Add risk zone via container (container will handle state management)
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.addRiskZone) {
-      chartContainer.addRiskZone(zone);
+    // Add risk zone via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.add(zone);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
     }
 
     this.redraw();
@@ -2594,25 +2596,12 @@ export class ChartApi {
    * @param zoneId The ID of the risk zone to remove
    */
   removeRiskZone(zoneId: string): void {
-    if (!this.state.riskZones) {
-      logger.warn(`ChartApi: Risk zone ${zoneId} not found (no zones)`);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.remove(zoneId);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
       return;
-    }
-
-    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
-    const index = riskZones.findIndex((z) => z.id === zoneId);
-    if (index === -1) {
-      logger.warn(`ChartApi: Risk zone ${zoneId} not found`);
-      return;
-    }
-
-    riskZones.splice(index, 1);
-    this.state.riskZones = riskZones;
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.removeRiskZone) {
-      chartContainer.removeRiskZone(zoneId);
     }
 
     this.redraw();
@@ -2625,33 +2614,12 @@ export class ChartApi {
    * @param updates Partial risk zone updates
    */
   updateRiskZone(zoneId: string, updates: Partial<RiskZoneConfig>): void {
-    if (!this.state.riskZones) {
-      logger.warn(`ChartApi: Risk zone ${zoneId} not found (no zones)`);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.update(zoneId, updates);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
       return;
-    }
-
-    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
-    const index = riskZones.findIndex((z) => z.id === zoneId);
-    if (index === -1) {
-      logger.warn(`ChartApi: Risk zone ${zoneId} not found`);
-      return;
-    }
-
-    // Apply updates
-    const zone = riskZones[index];
-    const updatedZone: RiskZone = {
-      ...zone,
-      ...updates,
-      id: zoneId, // Preserve ID
-    };
-
-    riskZones[index] = updatedZone;
-    this.state.riskZones = riskZones;
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.updateRiskZone) {
-      chartContainer.updateRiskZone(zoneId, updatedZone);
     }
 
     this.redraw();
@@ -2663,7 +2631,8 @@ export class ChartApi {
    * @returns Array of risk zones
    */
   getRiskZones(): RiskZone[] {
-    return (xinValue(this.state.riskZones) as RiskZone[]) || [];
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.riskZonesController?.getAll() || [];
   }
 
   /**
@@ -2672,21 +2641,20 @@ export class ChartApi {
    * @returns The risk zone or null if not found
    */
   getRiskZone(zoneId: string): RiskZone | null {
-    const riskZones = xinValue(this.state.riskZones) as RiskZone[];
-    if (!riskZones) return null;
-    return riskZones.find((z) => z.id === zoneId) || null;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.riskZonesController?.get(zoneId) || null;
   }
 
   /**
    * Clear all risk zones from the chart
    */
   clearRiskZones(): void {
-    this.state.riskZones = [];
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.clearRiskZones) {
-      chartContainer.clearRiskZones();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.clear();
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
+      return;
     }
 
     this.redraw();

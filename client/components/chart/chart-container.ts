@@ -33,6 +33,7 @@ import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
 import { EquityCurveController } from "./interaction/equity-curve-controller";
+import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -196,6 +197,7 @@ export class ChartContainer extends LitElement {
   private interactionController?: ChartInteractionController;
   public clickToTradeController?: ClickToTradeController;
   public equityCurveController?: EquityCurveController;
+  public riskZonesController?: RiskZonesController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -365,12 +367,21 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
-    // Get risk zones canvas layer reference and set initial dimensions
+    // Get risk zones canvas layer reference and initialize controller
     this.riskZonesCanvasLayer = this.renderRoot.querySelector(
       "risk-zones-canvas-layer",
     ) as any;
     if (this.riskZonesCanvasLayer) {
       logger.debug("ChartContainer: Found risk zones canvas layer");
+
+      // Initialize risk zones controller
+      this.riskZonesController = new RiskZonesController({
+        container: this,
+        state: this._state,
+        riskZonesCanvasLayer: this.riskZonesCanvasLayer,
+      });
+      logger.debug("ChartContainer: Initialized risk zones controller");
+
       setTimeout(() => {
         this.updateRiskZonesCanvasLayer();
       }, 100);
@@ -2461,101 +2472,32 @@ export class ChartContainer extends LitElement {
   /**
    * Add a risk zone to the chart
    */
-  public addRiskZone(zone: RiskZone): void {
-    if (!this._state.riskZones) {
-      this._state.riskZones = [];
-    }
-    this._state.riskZones.push(zone);
-    this.riskZones = this._state.riskZones;
-    touch("state.riskZones");
-
-    // Update the interaction layer
-    if (this.riskZonesInteractionLayer) {
-      this.riskZonesInteractionLayer.setZones(this._state.riskZones);
-    }
-
-    this.requestUpdate();
-    logger.debug(`ChartContainer: Added risk zone ${zone.id}`);
-  }
-
-  /**
-   * Remove a risk zone from the chart
-   */
-  public removeRiskZone(zoneId: string): void {
-    if (!this._state.riskZones) return;
-
-    const index = this._state.riskZones.findIndex(
-      (z: RiskZone) => z.id === zoneId,
-    );
-    if (index !== -1) {
-      this._state.riskZones.splice(index, 1);
-      this.riskZones = this._state.riskZones;
-      touch("state.riskZones");
-
-      // Update the interaction layer
-      if (this.riskZonesInteractionLayer) {
-        this.riskZonesInteractionLayer.setZones(this._state.riskZones);
-      }
-
-      this.requestUpdate();
-      logger.debug(`ChartContainer: Removed risk zone ${zoneId}`);
-    }
-  }
-
-  /**
-   * Update an existing risk zone
-   */
-  public updateRiskZone(zoneId: string, zone: RiskZone): void {
-    if (!this._state.riskZones) return;
-
-    const index = this._state.riskZones.findIndex(
-      (z: RiskZone) => z.id === zoneId,
-    );
-    if (index !== -1) {
-      this._state.riskZones[index] = zone;
-      this.riskZones = this._state.riskZones;
-      touch("state.riskZones");
-
-      // Update the interaction layer
-      if (this.riskZonesInteractionLayer) {
-        this.riskZonesInteractionLayer.setZones(this._state.riskZones);
-      }
-
-      this.requestUpdate();
-      logger.debug(`ChartContainer: Updated risk zone ${zoneId}`);
-    }
-  }
-
-  /**
-   * Clear all risk zones
-   */
-  public clearRiskZones(): void {
-    this._state.riskZones = [];
-    this.riskZones = [];
-    touch("state.riskZones");
-
-    // Update the interaction layer
-    if (this.riskZonesInteractionLayer) {
-      this.riskZonesInteractionLayer.setZones([]);
-    }
-
-    this.requestUpdate();
-    logger.debug("ChartContainer: Cleared all risk zones");
-  }
-
-  /**
-   * Get all risk zones
-   */
-  public getRiskZones(): RiskZone[] {
-    return this._state.riskZones || [];
-  }
-
-  /**
-   * Get a specific risk zone by ID
-   */
-  public getRiskZone(zoneId: string): RiskZone | undefined {
-    return this._state.riskZones?.find((z: RiskZone) => z.id === zoneId);
-  }
+  // ============================================================================
+  // Risk Zones Methods (Removed - use Chart API with direct controller access)
+  // ============================================================================
+  // The following methods have been moved to RiskZonesController:
+  // - addRiskZone()
+  // - removeRiskZone()
+  // - updateRiskZone()
+  // - clearRiskZones()
+  // - getRiskZones()
+  // - getRiskZone()
+  //
+  // Access via Chart API:
+  //   chartApi.addRiskZone(zone)
+  //   chartApi.removeRiskZone(zoneId)
+  //   chartApi.updateRiskZone(zoneId, zone)
+  //   chartApi.clearRiskZones()
+  //   chartApi.getRiskZones()
+  //   chartApi.getRiskZone(zoneId)
+  //
+  // Or directly via controller:
+  //   chartContainer.riskZonesController.add(zone)
+  //   chartContainer.riskZonesController.remove(zoneId)
+  //   chartContainer.riskZonesController.update(zoneId, updates)
+  //   chartContainer.riskZonesController.clear()
+  //   chartContainer.riskZonesController.getAll()
+  //   chartContainer.riskZonesController.get(zoneId)
 
   // ============================================================================
   // Click-to-Trade Methods (Removed - use Chart API with direct controller access)
@@ -2637,6 +2579,13 @@ export class ChartContainer extends LitElement {
       this.riskZonesInteractionLayer = new RiskZonesLayer(this.chart.canvas);
       this.riskZonesInteractionLayer.setZones(this._state.riskZones || []);
       this.interactionController.registerLayer(this.riskZonesInteractionLayer);
+
+      // Set interaction layer on the controller
+      if (this.riskZonesController) {
+        this.riskZonesController.setInteractionLayer(
+          this.riskZonesInteractionLayer,
+        );
+      }
     }
 
     // Live candle layer - lowest priority (10)
