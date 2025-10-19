@@ -1965,12 +1965,11 @@ export class ChartApi {
    * @param config Position overlay configuration (null to hide)
    */
   setPositionOverlay(config: PositionOverlayConfig | null): void {
-    this.state.positionOverlay = config;
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.setPositionOverlay) {
-      chartContainer.setPositionOverlay(config);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.positionOverlayController) {
+      chartContainer.positionOverlayController.set(config);
+    } else {
+      logger.error("ChartApi: Position overlay controller not initialized");
     }
 
     this.redraw();
@@ -1989,9 +1988,8 @@ export class ChartApi {
    * @returns Position overlay config or null if not set
    */
   getPositionOverlay(): PositionOverlayConfig | null {
-    return (
-      (xinValue(this.state.positionOverlay) as PositionOverlayConfig) || null
-    );
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.positionOverlayController?.get() || null;
   }
 
   /**
@@ -1999,17 +1997,15 @@ export class ChartApi {
    * @param updates Partial position overlay updates
    */
   updatePositionOverlay(updates: Partial<PositionOverlayConfig>): void {
-    if (!this.state.positionOverlay) {
-      logger.warn("ChartApi: No position overlay to update");
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.positionOverlayController) {
+      chartContainer.positionOverlayController.update(updates);
+    } else {
+      logger.error("ChartApi: Position overlay controller not initialized");
       return;
     }
 
-    const updatedOverlay: PositionOverlayConfig = {
-      ...this.state.positionOverlay,
-      ...updates,
-    };
-
-    this.setPositionOverlay(updatedOverlay);
+    this.redraw();
     logger.info("ChartApi: Updated position overlay");
   }
 

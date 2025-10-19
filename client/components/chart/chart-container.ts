@@ -36,6 +36,7 @@ import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { TimeMarkersController } from "./interaction/time-markers-controller";
 import { AnnotationsController } from "./interaction/annotations-controller";
+import { PositionOverlayController } from "./interaction/position-overlay-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -202,6 +203,7 @@ export class ChartContainer extends LitElement {
   public riskZonesController?: RiskZonesController;
   public timeMarkersController?: TimeMarkersController;
   public annotationsController?: AnnotationsController;
+  public positionOverlayController?: PositionOverlayController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -439,15 +441,37 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
-    // Get position overlay reference and set initial dimensions
-    this.positionOverlayComponent = this.renderRoot.querySelector(
+    // Get both position overlay component references and initialize controller
+    const positionOverlays = this.renderRoot.querySelectorAll(
       "position-overlay",
-    ) as PositionOverlayComponent;
-    if (this.positionOverlayComponent) {
-      logger.debug("ChartContainer: Found position overlay");
+    ) as NodeListOf<PositionOverlayComponent>;
+
+    if (positionOverlays.length >= 2) {
+      // First one is the entry line layer, second one is the info box
+      const entryLineComponent = positionOverlays[0];
+      const infoBoxComponent = positionOverlays[1];
+
+      logger.debug("ChartContainer: Found both position overlay components", {
+        entryLineHideAttribute: entryLineComponent.hideEntryLine,
+        infoBoxHideAttribute: infoBoxComponent.hideEntryLine,
+      });
+
+      // Initialize position overlay controller with both components
+      this.positionOverlayController = new PositionOverlayController({
+        container: this,
+        state: this._state,
+        entryLineComponent,
+        infoBoxComponent,
+      });
+      logger.debug("ChartContainer: Initialized position overlay controller");
+
       setTimeout(() => {
         this.updatePositionOverlay();
       }, 100);
+    } else {
+      logger.warn(
+        "ChartContainer: Could not find both position overlay components",
+      );
     }
 
     // Initialize click-to-trade controller (disabled by default)
@@ -2325,21 +2349,22 @@ export class ChartContainer extends LitElement {
     logger.debug("ChartContainer: Cleared all trade zones");
   }
 
-  /**
-   * Set or update the position overlay
-   */
-  public setPositionOverlay(config: PositionOverlayConfig | null): void {
-    this._state.positionOverlay = config;
-    touch("state.positionOverlay");
-    this.requestUpdate();
-    this.updatePositionOverlay();
-
-    if (config) {
-      logger.debug(`ChartContainer: Set position overlay for ${config.symbol}`);
-    } else {
-      logger.debug("ChartContainer: Cleared position overlay");
-    }
-  }
+  // ============================================================================
+  // Position Overlay Methods (Removed - use Chart API with direct controller access)
+  // ============================================================================
+  // The following method has been moved to PositionOverlayController:
+  // - setPositionOverlay()
+  //
+  // Access via Chart API:
+  //   chartApi.setPositionOverlay(config)
+  //   chartApi.updatePositionOverlay(updates)
+  //   chartApi.getPositionOverlay()
+  //
+  // Or directly via controller:
+  //   chartContainer.positionOverlayController.set(config)
+  //   chartContainer.positionOverlayController.update(updates)
+  //   chartContainer.positionOverlayController.get()
+  //   chartContainer.positionOverlayController.clear()
 
   // ============================================================================
   // Annotations Methods (Removed - use Chart API with direct controller access)
