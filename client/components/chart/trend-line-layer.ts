@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { TrendLine, TrendLineEvent } from "../../types/trend-line";
-import { ChartState } from "../..";
+import { ChartState, Layer } from "../..";
 import "./trend-line";
 import { getLogger, LogLevel } from "../../util/logger";
 
@@ -440,8 +440,9 @@ export class TrendLineLayer extends LitElement {
   }
 
   render() {
-    const visibleLines = this.getVisibleTrendLines()
-      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)); // Sort by z-index
+    const visibleLines = this.getVisibleTrendLines().sort(
+      (a, b) => (a.zIndex || 0) - (b.zIndex || 0),
+    ); // Sort by z-index
 
     // Use clientWidth/clientHeight if width/height are not set
     const actualWidth = this.width || this.clientWidth || 0;

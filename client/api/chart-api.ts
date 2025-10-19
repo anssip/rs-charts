@@ -2454,10 +2454,7 @@ export class ChartApi {
    * @param markerId The ID of the time marker to update
    * @param updates Partial time marker updates
    */
-  updateTimeMarker(
-    markerId: string,
-    updates: Partial<TimeMarkerConfig>,
-  ): void {
+  updateTimeMarker(markerId: string, updates: Partial<TimeMarkerConfig>): void {
     if (!this.state.timeMarkers) {
       logger.warn(`ChartApi: Time marker ${markerId} not found (no markers)`);
       return;
@@ -2723,13 +2720,16 @@ export class ChartApi {
    * });
    * ```
    */
-  showEquityCurve(data: EquityPoint[], config?: Partial<EquityCurveConfig>): void {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.showEquityCurve) {
-      chartContainer.showEquityCurve(data, config);
+  showEquityCurve(
+    data: EquityPoint[],
+    config?: Partial<EquityCurveConfig>,
+  ): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.equityCurveController) {
+      chartContainer.equityCurveController.show(data, config);
       logger.info(`ChartApi: Showing equity curve with ${data.length} points`);
     } else {
-      logger.error("ChartApi: Container does not support equity curve");
+      logger.error("ChartApi: Equity curve controller not initialized");
     }
   }
 
@@ -2741,10 +2741,12 @@ export class ChartApi {
    * ```
    */
   hideEquityCurve(): void {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.hideEquityCurve) {
-      chartContainer.hideEquityCurve();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.equityCurveController) {
+      chartContainer.equityCurveController.hide();
       logger.info("ChartApi: Hiding equity curve");
+    } else {
+      logger.error("ChartApi: Equity curve controller not initialized");
     }
   }
 
@@ -2759,10 +2761,12 @@ export class ChartApi {
    * ```
    */
   updateEquityCurve(data: EquityPoint[]): void {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.updateEquityCurve) {
-      chartContainer.updateEquityCurve(data);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.equityCurveController) {
+      chartContainer.equityCurveController.update(data);
       logger.debug(`ChartApi: Updated equity curve with ${data.length} points`);
+    } else {
+      logger.error("ChartApi: Equity curve controller not initialized");
     }
   }
 
@@ -2771,11 +2775,8 @@ export class ChartApi {
    * @returns true if equity curve is visible, false otherwise
    */
   isEquityCurveVisible(): boolean {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.isEquityCurveVisible) {
-      return chartContainer.isEquityCurveVisible();
-    }
-    return false;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.equityCurveController?.isVisible() ?? false;
   }
 
   /**
@@ -2783,11 +2784,8 @@ export class ChartApi {
    * @returns Equity curve config or null if not visible
    */
   getEquityCurve(): EquityCurveConfig | null {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.getEquityCurve) {
-      return chartContainer.getEquityCurve();
-    }
-    return null;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.equityCurveController?.getConfig() ?? null;
   }
 
   // ============================================================================

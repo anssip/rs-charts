@@ -497,7 +497,7 @@ chart.on('context-menu', (event: {
 ## 8. Time Markers
 
 ### Purpose
-Add vertical lines at specific timestamps to mark important events.
+Add vertical lines at specific timestamps to mark important events. Show a time label in the same position as the crosshairs shows at top of the time axis.
 
 ### API Methods
 

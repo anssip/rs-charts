@@ -877,6 +877,46 @@
                         </button>
                     </div>
                 </div>
+
+                <div class="control-group">
+                    <label>Risk Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addStopLossZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            🛑 Stop Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSupportZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Support Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addResistanceZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            📉 Resistance Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLiquidationZone()"
+                            style="background: #dc2626; color: white"
+                        >
+                            ⚠️ Liquidation Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllRiskZones()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
             </div>
             <!-- End controls-grid -->
 
@@ -1318,6 +1358,12 @@
 
                     case 'time-marker-hovered':
                         return `Hovering marker: ${data.marker.label || 'Unlabeled'}`;
+
+                    case 'risk-zone-clicked':
+                        return `Risk zone: ${data.zone.label || 'Unlabeled'} ($${data.zone.startPrice.toFixed(2)} - $${data.zone.endPrice.toFixed(2)})`;
+
+                    case 'risk-zone-hovered':
+                        return `Hovering risk zone: ${data.zone.label || 'Unlabeled'}`;
 
                     case 'trade-marker-clicked':
                         return `${data.marker.side.toUpperCase()} marker at $${data.marker.price.toFixed(2)}`;
@@ -3057,6 +3103,127 @@
                 }
             }
 
+            // Risk Zone Functions
+            function addStopLossZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create stop loss zone below current price range
+                    const startPrice = priceRange.min * 0.96;
+                    const endPrice = priceRange.min * 0.98;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: 'Stop Loss Zone',
+                        color: '#ef4444',
+                        opacity: 0.15,
+                        pattern: 'striped',
+                        borderColor: '#dc2626',
+                        borderWidth: 1
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(`Added stop loss zone. Total risk zones: ${zones.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding stop loss zone: ${error.message}`);
+                }
+            }
+
+            function addSupportZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create support zone near bottom of range
+                    const startPrice = priceRange.min * 1.02;
+                    const endPrice = priceRange.min * 1.04;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: 'Support Zone',
+                        color: '#10b981',
+                        opacity: 0.12,
+                        pattern: 'dotted',
+                        borderColor: '#059669',
+                        borderWidth: 1
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(`Added support zone. Total risk zones: ${zones.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding support zone: ${error.message}`);
+                }
+            }
+
+            function addResistanceZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create resistance zone near top of range
+                    const startPrice = priceRange.max * 0.96;
+                    const endPrice = priceRange.max * 0.98;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: 'Resistance Zone',
+                        color: '#f59e0b',
+                        opacity: 0.1,
+                        pattern: 'solid'
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(`Added resistance zone. Total risk zones: ${zones.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding resistance zone: ${error.message}`);
+                }
+            }
+
+            function addLiquidationZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create liquidation zone above current price range
+                    const startPrice = priceRange.max * 1.02;
+                    const endPrice = priceRange.max * 1.04;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: 'Liquidation Risk',
+                        color: '#dc2626',
+                        opacity: 0.18,
+                        pattern: 'striped'
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(`Added liquidation zone. Total risk zones: ${zones.length}`);
+                } catch (error) {
+                    updateStatus(`Error adding liquidation zone: ${error.message}`);
+                }
+            }
+
+            function clearAllRiskZones() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearRiskZones();
+                    updateStatus("All risk zones cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing risk zones: ${error.message}`);
+                }
+            }
+
             // Click-to-Trade Functions
             function enableClickToTradeMode() {
                 const api = getCurrentApi();
@@ -3833,6 +4000,24 @@ Indicators: ${
                             console.log("Time marker hovered:", event);
                         }
                     });
+
+                    // Risk Zone events
+                    chart1Api.on("risk-zone-clicked", (event) => {
+                        addEventToLog("risk-zone-clicked", event);
+                        if (currentChart === 1) {
+                            console.log("Risk zone clicked:", event);
+                            updateStatus(
+                                `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("risk-zone-hovered", (event) => {
+                        addEventToLog("risk-zone-hovered", event);
+                        if (currentChart === 1) {
+                            console.log("Risk zone hovered:", event);
+                        }
+                    });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
@@ -4020,6 +4205,24 @@ Indicators: ${
                         addEventToLog("time-marker-hovered", event);
                         if (currentChart === 2) {
                             console.log("Time marker hovered:", event);
+                        }
+                    });
+
+                    // Risk Zone events
+                    chart2Api.on("risk-zone-clicked", (event) => {
+                        addEventToLog("risk-zone-clicked", event);
+                        if (currentChart === 2) {
+                            console.log("Risk zone clicked:", event);
+                            updateStatus(
+                                `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("risk-zone-hovered", (event) => {
+                        addEventToLog("risk-zone-hovered", event);
+                        if (currentChart === 2) {
+                            console.log("Risk zone hovered:", event);
                         }
                     });
                 }

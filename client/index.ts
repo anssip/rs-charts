@@ -25,6 +25,13 @@ import { getAuth } from "firebase/auth";
 import { TrendLine } from "./types/trend-line";
 import { PatternHighlight } from "./types/markers";
 
+export type Layer = {
+  requestUpdate: () => void;
+  set state(state: ChartState);
+  set width(width: number);
+  set height(height: number);
+};
+
 export type ChartState = {
   priceRange: PriceRange;
   priceHistory: PriceHistory;
@@ -46,7 +53,9 @@ export type ChartState = {
   annotations?: import("./types/trading-overlays").Annotation[];
   timeMarkers?: import("./types/trading-overlays").TimeMarker[];
   riskZones?: import("./types/trading-overlays").RiskZone[];
-  positionOverlay?: import("./types/trading-overlays").PositionOverlayConfig | null;
+  positionOverlay?:
+    | import("./types/trading-overlays").PositionOverlayConfig
+    | null;
   clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
   equityCurve?: import("./types/trading-overlays").EquityCurveConfig | null;
 };
@@ -219,7 +228,7 @@ window.addEventListener("DOMContentLoaded", () => {
   logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
 
   // Add sample trade zones for testing after chart is ready
-  chart1Result.api.on('ready', () => {
+  chart1Result.api.on("ready", () => {
     logger.info("Chart 1 ready - adding sample trade zones");
 
     // Add a profitable long trade zone
@@ -229,11 +238,11 @@ window.addEventListener("DOMContentLoaded", () => {
       entryPrice: 99000,
       exitPrice: 101000,
       metadata: {
-        side: 'long',
+        side: "long",
         quantity: 0.1,
         pnl: 200,
-        pnlPercent: 2.02
-      }
+        pnlPercent: 2.02,
+      },
     });
 
     // Add a losing short trade zone
@@ -243,11 +252,11 @@ window.addEventListener("DOMContentLoaded", () => {
       entryPrice: 100000,
       exitPrice: 101500,
       metadata: {
-        side: 'short',
+        side: "short",
         quantity: 0.05,
         pnl: -75,
-        pnlPercent: -1.5
-      }
+        pnlPercent: -1.5,
+      },
     });
 
     logger.info("Sample trade zones added to chart 1");
@@ -256,21 +265,21 @@ window.addEventListener("DOMContentLoaded", () => {
     chart1Result.api.addRiskZone({
       startPrice: 96000,
       endPrice: 98000,
-      label: 'Stop Loss Zone',
-      color: '#ef4444',
+      label: "Stop Loss Zone",
+      color: "#ef4444",
       opacity: 0.15,
-      pattern: 'striped',
-      borderColor: '#dc2626',
-      borderWidth: 1
+      pattern: "striped",
+      borderColor: "#dc2626",
+      borderWidth: 1,
     });
 
     chart1Result.api.addRiskZone({
       startPrice: 104000,
       endPrice: 106000,
-      label: 'Resistance Zone',
-      color: '#f59e0b',
+      label: "Resistance Zone",
+      color: "#f59e0b",
       opacity: 0.1,
-      pattern: 'solid'
+      pattern: "solid",
     });
 
     logger.info("Sample risk zones added to chart 1");
@@ -288,15 +297,18 @@ window.addEventListener("DOMContentLoaded", () => {
       currentEquity += change;
       equityData.push({
         timestamp,
-        equity: Math.max(startingEquity * 0.8, Math.min(startingEquity * 1.3, currentEquity))
+        equity: Math.max(
+          startingEquity * 0.8,
+          Math.min(startingEquity * 1.3, currentEquity),
+        ),
       });
     }
 
     chart1Result.api.showEquityCurve(equityData, {
-      color: '#3b82f6',
+      color: "#3b82f6",
       lineWidth: 2,
       showArea: true,
-      opacity: 0.8
+      opacity: 0.8,
     });
 
     logger.info("Sample equity curve added to chart 1");
@@ -376,7 +388,7 @@ window.addEventListener("DOMContentLoaded", () => {
     logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
 
     // Add sample trade zones for testing after chart is ready
-    chart2Result.api.on('ready', () => {
+    chart2Result.api.on("ready", () => {
       logger.info("Chart 2 ready - adding sample trade zones");
 
       // Add a profitable short trade zone for ETH
@@ -386,11 +398,11 @@ window.addEventListener("DOMContentLoaded", () => {
         entryPrice: 3800,
         exitPrice: 3700,
         metadata: {
-          side: 'short',
+          side: "short",
           quantity: 2,
           pnl: 200,
-          pnlPercent: 2.63
-        }
+          pnlPercent: 2.63,
+        },
       });
 
       // Add a losing long trade zone for ETH
@@ -400,11 +412,11 @@ window.addEventListener("DOMContentLoaded", () => {
         entryPrice: 3750,
         exitPrice: 3700,
         metadata: {
-          side: 'long',
+          side: "long",
           quantity: 1.5,
           pnl: -75,
-          pnlPercent: -1.33
-        }
+          pnlPercent: -1.33,
+        },
       });
 
       logger.info("Sample trade zones added to chart 2");
@@ -413,21 +425,21 @@ window.addEventListener("DOMContentLoaded", () => {
       chart2Result.api.addRiskZone({
         startPrice: 3500,
         endPrice: 3600,
-        label: 'Support Zone',
-        color: '#10b981',
+        label: "Support Zone",
+        color: "#10b981",
         opacity: 0.12,
-        pattern: 'dotted',
-        borderColor: '#059669',
-        borderWidth: 1
+        pattern: "dotted",
+        borderColor: "#059669",
+        borderWidth: 1,
       });
 
       chart2Result.api.addRiskZone({
         startPrice: 3950,
         endPrice: 4050,
-        label: 'Liquidation Risk',
-        color: '#dc2626',
+        label: "Liquidation Risk",
+        color: "#dc2626",
         opacity: 0.18,
-        pattern: 'striped'
+        pattern: "striped",
       });
 
       logger.info("Sample risk zones added to chart 2");
@@ -446,17 +458,20 @@ window.addEventListener("DOMContentLoaded", () => {
         currentEquity2 = startingEquity2 + trend + noise;
         equityData2.push({
           timestamp,
-          equity: Math.max(startingEquity2 * 0.9, Math.min(startingEquity2 * 1.4, currentEquity2))
+          equity: Math.max(
+            startingEquity2 * 0.9,
+            Math.min(startingEquity2 * 1.4, currentEquity2),
+          ),
         });
       }
 
       chart2Result.api.showEquityCurve(equityData2, {
-        color: '#10b981',
+        color: "#10b981",
         lineWidth: 3,
         showArea: true,
-        areaColor: '#10b981',
+        areaColor: "#10b981",
         opacity: 0.85,
-        lineStyle: 'solid'
+        lineStyle: "solid",
       });
 
       logger.info("Sample equity curve added to chart 2");

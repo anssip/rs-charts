@@ -129,3 +129,19 @@ activeChartApi.clearPatternHighlights();
 // Get currently highlighted patterns
 const currentPatterns = activeChartApi.getHighlightedPatterns();
 ```
+
+# Interaction controller improvements
+
+We have implemented all features in @paper-trading-plan.md from beginning up to section 6. Annotations. The current issue is that after adding Annotations and making it possible to drag the draggable annotations, it's no longer possible to drag the price lines (price lines were also in the paper trading plan). Price line dragging was working fine before we added annotations.
+
+To me it looks like we need a better way to handle the mouse interactions (especially dragging) now as we have so many different layers on top of the chart. Plan an improved way to handle the dragging of items in the different layers. Following needs to be taken into account:
+
+- clicking on the chart needs to open the @live-candle-display.ts
+- it needs to be possible to pan and zoom the chart
+- it needs to be possible to draw new trend lines, and to move existing trend lines (there is a layer for trend lines)
+- it needs to be possible to move price lines (there is a layer for these)
+- it needs to be possible to move draggable annotations (there is a layer for these)
+- the items in the different layers need to zoom and pan when the chart is zoomed and panned
+- the paper-trading-plan.md contains features (risk zones, equity curve overlay) which might need additional layers to be added, these should be managed by the new interaction manager
+
+We already have the chart-intgeraction-controller.ts for managing user interactions. This could be enhanced so that it's able to manage this complex environment of several layers.

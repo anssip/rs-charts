@@ -18,7 +18,7 @@ import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
 import { LiveCandle } from "../../api/live-candle-subscription";
-import { ChartState } from "../..";
+import { ChartState, Layer } from "../..";
 import {
   getCandleInterval,
   priceToY,
@@ -32,6 +32,7 @@ import "./indicators/market-indicator";
 import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
+import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -187,9 +188,6 @@ export class ChartContainer extends LitElement {
   private positionOverlay: PositionOverlayConfig | null = null;
 
   @state()
-  private equityCurve: EquityCurveConfig | null = null;
-
-  @state()
   private candleTooltipData: any = null;
 
   @state()
@@ -197,6 +195,7 @@ export class ChartContainer extends LitElement {
 
   private interactionController?: ChartInteractionController;
   private clickToTradeController?: ClickToTradeController;
+  public equityCurveController?: EquityCurveController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -276,6 +275,17 @@ export class ChartContainer extends LitElement {
 
     // Initialize trend line tool
     this.initializeTrendLineTool();
+
+    const initLayer = <T extends HTMLElement>(
+      elementName: string,
+      updateLayer: () => void,
+    ) => {
+      const layer = this.renderRoot.querySelector(elementName) as T;
+      if (layer) {
+        layer.style.width = `${width}px`;
+        layer.style.height = `${height}px`;
+      }
+    };
 
     // Get trend line layer reference and set initial dimensions
     this.trendLineLayer = this.renderRoot.querySelector(
@@ -366,12 +376,21 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
-    // Get equity curve canvas layer reference and set initial dimensions
+    // Get equity curve canvas layer reference and initialize controller
     this.equityCurveCanvasLayer = this.renderRoot.querySelector(
       "equity-curve-canvas-layer",
     ) as any;
     if (this.equityCurveCanvasLayer) {
       logger.debug("ChartContainer: Found equity curve canvas layer");
+
+      // Initialize equity curve controller
+      this.equityCurveController = new EquityCurveController({
+        container: this,
+        state: this._state,
+        equityCurveLayer: this.equityCurveCanvasLayer,
+      });
+      logger.debug("ChartContainer: Initialized equity curve controller");
+
       setTimeout(() => {
         this.updateEquityCurveCanvasLayer();
       }, 100);
@@ -602,6 +621,28 @@ export class ChartContainer extends LitElement {
     this.updatePositionOverlay();
   }
 
+  private updateLayer(layer: Layer) {
+    if (!layer) return;
+    if (this.chart?.canvas) {
+      // Get the chart area dimensions
+      const chartArea = this.renderRoot.querySelector(
+        ".chart-area",
+      ) as HTMLElement;
+      if (chartArea && this.chart.canvas) {
+        // Use the chart area width minus price axis (same as what the tool uses)
+        layer.width = chartArea.clientWidth - this.priceAxisWidth;
+
+        // Use the actual canvas height
+        const dpr = getDpr(); // Use fixed DPR
+        layer.height = this.chart.canvas.height / dpr;
+      }
+
+      // Update the state to ensure trend lines recalculate positions
+      layer.state = this._state;
+      layer.requestUpdate();
+    }
+  }
+
   // Helper method to force redraw of all indicators
   private updateTrendLineLayer() {
     const trendLineLayer = this.renderRoot.querySelector(
@@ -647,8 +688,6 @@ export class ChartContainer extends LitElement {
 
       // Update the state to ensure labels recalculate positions
       patternLabelsLayer.state = this._state;
-      patternLabelsLayer.timeRange = this._state.timeRange;
-      patternLabelsLayer.priceRange = this._state.priceRange;
       patternLabelsLayer.requestUpdate();
     }
   }
@@ -789,6 +828,11 @@ export class ChartContainer extends LitElement {
   }
 
   private updateEquityCurveCanvasLayer() {
+    if (!this.equityCurveController) {
+      return;
+    }
+
+    // Update dimensions
     const equityCurveLayer = this.renderRoot.querySelector(
       "equity-curve-canvas-layer",
     ) as any;
@@ -801,14 +845,10 @@ export class ChartContainer extends LitElement {
         const dpr = getDpr();
         equityCurveLayer.height = this.chart.canvas.height / dpr;
       }
-
-      equityCurveLayer.state = this._state;
-      equityCurveLayer.timeRange = this._state.timeRange;
-      equityCurveLayer.priceRange = this._state.priceRange;
-      equityCurveLayer.config = this.equityCurve;
-      equityCurveLayer.data = this.equityCurve?.data || [];
-      equityCurveLayer.requestUpdate();
     }
+
+    // Delegate to controller for state/data updates
+    this.equityCurveController.updateLayer();
   }
 
   private redrawIndicators() {
@@ -903,6 +943,7 @@ export class ChartContainer extends LitElement {
 
     this.interactionController?.detach();
     this.clickToTradeController?.disable();
+    this.equityCurveController?.destroy();
   }
 
   @property({ type: Object })
@@ -1237,26 +1278,30 @@ export class ChartContainer extends LitElement {
               .state=${this._state}
               .timeRange=${this._state.timeRange}
               .priceRange=${this._state.priceRange}
-              .width=${this.chart?.canvas ? this.chart.canvas.width / getDpr() : 0}
-              .height=${this.chart?.canvas ? this.chart.canvas.height / getDpr() : 0}
+              .width=${this.chart?.canvas
+                ? this.chart.canvas.width / getDpr()
+                : 0}
+              .height=${this.chart?.canvas
+                ? this.chart.canvas.height / getDpr()
+                : 0}
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></risk-zones-canvas-layer>
 
             <!-- Equity Curve Canvas Layer (z-index: 15) -->
-            ${this.equityCurve
-              ? html`
-                  <equity-curve-canvas-layer
-                    .data=${this.equityCurve.data}
-                    .config=${this.equityCurve}
-                    .state=${this._state}
-                    .timeRange=${this._state.timeRange}
-                    .priceRange=${this._state.priceRange}
-                    .width=${this.chart?.canvas ? this.chart.canvas.width / getDpr() : 0}
-                    .height=${this.chart?.canvas ? this.chart.canvas.height / getDpr() : 0}
-                    style="--price-axis-width: ${this.priceAxisWidth}px"
-                  ></equity-curve-canvas-layer>
-                `
-              : ""}
+            <equity-curve-canvas-layer
+              .data=${this._state.equityCurve?.data || []}
+              .config=${this._state.equityCurve}
+              .state=${this._state}
+              .timeRange=${this._state.timeRange}
+              .priceRange=${this._state.priceRange}
+              .width=${this.chart?.canvas
+                ? this.chart.canvas.width / getDpr()
+                : 0}
+              .height=${this.chart?.canvas
+                ? this.chart.canvas.height / getDpr()
+                : 0}
+              style="--price-axis-width: ${this.priceAxisWidth}px"
+            ></equity-curve-canvas-layer>
 
             <!-- Time Markers Layer (z-index: 25) -->
             <time-markers-layer
@@ -1615,7 +1660,7 @@ export class ChartContainer extends LitElement {
     const updatedAnnotation = {
       ...annotation,
       timestamp: newTimestamp,
-      price: newPrice
+      price: newPrice,
     };
     this.updateAnnotation(annotationId, updatedAnnotation);
   };
@@ -2413,7 +2458,9 @@ export class ChartContainer extends LitElement {
   public removeRiskZone(zoneId: string): void {
     if (!this._state.riskZones) return;
 
-    const index = this._state.riskZones.findIndex((z: RiskZone) => z.id === zoneId);
+    const index = this._state.riskZones.findIndex(
+      (z: RiskZone) => z.id === zoneId,
+    );
     if (index !== -1) {
       this._state.riskZones.splice(index, 1);
       this.riskZones = this._state.riskZones;
@@ -2435,7 +2482,9 @@ export class ChartContainer extends LitElement {
   public updateRiskZone(zoneId: string, zone: RiskZone): void {
     if (!this._state.riskZones) return;
 
-    const index = this._state.riskZones.findIndex((z: RiskZone) => z.id === zoneId);
+    const index = this._state.riskZones.findIndex(
+      (z: RiskZone) => z.id === zoneId,
+    );
     if (index !== -1) {
       this._state.riskZones[index] = zone;
       this.riskZones = this._state.riskZones;
@@ -2480,112 +2529,6 @@ export class ChartContainer extends LitElement {
    */
   public getRiskZone(zoneId: string): RiskZone | undefined {
     return this._state.riskZones?.find((z: RiskZone) => z.id === zoneId);
-  }
-
-  // ============================================================================
-  // Equity Curve Methods
-  // ============================================================================
-
-  /**
-   * Show equity curve overlay with the provided data
-   */
-  public showEquityCurve(data: EquityPoint[], config?: Partial<EquityCurveConfig>): void {
-    this.equityCurve = {
-      data,
-      color: config?.color,
-      lineWidth: config?.lineWidth,
-      lineStyle: config?.lineStyle,
-      showArea: config?.showArea,
-      areaColor: config?.areaColor,
-      opacity: config?.opacity,
-      yAxisPosition: config?.yAxisPosition,
-    };
-
-    // Update state
-    this._state.equityCurve = this.equityCurve;
-    touch("state.equityCurve");
-    this.requestUpdate();
-    this.updateEquityCurveCanvasLayer();
-
-    logger.info(`ChartContainer: Showing equity curve with ${data.length} points`);
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("equity-curve-shown", {
-        detail: { config: this.equityCurve },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  /**
-   * Hide equity curve overlay
-   */
-  public hideEquityCurve(): void {
-    this.equityCurve = null;
-
-    // Update state
-    this._state.equityCurve = null;
-    touch("state.equityCurve");
-    this.requestUpdate();
-    this.updateEquityCurveCanvasLayer();
-
-    logger.info("ChartContainer: Hiding equity curve");
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("equity-curve-hidden", {
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  /**
-   * Update equity curve data
-   */
-  public updateEquityCurve(data: EquityPoint[]): void {
-    if (!this.equityCurve) {
-      logger.warn("ChartContainer: Cannot update equity curve - not currently shown");
-      return;
-    }
-
-    this.equityCurve = {
-      ...this.equityCurve,
-      data,
-    };
-
-    // Update state
-    this._state.equityCurve = this.equityCurve;
-    touch("state.equityCurve");
-    this.requestUpdate();
-    this.updateEquityCurveCanvasLayer();
-
-    logger.debug(`ChartContainer: Updated equity curve with ${data.length} points`);
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("equity-curve-updated", {
-        detail: { data },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
-  /**
-   * Check if equity curve is currently visible
-   */
-  public isEquityCurveVisible(): boolean {
-    return this.equityCurve !== null && this.equityCurve.data.length > 0;
-  }
-
-  /**
-   * Get current equity curve configuration
-   */
-  public getEquityCurve(): EquityCurveConfig | null {
-    return this.equityCurve;
   }
 
   // ============================================================================
@@ -2712,7 +2655,7 @@ export class ChartContainer extends LitElement {
     const annotationsLayer = new AnnotationsInteractionLayer(
       this as HTMLElement,
       this._state,
-      () => this._state.annotations || []
+      () => this._state.annotations || [],
     );
     this.interactionController.registerLayer(annotationsLayer);
 
@@ -2720,14 +2663,14 @@ export class ChartContainer extends LitElement {
     const priceLinesLayer = new PriceLinesInteractionLayer(
       this as HTMLElement,
       this._state,
-      () => this._state.priceLines || []
+      () => this._state.priceLines || [],
     );
     this.interactionController.registerLayer(priceLinesLayer);
 
     // Trend lines layer - priority 80
     const trendLinesLayer = new TrendLinesInteractionLayer(
       this as HTMLElement,
-      this._state
+      this._state,
     );
     this.interactionController.registerLayer(trendLinesLayer);
 
@@ -2735,7 +2678,7 @@ export class ChartContainer extends LitElement {
     const timeMarkersLayer = new TimeMarkersInteractionLayer(
       this as HTMLElement,
       this._state,
-      () => this._state.timeMarkers || []
+      () => this._state.timeMarkers || [],
     );
     this.interactionController.registerLayer(timeMarkersLayer);
 
@@ -2749,7 +2692,7 @@ export class ChartContainer extends LitElement {
     // Live candle layer - lowest priority (10)
     const liveCandleLayer = new LiveCandleInteractionLayer(
       this as HTMLElement,
-      this._state
+      this._state,
     );
     this.interactionController.registerLayer(liveCandleLayer);
 
