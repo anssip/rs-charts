@@ -34,6 +34,7 @@ import { ChartInteractionController } from "./interaction/chart-interaction-cont
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
 import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
+import { TimeMarkersController } from "./interaction/time-markers-controller";
 import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
 import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
 import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
@@ -198,6 +199,7 @@ export class ChartContainer extends LitElement {
   public clickToTradeController?: ClickToTradeController;
   public equityCurveController?: EquityCurveController;
   public riskZonesController?: RiskZonesController;
+  public timeMarkersController?: TimeMarkersController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
   private patternLabelsLayer?: PatternLabelsLayer;
@@ -356,12 +358,21 @@ export class ChartContainer extends LitElement {
       }, 100);
     }
 
-    // Get time markers layer reference and set initial dimensions
+    // Get time markers layer reference and initialize controller
     this.timeMarkersLayer = this.renderRoot.querySelector(
       "time-markers-layer",
     ) as TimeMarkersLayer;
     if (this.timeMarkersLayer) {
       logger.debug("ChartContainer: Found time markers layer");
+
+      // Initialize time markers controller
+      this.timeMarkersController = new TimeMarkersController({
+        container: this,
+        state: this._state,
+        timeMarkersLayer: this.timeMarkersLayer,
+      });
+      logger.debug("ChartContainer: Initialized time markers controller");
+
       setTimeout(() => {
         this.updateTimeMarkersLayer();
       }, 100);
@@ -2397,73 +2408,32 @@ export class ChartContainer extends LitElement {
   /**
    * Add a time marker to the chart
    */
-  public addTimeMarker(marker: TimeMarker): void {
-    if (!this._state.timeMarkers) {
-      this._state.timeMarkers = [];
-    }
-    this._state.timeMarkers.push(marker);
-    touch("state.timeMarkers");
-    this.requestUpdate();
-    this.updateTimeMarkersLayer();
-    logger.debug(`ChartContainer: Added time marker ${marker.id}`);
-  }
-
-  /**
-   * Remove a time marker from the chart
-   */
-  public removeTimeMarker(markerId: string): void {
-    if (!this._state.timeMarkers) return;
-
-    const index = this._state.timeMarkers.findIndex((m) => m.id === markerId);
-    if (index !== -1) {
-      this._state.timeMarkers.splice(index, 1);
-      touch("state.timeMarkers");
-      this.requestUpdate();
-      this.updateTimeMarkersLayer();
-      logger.debug(`ChartContainer: Removed time marker ${markerId}`);
-    }
-  }
-
-  /**
-   * Update an existing time marker
-   */
-  public updateTimeMarker(markerId: string, marker: TimeMarker): void {
-    if (!this._state.timeMarkers) return;
-
-    const index = this._state.timeMarkers.findIndex((m) => m.id === markerId);
-    if (index !== -1) {
-      this._state.timeMarkers[index] = marker;
-      touch("state.timeMarkers");
-      this.requestUpdate();
-      this.updateTimeMarkersLayer();
-      logger.debug(`ChartContainer: Updated time marker ${markerId}`);
-    }
-  }
-
-  /**
-   * Clear all time markers
-   */
-  public clearTimeMarkers(): void {
-    this._state.timeMarkers = [];
-    touch("state.timeMarkers");
-    this.requestUpdate();
-    this.updateTimeMarkersLayer();
-    logger.debug("ChartContainer: Cleared all time markers");
-  }
-
-  /**
-   * Get all time markers
-   */
-  public getTimeMarkers(): TimeMarker[] {
-    return this._state.timeMarkers || [];
-  }
-
-  /**
-   * Get a specific time marker by ID
-   */
-  public getTimeMarker(markerId: string): TimeMarker | undefined {
-    return this._state.timeMarkers?.find((m) => m.id === markerId);
-  }
+  // ============================================================================
+  // Time Markers Methods (Removed - use Chart API with direct controller access)
+  // ============================================================================
+  // The following methods have been moved to TimeMarkersController:
+  // - addTimeMarker()
+  // - removeTimeMarker()
+  // - updateTimeMarker()
+  // - clearTimeMarkers()
+  // - getTimeMarkers()
+  // - getTimeMarker()
+  //
+  // Access via Chart API:
+  //   chartApi.addTimeMarker(config)
+  //   chartApi.removeTimeMarker(markerId)
+  //   chartApi.updateTimeMarker(markerId, updates)
+  //   chartApi.clearTimeMarkers()
+  //   chartApi.getTimeMarkers()
+  //   chartApi.getTimeMarker(markerId)
+  //
+  // Or directly via controller:
+  //   chartContainer.timeMarkersController.add(marker)
+  //   chartContainer.timeMarkersController.remove(markerId)
+  //   chartContainer.timeMarkersController.update(markerId, updates)
+  //   chartContainer.timeMarkersController.clear()
+  //   chartContainer.timeMarkersController.getAll()
+  //   chartContainer.timeMarkersController.get(markerId)
 
   // ============================================================================
   // Risk Zones Methods
@@ -2573,6 +2543,11 @@ export class ChartContainer extends LitElement {
       () => this._state.timeMarkers || [],
     );
     this.interactionController.registerLayer(timeMarkersLayer);
+
+    // Set interaction layer on the controller
+    if (this.timeMarkersController) {
+      this.timeMarkersController.setInteractionLayer(timeMarkersLayer);
+    }
 
     // Risk zones layer - priority 10 (canvas-based rendering)
     if (this.chart.canvas) {

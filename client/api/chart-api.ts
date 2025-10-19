@@ -2410,10 +2410,12 @@ export class ChartApi {
       zIndex: config.zIndex !== undefined ? config.zIndex : 25,
     };
 
-    // Add time marker via container (container will handle state management)
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.addTimeMarker) {
-      chartContainer.addTimeMarker(marker);
+    // Add time marker via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.add(marker);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
     }
 
     this.redraw();
@@ -2426,23 +2428,12 @@ export class ChartApi {
    * @param markerId The ID of the time marker to remove
    */
   removeTimeMarker(markerId: string): void {
-    if (!this.state.timeMarkers) {
-      logger.warn(`ChartApi: Time marker ${markerId} not found (no markers)`);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.remove(markerId);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
       return;
-    }
-
-    const index = this.state.timeMarkers.findIndex((m) => m.id === markerId);
-    if (index === -1) {
-      logger.warn(`ChartApi: Time marker ${markerId} not found`);
-      return;
-    }
-
-    this.state.timeMarkers.splice(index, 1);
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.removeTimeMarker) {
-      chartContainer.removeTimeMarker(markerId);
     }
 
     this.redraw();
@@ -2455,31 +2446,12 @@ export class ChartApi {
    * @param updates Partial time marker updates
    */
   updateTimeMarker(markerId: string, updates: Partial<TimeMarkerConfig>): void {
-    if (!this.state.timeMarkers) {
-      logger.warn(`ChartApi: Time marker ${markerId} not found (no markers)`);
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.update(markerId, updates);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
       return;
-    }
-
-    const index = this.state.timeMarkers.findIndex((m) => m.id === markerId);
-    if (index === -1) {
-      logger.warn(`ChartApi: Time marker ${markerId} not found`);
-      return;
-    }
-
-    // Apply updates
-    const marker = this.state.timeMarkers[index];
-    const updatedMarker: TimeMarker = {
-      ...marker,
-      ...updates,
-      id: markerId, // Preserve ID
-    };
-
-    this.state.timeMarkers[index] = updatedMarker;
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.updateTimeMarker) {
-      chartContainer.updateTimeMarker(markerId, updatedMarker);
     }
 
     this.redraw();
@@ -2491,7 +2463,8 @@ export class ChartApi {
    * @returns Array of time markers
    */
   getTimeMarkers(): TimeMarker[] {
-    return (xinValue(this.state.timeMarkers) as TimeMarker[]) || [];
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.timeMarkersController?.getAll() || [];
   }
 
   /**
@@ -2500,21 +2473,20 @@ export class ChartApi {
    * @returns The time marker or null if not found
    */
   getTimeMarker(markerId: string): TimeMarker | null {
-    const timeMarkers = xinValue(this.state.timeMarkers) as TimeMarker[];
-    if (!timeMarkers) return null;
-    return timeMarkers.find((m) => m.id === markerId) || null;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.timeMarkersController?.get(markerId) || null;
   }
 
   /**
    * Clear all time markers from the chart
    */
   clearTimeMarkers(): void {
-    this.state.timeMarkers = [];
-
-    // Notify container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.clearTimeMarkers) {
-      chartContainer.clearTimeMarkers();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.clear();
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
+      return;
     }
 
     this.redraw();
