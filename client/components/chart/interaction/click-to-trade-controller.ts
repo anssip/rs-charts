@@ -202,18 +202,10 @@ export class ClickToTradeController {
       this.lastHoverPrice = price;
       this.lastHoverTimestamp = timestamp;
 
-      // Emit price-hover event
+      // Emit price-hover event via callback
+      // (callback in ChartContainer will dispatch the CustomEvent)
       const hoverData: PriceHoverEvent = { price, timestamp };
       this.options.onPriceHover(hoverData);
-
-      // Also dispatch as CustomEvent for other listeners
-      this.container.dispatchEvent(
-        new CustomEvent("price-hover", {
-          detail: hoverData,
-          bubbles: true,
-          composed: true,
-        }),
-      );
     }
   };
 
@@ -269,17 +261,8 @@ export class ClickToTradeController {
 
     logger.info("Order request:", orderData);
 
-    // Call the callback
+    // Call the callback (ChartContainer will dispatch the CustomEvent)
     this.options.onOrderRequest(orderData);
-
-    // Also dispatch as CustomEvent for other listeners
-    this.container.dispatchEvent(
-      new CustomEvent("order-request", {
-        detail: orderData,
-        bubbles: true,
-        composed: true,
-      }),
-    );
 
     // Call the optional onOrderRequest callback in config
     if (config.onOrderRequest) {

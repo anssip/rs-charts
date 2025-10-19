@@ -2,7 +2,7 @@
 import { ChartContainer } from "../components/chart/chart-container";
 import { App } from "../app";
 import { ChartState } from "../index";
-import { xinValue } from "xinjs";
+import { xinValue, touch } from "xinjs";
 import { LiveCandle } from "./live-candle-subscription";
 import {
   Granularity,
@@ -2814,15 +2814,23 @@ export class ChartApi {
   enableClickToTrade(config: ClickToTradeConfig): void {
     logger.info("ChartApi: Enabling click-to-trade mode");
 
-    // Delegate to chart container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.enableClickToTrade) {
-      chartContainer.enableClickToTrade(config);
-    }
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.clickToTradeController) {
+      // Update state
+      const fullConfig = { ...config, enabled: true };
+      this.state.clickToTrade = fullConfig;
+      touch("state.clickToTrade");
 
-    logger.info(
-      `ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || "buy"})`,
-    );
+      // Update controller config and enable
+      chartContainer.clickToTradeController.updateConfig(fullConfig);
+      chartContainer.clickToTradeController.enable();
+
+      logger.info(
+        `ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || "buy"})`,
+      );
+    } else {
+      logger.error("ChartApi: Click-to-trade controller not initialized");
+    }
   }
 
   /**
@@ -2832,13 +2840,24 @@ export class ChartApi {
   disableClickToTrade(): void {
     logger.info("ChartApi: Disabling click-to-trade mode");
 
-    // Delegate to chart container
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.disableClickToTrade) {
-      chartContainer.disableClickToTrade();
-    }
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.clickToTradeController) {
+      // Update state
+      if (this.state.clickToTrade) {
+        this.state.clickToTrade = {
+          ...this.state.clickToTrade,
+          enabled: false,
+        };
+        touch("state.clickToTrade");
+      }
 
-    logger.info("ChartApi: Click-to-trade disabled");
+      // Disable controller
+      chartContainer.clickToTradeController.disable();
+
+      logger.info("ChartApi: Click-to-trade disabled");
+    } else {
+      logger.error("ChartApi: Click-to-trade controller not initialized");
+    }
   }
 
   /**
@@ -2846,11 +2865,8 @@ export class ChartApi {
    * @returns true if click-to-trade is enabled
    */
   isClickToTradeEnabled(): boolean {
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.isClickToTradeEnabled) {
-      return chartContainer.isClickToTradeEnabled();
-    }
-    return false;
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.clickToTradeController?.isEnabled() ?? false;
   }
 
   // ============================================================================

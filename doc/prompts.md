@@ -145,3 +145,19 @@ To me it looks like we need a better way to handle the mouse interactions (espec
 - the paper-trading-plan.md contains features (risk zones, equity curve overlay) which might need additional layers to be added, these should be managed by the new interaction manager
 
 We already have the chart-intgeraction-controller.ts for managing user interactions. This could be enhanced so that it's able to manage this complex environment of several layers.
+
+# Paper trading layers refactor
+
+Make the same design for how click-to-trade mode is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new click-to-trade-controller module and the public Click-to-Trade methods should be removed from chart-container.
+
+Make the same design with a new controller for how risk zones is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new risk-zones-controller module and the public risk zones related methods should be removed from chart-container.
+
+Make the same design with a new controller for how time markers is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new time-markers-controller module and the public time markers related methods should be removed from chart-container.
+
+## annotations
+
+Make the same design with a new controller for how annotations is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new annotations-controller module and the public annotations related methods should be removed from chart-container.
+
+## position overlay
+
+Make the same design with a new controller for how position overlay is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new position-overlay-controller module and the public position overlay related methods should be removed from chart-container.

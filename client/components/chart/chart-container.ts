@@ -194,7 +194,7 @@ export class ChartContainer extends LitElement {
   private showCandleTooltip = false;
 
   private interactionController?: ChartInteractionController;
-  private clickToTradeController?: ClickToTradeController;
+  public clickToTradeController?: ClickToTradeController;
   public equityCurveController?: EquityCurveController;
   private trendLineTool?: TrendLineTool;
   private trendLineLayer?: TrendLineLayer;
@@ -406,6 +406,32 @@ export class ChartContainer extends LitElement {
         this.updatePositionOverlay();
       }, 100);
     }
+
+    // Initialize click-to-trade controller (disabled by default)
+    this.clickToTradeController = new ClickToTradeController({
+      container: this as HTMLElement,
+      state: this._state,
+      config: { enabled: false }, // Default disabled
+      onOrderRequest: (data: OrderRequestData) => {
+        this.dispatchEvent(
+          new CustomEvent("order-request", {
+            detail: data,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      },
+      onPriceHover: (data: PriceHoverEvent) => {
+        this.dispatchEvent(
+          new CustomEvent("price-hover", {
+            detail: data,
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      },
+    });
+    logger.debug("ChartContainer: Initialized click-to-trade controller");
 
     // Add event listener for candle clicks
     this.addEventListener(
@@ -2532,88 +2558,12 @@ export class ChartContainer extends LitElement {
   }
 
   // ============================================================================
-  // Click-to-Trade Methods
+  // Click-to-Trade Methods (Removed - use Chart API with direct controller access)
   // ============================================================================
 
-  /**
-   * Enable click-to-trade mode with the specified configuration
-   */
-  public enableClickToTrade(config: ClickToTradeConfig): void {
-    logger.info("ChartContainer: Enabling click-to-trade mode");
-
-    // Update state
-    this._state.clickToTrade = { ...config, enabled: true };
-    touch("state.clickToTrade");
-    this.requestUpdate();
-
-    // Initialize controller if not exists
-    if (!this.clickToTradeController) {
-      this.clickToTradeController = new ClickToTradeController({
-        container: this as HTMLElement,
-        state: this._state,
-        config: this._state.clickToTrade,
-        onOrderRequest: (data: OrderRequestData) => {
-          // Emit event for Chart API
-          this.dispatchEvent(
-            new CustomEvent("order-request", {
-              detail: data,
-              bubbles: true,
-              composed: true,
-            }),
-          );
-        },
-        onPriceHover: (data: PriceHoverEvent) => {
-          // Emit event for Chart API
-          this.dispatchEvent(
-            new CustomEvent("price-hover", {
-              detail: data,
-              bubbles: true,
-              composed: true,
-            }),
-          );
-        },
-      });
-    } else {
-      // Update existing controller config
-      this.clickToTradeController.updateConfig(this._state.clickToTrade);
-    }
-
-    // Enable the controller
-    this.clickToTradeController.enable();
-
-    logger.info("ChartContainer: Click-to-trade mode enabled");
-  }
-
-  /**
-   * Disable click-to-trade mode
-   */
-  public disableClickToTrade(): void {
-    logger.info("ChartContainer: Disabling click-to-trade mode");
-
-    // Update state
-    if (this._state.clickToTrade) {
-      this._state.clickToTrade = {
-        ...this._state.clickToTrade,
-        enabled: false,
-      };
-      touch("state.clickToTrade");
-      this.requestUpdate();
-    }
-
-    // Disable controller
-    if (this.clickToTradeController) {
-      this.clickToTradeController.disable();
-    }
-
-    logger.info("ChartContainer: Click-to-trade mode disabled");
-  }
-
-  /**
-   * Check if click-to-trade mode is enabled
-   */
-  public isClickToTradeEnabled(): boolean {
-    return this._state.clickToTrade?.enabled === true;
-  }
+  // Public click-to-trade methods have been removed.
+  // Access controller directly via: chartContainer.clickToTradeController
+  // The Chart API provides the public interface for enabling/disabling click-to-trade mode.
 
   private initializeInteractionController() {
     if (!this.chart) return;
