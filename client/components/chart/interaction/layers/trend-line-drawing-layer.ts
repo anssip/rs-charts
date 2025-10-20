@@ -34,6 +34,7 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
   private isActive = false;
   private firstPoint: TrendLinePoint | null = null;
   private previewLine: SVGLineElement | null = null;
+  private previewHandle: SVGCircleElement | null = null;
   private previewSvg: SVGSVGElement | null = null;
   private defaults: TrendLineDefaults = {
     color: "#2962ff",
@@ -46,6 +47,7 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
   private escapeHandler: ((event: KeyboardEvent) => void) | null = null;
   private isDragging = false; // Track if we're in a drag operation
   private mouseMoveHandler: ((event: MouseEvent) => void) | null = null;
+  private lastMouseEvent: MouseEvent | null = null; // Track last mouse event for viewport transform
 
   constructor(
     container: HTMLElement,
@@ -99,6 +101,7 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
 
     this.isActive = false;
     this.firstPoint = null;
+    this.lastMouseEvent = null;
     this.removePreviewElements();
 
     if (this.escapeHandler) {
@@ -392,6 +395,19 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
 
     this.previewSvg.appendChild(this.previewLine);
 
+    // Create handle circle for point A
+    this.previewHandle = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle",
+    );
+    this.previewHandle.setAttribute("r", "5");
+    this.previewHandle.setAttribute("fill", "white");
+    this.previewHandle.setAttribute("stroke", this.defaults.color || "#2962ff");
+    this.previewHandle.setAttribute("stroke-width", "2");
+    this.previewHandle.style.display = "none";
+
+    this.previewSvg.appendChild(this.previewHandle);
+
     // Add to the chart-area inside shadow DOM
     const shadowRoot = (this.container as any).shadowRoot;
     if (shadowRoot) {
@@ -427,20 +443,49 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
       this.previewSvg.remove();
       this.previewSvg = null;
       this.previewLine = null;
+      this.previewHandle = null;
       logger.debug("TrendLineDrawingLayer: Preview elements removed");
     }
   }
 
   /**
-   * Show preview line
+   * Show preview line and handle
    */
   private showPreview(event: MouseEvent | TouchEvent): void {
+    if (!this.previewLine || !this.previewHandle || !this.firstPoint) return;
+
+    // Show the preview line and handle
+    this.previewLine.style.display = "block";
+    this.previewHandle.style.display = "block";
+
+    // Update the preview line coordinates (including infinite extension)
+    this.updatePreview(event);
+
+    logger.debug("TrendLineDrawingLayer: Preview shown");
+  }
+
+  /**
+   * Update preview line position with infinite extension
+   */
+  private updatePreview(event: MouseEvent | TouchEvent): void {
     if (!this.previewLine || !this.firstPoint) return;
 
-    // Get canvas dimensions from the actual canvas element
-    // The canvas height is the actual chart height (excluding bottom indicators)
-    const canvas = this.getCanvas();
+    // Store the last mouse event for viewport transform recalculation
+    if (event instanceof MouseEvent) {
+      this.lastMouseEvent = event;
+    }
 
+    const position = this.getEventPosition(event);
+
+    // Get the .chart-area element's bounding rect
+    const shadowRoot = (this.container as any).shadowRoot;
+    const chartArea = shadowRoot?.querySelector(".chart-area");
+    const rect = chartArea
+      ? chartArea.getBoundingClientRect()
+      : this.container.getBoundingClientRect();
+
+    // Get canvas dimensions for proper coordinate calculations
+    const canvas = this.getCanvas();
     if (!canvas) {
       logger.error("TrendLineDrawingLayer: Could not find canvas element");
       return;
@@ -449,71 +494,105 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
     const chartWidth = canvas.clientWidth - this.priceAxisWidth;
     const chartHeight = canvas.clientHeight;
 
-    const x1 = this.timestampToCanvasX(
+    // Current mouse position in canvas coordinates
+    const mouseX = position.x - rect.left;
+    const mouseY = position.y - rect.top;
+
+    // Point A coordinates (first click) in canvas coordinates
+    const pointAX = this.timestampToCanvasX(
       this.firstPoint.timestamp,
       chartWidth,
       this.state.timeRange,
     );
-    const y1 = this.priceToCanvasY(
+    const pointAY = this.priceToCanvasY(
       this.firstPoint.price,
       chartHeight,
       this.state.priceRange,
     );
 
+    // Calculate slope and determine extension direction
+    const dx = mouseX - pointAX;
+    const dy = mouseY - pointAY;
+
+    let x1: number, y1: number;
+    const x2 = mouseX;
+    const y2 = mouseY;
+
+    // Determine extension based on drawing direction
+    if (Math.abs(dx) > 0.001) {
+      // Not a vertical line
+      const slope = dy / dx;
+
+      if (dx > 0) {
+        // Drawing right: extend to the left edge (x = 0)
+        x1 = 0;
+        y1 = pointAY - slope * pointAX;
+      } else {
+        // Drawing left: extend to the right edge (x = chartWidth)
+        x1 = chartWidth;
+        y1 = pointAY + slope * (chartWidth - pointAX);
+      }
+
+      // Clamp y1 to canvas bounds if it goes out of range
+      if (!isFinite(y1)) {
+        y1 = y1 > 0 ? chartHeight : 0;
+      }
+      y1 = Math.max(0, Math.min(chartHeight, y1));
+    } else {
+      // Nearly vertical line: extend vertically
+      x1 = pointAX;
+      if (dy > 0) {
+        // Drawing down: extend to top
+        y1 = 0;
+      } else {
+        // Drawing up: extend to bottom
+        y1 = chartHeight;
+      }
+    }
+
+    // Set the preview line coordinates
     this.previewLine.setAttribute("x1", x1.toString());
     this.previewLine.setAttribute("y1", y1.toString());
-    this.previewLine.style.display = "block";
-
-    this.updatePreview(event);
-
-    logger.debug("TrendLineDrawingLayer: Preview shown");
-  }
-
-  /**
-   * Update preview line position
-   */
-  private updatePreview(event: MouseEvent | TouchEvent): void {
-    if (!this.previewLine || !this.firstPoint) return;
-
-    const position = this.getEventPosition(event);
-
-    // Get the .chart-area element's bounding rect instead of the container's
-    // This accounts for any offset due to stacked indicators in the grid layout
-    const shadowRoot = (this.container as any).shadowRoot;
-    const chartArea = shadowRoot?.querySelector(".chart-area");
-    const rect = chartArea
-      ? chartArea.getBoundingClientRect()
-      : this.container.getBoundingClientRect();
-
-    const x2 = position.x - rect.left;
-    const y2 = position.y - rect.top;
-
     this.previewLine.setAttribute("x2", x2.toString());
     this.previewLine.setAttribute("y2", y2.toString());
-  }
 
-  /**
-   * Hide preview line
-   */
-  private hidePreview(): void {
-    if (this.previewLine) {
-      this.previewLine.style.display = "none";
-      logger.debug("TrendLineDrawingLayer: Preview hidden");
+    // Position the handle at point A
+    if (this.previewHandle) {
+      this.previewHandle.setAttribute("cx", pointAX.toString());
+      this.previewHandle.setAttribute("cy", pointAY.toString());
     }
   }
 
   /**
-   * Create trend line object
+   * Hide preview line and handle
+   */
+  private hidePreview(): void {
+    if (this.previewLine) {
+      this.previewLine.style.display = "none";
+    }
+    if (this.previewHandle) {
+      this.previewHandle.style.display = "none";
+    }
+    logger.debug("TrendLineDrawingLayer: Preview hidden");
+  }
+
+  /**
+   * Create trend line object with extension direction based on drawing direction
    */
   private createTrendLine(
     startPoint: TrendLinePoint,
     endPoint: TrendLinePoint,
   ): Omit<TrendLine, "id"> {
+    // Determine extension direction based on the drawing direction
+    // If drawing left-to-right (endPoint is to the right of startPoint), extend left
+    // If drawing right-to-left (endPoint is to the left of startPoint), extend right
+    const drawingRight = endPoint.timestamp > startPoint.timestamp;
+
     return {
       startPoint,
       endPoint,
-      extendLeft: this.defaults.extendLeft ?? false,
-      extendRight: this.defaults.extendRight ?? false,
+      extendLeft: drawingRight ? true : false,
+      extendRight: drawingRight ? false : true,
       color: this.defaults.color,
       lineWidth: this.defaults.lineWidth,
       style: this.defaults.style,
@@ -522,28 +601,13 @@ export class TrendLineDrawingLayer extends BaseInteractionLayer {
 
   /**
    * Handle viewport transform (pan/zoom)
-   * Update preview line if it's visible
+   * Update preview line if it's visible, recalculating infinite extension
    */
   onTransform(transform: ViewportTransform): void {
-    if (this.firstPoint && this.previewLine) {
-      // Recalculate preview line position based on new viewport
-      // Use the canvas dimensions from the transform for accurate conversion
-      const chartWidth = transform.canvasWidth - this.priceAxisWidth;
-      const chartHeight = transform.canvasHeight;
-
-      const x1 = this.timestampToCanvasX(
-        this.firstPoint.timestamp,
-        chartWidth,
-        transform.timeRange,
-      );
-      const y1 = this.priceToCanvasY(
-        this.firstPoint.price,
-        chartHeight,
-        transform.priceRange,
-      );
-
-      this.previewLine.setAttribute("x1", x1.toString());
-      this.previewLine.setAttribute("y1", y1.toString());
+    if (this.firstPoint && this.previewLine && this.lastMouseEvent) {
+      // Recalculate the entire preview line with infinite extension
+      // using the last known mouse position
+      this.updatePreview(this.lastMouseEvent);
     }
   }
 
