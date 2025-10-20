@@ -48,7 +48,7 @@ export class PriceLinesLayer extends LitElement {
       height: 100%;
       pointer-events: none;
       z-index: 50; /* Between chart and markers */
-      overflow: hidden;
+      overflow: visible;
     }
 
     .lines-container {
@@ -56,7 +56,7 @@ export class PriceLinesLayer extends LitElement {
       width: 100%;
       height: 100%;
       pointer-events: none;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .price-line {
@@ -105,7 +105,6 @@ export class PriceLinesLayer extends LitElement {
 
     .price-label {
       position: absolute;
-      right: 0;
       background: rgba(0, 0, 0, 0.9);
       color: white;
       padding: 2px 6px;
@@ -123,9 +122,9 @@ export class PriceLinesLayer extends LitElement {
     if (!this.state?.priceRange) return this.lines;
 
     const { min, max } = this.state.priceRange;
-    return this.lines.filter(
-      (line) => line.price >= min && line.price <= max
-    ).sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+    return this.lines
+      .filter((line) => line.price >= min && line.price <= max)
+      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
   }
 
   /**
@@ -155,15 +154,15 @@ export class PriceLinesLayer extends LitElement {
   /**
    * Get SVG stroke-dasharray for line style
    */
-  private getStrokeDashArray(style: 'solid' | 'dashed' | 'dotted'): string {
+  private getStrokeDashArray(style: "solid" | "dashed" | "dotted"): string {
     switch (style) {
-      case 'dashed':
-        return '8,4';
-      case 'dotted':
-        return '2,3';
-      case 'solid':
+      case "dashed":
+        return "8,4";
+      case "dotted":
+        return "2,3";
+      case "solid":
       default:
-        return 'none';
+        return "none";
     }
   }
 
@@ -185,7 +184,7 @@ export class PriceLinesLayer extends LitElement {
         detail: clickEvent,
         bubbles: true,
         composed: true,
-      })
+      }),
     );
 
     logger.debug(`Price line clicked: ${line.id}`);
@@ -207,7 +206,7 @@ export class PriceLinesLayer extends LitElement {
         detail: hoverEvent,
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   }
 
@@ -225,8 +224,8 @@ export class PriceLinesLayer extends LitElement {
     this.dragStartPrice = line.price;
 
     // Add global mouse move and up listeners
-    document.addEventListener('mousemove', this.handleDragMove);
-    document.addEventListener('mouseup', this.handleDragEnd);
+    document.addEventListener("mousemove", this.handleDragMove);
+    document.addEventListener("mouseup", this.handleDragEnd);
 
     logger.debug(`Started dragging price line: ${line.id}`);
   }
@@ -259,7 +258,7 @@ export class PriceLinesLayer extends LitElement {
         detail: dragEvent,
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 
@@ -276,8 +275,8 @@ export class PriceLinesLayer extends LitElement {
     this.dragStartPrice = 0;
 
     // Remove global listeners
-    document.removeEventListener('mousemove', this.handleDragMove);
-    document.removeEventListener('mouseup', this.handleDragEnd);
+    document.removeEventListener("mousemove", this.handleDragMove);
+    document.removeEventListener("mouseup", this.handleDragEnd);
 
     this.requestUpdate();
   };
@@ -288,17 +287,18 @@ export class PriceLinesLayer extends LitElement {
   private renderLabel(line: PriceLine, y: number): unknown {
     if (!line.label) return null;
 
-    const position = line.label.position || 'right';
-    const bgColor = line.label.backgroundColor || 'rgba(0, 0, 0, 0.8)';
-    const textColor = line.label.textColor || '#ffffff';
+    const position = line.label.position || "right";
+    const bgColor = line.label.backgroundColor || "rgba(0, 0, 0, 0.8)";
+    const textColor = line.label.textColor || "#ffffff";
     const fontSize = line.label.fontSize || 11;
 
     return html`
       <div
-        class="line-label ${position}"
+        class="line-label"
         style="
           top: 0;
           transform: translateY(-50%);
+          ${position === "right" ? "right: 8px" : "left: 8px"};
           background-color: ${bgColor};
           color: ${textColor};
           font-size: ${fontSize}px;
@@ -311,9 +311,17 @@ export class PriceLinesLayer extends LitElement {
 
   /**
    * Render price label on Y-axis
+   * Position is opposite to the text label position
    */
   private renderPriceLabel(line: PriceLine, y: number): unknown {
     if (!line.showPriceLabel) return null;
+
+    // Position price label on opposite side of text label
+    const textLabelPosition = line.label?.position || "right";
+    const priceLabelPosition = textLabelPosition === "left" ? "right" : "left";
+
+    // Calculate explicit pixel position based on current width
+    const labelPosition = priceLabelPosition === "right" ? this.width - 8 : 8;
 
     return html`
       <div
@@ -322,6 +330,7 @@ export class PriceLinesLayer extends LitElement {
           top: 0;
           transform: translateY(-50%);
           background-color: ${line.color};
+          left: ${labelPosition}px;
         "
       >
         ${line.price.toFixed(2)}
@@ -332,8 +341,8 @@ export class PriceLinesLayer extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     // Clean up drag listeners if component is removed while dragging
-    document.removeEventListener('mousemove', this.handleDragMove);
-    document.removeEventListener('mouseup', this.handleDragEnd);
+    document.removeEventListener("mousemove", this.handleDragMove);
+    document.removeEventListener("mouseup", this.handleDragEnd);
   }
 
   render() {
@@ -352,7 +361,9 @@ export class PriceLinesLayer extends LitElement {
 
           return html`
             <div
-              class="price-line ${line.draggable ? 'draggable' : ''} ${isDragging ? 'dragging' : ''}"
+              class="price-line ${line.draggable
+                ? "draggable"
+                : ""} ${isDragging ? "dragging" : ""}"
               style="top: ${y}px;"
               @click="${(e: MouseEvent) => this.handleLineClick(line, e)}"
               @mouseenter="${() => this.handleLineHover(line)}"
@@ -373,8 +384,7 @@ export class PriceLinesLayer extends LitElement {
                   vector-effect="non-scaling-stroke"
                 />
               </svg>
-              ${this.renderLabel(line, y)}
-              ${this.renderPriceLabel(line, y)}
+              ${this.renderLabel(line, y)} ${this.renderPriceLabel(line, y)}
             </div>
           `;
         })}

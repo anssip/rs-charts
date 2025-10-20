@@ -1286,44 +1286,44 @@
             // Event Log functionality
             const MAX_EVENT_LOG_ENTRIES = 100;
             let eventLogThrottle = {
-                'crosshair-moved': 0
+                "crosshair-moved": 0,
             };
 
             function addEventToLog(eventType, eventData) {
-                const eventLog = document.getElementById('event-log');
+                const eventLog = document.getElementById("event-log");
                 if (!eventLog) return;
 
                 // Throttle crosshair-moved events to reduce spam
-                if (eventType === 'crosshair-moved') {
+                if (eventType === "crosshair-moved") {
                     const now = Date.now();
-                    if (now - eventLogThrottle['crosshair-moved'] < 500) {
+                    if (now - eventLogThrottle["crosshair-moved"] < 500) {
                         return; // Skip this event
                     }
-                    eventLogThrottle['crosshair-moved'] = now;
+                    eventLogThrottle["crosshair-moved"] = now;
                 }
 
                 // Create event entry
-                const entry = document.createElement('div');
+                const entry = document.createElement("div");
                 entry.className = `event-entry ${eventType}`;
 
-                const time = new Date().toLocaleTimeString('en-US', {
+                const time = new Date().toLocaleTimeString("en-US", {
                     hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    fractionalSecondDigits: 1
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    fractionalSecondDigits: 1,
                 });
 
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'event-time';
+                const timeSpan = document.createElement("span");
+                timeSpan.className = "event-time";
                 timeSpan.textContent = time;
 
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'event-type';
+                const typeSpan = document.createElement("span");
+                typeSpan.className = "event-type";
                 typeSpan.textContent = eventType;
 
-                const dataSpan = document.createElement('span');
-                dataSpan.className = 'event-data';
+                const dataSpan = document.createElement("span");
+                dataSpan.className = "event-data";
                 dataSpan.textContent = formatEventData(eventType, eventData);
 
                 entry.appendChild(timeSpan);
@@ -1341,47 +1341,47 @@
 
             function formatEventData(eventType, data) {
                 switch (eventType) {
-                    case 'crosshair-moved':
+                    case "crosshair-moved":
                         if (data.price === null || data.timestamp === null) {
-                            return 'Left chart';
+                            return "Left chart";
                         }
                         return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
 
-                    case 'chart-clicked':
+                    case "chart-clicked":
                         return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
 
-                    case 'chart-context-menu':
+                    case "chart-context-menu":
                         return `Right-clicked at Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
 
-                    case 'time-marker-clicked':
-                        return `Marker: ${data.marker.label || 'Unlabeled'} at ${new Date(data.marker.timestamp).toLocaleString()}`;
+                    case "time-marker-clicked":
+                        return `Marker: ${data.marker.label || "Unlabeled"} at ${new Date(data.marker.timestamp).toLocaleString()}`;
 
-                    case 'time-marker-hovered':
-                        return `Hovering marker: ${data.marker.label || 'Unlabeled'}`;
+                    case "time-marker-hovered":
+                        return `Hovering marker: ${data.marker.label || "Unlabeled"}`;
 
-                    case 'risk-zone-clicked':
-                        return `Risk zone: ${data.zone.label || 'Unlabeled'} ($${data.zone.startPrice.toFixed(2)} - $${data.zone.endPrice.toFixed(2)})`;
+                    case "risk-zone-clicked":
+                        return `Risk zone: ${data.zone.label || "Unlabeled"} ($${data.zone.startPrice.toFixed(2)} - $${data.zone.endPrice.toFixed(2)})`;
 
-                    case 'risk-zone-hovered':
-                        return `Hovering risk zone: ${data.zone.label || 'Unlabeled'}`;
+                    case "risk-zone-hovered":
+                        return `Hovering risk zone: ${data.zone.label || "Unlabeled"}`;
 
-                    case 'trade-marker-clicked':
+                    case "trade-marker-clicked":
                         return `${data.marker.side.toUpperCase()} marker at $${data.marker.price.toFixed(2)}`;
 
-                    case 'price-line-dragged':
+                    case "price-line-dragged":
                         return `Line moved: $${data.oldPrice.toFixed(2)} → $${data.newPrice.toFixed(2)}`;
 
-                    case 'trade-zone-clicked':
+                    case "trade-zone-clicked":
                         return `Trade zone: Entry $${data.zone.entryPrice.toFixed(2)}, Exit $${data.zone.exitPrice.toFixed(2)}`;
 
-                    case 'annotation-clicked':
+                    case "annotation-clicked":
                         return `Annotation: ${data.annotation.text}`;
 
-                    case 'annotation-dragged':
+                    case "annotation-dragged":
                         const newDate = new Date(data.newTimestamp);
                         return `Annotation moved to ${newDate.toLocaleTimeString()}`;
 
-                    case 'status-update':
+                    case "status-update":
                         return data.message;
 
                     default:
@@ -1390,9 +1390,9 @@
             }
 
             function clearEventLog() {
-                const eventLog = document.getElementById('event-log');
+                const eventLog = document.getElementById("event-log");
                 if (eventLog) {
-                    eventLog.innerHTML = '';
+                    eventLog.innerHTML = "";
                 }
             }
 
@@ -2277,7 +2277,7 @@
                         lineWidth: 2,
                         label: {
                             text: `Limit Buy @ $${price.toFixed(2)}`,
-                            position: "right",
+                            position: "left",
                             backgroundColor: "#3b82f6",
                             textColor: "#ffffff",
                         },
@@ -2994,7 +2994,9 @@
                 try {
                     const timeRange = api.getTimeRange();
                     // Place marker somewhere in visible range
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
 
                     const markerId = api.addTimeMarker({
                         timestamp,
@@ -3007,7 +3009,9 @@
                     });
 
                     const markers = api.getTimeMarkers();
-                    updateStatus(`Added news release marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added news release marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding news marker: ${error.message}`);
                 }
@@ -3020,7 +3024,9 @@
                 try {
                     const timeRange = api.getTimeRange();
                     // Place marker at 40% of visible range
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.4;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.4;
 
                     const markerId = api.addTimeMarker({
                         timestamp,
@@ -3033,9 +3039,13 @@
                     });
 
                     const markers = api.getTimeMarkers();
-                    updateStatus(`Added market open marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added market open marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding market open marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding market open marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -3046,7 +3056,9 @@
                 try {
                     const timeRange = api.getTimeRange();
                     // Place marker at 60% of visible range
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.6;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.6;
 
                     const markerId = api.addTimeMarker({
                         timestamp,
@@ -3059,9 +3071,13 @@
                     });
 
                     const markers = api.getTimeMarkers();
-                    updateStatus(`Added earnings marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added earnings marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding earnings marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding earnings marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -3072,7 +3088,9 @@
                 try {
                     const timeRange = api.getTimeRange();
                     // Place marker at 75% of visible range
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.75;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.75;
 
                     const markerId = api.addTimeMarker({
                         timestamp,
@@ -3085,9 +3103,13 @@
                     });
 
                     const markers = api.getTimeMarkers();
-                    updateStatus(`Added custom marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added custom marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding custom marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding custom marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -3099,7 +3121,9 @@
                     api.clearTimeMarkers();
                     updateStatus("All time markers cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing time markers: ${error.message}`);
+                    updateStatus(
+                        `Error clearing time markers: ${error.message}`,
+                    );
                 }
             }
 
@@ -3117,18 +3141,22 @@
                     const zoneId = api.addRiskZone({
                         startPrice,
                         endPrice,
-                        label: 'Stop Loss Zone',
-                        color: '#ef4444',
+                        label: "Stop Loss Zone",
+                        color: "#ef4444",
                         opacity: 0.15,
-                        pattern: 'striped',
-                        borderColor: '#dc2626',
-                        borderWidth: 1
+                        pattern: "striped",
+                        borderColor: "#dc2626",
+                        borderWidth: 1,
                     });
 
                     const zones = api.getRiskZones();
-                    updateStatus(`Added stop loss zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added stop loss zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding stop loss zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding stop loss zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -3145,16 +3173,18 @@
                     const zoneId = api.addRiskZone({
                         startPrice,
                         endPrice,
-                        label: 'Support Zone',
-                        color: '#10b981',
+                        label: "Support Zone",
+                        color: "#10b981",
                         opacity: 0.12,
-                        pattern: 'dotted',
-                        borderColor: '#059669',
-                        borderWidth: 1
+                        pattern: "dotted",
+                        borderColor: "#059669",
+                        borderWidth: 1,
                     });
 
                     const zones = api.getRiskZones();
-                    updateStatus(`Added support zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added support zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding support zone: ${error.message}`);
                 }
@@ -3173,16 +3203,20 @@
                     const zoneId = api.addRiskZone({
                         startPrice,
                         endPrice,
-                        label: 'Resistance Zone',
-                        color: '#f59e0b',
+                        label: "Resistance Zone",
+                        color: "#f59e0b",
                         opacity: 0.1,
-                        pattern: 'solid'
+                        pattern: "solid",
                     });
 
                     const zones = api.getRiskZones();
-                    updateStatus(`Added resistance zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added resistance zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding resistance zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding resistance zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -3199,16 +3233,20 @@
                     const zoneId = api.addRiskZone({
                         startPrice,
                         endPrice,
-                        label: 'Liquidation Risk',
-                        color: '#dc2626',
+                        label: "Liquidation Risk",
+                        color: "#dc2626",
                         opacity: 0.18,
-                        pattern: 'striped'
+                        pattern: "striped",
                     });
 
                     const zones = api.getRiskZones();
-                    updateStatus(`Added liquidation zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added liquidation zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding liquidation zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding liquidation zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -3702,8 +3740,11 @@
 
                 if (message) {
                     // Log important status messages to event log
-                    if (!message.includes('Symbol:') && !message.includes('Timeframe:')) {
-                        addEventToLog('status-update', { message });
+                    if (
+                        !message.includes("Symbol:") &&
+                        !message.includes("Timeframe:")
+                    ) {
+                        addEventToLog("status-update", { message });
                     }
                     statusEl.textContent = message;
                     return;
@@ -3979,7 +4020,9 @@ Indicators: ${
                     chart1Api.on("annotation-clicked", (event) => {
                         addEventToLog("annotation-clicked", event);
                         if (currentChart === 1) {
-                            updateStatus(`Annotation clicked: ${event.annotation.text}`);
+                            updateStatus(
+                                `Annotation clicked: ${event.annotation.text}`,
+                            );
                         }
                     });
 
@@ -4186,7 +4229,9 @@ Indicators: ${
                     chart2Api.on("annotation-clicked", (event) => {
                         addEventToLog("annotation-clicked", event);
                         if (currentChart === 2) {
-                            updateStatus(`Annotation clicked: ${event.annotation.text}`);
+                            updateStatus(
+                                `Annotation clicked: ${event.annotation.text}`,
+                            );
                         }
                     });
 

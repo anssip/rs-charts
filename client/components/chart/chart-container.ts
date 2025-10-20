@@ -90,6 +90,7 @@ import {
   EquityCurveConfig,
 } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
+import { TradingOverlaysManager } from "./trading-overlays-manager";
 
 const logger = getLogger("ChartContainer");
 logger.setLoggerLevel("ChartContainer", LogLevel.INFO);
@@ -164,6 +165,7 @@ export class ChartContainer extends LitElement {
 
   private resizeAnimationFrame: number | null = null;
   private resizeTimeout: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   @state()
   private priceAxisWidth = PRICEAXIS_WIDTH;
@@ -215,6 +217,7 @@ export class ChartContainer extends LitElement {
   private priceLinesLayer?: PriceLinesLayer;
   private tradeZonesLayer?: TradeZonesLayer;
   public annotationsLayer?: AnnotationsLayer;
+  private tradingOverlaysManager?: TradingOverlaysManager;
   public timeMarkersLayer?: TimeMarkersLayer;
   private riskZonesInteractionLayer?: RiskZonesLayer;
   public riskZonesCanvasLayer?: any;
@@ -336,6 +339,16 @@ export class ChartContainer extends LitElement {
       updatePositionOverlay: this.updatePositionOverlay.bind(this),
     });
 
+    // Initialize trading overlays manager
+    this.tradingOverlaysManager = new TradingOverlaysManager({
+      state: this._state,
+      tradingMarkersLayer: this.tradingMarkersLayer,
+      priceLinesLayer: this.priceLinesLayer,
+      tradeZonesLayer: this.tradeZonesLayer,
+      requestUpdate: this.requestUpdate.bind(this),
+    });
+    logger.debug("ChartContainer: Initialized trading overlays manager");
+
     // Initialize click-to-trade controller (disabled by default)
     this.clickToTradeController = new ClickToTradeController({
       container: this as HTMLElement,
@@ -450,6 +463,38 @@ export class ChartContainer extends LitElement {
     this.mobileMediaQuery.addEventListener("change", () =>
       this.handleMobileChange(),
     );
+
+    // Setup ResizeObserver to handle window/container resize
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        const height = entry.contentRect.height;
+
+        logger.info(
+          `ChartContainer: ResizeObserver triggered: ${width}x${height}`,
+        );
+
+        // Use a debounce mechanism to avoid excessive resize calls
+        if (this.resizeTimeout) {
+          clearTimeout(this.resizeTimeout);
+        }
+
+        this.resizeTimeout = window.setTimeout(() => {
+          if (width > 0 && height > 0) {
+            logger.info(
+              `ChartContainer: ResizeObserver calling handleResize: ${width}x${height}`,
+            );
+            this.handleResize(width, height);
+          }
+        }, 100); // 100ms debounce
+      }
+    });
+
+    // Observe the chart area for size changes
+    if (chartArea) {
+      this.resizeObserver.observe(chartArea as Element);
+      logger.info("ChartContainer: ResizeObserver attached to chart area");
+    }
   }
 
   private handleMobileChange = () => {
@@ -749,6 +794,10 @@ export class ChartContainer extends LitElement {
     }
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
     window.removeEventListener("focus", this.handleWindowFocus);
     document.removeEventListener(
@@ -1343,8 +1392,11 @@ export class ChartContainer extends LitElement {
       this.draw();
     }
 
-    // Update trend line layer after resize
+    // Update all layers after resize
     if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
+    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
+    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
+    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {
@@ -1812,176 +1864,90 @@ export class ChartContainer extends LitElement {
   // ============================================================================
   // Trading Overlay Methods (Paper Trading & Backtesting)
   // ============================================================================
+  // Delegated to TradingOverlaysManager
 
   /**
    * Add a trade marker to the chart
    */
   public addTradeMarker(marker: TradeMarker): void {
-    if (!this._state.tradeMarkers) {
-      this._state.tradeMarkers = [];
-    }
-    this._state.tradeMarkers.push(marker);
-    touch("state.tradeMarkers");
-    this.requestUpdate();
-    this.updateLayer(this.tradingMarkersLayer);
-    logger.debug(`ChartContainer: Added trade marker ${marker.id}`);
+    this.tradingOverlaysManager?.addTradeMarker(marker);
   }
 
   /**
    * Remove a trade marker from the chart
    */
   public removeTradeMarker(markerId: string): void {
-    if (!this._state.tradeMarkers) return;
-
-    const index = this._state.tradeMarkers.findIndex((m) => m.id === markerId);
-    if (index !== -1) {
-      this._state.tradeMarkers.splice(index, 1);
-      touch("state.tradeMarkers");
-      this.requestUpdate();
-      if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
-      logger.debug(`ChartContainer: Removed trade marker ${markerId}`);
-    }
+    this.tradingOverlaysManager?.removeTradeMarker(markerId);
   }
 
   /**
    * Update an existing trade marker
    */
   public updateTradeMarker(markerId: string, marker: TradeMarker): void {
-    if (!this._state.tradeMarkers) return;
-
-    const index = this._state.tradeMarkers.findIndex((m) => m.id === markerId);
-    if (index !== -1) {
-      this._state.tradeMarkers[index] = marker;
-      touch("state.tradeMarkers");
-      this.requestUpdate();
-      this.updateLayer(this.tradingMarkersLayer);
-      logger.debug(`ChartContainer: Updated trade marker ${markerId}`);
-    }
+    this.tradingOverlaysManager?.updateTradeMarker(markerId, marker);
   }
 
   /**
    * Clear all trade markers
    */
   public clearTradeMarkers(): void {
-    this._state.tradeMarkers = [];
-    touch("state.tradeMarkers");
-    this.requestUpdate();
-    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
-    logger.debug("ChartContainer: Cleared all trade markers");
+    this.tradingOverlaysManager?.clearTradeMarkers();
   }
 
   /**
    * Add a price line to the chart
    */
   public addPriceLine(line: PriceLine): void {
-    if (!this._state.priceLines) {
-      this._state.priceLines = [];
-    }
-    this._state.priceLines.push(line);
-    touch("state.priceLines");
-    this.requestUpdate();
-    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-    logger.debug(`ChartContainer: Added price line ${line.id}`);
+    this.tradingOverlaysManager?.addPriceLine(line);
   }
 
   /**
    * Remove a price line from the chart
    */
   public removePriceLine(lineId: string): void {
-    if (!this._state.priceLines) return;
-
-    const index = this._state.priceLines.findIndex((l) => l.id === lineId);
-    if (index !== -1) {
-      this._state.priceLines.splice(index, 1);
-      touch("state.priceLines");
-      this.requestUpdate();
-      if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-      logger.debug(`ChartContainer: Removed price line ${lineId}`);
-    }
+    this.tradingOverlaysManager?.removePriceLine(lineId);
   }
 
   /**
    * Update an existing price line
    */
   public updatePriceLine(lineId: string, line: PriceLine): void {
-    if (!this._state.priceLines) return;
-
-    const index = this._state.priceLines.findIndex((l) => l.id === lineId);
-    if (index !== -1) {
-      this._state.priceLines[index] = line;
-      touch("state.priceLines");
-      this.requestUpdate();
-      if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-      logger.debug(`ChartContainer: Updated price line ${lineId}`);
-    }
+    this.tradingOverlaysManager?.updatePriceLine(lineId, line);
   }
 
   /**
    * Clear all price lines
    */
   public clearPriceLines(): void {
-    this._state.priceLines = [];
-    touch("state.priceLines");
-    this.requestUpdate();
-    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-    logger.debug("ChartContainer: Cleared all price lines");
+    this.tradingOverlaysManager?.clearPriceLines();
   }
 
   /**
    * Add a trade zone to the chart
    */
   public addTradeZone(zone: TradeZone): void {
-    if (!this._state.tradeZones) {
-      this._state.tradeZones = [];
-    }
-    this._state.tradeZones.push(zone);
-    touch("state.tradeZones");
-    this.requestUpdate();
-    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
-    logger.debug(`ChartContainer: Added trade zone ${zone.id}`);
+    this.tradingOverlaysManager?.addTradeZone(zone);
   }
 
   /**
    * Remove a trade zone from the chart
    */
   public removeTradeZone(zoneId: string): void {
-    if (!this._state.tradeZones) return;
-
-    const index = this._state.tradeZones.findIndex((z) => z.id === zoneId);
-    if (index !== -1) {
-      this._state.tradeZones.splice(index, 1);
-      touch("state.tradeZones");
-      this.requestUpdate();
-      if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
-      logger.debug(`ChartContainer: Removed trade zone ${zoneId}`);
-    }
+    this.tradingOverlaysManager?.removeTradeZone(zoneId);
   }
 
   /**
    * Update an existing trade zone
    */
   public updateTradeZone(zoneId: string, zone: TradeZone): void {
-    if (!this._state.tradeZones) return;
-
-    const index = this._state.tradeZones.findIndex((z) => z.id === zoneId);
-    if (index !== -1) {
-      this._state.tradeZones[index] = zone;
-      touch("state.tradeZones");
-      this.requestUpdate();
-      if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
-      logger.debug(`ChartContainer: Updated trade zone ${zoneId}`);
-    }
+    this.tradingOverlaysManager?.updateTradeZone(zoneId, zone);
   }
 
   /**
    * Clear all trade zones
    */
   public clearTradeZones(): void {
-    this._state.tradeZones = [];
-    touch("state.tradeZones");
-    this.requestUpdate();
-    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
-    logger.debug("ChartContainer: Cleared all trade zones");
+    this.tradingOverlaysManager?.clearTradeZones();
   }
 
   private initializeInteractionController() {
