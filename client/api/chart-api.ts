@@ -1440,12 +1440,12 @@ export class ChartApi {
    */
   activateTrendLineTool(defaults?: TrendLineDefaults): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
+    if (chartContainer && chartContainer.trendLineController) {
       // Set defaults if provided
       if (defaults) {
-        chartContainer.trendLineTool.setDefaults(defaults);
+        chartContainer.trendLineController.setDefaults(defaults);
       }
-      chartContainer.trendLineTool.activate();
+      chartContainer.trendLineController.activateDrawingTool();
 
       // Update toolbar state
       const toolbar = chartContainer.renderRoot.querySelector(
@@ -1463,8 +1463,8 @@ export class ChartApi {
    */
   setTrendLineDefaults(defaults: TrendLineDefaults): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
-      chartContainer.trendLineTool.setDefaults(defaults);
+    if (chartContainer && chartContainer.trendLineController) {
+      chartContainer.trendLineController.setDefaults(defaults);
     }
 
     logger.info("ChartApi: Set trend line defaults", defaults);
@@ -1475,8 +1475,8 @@ export class ChartApi {
    */
   deactivateTrendLineTool(): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
-      chartContainer.trendLineTool.deactivate();
+    if (chartContainer && chartContainer.trendLineController) {
+      chartContainer.trendLineController.deactivateDrawingTool();
 
       // Update toolbar state
       const toolbar = chartContainer.renderRoot.querySelector(

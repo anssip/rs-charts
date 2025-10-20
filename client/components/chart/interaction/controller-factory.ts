@@ -6,10 +6,12 @@ import { RiskZonesController } from "./risk-zones-controller";
 import { EquityCurveController } from "./equity-curve-controller";
 import { PositionOverlayController } from "./position-overlay-controller";
 import { PatternHighlightsController } from "./pattern-highlights-controller";
+import { TrendLineController } from "./trend-line-controller";
 import type { AnnotationsLayer } from "../annotations-layer";
 import type { TimeMarkersLayer } from "../time-markers-layer";
 import type { PatternLabelsLayer } from "../pattern-labels-layer";
 import type { PositionOverlay as PositionOverlayComponent } from "../position-overlay";
+import type { TrendLineLayer } from "../trend-line-layer";
 import { logger } from "../../../util/logger";
 
 /**
@@ -37,6 +39,7 @@ export function initializeControllers(context: ControllerFactoryContext): void {
   initEquityCurveController(context);
   initPositionOverlayController(context);
   initPatternHighlightsController(context);
+  initTrendLineController(context);
 }
 
 /**
@@ -204,6 +207,52 @@ function initPatternHighlightsController(
     logger.debug("ChartContainer: Initialized pattern highlights controller");
     setTimeout(() => {
       context.updateLayer(layer);
+    }, 100);
+  }
+}
+
+/**
+ * Initialize trend line controller
+ * Handles trend line drawing and management
+ */
+function initTrendLineController(context: ControllerFactoryContext): void {
+  const container = context.container;
+  const layer = context.renderRoot.querySelector(
+    "trend-line-layer",
+  ) as TrendLineLayer;
+
+  if (layer) {
+    logger.debug("ChartContainer: Found trend line layer");
+    container.trendLineLayer = layer;
+    container.trendLineController = new TrendLineController({
+      container: container,
+      state: context.state,
+      trendLineLayer: layer,
+    });
+    logger.debug("ChartContainer: Initialized trend line controller");
+
+    // Listen for trend line creation from drawing layer
+    container.addEventListener(
+      "trend-line-drawing-complete",
+      (event: Event) => {
+        const customEvent = event as CustomEvent;
+        const trendLineData = customEvent.detail.trendLine;
+        container.trendLineController?.handleTrendLineCreated(trendLineData);
+      },
+    );
+
+    // Listen for drawing cancellation
+    container.addEventListener("trend-line-drawing-cancelled", () => {
+      container.trendLineController?.deactivateDrawingTool();
+    });
+
+    // Update the layer
+    setTimeout(() => {
+      if (layer && container.trendLineController) {
+        layer.trendLines = context.state.trendLines || [];
+        layer.state = context.state;
+        layer.requestUpdate();
+      }
     }, 100);
   }
 }

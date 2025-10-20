@@ -28,6 +28,7 @@ interface ChartInteractionOptions {
   isActive?: () => boolean;
   requireActivation?: boolean;
   onDeactivate?: () => void;
+  shouldSuppressChartClick?: () => boolean;
 }
 
 export class ChartInteractionController {
@@ -150,7 +151,9 @@ export class ChartInteractionController {
    * Layers are queried in priority order (highest first) to determine which should handle interactions.
    */
   registerLayer(layer: InteractionLayer): void {
-    logger.debug(`Registering layer: ${layer.id} (priority: ${layer.priority})`);
+    logger.debug(
+      `Registering layer: ${layer.id} (priority: ${layer.priority})`,
+    );
     this.layers.set(layer.id, layer);
   }
 
@@ -260,9 +263,10 @@ export class ChartInteractionController {
   /**
    * Extract position from mouse or touch event.
    */
-  private getEventPosition(
-    event: MouseEvent | TouchEvent,
-  ): { x: number; y: number } {
+  private getEventPosition(event: MouseEvent | TouchEvent): {
+    x: number;
+    y: number;
+  } {
     if (event instanceof MouseEvent) {
       return { x: event.clientX, y: event.clientY };
     } else if (event instanceof TouchEvent && event.touches.length > 0) {
@@ -398,6 +402,12 @@ export class ChartInteractionController {
 
     if (totalMovement <= this.dragThreshold) {
       // This was a click, not a drag
+      // Check if chart-clicked should be suppressed (e.g., when trend line tool is active)
+      if (this.options.shouldSuppressChartClick?.()) {
+        logger.debug("Suppressing chart-clicked event (tool active)");
+        return;
+      }
+
       // Emit chart-clicked event
       const rect = this.eventTarget.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;

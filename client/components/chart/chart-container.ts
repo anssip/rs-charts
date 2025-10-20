@@ -53,7 +53,8 @@ import {
   ScaleType,
 } from "./indicators/indicator-types";
 import "./trend-line-layer";
-import { TrendLineTool } from "./tools/trend-line-tool";
+import { TrendLineController } from "./interaction/trend-line-controller";
+import { TrendLineDrawingLayer } from "./interaction/layers/trend-line-drawing-layer";
 import { TrendLine } from "../../types/trend-line";
 import { TrendLineLayer } from "./trend-line-layer";
 import "./pattern-labels-layer";
@@ -207,8 +208,8 @@ export class ChartContainer extends LitElement {
   public annotationsController?: AnnotationsController;
   public positionOverlayController?: PositionOverlayController;
   public patternHighlightsController?: PatternHighlightsController;
-  private trendLineTool?: TrendLineTool;
-  private trendLineLayer?: TrendLineLayer;
+  public trendLineController?: TrendLineController;
+  public trendLineLayer?: TrendLineLayer;
   public patternLabelsLayer?: PatternLabelsLayer;
   private tradingMarkersLayer?: TradingMarkersLayer;
   private priceLinesLayer?: PriceLinesLayer;
@@ -283,9 +284,6 @@ export class ChartContainer extends LitElement {
         height,
       );
     }
-
-    // Initialize trend line tool
-    this.initializeTrendLineTool();
 
     const initLayer = (elementName: string): Layer => {
       const elem = this.renderRoot.querySelector(elementName);
@@ -1099,7 +1097,6 @@ export class ChartContainer extends LitElement {
               .trendLines=${this.trendLines}
               .state=${this._state}
               style="--price-axis-width: ${this.priceAxisWidth}px"
-              @trend-line-add=${this.handleTrendLineAdd}
               @trend-line-update=${this.handleTrendLineUpdate}
               @trend-line-remove=${this.handleTrendLineRemove}
             ></trend-line-layer>
@@ -1706,41 +1703,6 @@ export class ChartContainer extends LitElement {
     return chartElement;
   }
 
-  private initializeTrendLineTool() {
-    const chartArea = this.renderRoot.querySelector(
-      ".chart-area",
-    ) as HTMLElement;
-    if (!chartArea) {
-      logger.error("Chart area not found for trend line tool");
-      return;
-    }
-
-    // Pass a function to get the current state, the price axis width, and a function to get the chart canvas
-    this.trendLineTool = new TrendLineTool(
-      chartArea,
-      () => this._state,
-      this.priceAxisWidth,
-      () => this.chart?.canvas || null,
-    );
-
-    // Listen for trend line creation
-    chartArea.addEventListener("trend-line-created", (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const trendLineData = customEvent.detail.trendLine;
-      const trendLine: TrendLine = {
-        id: `trend-line-${Date.now()}`,
-        ...trendLineData,
-      };
-      this.trendLineLayer!.addTrendLine(trendLine);
-    });
-  }
-
-  private handleTrendLineAdd = (event: CustomEvent) => {
-    logger.warn(
-      `ChartContainer: handleTrendLineAdd called (should not be used)`,
-    );
-  };
-
   private handleTrendLineUpdate = (event: CustomEvent) => {
     logger.debug(`ChartContainer: handleTrendLineUpdate called`, event.detail);
     const { trendLine } = event.detail;
@@ -2048,6 +2010,10 @@ export class ChartContainer extends LitElement {
         // Store the context menu mouse position for candle tooltip
         this.contextMenuMousePosition = position;
       },
+      shouldSuppressChartClick: () => {
+        // Suppress chart-clicked event when trend line tool is active
+        return this.trendLineController?.isToolActive() ?? false;
+      },
       bufferMultiplier: BUFFER_MULTIPLIER,
       zoomFactor: this.ZOOM_FACTOR,
       doubleTapDelay: this.DOUBLE_TAP_DELAY,
@@ -2056,7 +2022,7 @@ export class ChartContainer extends LitElement {
     this.interactionController.attach(true);
 
     // Register interaction layers (highest priority first)
-    // Priority order: Annotations (100) > Price Lines (90) > Trend Lines (80) > Time Markers (40) > Live Candle (10)
+    // Priority order: Annotations (100) > Trend Line Drawing (90) > Price Lines (90) > Trend Lines (80) > Time Markers (40) > Live Candle (10)
 
     // Annotations layer - highest priority (100)
     const annotationsLayer = new AnnotationsInteractionLayer(
@@ -2069,6 +2035,19 @@ export class ChartContainer extends LitElement {
     // Set interaction layer on the controller
     if (this.annotationsController) {
       this.annotationsController.setInteractionLayer(annotationsLayer);
+    }
+
+    // Trend line drawing layer - priority 90 (when drawing tool is active)
+    const trendLineDrawingLayer = new TrendLineDrawingLayer(
+      this as HTMLElement,
+      this._state,
+      this.priceAxisWidth,
+    );
+    this.interactionController.registerLayer(trendLineDrawingLayer);
+
+    // Set drawing layer on the controller
+    if (this.trendLineController) {
+      this.trendLineController.setDrawingLayer(trendLineDrawingLayer);
     }
 
     // Price lines layer - priority 90
