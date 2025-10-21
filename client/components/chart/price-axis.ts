@@ -1,16 +1,16 @@
-import { customElement, property, state } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { formatPrice, getPriceStep } from "../../util/price-util";
 import { CanvasBase } from "./canvas-base";
-import { observe, xin } from "xinjs";
+import { xin } from "xinjs";
 import { LiveCandle } from "../../api/live-candle-subscription";
 import {
   Granularity,
   PriceRange,
+  granularityToMs,
 } from "../../../server/services/price-data/price-history-model";
 import { PriceRangeImpl } from "../../util/price-range";
 import { PRICEAXIS_WIDTH, PRICEAXIS_MOBILE_WIDTH } from "./chart-container";
 import { priceToY, getDpr } from "../../util/chart-util";
-import { granularityToMs } from "../../../server/services/price-data/price-history-model";
 import { ChartState } from "../..";
 import { css, html } from "lit";
 import { getLocalChartId, observeLocal } from "../../util/state-context";
@@ -32,7 +32,9 @@ export class PriceAxis extends CanvasBase {
 
   @state() private mouseY: number = -1;
   @state() private mousePrice: number = 0;
+  @state() private timeLeft: string = "";
   private _chartId: string = "state";
+  private countdownInterval: number | null = null;
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
   private isMobile = this.mobileMediaQuery.matches;
@@ -106,6 +108,7 @@ export class PriceAxis extends CanvasBase {
       this.liveCandle = xin[`${this._chartId}.liveCandle`] as LiveCandle;
       if (this.liveCandle) {
         this.currentPrice = this.liveCandle.close;
+        this.startCountdown();
         this.draw();
       }
     });
@@ -115,6 +118,7 @@ export class PriceAxis extends CanvasBase {
       logger.debug("New price range:", newPriceRange);
       this.priceRange = newPriceRange;
       this.draw();
+      this.requestUpdate(); // Update live price label position
     });
   }
 
@@ -159,6 +163,12 @@ export class PriceAxis extends CanvasBase {
       "price-axis-pan",
       this.handleChartPanEvent as EventListener,
     );
+
+    // Clear countdown interval
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
   }
 
   useResizeObserver(): boolean {
@@ -345,6 +355,7 @@ export class PriceAxis extends CanvasBase {
 
     // Immediately redraw
     this.draw();
+    this.requestUpdate(); // Update live price label position
 
     // The event will bubble up and the interaction controller will handle the state update
   };
@@ -360,12 +371,117 @@ export class PriceAxis extends CanvasBase {
 
     // Immediately redraw
     this.draw();
+    this.requestUpdate(); // Update live price label position
 
     // The state update will happen via the interaction controller
   };
 
+  // Countdown timer methods
+  private formatTimeLeft(msLeft: number): string {
+    const totalSeconds = Math.floor(msLeft / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const granularityMs = granularityToMs(
+      xin[`${this._chartId}.granularity`] as Granularity,
+    );
+    const showHours = granularityMs >= 24 * 60 * 60 * 1000;
+
+    if (showHours) {
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    } else {
+      return `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+    }
+  }
+
+  private updateCountdown() {
+    if (!this.liveCandle) return;
+
+    const now = Date.now();
+    const granularityMs = granularityToMs(
+      xin[`${this._chartId}.granularity`] as Granularity,
+    );
+
+    // Calculate the start of the current candle period
+    const currentPeriodStart = Math.floor(now / granularityMs) * granularityMs;
+    // Calculate the end of the current candle period
+    const currentPeriodEnd = currentPeriodStart + granularityMs;
+    // Calculate remaining time
+    const msLeft = currentPeriodEnd - now;
+
+    this.timeLeft = this.formatTimeLeft(msLeft);
+    this.requestUpdate();
+  }
+
+  private startCountdown() {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+    this.updateCountdown();
+    this.countdownInterval = window.setInterval(
+      () => this.updateCountdown(),
+      1000,
+    );
+  }
+
+  // Computed properties for live price label positioning
+  private get livePriceYPosition(): number {
+    if (!this.liveCandle || !this.priceRange || !this.canvas) return -1;
+
+    // Check if live candle is recent (within last 2 minutes)
+    const now = Date.now();
+    const candleAge = this.liveCandle.lastUpdate
+      ? now - this.liveCandle.lastUpdate.getTime()
+      : now - this.liveCandle.timestamp;
+
+    if (candleAge > 120000) {
+      // 2 minutes
+      return -1;
+    }
+
+    // Check if the current price is within the visible range with some tolerance
+    const tolerance = (this.priceRange.max - this.priceRange.min) * 0.01; // 1% tolerance
+    if (
+      this.currentPrice < this.priceRange.min - tolerance ||
+      this.currentPrice > this.priceRange.max + tolerance
+    ) {
+      return -1;
+    }
+
+    const dpr = getDpr() ?? 1;
+    const height = this.canvas.height / dpr;
+
+    if (height === 0) {
+      logger.warn(`Canvas has zero height, cannot calculate live price position`);
+      return -1;
+    }
+
+    const priceY = priceToY(height, {
+      start: this.priceRange.min,
+      end: this.priceRange.max,
+    });
+
+    return priceY(this.currentPrice);
+  }
+
+  private get isLivePriceBullish(): boolean {
+    if (!this.liveCandle) return true;
+    return this.liveCandle.close >= this.liveCandle.open;
+  }
+
   render() {
     // No need for inline handlers anymore - we use document events
+    const livePriceY = this.livePriceYPosition;
+    const labelHeight = 30;
+    const priceColor = this.isLivePriceBullish
+      ? "var(--color-accent-1)"
+      : "var(--color-error)";
+
     return html`
       <div class="container">
         <canvas></canvas>
@@ -376,6 +492,17 @@ export class PriceAxis extends CanvasBase {
                 style="top: ${this.mouseY - 10}px; left: 0;"
               >
                 <div class="price">${formatPrice(this.mousePrice)}</div>
+              </div>
+            `
+          : ""}
+        ${livePriceY > 0 && this.liveCandle
+          ? html`
+              <div
+                class="live-price-label"
+                style="top: ${livePriceY - labelHeight / 2}px; left: 0; border-color: ${priceColor};"
+              >
+                <div class="price">${formatPrice(this.currentPrice)}</div>
+                <div class="time">${this.timeLeft}</div>
               </div>
             `
           : ""}
@@ -429,6 +556,35 @@ export class PriceAxis extends CanvasBase {
 
     .mouse-price-label .price {
       font-weight: bold;
+    }
+
+    .live-price-label {
+      position: absolute;
+      width: 97%;
+      height: 30px;
+      background-color: var(--color-primary-dark);
+      border: 1px solid;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.2;
+      margin-right: 2px;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .live-price-label .price {
+      font-weight: bold;
+      color: var(--color-accent-2);
+    }
+
+    .live-price-label .time {
+      color: var(--color-background-secondary);
+      font-size: 9px;
     }
   `;
 }

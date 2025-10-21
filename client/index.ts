@@ -133,7 +133,7 @@ const defaultIndicators: IndicatorConfig[] = [
   {
     id: "bollinger-bands",
     name: "Bollinger Bands",
-    visible: true,
+    visible: false,
     params: { period: 20, stdDev: 2 },
     display: DisplayType.Overlay,
     class: MarketIndicator,
@@ -284,7 +284,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
     logger.info("Sample risk zones added to chart 1");
 
-    // Add sample equity curve for testing
+    // Add sample equity curve for testing - DISABLED BY DEFAULT
+    // Uncomment to show equity curve on startup
+    /*
     // Simulate a portfolio starting at $10,000 with some fluctuation
     const equityData = [];
     const startingEquity = 10000;
@@ -312,6 +314,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     logger.info("Sample equity curve added to chart 1");
+    */
   });
 
   // Initialize second chart if it exists
@@ -444,7 +447,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
       logger.info("Sample risk zones added to chart 2");
 
-      // Add sample equity curve for testing (ETH chart)
+      // Add sample equity curve for testing (ETH chart) - DISABLED BY DEFAULT
+      // Uncomment to show equity curve on startup
+      /*
       // Simulate a portfolio with different pattern
       const equityData2 = [];
       const startingEquity2 = 25000;
@@ -475,6 +480,7 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
       logger.info("Sample equity curve added to chart 2");
+      */
     });
   }
 
@@ -506,6 +512,16 @@ window.addEventListener("DOMContentLoaded", () => {
     resizeObserver.observe(chartContainer2);
   }
 
+  // Make chart APIs globally accessible for debugging/external control
+  if (typeof window !== "undefined") {
+    (window as any).chartApi1 = chart1Result.api;
+    if (chartContainerElement2) {
+      (window as any).chartApi2 = chart2Result.api;
+    }
+    logger.info("Chart APIs exposed to window.chartApi1" + (chartContainerElement2 ? " and window.chartApi2" : ""));
+  }
+
+  // Optional: Set up upgrade popup if elements exist
   const popup = document.querySelector(".upgrade-popup") as HTMLElement | null;
   const backdrop = document.querySelector(
     ".upgrade-backdrop",
@@ -541,14 +557,6 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Make chart APIs globally accessible for debugging/external control
-    if (typeof window !== "undefined") {
-      (window as any).chartApi1 = chart1Result.api;
-      if (chartContainerElement2) {
-        (window as any).chartApi2 = chart2Result.api;
-      }
-    }
-
     backdrop.addEventListener("click", hidePopup);
     upgradeButton.addEventListener("click", () => {
       hidePopup();
@@ -559,8 +567,6 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
     logger.info("Upgrade popup listeners initialized.");
-  } else {
-    logger.error("Upgrade popup elements not found in the DOM.");
   }
 });
 // trigger rebuild

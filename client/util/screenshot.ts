@@ -257,7 +257,6 @@ export async function captureChartScreenshot(
     // Render shadow DOM components by accessing their internal content
     const shadowDomComponents = [
       { selector: "live-candle-display", innerSelector: ".display-container" },
-      { selector: "live-price-label", innerSelector: ".live-price-label" },
     ];
 
     for (const { selector, innerSelector } of shadowDomComponents) {

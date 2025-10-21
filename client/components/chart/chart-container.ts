@@ -13,7 +13,6 @@ import "./indicators/volume-chart";
 import "./context-menu";
 import "./candle-tooltip";
 import "./live-candle-display";
-import "./live-price-label";
 import { CandlestickChart, ChartOptions } from "./chart";
 import { DrawingContext } from "./drawing-strategy";
 import { PriceRangeImpl } from "../../util/price-range";
@@ -293,17 +292,37 @@ export class ChartContainer extends LitElement {
       () => this.equityCurveController,
     );
 
-    // Initial resize with the computed dimensions
-    if (height > 0 && width > 0) {
-      this.handleResize(width, height);
-    } else {
-      logger.warn(
-        "ChartContainer: Invalid dimensions for initial resize:",
-        width,
-        "x",
-        height,
-      );
-    }
+    // Defer initial resize to ensure CSS Grid and flexbox layouts have settled
+    // This is critical when indicators are present as they affect the chart-area height
+    // We use double RAF + timeout to ensure both CSS Grid and indicator-stack flexbox are calculated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Additional small delay to ensure indicator-stack flexbox has settled
+        setTimeout(() => {
+          const chartArea = this.renderRoot.querySelector(".chart-area");
+          if (chartArea) {
+            const latestRect = chartArea.getBoundingClientRect();
+            const latestHeight = latestRect.height;
+            const latestWidth = latestRect.width;
+
+            logger.info(
+              `ChartContainer: Deferred initial resize: ${latestWidth}x${latestHeight}`,
+            );
+
+            if (latestHeight > 0 && latestWidth > 0) {
+              this.handleResize(latestWidth, latestHeight);
+            } else {
+              logger.warn(
+                "ChartContainer: Invalid dimensions for deferred resize:",
+                latestWidth,
+                "x",
+                latestHeight,
+              );
+            }
+          }
+        }, 50); // 50ms delay for flexbox layout calculation
+      });
+    });
 
     const initLayer = (elementName: string): Layer => {
       const elem = this.renderRoot.querySelector(elementName);
@@ -918,11 +937,6 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></annotations-layer>
 
-            <!-- Live Price Label -->
-            <live-price-label
-              style="--price-axis-width: ${this.priceAxisWidth}px"
-            ></live-price-label>
-
             <div class="chart">
               ${bottomIndicators.map(
                 (indicator) => html`
@@ -1159,7 +1173,31 @@ export class ChartContainer extends LitElement {
       evaluations: [],
     });
     if (isSuccess) {
+      // Recalculate price range to include the live candle
+      // This ensures the live price line aligns correctly with the candle
+      this._state.priceRange = this._state.priceHistory.getPriceRange(
+        this._state.timeRange.start,
+        this._state.timeRange.end,
+      );
+
+      // Dispatch price range change events to ensure overlay components update
+      this.dispatchEvent(new CustomEvent('price-range-change', {
+        bubbles: true,
+        composed: true,
+        detail: { priceRange: this._state.priceRange }
+      }));
+
       this.draw();
+
+      // Deferred update to catch components that might initialize late
+      // This ensures alignment even if overlay components weren't ready for the first event
+      requestAnimationFrame(() => {
+        this.dispatchEvent(new CustomEvent('price-range-change', {
+          bubbles: true,
+          composed: true,
+          detail: { priceRange: this._state.priceRange }
+        }));
+      });
     }
     return isSuccess;
   }
