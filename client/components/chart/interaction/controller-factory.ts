@@ -13,6 +13,15 @@ import type { PatternLabelsLayer } from "../pattern-labels-layer";
 import type { PositionOverlay as PositionOverlayComponent } from "../position-overlay";
 import type { TrendLineLayer } from "../trend-line-layer";
 import { logger } from "../../../util/logger";
+import { ChartInteractionController } from "./chart-interaction-controller";
+import { AnnotationsInteractionLayer } from "./layers/annotations-layer";
+import { TrendLineDrawingLayer } from "./layers/trend-line-drawing-layer";
+import { PriceLinesInteractionLayer } from "./layers/price-lines-layer";
+import { TrendLinesInteractionLayer } from "./layers/trend-lines-layer";
+import { TimeMarkersInteractionLayer } from "./layers/time-markers-layer";
+import { RiskZonesLayer } from "../risk-zones-layer";
+import { LiveCandleInteractionLayer } from "./layers/live-candle-layer";
+import { touch } from "xinjs";
 
 /**
  * Context object containing all dependencies needed for controller initialization
@@ -255,4 +264,158 @@ function initTrendLineController(context: ControllerFactoryContext): void {
       }
     }, 100);
   }
+}
+
+/**
+ * Context for initializing interaction layers
+ */
+export interface InteractionLayersContext {
+  container: ChartContainer;
+  chart: any; // CandlestickChart
+  state: ChartState;
+  priceAxisWidth: number;
+  controllers: {
+    annotationsController?: AnnotationsController;
+    trendLineController?: TrendLineController;
+    timeMarkersController?: TimeMarkersController;
+    riskZonesController?: RiskZonesController;
+  };
+  callbacks: {
+    onStateChange: (updates: Partial<ChartState>) => void;
+    onNeedMoreData: (direction: "backward" | "forward") => void;
+    onContextMenu: (position: { x: number; y: number }) => void;
+    shouldSuppressChartClick: () => boolean;
+  };
+  config: {
+    bufferMultiplier: number;
+    zoomFactor: number;
+    doubleTapDelay: number;
+  };
+}
+
+/**
+ * Initialize interaction controller and register all interaction layers
+ * Extracted from ChartContainer to reduce complexity
+ */
+export function initializeInteractionLayers(
+  context: InteractionLayersContext,
+): ChartInteractionController {
+  const {
+    container,
+    chart,
+    state,
+    priceAxisWidth,
+    controllers,
+    callbacks,
+    config,
+  } = context;
+
+  // Create interaction controller
+  const interactionController = new ChartInteractionController({
+    chart,
+    container: container as HTMLElement,
+    state,
+    onStateChange: (updates) => {
+      callbacks.onStateChange(updates);
+    },
+    onNeedMoreData: (direction) => {
+      callbacks.onNeedMoreData(direction);
+    },
+    onContextMenu: (position) => {
+      callbacks.onContextMenu(position);
+    },
+    shouldSuppressChartClick: () => {
+      return callbacks.shouldSuppressChartClick();
+    },
+    bufferMultiplier: config.bufferMultiplier,
+    zoomFactor: config.zoomFactor,
+    doubleTapDelay: config.doubleTapDelay,
+  });
+
+  interactionController.attach(true);
+
+  // Register interaction layers (highest priority first)
+  // Priority order: Annotations (100) > Trend Line Drawing (90) > Price Lines (90) > Trend Lines (80) > Time Markers (40) > Live Candle (10)
+
+  // Annotations layer - highest priority (100)
+  const annotationsLayer = new AnnotationsInteractionLayer(
+    container as HTMLElement,
+    state,
+    () => state.annotations || [],
+  );
+  interactionController.registerLayer(annotationsLayer);
+
+  // Set interaction layer on the controller
+  if (controllers.annotationsController) {
+    controllers.annotationsController.setInteractionLayer(annotationsLayer);
+  }
+
+  // Trend line drawing layer - priority 90 (when drawing tool is active)
+  const trendLineDrawingLayer = new TrendLineDrawingLayer(
+    container as HTMLElement,
+    state,
+    priceAxisWidth,
+  );
+  interactionController.registerLayer(trendLineDrawingLayer);
+
+  // Set drawing layer on the controller
+  if (controllers.trendLineController) {
+    controllers.trendLineController.setDrawingLayer(trendLineDrawingLayer);
+  }
+
+  // Price lines layer - priority 90
+  const priceLinesLayer = new PriceLinesInteractionLayer(
+    container as HTMLElement,
+    state,
+    () => state.priceLines || [],
+  );
+  interactionController.registerLayer(priceLinesLayer);
+
+  // Trend lines layer - priority 80
+  const trendLinesLayer = new TrendLinesInteractionLayer(
+    container as HTMLElement,
+    state,
+  );
+  interactionController.registerLayer(trendLinesLayer);
+
+  // Time markers layer - priority 40
+  const timeMarkersLayer = new TimeMarkersInteractionLayer(
+    container as HTMLElement,
+    state,
+    () => state.timeMarkers || [],
+  );
+  interactionController.registerLayer(timeMarkersLayer);
+
+  // Set interaction layer on the controller
+  if (controllers.timeMarkersController) {
+    controllers.timeMarkersController.setInteractionLayer(timeMarkersLayer);
+  }
+
+  // Risk zones layer - priority 10 (canvas-based rendering)
+  if (chart.canvas) {
+    const riskZonesInteractionLayer = new RiskZonesLayer(chart.canvas);
+    riskZonesInteractionLayer.setZones(state.riskZones || []);
+    interactionController.registerLayer(riskZonesInteractionLayer);
+
+    // Store reference on container for external access
+    (container as any).riskZonesInteractionLayer = riskZonesInteractionLayer;
+
+    // Set interaction layer on the controller
+    if (controllers.riskZonesController) {
+      controllers.riskZonesController.setInteractionLayer(
+        riskZonesInteractionLayer,
+      );
+    }
+  }
+
+  // Live candle layer - lowest priority (10)
+  const liveCandleLayer = new LiveCandleInteractionLayer(
+    container as HTMLElement,
+    state,
+  );
+  interactionController.registerLayer(liveCandleLayer);
+
+  logger.debug("ChartContainer: All interaction layers registered");
+
+  return interactionController;
 }

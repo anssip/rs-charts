@@ -30,18 +30,16 @@ import "./indicators/indicator-container";
 import "./indicators/market-indicator";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
-import { initializeControllers } from "./interaction/controller-factory";
+import {
+  initializeControllers,
+  initializeInteractionLayers,
+} from "./interaction/controller-factory";
 import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { TimeMarkersController } from "./interaction/time-markers-controller";
 import { AnnotationsController } from "./interaction/annotations-controller";
 import { PositionOverlayController } from "./interaction/position-overlay-controller";
 import { PatternHighlightsController } from "./interaction/pattern-highlights-controller";
-import { PriceLinesInteractionLayer } from "./interaction/layers/price-lines-layer";
-import { AnnotationsInteractionLayer } from "./interaction/layers/annotations-layer";
-import { TrendLinesInteractionLayer } from "./interaction/layers/trend-lines-layer";
-import { TimeMarkersInteractionLayer } from "./interaction/layers/time-markers-layer";
-import { LiveCandleInteractionLayer } from "./interaction/layers/live-candle-layer";
 import { touch } from "xinjs";
 import { getStyles } from "./styles";
 import "./indicators/indicator-stack";
@@ -52,7 +50,6 @@ import {
 } from "./indicators/indicator-types";
 import "./trend-line-layer";
 import { TrendLineController } from "./interaction/trend-line-controller";
-import { TrendLineDrawingLayer } from "./interaction/layers/trend-line-drawing-layer";
 import { TrendLine } from "../../types/trend-line";
 import { TrendLineLayer } from "./trend-line-layer";
 import "./pattern-labels-layer";
@@ -91,6 +88,7 @@ import { getLogger, LogLevel } from "../../util/logger";
 import { TradingOverlaysManager } from "./trading-overlays-manager";
 import { BrowserIntegration } from "./browser-integration";
 import { buildContextMenuItems } from "./context-menu-builder";
+import { LayerUpdateCoordinator } from "./layer-update-coordinator";
 
 const logger = getLogger("ChartContainer");
 logger.setLoggerLevel("ChartContainer", LogLevel.INFO);
@@ -142,6 +140,7 @@ export class ChartContainer extends LitElement {
 
   private chart: CandlestickChart | null = null;
   private browserIntegration: BrowserIntegration;
+  private layerUpdateCoordinator!: LayerUpdateCoordinator;
 
   private padding = {
     top: 0,
@@ -280,6 +279,15 @@ export class ChartContainer extends LitElement {
     this.browserIntegration.setupZoomPrevention();
     this.browserIntegration.setupFocusHandler(() => this.draw());
 
+    // Initialize layer update coordinator
+    this.layerUpdateCoordinator = new LayerUpdateCoordinator(
+      this.shadowRoot!,
+      () => this.chart,
+      () => this._state,
+      () => this.priceAxisWidth,
+      () => this.equityCurveController,
+    );
+
     // Initial resize with the computed dimensions
     if (height > 0 && width > 0) {
       this.handleResize(width, height);
@@ -301,7 +309,7 @@ export class ChartContainer extends LitElement {
       layer.style.height = `${height}px`;
 
       setTimeout(() => {
-        this.updateLayer(layer as Layer);
+        this.layerUpdateCoordinator.updateLayer(layer as Layer);
       }, 100);
       return layer;
     };
@@ -335,12 +343,15 @@ export class ChartContainer extends LitElement {
       container: this,
       renderRoot: this.renderRoot,
       state: this._state,
-      updateLayer: this.updateLayer.bind(this),
-      updateTimeMarkersLayer: this.updateTimeMarkersLayer.bind(this),
-      updateRiskZonesCanvasLayer: this.updateRiskZonesCanvasLayer.bind(this),
-      updateEquityCurveCanvasLayer:
-        this.updateEquityCurveCanvasLayer.bind(this),
-      updatePositionOverlay: this.updatePositionOverlay.bind(this),
+      updateLayer: (layer) => this.layerUpdateCoordinator.updateLayer(layer),
+      updateTimeMarkersLayer: () =>
+        this.layerUpdateCoordinator.updateTimeMarkersLayer(),
+      updateRiskZonesCanvasLayer: () =>
+        this.layerUpdateCoordinator.updateRiskZonesCanvasLayer(),
+      updateEquityCurveCanvasLayer: () =>
+        this.layerUpdateCoordinator.updateEquityCurveCanvasLayer(),
+      updatePositionOverlay: () =>
+        this.layerUpdateCoordinator.updatePositionOverlay(),
     });
 
     // Initialize trading overlays manager
@@ -534,143 +545,15 @@ export class ChartContainer extends LitElement {
     // Force redraw on indicators
     this.redrawIndicators();
 
-    // Update all layers with current state
-    if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
-    if (this.patternLabelsLayer) this.updateLayer(this.patternLabelsLayer);
-    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
-    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
-    if (this.annotationsLayer) this.updateLayer(this.annotationsLayer);
-
-    // Special cases with unique requirements
-    this.updateTimeMarkersLayer(); // Uses full chart height
-    this.updateRiskZonesCanvasLayer(); // Sets timeRange and priceRange
-    this.updateEquityCurveCanvasLayer(); // Delegates to controller
-    this.updatePositionOverlay(); // Multiple components
-  }
-
-  private updateLayer(layer: Layer | undefined) {
-    if (!layer) return;
-    if (this.chart?.canvas) {
-      // Get the chart area dimensions
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        // Use the chart area width minus price axis (same as what the tool uses)
-        layer.width = chartArea.clientWidth - this.priceAxisWidth;
-
-        // Use the actual canvas height
-        const dpr = getDpr(); // Use fixed DPR
-        layer.height = this.chart.canvas.height / dpr;
-      }
-
-      // Update the state to ensure trend lines recalculate positions
-      layer.state = this._state;
-      layer.requestUpdate();
-    }
-  }
-
-  /**
-   * Update time markers layer
-   * Special case: Uses full chart area height to span over all indicators
-   */
-  private updateTimeMarkersLayer() {
-    const timeMarkersLayer = this.renderRoot.querySelector(
-      "time-markers-layer",
-    ) as TimeMarkersLayer;
-    if (timeMarkersLayer) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea) {
-        timeMarkersLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        // Use full chart-area height to span over all indicators
-        timeMarkersLayer.height = chartArea.clientHeight;
-      }
-
-      timeMarkersLayer.state = this._state;
-      timeMarkersLayer.requestUpdate();
-    }
-  }
-
-  /**
-   * Update position overlay components
-   * Special case: Controller manages two components (entry line + info box)
-   */
-  private updatePositionOverlay() {
-    const positionOverlays = this.renderRoot.querySelectorAll(
-      "position-overlay",
-    ) as NodeListOf<PositionOverlayComponent>;
-
-    positionOverlays.forEach((overlay) => {
-      if (overlay && this.chart?.canvas) {
-        const chartArea = this.renderRoot.querySelector(
-          ".chart-area",
-        ) as HTMLElement;
-        if (chartArea && this.chart.canvas) {
-          overlay.width = chartArea.clientWidth - this.priceAxisWidth;
-          const dpr = getDpr();
-          overlay.height = this.chart.canvas.height / dpr;
-        }
-
-        overlay.state = this._state;
-        overlay.requestUpdate();
-      }
+    // Update all layers with current state using coordinator
+    this.layerUpdateCoordinator.updateAllLayers({
+      trendLineLayer: this.trendLineLayer,
+      patternLabelsLayer: this.patternLabelsLayer,
+      tradingMarkersLayer: this.tradingMarkersLayer,
+      priceLinesLayer: this.priceLinesLayer,
+      tradeZonesLayer: this.tradeZonesLayer,
+      annotationsLayer: this.annotationsLayer,
     });
-  }
-
-  /**
-   * Update risk zones canvas layer
-   * Special case: Sets timeRange and priceRange properties for coordinate mapping
-   */
-  private updateRiskZonesCanvasLayer() {
-    const riskZonesLayer = this.renderRoot.querySelector(
-      "risk-zones-canvas-layer",
-    ) as any;
-    if (riskZonesLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        riskZonesLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        riskZonesLayer.height = this.chart.canvas.height / dpr;
-      }
-
-      riskZonesLayer.state = this._state;
-      riskZonesLayer.timeRange = this._state.timeRange;
-      riskZonesLayer.priceRange = this._state.priceRange;
-      riskZonesLayer.requestUpdate();
-    }
-  }
-
-  /**
-   * Update equity curve canvas layer
-   * Special case: Delegates to controller for state/data updates
-   */
-  private updateEquityCurveCanvasLayer() {
-    if (!this.equityCurveController) {
-      return;
-    }
-
-    // Update dimensions
-    const equityCurveLayer = this.renderRoot.querySelector(
-      "equity-curve-canvas-layer",
-    ) as any;
-    if (equityCurveLayer && this.chart?.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && this.chart.canvas) {
-        equityCurveLayer.width = chartArea.clientWidth - this.priceAxisWidth;
-        const dpr = getDpr();
-        equityCurveLayer.height = this.chart.canvas.height / dpr;
-      }
-    }
-
-    // Delegate to controller for state/data updates
-    this.equityCurveController.updateLayer();
   }
 
   private redrawIndicators() {
@@ -826,7 +709,8 @@ export class ChartContainer extends LitElement {
         logger.debug(
           `ChartContainer: After RAF, trend lines count: ${this.trendLines.length}`,
         );
-        if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
+        if (this.trendLineLayer)
+          this.layerUpdateCoordinator.updateLayer(this.trendLineLayer);
 
         // Ensure no trend lines are selected on initialization
         if (this.trendLineLayer) {
@@ -1280,11 +1164,13 @@ export class ChartContainer extends LitElement {
       this.draw();
     }
 
-    // Update all layers after resize
-    if (this.trendLineLayer) this.updateLayer(this.trendLineLayer);
-    if (this.tradingMarkersLayer) this.updateLayer(this.tradingMarkersLayer);
-    if (this.priceLinesLayer) this.updateLayer(this.priceLinesLayer);
-    if (this.tradeZonesLayer) this.updateLayer(this.tradeZonesLayer);
+    // Update all layers after resize using coordinator
+    this.layerUpdateCoordinator.updateAllLayers({
+      trendLineLayer: this.trendLineLayer,
+      tradingMarkersLayer: this.tradingMarkersLayer,
+      priceLinesLayer: this.priceLinesLayer,
+      tradeZonesLayer: this.tradeZonesLayer,
+    });
   }
 
   private dispatchRefetch(direction: "backward" | "forward") {
@@ -1833,118 +1719,47 @@ export class ChartContainer extends LitElement {
   private initializeInteractionController() {
     if (!this.chart) return;
 
-    this.interactionController = new ChartInteractionController({
+    this.interactionController = initializeInteractionLayers({
+      container: this,
       chart: this.chart,
-      container: this as HTMLElement,
       state: this._state,
-      onStateChange: (updates) => {
-        this._state = Object.assign(this._state, updates);
-        Object.keys(updates).forEach((key) => {
-          touch(`state.${key}`);
-        });
-        // Need to call draw() for priceRange changes to update indicators and trend lines
-        if (updates.priceRange || updates.timeRange) {
-          this.draw();
-        }
+      priceAxisWidth: this.priceAxisWidth,
+      controllers: {
+        annotationsController: this.annotationsController,
+        trendLineController: this.trendLineController,
+        timeMarkersController: this.timeMarkersController,
+        riskZonesController: this.riskZonesController,
       },
-      onNeedMoreData: (direction) => {
-        this.dispatchRefetch(direction);
+      callbacks: {
+        onStateChange: (updates) => {
+          this._state = Object.assign(this._state, updates);
+          Object.keys(updates).forEach((key) => {
+            touch(`state.${key}`);
+          });
+          // Need to call draw() for priceRange changes to update indicators and trend lines
+          if (updates.priceRange || updates.timeRange) {
+            this.draw();
+          }
+        },
+        onNeedMoreData: (direction) => {
+          this.dispatchRefetch(direction);
+        },
+        onContextMenu: (position) => {
+          this.showContextMenu = true;
+          this.contextMenuPosition = position;
+          // Store the context menu mouse position for candle tooltip
+          this.contextMenuMousePosition = position;
+        },
+        shouldSuppressChartClick: () => {
+          // Suppress chart-clicked event when trend line tool is active
+          return this.trendLineController?.isToolActive() ?? false;
+        },
       },
-      onContextMenu: (position) => {
-        this.showContextMenu = true;
-        this.contextMenuPosition = position;
-        // Store the context menu mouse position for candle tooltip
-        this.contextMenuMousePosition = position;
+      config: {
+        bufferMultiplier: BUFFER_MULTIPLIER,
+        zoomFactor: this.ZOOM_FACTOR,
+        doubleTapDelay: this.DOUBLE_TAP_DELAY,
       },
-      shouldSuppressChartClick: () => {
-        // Suppress chart-clicked event when trend line tool is active
-        return this.trendLineController?.isToolActive() ?? false;
-      },
-      bufferMultiplier: BUFFER_MULTIPLIER,
-      zoomFactor: this.ZOOM_FACTOR,
-      doubleTapDelay: this.DOUBLE_TAP_DELAY,
     });
-
-    this.interactionController.attach(true);
-
-    // Register interaction layers (highest priority first)
-    // Priority order: Annotations (100) > Trend Line Drawing (90) > Price Lines (90) > Trend Lines (80) > Time Markers (40) > Live Candle (10)
-
-    // Annotations layer - highest priority (100)
-    const annotationsLayer = new AnnotationsInteractionLayer(
-      this as HTMLElement,
-      this._state,
-      () => this._state.annotations || [],
-    );
-    this.interactionController.registerLayer(annotationsLayer);
-
-    // Set interaction layer on the controller
-    if (this.annotationsController) {
-      this.annotationsController.setInteractionLayer(annotationsLayer);
-    }
-
-    // Trend line drawing layer - priority 90 (when drawing tool is active)
-    const trendLineDrawingLayer = new TrendLineDrawingLayer(
-      this as HTMLElement,
-      this._state,
-      this.priceAxisWidth,
-    );
-    this.interactionController.registerLayer(trendLineDrawingLayer);
-
-    // Set drawing layer on the controller
-    if (this.trendLineController) {
-      this.trendLineController.setDrawingLayer(trendLineDrawingLayer);
-    }
-
-    // Price lines layer - priority 90
-    const priceLinesLayer = new PriceLinesInteractionLayer(
-      this as HTMLElement,
-      this._state,
-      () => this._state.priceLines || [],
-    );
-    this.interactionController.registerLayer(priceLinesLayer);
-
-    // Trend lines layer - priority 80
-    const trendLinesLayer = new TrendLinesInteractionLayer(
-      this as HTMLElement,
-      this._state,
-    );
-    this.interactionController.registerLayer(trendLinesLayer);
-
-    // Time markers layer - priority 40
-    const timeMarkersLayer = new TimeMarkersInteractionLayer(
-      this as HTMLElement,
-      this._state,
-      () => this._state.timeMarkers || [],
-    );
-    this.interactionController.registerLayer(timeMarkersLayer);
-
-    // Set interaction layer on the controller
-    if (this.timeMarkersController) {
-      this.timeMarkersController.setInteractionLayer(timeMarkersLayer);
-    }
-
-    // Risk zones layer - priority 10 (canvas-based rendering)
-    if (this.chart.canvas) {
-      this.riskZonesInteractionLayer = new RiskZonesLayer(this.chart.canvas);
-      this.riskZonesInteractionLayer.setZones(this._state.riskZones || []);
-      this.interactionController.registerLayer(this.riskZonesInteractionLayer);
-
-      // Set interaction layer on the controller
-      if (this.riskZonesController) {
-        this.riskZonesController.setInteractionLayer(
-          this.riskZonesInteractionLayer,
-        );
-      }
-    }
-
-    // Live candle layer - lowest priority (10)
-    const liveCandleLayer = new LiveCandleInteractionLayer(
-      this as HTMLElement,
-      this._state,
-    );
-    this.interactionController.registerLayer(liveCandleLayer);
-
-    logger.debug("ChartContainer: All interaction layers registered");
   }
 }

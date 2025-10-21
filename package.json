@@ -31,6 +31,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "tsc": "bunx tsc --noEmit",
     "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"https://market.spotcanvas.com\"}' --watch",
     "dev:server": "bun build ./server/index.ts --outdir ./dist/server --target bun --watch",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run ./dist/server/index.js\"",
