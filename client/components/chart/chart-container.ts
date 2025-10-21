@@ -89,6 +89,7 @@ import { TradingOverlaysManager } from "./trading-overlays-manager";
 import { BrowserIntegration } from "./browser-integration";
 import { buildContextMenuItems } from "./context-menu-builder";
 import { LayerUpdateCoordinator } from "./layer-update-coordinator";
+import { ChartEventHandlers } from "./chart-event-handlers";
 
 const logger = getLogger("ChartContainer");
 logger.setLoggerLevel("ChartContainer", LogLevel.INFO);
@@ -141,6 +142,7 @@ export class ChartContainer extends LitElement {
   private chart: CandlestickChart | null = null;
   private browserIntegration: BrowserIntegration;
   private layerUpdateCoordinator!: LayerUpdateCoordinator;
+  private eventHandlers!: ChartEventHandlers;
 
   private padding = {
     top: 0,
@@ -229,6 +231,9 @@ export class ChartContainer extends LitElement {
 
     // Initialize browser integration
     this.browserIntegration = new BrowserIntegration(this, this.shadowRoot!);
+
+    // Initialize event handlers
+    this.eventHandlers = new ChartEventHandlers(this);
 
     // Check if device is touch-only (no mouse/trackpad)
     this.isTouchOnly = this.browserIntegration.isTouchOnlyDevice();
@@ -393,27 +398,27 @@ export class ChartContainer extends LitElement {
     // Add event listener for candle clicks
     this.addEventListener(
       "candle-click",
-      this.handleCandleClick as EventListener,
+      this.eventHandlers.handleCandleClick as EventListener,
     );
 
     // Add event listeners for dragging interactions from interaction layers
     this.addEventListener(
       "price-line-dragged",
-      this.handlePriceLineDragged as EventListener,
+      this.eventHandlers.handlePriceLineDragged as EventListener,
     );
     this.addEventListener(
       "annotation-dragged",
-      this.handleAnnotationDraggedEvent as EventListener,
+      this.eventHandlers.handleAnnotationDraggedEvent as EventListener,
     );
 
     // Add event listeners for risk zone interactions
     this.addEventListener(
       "risk-zone-clicked",
-      this.handleRiskZoneClicked as EventListener,
+      this.eventHandlers.handleRiskZoneClicked as EventListener,
     );
     this.addEventListener(
       "risk-zone-hovered",
-      this.handleRiskZoneHovered as EventListener,
+      this.eventHandlers.handleRiskZoneHovered as EventListener,
     );
 
     // Also listen for double-clicks directly on the chart area
@@ -421,12 +426,12 @@ export class ChartContainer extends LitElement {
     if (chartAreaElement) {
       chartAreaElement.addEventListener(
         "dblclick",
-        this.handleChartAreaDoubleClick as EventListener,
+        this.eventHandlers.handleChartAreaDoubleClick as EventListener,
       );
     }
 
     // Add global click listener to hide tooltip when clicking elsewhere
-    document.addEventListener("click", this.handleDocumentClick);
+    document.addEventListener("click", this.eventHandlers.handleDocumentClick);
 
     // Wait for components to initialize
     setTimeout(() => {
@@ -460,15 +465,15 @@ export class ChartContainer extends LitElement {
     }, 0);
 
     // Add click outside listener
-    document.addEventListener("click", this.handleClickOutside);
-    document.addEventListener("touchstart", this.handleClickOutside);
+    document.addEventListener("click", this.eventHandlers.handleClickOutside);
+    document.addEventListener("touchstart", this.eventHandlers.handleClickOutside);
 
-    window.addEventListener("spotcanvas-upgrade", this.handleUpgrade);
+    window.addEventListener("spotcanvas-upgrade", this.eventHandlers.handleUpgrade);
 
     // Add event listener for indicator toggling
     this.addEventListener(
       "toggle-indicator",
-      this.handleIndicatorToggle as EventListener,
+      this.eventHandlers.handleIndicatorToggle as EventListener,
     );
 
     // Setup ResizeObserver to handle window/container resize
@@ -503,13 +508,6 @@ export class ChartContainer extends LitElement {
       logger.info("ChartContainer: ResizeObserver attached to chart area");
     }
   }
-
-
-  private handleUpgrade = async () => {
-    if (this.isFullscreen) {
-      await document.exitFullscreen();
-    }
-  };
 
   protected updated(changedProperties: Map<string, unknown>) {
     super.updated(changedProperties);
@@ -618,28 +616,28 @@ export class ChartContainer extends LitElement {
 
     document.removeEventListener(
       "fullscreenchange",
-      this.handleFullscreenChange,
+      this.eventHandlers.handleFullscreenChange,
     );
-    document.removeEventListener("click", this.handleClickOutside);
-    document.removeEventListener("touchstart", this.handleClickOutside);
-    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("click", this.eventHandlers.handleClickOutside);
+    document.removeEventListener("touchstart", this.eventHandlers.handleClickOutside);
+    document.removeEventListener("click", this.eventHandlers.handleDocumentClick);
     this.removeEventListener(
       "candle-click",
-      this.handleCandleClick as EventListener,
+      this.eventHandlers.handleCandleClick as EventListener,
     );
 
     const chartAreaElement = this.renderRoot.querySelector(".chart-area");
     if (chartAreaElement) {
       chartAreaElement.removeEventListener(
         "dblclick",
-        this.handleChartAreaDoubleClick as EventListener,
+        this.eventHandlers.handleChartAreaDoubleClick as EventListener,
       );
     }
-    this.removeEventListener("toggle-fullscreen", this.handleFullScreenToggle);
-    this.removeEventListener("toggle-fullwindow", this.toggleFullWindow);
+    this.removeEventListener("toggle-fullscreen", this.eventHandlers.handleFullScreenToggle);
+    this.removeEventListener("toggle-fullwindow", this.eventHandlers.toggleFullWindow);
     this.removeEventListener(
       "toggle-indicator",
-      this.handleIndicatorToggle as EventListener,
+      this.eventHandlers.handleIndicatorToggle as EventListener,
     );
 
     this.interactionController?.detach();
@@ -741,111 +739,12 @@ export class ChartContainer extends LitElement {
     return this.indicators.get(id)?.visible || false;
   }
 
+  /**
+   * Public API method - delegates to event handlers
+   */
   public handleIndicatorToggle(e: CustomEvent) {
-    const {
-      id,
-      visible,
-      display,
-      class: indicatorClass,
-      params,
-      skipFetch,
-      scale,
-      name,
-      gridStyle,
-    } = e.detail;
-
-    logger.debug(
-      `ChartContainer: Indicator ${id} toggled to ${
-        visible ? "visible" : "hidden"
-      }`,
-    );
-
-    // Special handling for volume indicator
-    if (id === "volume") {
-      this.showVolume = visible;
-      logger.debug(
-        `ChartContainer: Volume indicator toggled to ${
-          visible ? "visible" : "hidden"
-        }`,
-      );
-      // Force redraw of the volume chart
-      const volumeChart = this.renderRoot.querySelector(
-        ".volume-chart",
-      ) as HTMLElement;
-      if (volumeChart) {
-        volumeChart.hidden = !visible;
-        logger.debug(
-          `ChartContainer: Volume chart container ${
-            visible ? "shown" : "hidden"
-          }`,
-        );
-
-        // Force a redraw on the volume-chart element
-        const volumeChartElement = volumeChart.querySelector("volume-chart");
-        if (volumeChartElement) {
-          volumeChartElement.dispatchEvent(
-            new CustomEvent("force-redraw", {
-              bubbles: false,
-              composed: true,
-            }),
-          );
-        }
-      }
-
-      // Skip adding volume to indicators map - it has special handling
-      return;
-    }
-
-    if (visible) {
-      this.indicators.set(id, {
-        id,
-        visible,
-        display,
-        class: indicatorClass,
-        params,
-        skipFetch,
-        scale,
-        name,
-        gridStyle,
-        ...e.detail,
-      });
-      // Update state.indicators
-      this._state.indicators = Array.from(this.indicators.values())
-        .filter((ind) => ind.visible)
-        .map((ind) => ind);
-    } else {
-      this.indicators.delete(id);
-      // Update state.indicators
-      this._state.indicators = Array.from(this.indicators.values());
-    }
-
-    this.requestUpdate();
+    this.eventHandlers.handleIndicatorToggle(e);
   }
-
-  private showCandleTooltipFromContextMenu = () => {
-    if (!this.chart || !this.contextMenuMousePosition) return;
-
-    const chartRect = this.chart.getBoundingClientRect();
-    const x = this.contextMenuMousePosition.x - chartRect.left;
-    const y = this.contextMenuMousePosition.y - chartRect.top;
-
-    const candle = this.chart.getCandleAtPosition(x, y);
-    if (candle) {
-      const containerRect = this.getBoundingClientRect();
-      this.candleTooltipData = {
-        timestamp: candle.timestamp,
-        open: candle.open,
-        high: candle.high,
-        low: candle.low,
-        close: candle.close,
-        volume: candle.volume,
-        x: this.contextMenuMousePosition.x - containerRect.left,
-        y: this.contextMenuMousePosition.y - containerRect.top,
-      };
-      this.showCandleTooltip = true;
-      this.showContextMenu = false;
-    }
-  };
 
   render() {
     const menuItems = buildContextMenuItems({
@@ -854,8 +753,8 @@ export class ChartContainer extends LitElement {
       indicators: this.indicators,
       container: this,
       actions: {
-        showCandleTooltip: this.showCandleTooltipFromContextMenu,
-        toggleFullWindow: this.toggleFullWindow,
+        showCandleTooltip: this.eventHandlers.showCandleTooltipFromContextMenu,
+        toggleFullWindow: this.eventHandlers.toggleFullWindow,
       },
     });
 
@@ -918,8 +817,8 @@ export class ChartContainer extends LitElement {
               .trendLines=${this.trendLines}
               .state=${this._state}
               style="--price-axis-width: ${this.priceAxisWidth}px"
-              @trend-line-update=${this.handleTrendLineUpdate}
-              @trend-line-remove=${this.handleTrendLineRemove}
+              @trend-line-update=${this.eventHandlers.handleTrendLineUpdate}
+              @trend-line-remove=${this.eventHandlers.handleTrendLineRemove}
             ></trend-line-layer>
 
             <!-- Pattern labels layer -->
@@ -929,7 +828,7 @@ export class ChartContainer extends LitElement {
               .timeRange=${this._state.timeRange}
               .priceRange=${this._state.priceRange}
               style="--price-axis-width: ${this.priceAxisWidth}px"
-              @pattern-click=${this.handlePatternClick}
+              @pattern-click=${this.eventHandlers.handlePatternClick}
             ></pattern-labels-layer>
 
             <!-- Trade Zones Layer (z-index: 0) -->
@@ -1269,230 +1168,6 @@ export class ChartContainer extends LitElement {
     this.interactionController?.panTimeline(movementSeconds, durationSeconds);
   }
 
-  private handleCandleClick = (event: CustomEvent) => {
-    event.stopPropagation();
-    const { candle, x, y } = event.detail;
-    const chartId = (this as any)._chartId || "unknown";
-
-    logger.debug(
-      `handleCandleClick called for chart ${chartId} with candle:`,
-      candle,
-      "x:",
-      x,
-      "y:",
-      y,
-    );
-
-    // x and y are already relative coordinates from the event detail
-    // but we should ensure they're relative to the chart container
-    const containerRect = this.getBoundingClientRect();
-    this.candleTooltipData = {
-      timestamp: candle.timestamp,
-      open: candle.open,
-      high: candle.high,
-      low: candle.low,
-      close: candle.close,
-      volume: candle.volume,
-      x: x - containerRect.left,
-      y: y - containerRect.top,
-    };
-    this.showCandleTooltip = true;
-    logger.debug(
-      `Set showCandleTooltip to true for chart ${chartId}, data:`,
-      this.candleTooltipData,
-    );
-  };
-
-  /**
-   * Handle price line dragged events from interaction layer
-   */
-  private handlePriceLineDragged = (event: CustomEvent) => {
-    const { lineId, newPrice, line } = event.detail;
-
-    // Update the price line with the new price
-    const updatedLine = { ...line, price: newPrice };
-    this.updatePriceLine(lineId, updatedLine);
-  };
-
-  /**
-   * Handle annotation dragged events from interaction layer
-   * Routes to controller's callback
-   */
-  private handleAnnotationDraggedEvent = (event: CustomEvent) => {
-    if (this.annotationsController) {
-      this.annotationsController.handleAnnotationDragged(event.detail);
-    }
-  };
-
-  /**
-   * Handle risk zone clicked events from interaction layer
-   */
-  private handleRiskZoneClicked = (event: CustomEvent) => {
-    const { zoneId, zone } = event.detail;
-    logger.debug(`ChartContainer: Risk zone clicked: ${zoneId}`);
-
-    // Forward event to Chart API
-    this.dispatchEvent(
-      new CustomEvent("risk-zone-clicked", {
-        detail: { zoneId, zone },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  };
-
-  /**
-   * Handle risk zone hovered events from interaction layer
-   */
-  private handleRiskZoneHovered = (event: CustomEvent) => {
-    const { zoneId, zone } = event.detail;
-    logger.debug(`ChartContainer: Risk zone hovered: ${zoneId}`);
-
-    // Forward event to Chart API
-    this.dispatchEvent(
-      new CustomEvent("risk-zone-hovered", {
-        detail: { zoneId, zone },
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  };
-
-  private handleDocumentClick = (event: MouseEvent) => {
-    // Hide tooltip if clicking outside the chart
-    const target = event.target as Element;
-    // Check if the click is within this chart container or the tooltip itself
-    const tooltip = this.renderRoot.querySelector("candle-tooltip");
-    const isInTooltip = tooltip && tooltip.contains(target);
-
-    if (!this.contains(target) && !isInTooltip) {
-      // Only hide if we're showing a tooltip and click is outside both chart and tooltip
-      if (this.showCandleTooltip) {
-        const chartId = (this as any)._chartId || "unknown";
-        logger.debug(
-          `Hiding tooltip for chart ${chartId} due to outside click`,
-        );
-        this.showCandleTooltip = false;
-      }
-    }
-  };
-
-  private handleChartAreaDoubleClick = (event: MouseEvent) => {
-    const chartId = (this as any)._chartId || "unknown";
-    logger.debug(`handleChartAreaDoubleClick called for chart ${chartId}`);
-
-    // Try to find the chart and canvas
-    const chart = this.renderRoot.querySelector("candlestick-chart") as any;
-    if (!chart || !chart.shadowRoot) {
-      logger.debug(`No chart or shadowRoot found for chart ${chartId}`);
-      return;
-    }
-
-    const canvas = chart.shadowRoot.querySelector("canvas");
-    if (!canvas) {
-      logger.debug(`No canvas found for chart ${chartId}`);
-      return;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    // Don't multiply by DPR - our stored positions are in logical pixels
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    logger.debug(`Double-click position for chart ${chartId} - x:`, x, "y:", y);
-
-    // Use the drawing strategy to find candle at position
-    if (
-      chart.drawingStrategy &&
-      typeof chart.drawingStrategy.getCandleAtPosition === "function"
-    ) {
-      logger.debug(`Drawing strategy available for chart ${chartId}`);
-      const candle = chart.drawingStrategy.getCandleAtPosition(x, y);
-      logger.debug(
-        `Found candle from double-click in chart ${chartId}:`,
-        candle,
-      );
-
-      if (candle) {
-        // Get the chart container's position to convert to relative coordinates
-        const containerRect = this.getBoundingClientRect();
-        this.candleTooltipData = {
-          timestamp: candle.timestamp,
-          open: candle.open,
-          high: candle.high,
-          low: candle.low,
-          close: candle.close,
-          volume: candle.volume,
-          x: event.clientX - containerRect.left,
-          y: event.clientY - containerRect.top,
-        };
-        this.showCandleTooltip = true;
-        logger.debug(`Set showCandleTooltip to true for chart ${chartId}`);
-      } else {
-        this.showCandleTooltip = false;
-        logger.debug(`No candle found, hiding tooltip for chart ${chartId}`);
-      }
-    } else {
-      logger.debug(
-        `Drawing strategy or getCandleAtPosition not available for chart ${chartId}`,
-      );
-    }
-  };
-
-  private handleFullScreenToggle = async (e: Event) => {
-    if (this.isMobile) return;
-    if (e.defaultPrevented) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    try {
-      if (!this.isFullscreen) {
-        await this.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (err) {
-      logger.error("Error attempting to toggle fullscreen:", err);
-    }
-  };
-
-  private handleFullscreenChange = () => {
-    if (this.isMobile) return; // Don't handle fullscreen on mobile
-    this.isFullscreen = document.fullscreenElement === this;
-    if (!this.isFullscreen) {
-      // Add a small delay to ensure dimensions are properly updated
-      setTimeout(() => {
-        this.handleResize(this.clientWidth, this.clientHeight);
-      }, 100);
-    }
-  };
-
-  private handleClickOutside = (e: MouseEvent | TouchEvent) => {
-    const target = e.target as HTMLElement;
-    const contextMenu = this.renderRoot.querySelector("chart-context-menu");
-    if (contextMenu && !contextMenu.contains(target)) {
-      this.showContextMenu = false;
-    }
-  };
-
-  private toggleFullWindow = (e?: Event) => {
-    if (e?.defaultPrevented) return;
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    this.isFullWindow = !this.isFullWindow;
-    if (this.isFullWindow) {
-      this.classList.add("full-window");
-    } else {
-      this.classList.remove("full-window");
-    }
-    // Force a resize after the class change with a small delay
-    setTimeout(() => {
-      this.handleResize(this.clientWidth, this.clientHeight);
-    }, 100);
-  };
-
   static styles = [getStyles(PRICEAXIS_WIDTH, TIMELINE_HEIGHT)];
 
   // Helper method to get the chart element from the indicator stack
@@ -1520,96 +1195,6 @@ export class ChartContainer extends LitElement {
 
     return chartElement;
   }
-
-  private handleTrendLineUpdate = (event: CustomEvent) => {
-    logger.debug(`ChartContainer: handleTrendLineUpdate called`, event.detail);
-    const { trendLine } = event.detail;
-    // Convert Proxy IDs to strings for comparison
-    const index = this.trendLines.findIndex(
-      (l) => String(l.id) === String(trendLine.id),
-    );
-    logger.debug(
-      `ChartContainer: Looking for trend line with ID ${String(trendLine.id)}, found at index: ${index}`,
-    );
-    if (index !== -1) {
-      this.trendLines = [
-        ...this.trendLines.slice(0, index),
-        trendLine,
-        ...this.trendLines.slice(index + 1),
-      ];
-
-      // Update state
-      this._state.trendLines = this.trendLines;
-      touch("state.trendLines");
-
-      // Emit API event
-      this.dispatchEvent(
-        new CustomEvent("trend-line-updated", {
-          detail: event.detail,
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    } else {
-      logger.warn(
-        `ChartContainer: Could not find trend line with ID ${String(trendLine.id)} to update`,
-      );
-    }
-  };
-
-  private handleTrendLineRemove = (event: CustomEvent) => {
-    logger.debug(`ChartContainer: handleTrendLineRemove called, event:`, event);
-    logger.debug(`ChartContainer: Event detail:`, event.detail);
-    logger.debug(`ChartContainer: Event type:`, event.detail?.type);
-
-    const eventDetail = event.detail;
-    const trendLine = eventDetail.trendLine || eventDetail;
-
-    if (!trendLine || !trendLine.id) {
-      logger.error(
-        `ChartContainer: Invalid event detail, cannot find trend line`,
-        eventDetail,
-      );
-      return;
-    }
-
-    const lineId = String(trendLine.id);
-    logger.debug(`ChartContainer: Removing trend line ${lineId}`);
-    logger.debug(
-      `ChartContainer: Before removal, trendLines:`,
-      this.trendLines.map((l) => String(l.id)),
-    );
-
-    // Use String conversion for Proxy comparison
-    this.trendLines = this.trendLines.filter((l) => String(l.id) !== lineId);
-
-    // Update state
-    this._state.trendLines = this.trendLines;
-    touch("state.trendLines");
-
-    // Force update to ensure UI reflects the change
-    this.requestUpdate();
-
-    logger.debug(
-      `ChartContainer: After removal, ${this.trendLines.length} lines remaining:`,
-      this.trendLines.map((l) => String(l.id)),
-    );
-
-    // Emit API event
-    this.dispatchEvent(
-      new CustomEvent("trend-line-removed", {
-        detail: event.detail,
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  };
-
-  private handlePatternClick = (event: CustomEvent) => {
-    // Pattern click is already handled by the markers layer itself
-    // This is here if we need to do additional processing at the container level
-    logger.debug("ChartContainer: Pattern clicked", event.detail);
-  };
 
   /**
    * Pattern highlight management methods have been moved to PatternHighlightsController.
