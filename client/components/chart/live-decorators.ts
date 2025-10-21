@@ -138,7 +138,9 @@ export class LiveDecorators extends CanvasBase {
   }
 
   useResizeObserver(): boolean {
-    return true;
+    // Disable ResizeObserver - let layer coordinator manage sizing
+    // This prevents incorrect initial sizing before flexbox layout settles
+    return false;
   }
 
   disconnectedCallback() {

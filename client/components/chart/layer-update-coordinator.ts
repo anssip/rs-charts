@@ -20,6 +20,29 @@ export class LayerUpdateCoordinator {
   ) {}
 
   /**
+   * Get the height of the main chart area, excluding bottom stacked indicators.
+   * This ensures layers don't overlap with bottom indicators like RSI.
+   * Falls back to canvas height if the chart item element is not found.
+   */
+  private getMainChartHeight(): number {
+    const chart = this.getChart();
+    if (!chart?.canvas) return 0;
+
+    // Try to get the height from the chart item container (excludes bottom indicators)
+    const indicatorStack = this.renderRoot.querySelector("indicator-stack.main-chart");
+    if (indicatorStack) {
+      const chartItem = indicatorStack.shadowRoot?.querySelector(".stack-item.chart-item") as HTMLElement;
+      if (chartItem && chartItem.clientHeight > 0) {
+        return chartItem.clientHeight;
+      }
+    }
+
+    // Fallback to canvas height if chart item not found
+    const dpr = getDpr();
+    return chart.canvas.height / dpr;
+  }
+
+  /**
    * Update a generic layer with dimensions and state
    */
   updateLayer(layer: Layer | undefined): void {
@@ -35,9 +58,8 @@ export class LayerUpdateCoordinator {
       // Use the chart area width minus price axis (same as what the tool uses)
       layer.width = chartArea.clientWidth - this.getPriceAxisWidth();
 
-      // Use the actual canvas height
-      const dpr = getDpr(); // Use fixed DPR
-      layer.height = chart.canvas.height / dpr;
+      // Use the main chart height (excludes bottom stacked indicators)
+      layer.height = this.getMainChartHeight();
     }
 
     // Update the state to ensure trend lines recalculate positions
@@ -88,8 +110,8 @@ export class LayerUpdateCoordinator {
         ) as HTMLElement;
         if (chartArea && chart.canvas) {
           overlay.width = chartArea.clientWidth - this.getPriceAxisWidth();
-          const dpr = getDpr();
-          overlay.height = chart.canvas.height / dpr;
+          // Use the main chart height (excludes bottom stacked indicators)
+          overlay.height = this.getMainChartHeight();
         }
 
         overlay.state = this.getState();
@@ -116,8 +138,8 @@ export class LayerUpdateCoordinator {
     ) as HTMLElement;
     if (chartArea && chart.canvas) {
       riskZonesLayer.width = chartArea.clientWidth - this.getPriceAxisWidth();
-      const dpr = getDpr();
-      riskZonesLayer.height = chart.canvas.height / dpr;
+      // Use the main chart height (excludes bottom stacked indicators)
+      riskZonesLayer.height = this.getMainChartHeight();
     }
 
     const state = this.getState();
@@ -151,13 +173,40 @@ export class LayerUpdateCoordinator {
       if (chartArea && chart.canvas) {
         equityCurveLayer.width =
           chartArea.clientWidth - this.getPriceAxisWidth();
-        const dpr = getDpr();
-        equityCurveLayer.height = chart.canvas.height / dpr;
+        // Use the main chart height (excludes bottom stacked indicators)
+        equityCurveLayer.height = this.getMainChartHeight();
       }
     }
 
     // Delegate to controller for state/data updates
     equityCurveController.updateLayer();
+  }
+
+  /**
+   * Update live decorators layer (live price line)
+   * Special case: Uses resize() method instead of width/height properties
+   */
+  updateLiveDecoratorsLayer(): void {
+    const chart = this.getChart();
+    if (!chart?.canvas) return;
+
+    const liveDecoratorsLayer = this.renderRoot.querySelector(
+      "live-decorators",
+    ) as any;
+    if (!liveDecoratorsLayer) return;
+
+    const chartArea = this.renderRoot.querySelector(
+      ".chart-area",
+    ) as HTMLElement;
+    if (chartArea && chart.canvas) {
+      const width = chartArea.clientWidth - this.getPriceAxisWidth();
+      const height = this.getMainChartHeight();
+
+      // Call resize method on live-decorators to update its canvas dimensions
+      if (typeof liveDecoratorsLayer.resize === 'function') {
+        liveDecoratorsLayer.resize(width, height);
+      }
+    }
   }
 
   /**
@@ -185,5 +234,6 @@ export class LayerUpdateCoordinator {
     this.updateRiskZonesCanvasLayer();
     this.updateEquityCurveCanvasLayer();
     this.updatePositionOverlay();
+    this.updateLiveDecoratorsLayer();
   }
 }

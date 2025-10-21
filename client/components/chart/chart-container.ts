@@ -1052,14 +1052,25 @@ export class ChartContainer extends LitElement {
     if (!this.chart) return;
     if (!this._state?.granularity) return;
 
+    // Calculate the main chart height (excluding bottom stacked indicators)
+    // This ensures the candlestick chart and live-decorators have the same canvas height
+    let chartHeight = height;
+    const indicatorStack = this.renderRoot.querySelector("indicator-stack.main-chart");
+    if (indicatorStack) {
+      const chartItem = indicatorStack.shadowRoot?.querySelector(".stack-item.chart-item") as HTMLElement;
+      if (chartItem && chartItem.clientHeight > 0) {
+        chartHeight = chartItem.clientHeight;
+      }
+    }
+
     if (this._state.priceHistory.getCandles().size === 0) {
-      this.chart.resize(width, height);
+      this.chart.resize(width, chartHeight);
       return;
     }
     if (this._state.timeRange.end === 0) {
       return;
     }
-    this.chart.resize(width, height);
+    this.chart.resize(width, chartHeight);
 
     const visibleCandles = this.calculateVisibleCandles();
     const newStartTimestamp =
@@ -1173,31 +1184,7 @@ export class ChartContainer extends LitElement {
       evaluations: [],
     });
     if (isSuccess) {
-      // Recalculate price range to include the live candle
-      // This ensures the live price line aligns correctly with the candle
-      this._state.priceRange = this._state.priceHistory.getPriceRange(
-        this._state.timeRange.start,
-        this._state.timeRange.end,
-      );
-
-      // Dispatch price range change events to ensure overlay components update
-      this.dispatchEvent(new CustomEvent('price-range-change', {
-        bubbles: true,
-        composed: true,
-        detail: { priceRange: this._state.priceRange }
-      }));
-
       this.draw();
-
-      // Deferred update to catch components that might initialize late
-      // This ensures alignment even if overlay components weren't ready for the first event
-      requestAnimationFrame(() => {
-        this.dispatchEvent(new CustomEvent('price-range-change', {
-          bubbles: true,
-          composed: true,
-          detail: { priceRange: this._state.priceRange }
-        }));
-      });
     }
     return isSuccess;
   }
