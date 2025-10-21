@@ -26,10 +26,8 @@ import {
   getDpr,
 } from "../../util/chart-util";
 import { CoinbaseProduct } from "../../api/firestore-client";
-import { MenuItem } from "./context-menu";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
-import { config } from "../../config";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
 import { initializeControllers } from "./interaction/controller-factory";
@@ -91,6 +89,8 @@ import {
 } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 import { TradingOverlaysManager } from "./trading-overlays-manager";
+import { BrowserIntegration } from "./browser-integration";
+import { buildContextMenuItems } from "./context-menu-builder";
 
 const logger = getLogger("ChartContainer");
 logger.setLoggerLevel("ChartContainer", LogLevel.INFO);
@@ -141,6 +141,7 @@ export class ChartContainer extends LitElement {
   private isMobile = this.mobileMediaQuery.matches;
 
   private chart: CandlestickChart | null = null;
+  private browserIntegration: BrowserIntegration;
 
   private padding = {
     top: 0,
@@ -226,16 +227,18 @@ export class ChartContainer extends LitElement {
 
   constructor() {
     super();
+
+    // Initialize browser integration
+    this.browserIntegration = new BrowserIntegration(this, this.shadowRoot!);
+
     // Check if device is touch-only (no mouse/trackpad)
-    this.isTouchOnly = window.matchMedia(
-      "(hover: none) and (pointer: coarse)",
-    ).matches;
+    this.isTouchOnly = this.browserIntegration.isTouchOnlyDevice();
 
-    // Initialize mobile state and width
-    this.handleMobileChange();
-
-    // Add mobile media query listener
-    this.mobileMediaQuery.addEventListener("change", this.handleMobileChange);
+    // Setup mobile detection with change handler
+    this.browserIntegration.setupMobileDetection((isMobile) => {
+      this.isMobile = isMobile;
+      this.priceAxisWidth = isMobile ? PRICEAXIS_MOBILE_WIDTH : PRICEAXIS_WIDTH;
+    });
   }
 
   set startTimestamp(startTimestamp: number) {
@@ -267,14 +270,15 @@ export class ChartContainer extends LitElement {
       chartArea.clientHeight,
     );
 
-    // Add keyboard event listeners to prevent browser zoom
-    this.setupZoomPrevention();
-
     // Get the computed style to check if we have a fixed height
     const computedStyle = getComputedStyle(chartArea);
     const height = parseFloat(computedStyle.height);
     const width = parseFloat(computedStyle.width);
     logger.debug("ChartContainer: computed dimensions:", width, "x", height);
+
+    // Setup browser integration
+    this.browserIntegration.setupZoomPrevention();
+    this.browserIntegration.setupFocusHandler(() => this.draw());
 
     // Initial resize with the computed dimensions
     if (height > 0 && width > 0) {
@@ -450,18 +454,10 @@ export class ChartContainer extends LitElement {
 
     window.addEventListener("spotcanvas-upgrade", this.handleUpgrade);
 
-    this.setupFocusHandler();
-
     // Add event listener for indicator toggling
     this.addEventListener(
       "toggle-indicator",
       this.handleIndicatorToggle as EventListener,
-    );
-
-    // Initialize mobile state and add listener
-    this.handleMobileChange();
-    this.mobileMediaQuery.addEventListener("change", () =>
-      this.handleMobileChange(),
     );
 
     // Setup ResizeObserver to handle window/container resize
@@ -497,72 +493,6 @@ export class ChartContainer extends LitElement {
     }
   }
 
-  private handleMobileChange = () => {
-    this.isMobile = this.mobileMediaQuery.matches;
-    this.priceAxisWidth = this.isMobile
-      ? PRICEAXIS_MOBILE_WIDTH
-      : PRICEAXIS_WIDTH;
-  };
-
-  private setupZoomPrevention() {
-    // Prevent keyboard zoom shortcuts
-    const handleKeydown = (e: KeyboardEvent) => {
-      // Check if Ctrl or Cmd is pressed
-      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-
-      if (isCtrlOrCmd) {
-        // Prevent Ctrl/Cmd + Plus/Minus/0 (zoom controls)
-        if (
-          e.key === "+" ||
-          e.key === "-" ||
-          e.key === "=" || // Plus key without shift
-          e.key === "0" ||
-          e.keyCode === 187 || // Plus/Equals key
-          e.keyCode === 189 || // Minus key
-          e.keyCode === 48 // Zero key
-        ) {
-          e.preventDefault();
-          logger.debug(
-            "ChartContainer: Prevented browser zoom keyboard shortcut",
-          );
-          return false;
-        }
-      }
-    };
-
-    // Prevent wheel zoom with Ctrl/Cmd
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        logger.debug("ChartContainer: Prevented browser zoom wheel event");
-        return false;
-      }
-    };
-
-    // Add listeners to the component and its shadow root
-    this.addEventListener("keydown", handleKeydown);
-    this.addEventListener("wheel", handleWheel, { passive: false });
-
-    // Also add to the document when this element has focus
-    const documentKeydownHandler = (e: KeyboardEvent) => {
-      // Only prevent if the chart container or its children have focus
-      if (
-        this.contains(document.activeElement) ||
-        this.shadowRoot?.contains(document.activeElement as Element)
-      ) {
-        handleKeydown(e);
-      }
-    };
-
-    document.addEventListener("keydown", documentKeydownHandler);
-
-    // Store handlers for cleanup
-    (this as any)._zoomPreventionHandlers = {
-      keydown: handleKeydown,
-      wheel: handleWheel,
-      documentKeydown: documentKeydownHandler,
-    };
-  }
 
   private handleUpgrade = async () => {
     if (this.isFullscreen) {
@@ -799,7 +729,10 @@ export class ChartContainer extends LitElement {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
-    window.removeEventListener("focus", this.handleWindowFocus);
+
+    // Clean up browser integration (zoom prevention, focus handler, mobile detection)
+    this.browserIntegration.cleanup();
+
     document.removeEventListener(
       "fullscreenchange",
       this.handleFullscreenChange,
@@ -825,17 +758,6 @@ export class ChartContainer extends LitElement {
       "toggle-indicator",
       this.handleIndicatorToggle as EventListener,
     );
-    this.mobileMediaQuery.removeEventListener("change", () =>
-      this.handleMobileChange(),
-    );
-
-    // Clean up zoom prevention handlers
-    const handlers = (this as any)._zoomPreventionHandlers;
-    if (handlers) {
-      this.removeEventListener("keydown", handlers.keydown);
-      this.removeEventListener("wheel", handlers.wheel);
-      document.removeEventListener("keydown", handlers.documentKeydown);
-    }
 
     this.interactionController?.detach();
     this.clickToTradeController?.disable();
@@ -1042,50 +964,16 @@ export class ChartContainer extends LitElement {
   };
 
   render() {
-    const menuItems: MenuItem[] = [
-      {
-        label: "Show Candle Details",
-        action: this.showCandleTooltipFromContextMenu,
+    const menuItems = buildContextMenuItems({
+      isFullWindow: this.isFullWindow,
+      showVolume: this.showVolume,
+      indicators: this.indicators,
+      container: this,
+      actions: {
+        showCandleTooltip: this.showCandleTooltipFromContextMenu,
+        toggleFullWindow: this.toggleFullWindow,
       },
-      {
-        label: "separator",
-        separator: true,
-      },
-      {
-        label: this.isFullWindow ? "Exit Full Window" : "Full Window",
-        action: this.toggleFullWindow,
-      },
-      {
-        label: "separator",
-        separator: true,
-      },
-      {
-        label: "Indicators",
-        isHeader: true,
-      },
-      // Transform the built-in indicators to have active state
-      ...config.getBuiltInIndicators(this).map((item) => {
-        // Skip separators and headers
-        if (item.separator || item.isHeader) {
-          return item;
-        }
-
-        // For Volume indicator, check showVolume property
-        if (item.label === "Volume") {
-          return {
-            ...item,
-            active: this.showVolume,
-          };
-        }
-
-        // For other indicators, determine ID based on the label
-        const indicatorId = item.label.toLowerCase().replace(/\s+/g, "-");
-        return {
-          ...item,
-          active: this.isIndicatorVisible(indicatorId),
-        };
-      }),
-    ];
+    });
 
     const overlayIndicators = Array.from(this.indicators.values()).filter(
       (indicator) => indicator.display === DisplayType.Overlay,
@@ -1494,14 +1382,6 @@ export class ChartContainer extends LitElement {
   public panTimeline(movementSeconds: number, durationSeconds: number = 1) {
     this.interactionController?.panTimeline(movementSeconds, durationSeconds);
   }
-
-  private setupFocusHandler() {
-    window.addEventListener("focus", this.handleWindowFocus);
-  }
-
-  private handleWindowFocus = () => {
-    this.draw();
-  };
 
   private handleCandleClick = (event: CustomEvent) => {
     event.stopPropagation();
