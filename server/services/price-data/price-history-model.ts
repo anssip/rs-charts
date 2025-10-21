@@ -379,7 +379,12 @@ export class SimplePriceHistory implements PriceHistory {
       return false;
     }
 
-    const existingCandle = this.getCandle(candle.timestamp);
+    // Align the timestamp to the granularity to prevent duplicate candles
+    // For example, if granularity is 1 hour and timestamp is 18:30, align it to 18:00
+    const granularityMs = this.granularityMs;
+    const alignedTimestamp = Math.floor(candle.timestamp / granularityMs) * granularityMs;
+
+    const existingCandle = this.getCandle(alignedTimestamp);
 
     if (existingCandle) {
       // For an existing candle:
@@ -387,7 +392,7 @@ export class SimplePriceHistory implements PriceHistory {
       // - Update high/low if the new price exceeds current bounds
       // - Update close price with the latest price
       const newCandle: Candle = {
-        timestamp: candle.timestamp,
+        timestamp: alignedTimestamp,
         open: existingCandle.open, // Keep original open price
         high: Math.max(existingCandle.high, candle.high, candle.close),
         low: Math.min(existingCandle.low, candle.low, candle.close),
@@ -398,17 +403,18 @@ export class SimplePriceHistory implements PriceHistory {
         evaluations: existingCandle.evaluations,
       };
 
-      this.candles.set(newCandle.timestamp, newCandle);
-      const index = this.findNearestCandleIndex(existingCandle.timestamp);
-      this.candlesSortedByTimestamp[index] = [newCandle.timestamp, newCandle];
+      this.candles.set(alignedTimestamp, newCandle);
+      const index = this.findNearestCandleIndex(alignedTimestamp);
+      this.candlesSortedByTimestamp[index] = [alignedTimestamp, newCandle];
     } else {
       const newCandle: Candle = {
         ...candle,
+        timestamp: alignedTimestamp,
         granularity: this.granularity,
         evaluations: [],
       };
-      this.candles.set(newCandle.timestamp, newCandle);
-      this.candlesSortedByTimestamp.push([newCandle.timestamp, newCandle]);
+      this.candles.set(alignedTimestamp, newCandle);
+      this.candlesSortedByTimestamp.push([alignedTimestamp, newCandle]);
       // Keep the array sorted
       this.candlesSortedByTimestamp.sort(([a], [b]) => a - b);
     }
