@@ -56,7 +56,14 @@ bun run update:linked        # Build bundled version for local development
 
 **Chart Container (`client/components/chart/chart-container.ts`)**
 - Top-level web component (`<chart-container>`)
-- Manages canvas layers, interactions, and child components
+- Orchestrates specialized controllers and visual layers through delegation pattern
+- Uses factory functions (`initializeControllers`, `initializeInteractionLayers`) for controller setup
+- Delegates responsibilities to specialized classes:
+  - **TradingOverlaysManager**: Manages trade markers, price lines, and trade zones
+  - **BrowserIntegration**: Handles zoom prevention, focus, and mobile detection
+  - **LayerUpdateCoordinator**: Coordinates updates across all visual layers
+  - **ChartEventHandlers**: Centralized event handling logic
+- Manages multiple specialized controllers (see Controllers & Layers section below)
 - Coordinates drawing strategies and viewport calculations
 
 **State Management (`client/init.ts`, `client/state/chart-state-manager.ts`)**
@@ -74,6 +81,116 @@ bun run update:linked        # Build bundled version for local development
 - External control interface for frameworks (React, Vue, Angular)
 - Methods: symbol/granularity control, indicators, fullscreen, position overlays, trend lines
 - Event system: `symbolChange`, `granularityChange`, `indicatorChange`, `fullscreenChange`
+
+## Controllers & Layers Architecture
+
+The chart-container has been refactored to use a modular architecture with specialized controllers and visual layers. This separation of concerns makes the codebase more maintainable and allows features to be developed independently.
+
+### Controller Initialization
+
+Controllers are initialized using factory functions from `client/components/chart/interaction/controller-factory.ts`:
+- `initializeControllers()`: Sets up all feature-specific controllers
+- `initializeInteractionLayers()`: Initializes the main ChartInteractionController and registers interactive layers
+
+### Specialized Controllers
+
+Each controller manages a specific chart feature:
+
+**`ClickToTradeController`** (`./interaction/click-to-trade-controller.ts`)
+- Handles click-to-trade interactions for paper trading
+- Emits `order-request` and `price-hover` events
+- Can be enabled/disabled via configuration
+
+**`EquityCurveController`** (`./interaction/equity-curve-controller.ts`)
+- Manages equity curve visualization for backtesting
+- Updates equity curve canvas layer
+
+**`RiskZonesController`** (`./interaction/risk-zones-controller.ts`)
+- Manages risk zone overlays (invalidation zones, risk/reward areas)
+- Handles risk zone interactions (click, hover)
+
+**`TimeMarkersController`** (`./interaction/time-markers-controller.ts`)
+- Manages vertical time markers on the chart
+- Coordinates with TimeMarkersLayer for rendering
+
+**`AnnotationsController`** (`./interaction/annotations-controller.ts`)
+- Manages chart annotations (text labels, notes)
+- Handles annotation dragging and updates
+
+**`PositionOverlayController`** (`./interaction/position-overlay-controller.ts`)
+- Manages position overlay visualization for paper trading
+- Shows entry price, P&L, and position size
+
+**`PatternHighlightsController`** (`./interaction/pattern-highlights-controller.ts`)
+- Manages pattern recognition highlights
+- Provides methods to set/clear pattern highlights
+
+**`TrendLineController`** (`./interaction/trend-line-controller.ts`)
+- Manages trend line drawing and editing
+- Handles trend line tool activation/deactivation
+- Coordinates with TrendLineLayer for rendering
+
+### Visual Layers
+
+Visual layers are Lit web components that render specific chart elements. They are coordinated by the `LayerUpdateCoordinator`:
+
+**Canvas-based Layers:**
+- **`risk-zones-canvas-layer`**: Renders risk zones using canvas for performance
+- **`equity-curve-canvas-layer`**: Renders equity curve at bottom of chart
+
+**DOM-based Layers:**
+- **`TrendLineLayer`** (`trend-line-layer`): Interactive trend line rendering
+- **`PatternLabelsLayer`** (`pattern-labels-layer`): Pattern recognition labels
+- **`TradingMarkersLayer`** (`trading-markers-layer`): Buy/sell trade markers
+- **`PriceLinesLayer`** (`price-lines-layer`): Horizontal price level lines
+- **`TradeZonesLayer`** (`trade-zones-layer`): Visual trade duration zones
+- **`AnnotationsLayer`** (`annotations-layer`): Text annotations and notes
+- **`TimeMarkersLayer`** (`time-markers-layer`): Vertical time markers
+
+### Supporting Classes
+
+**`TradingOverlaysManager`** (`./trading-overlays-manager.ts`)
+- Centralized manager for trading-related overlays
+- Provides methods to add/remove/update trade markers, price lines, and trade zones
+- ChartContainer delegates trading overlay methods to this manager
+
+**`BrowserIntegration`** (`./browser-integration.ts`)
+- Handles browser-specific functionality
+- Zoom prevention on mobile devices
+- Focus/visibility change handling
+- Mobile detection with media query listeners
+
+**`LayerUpdateCoordinator`** (`./layer-update-coordinator.ts`)
+- Coordinates updates across all visual layers
+- Ensures layers are updated with consistent state
+- Provides methods for updating specific layers or all layers at once
+
+**`ChartEventHandlers`** (`./chart-event-handlers.ts`)
+- Centralized event handling for the chart container
+- Handles events: candle clicks, context menu, fullscreen, indicator toggles, trend line updates, etc.
+- Keeps event handling logic separate from chart container orchestration
+
+### Delegation Pattern
+
+The ChartContainer uses a delegation pattern where public API methods delegate to specialized managers:
+
+```typescript
+// Example: Trade marker methods delegate to TradingOverlaysManager
+public addTradeMarker(marker: TradeMarker): void {
+  this.tradingOverlaysManager?.addTradeMarker(marker);
+}
+
+// Example: Event handlers delegate to ChartEventHandlers
+this.addEventListener('candle-click',
+  this.eventHandlers.handleCandleClick as EventListener
+);
+```
+
+This pattern:
+- Reduces complexity in ChartContainer
+- Makes testing easier (test managers in isolation)
+- Improves code organization and maintainability
+- Allows features to be developed independently
 
 ## Interaction Layer System
 
@@ -215,6 +332,11 @@ The controller includes legacy support for draggable elements detected via compo
 - `doc/paper-trading-plan.md` - Paper trading and backtesting features roadmap
 - `client/lib.ts` - Main library exports
 - `client/api/chart-api.ts` - External control API
+- `client/components/chart/chart-container.ts` - Main chart orchestrator
+- `client/components/chart/interaction/controller-factory.ts` - Controller initialization
+- `client/components/chart/trading-overlays-manager.ts` - Trading overlay delegation
+- `client/components/chart/layer-update-coordinator.ts` - Layer update coordination
+- `client/components/chart/chart-event-handlers.ts` - Centralized event handling
 - `server/services/price-data/price-history-model.ts` - Core data models
 
 ## Development Workflow
@@ -242,6 +364,66 @@ The library supports paper trading visualization through:
 See `doc/paper-trading-plan.md` for detailed API design and implementation plan.
 
 ## Common Patterns
+
+### Adding a New Controller
+
+To add a new feature controller:
+
+1. Create controller class in `client/components/chart/interaction/`
+2. Define controller interface with initialization config
+3. Implement feature-specific methods
+4. Register controller in `controller-factory.ts` within `initializeControllers()`
+5. Add controller property to ChartContainer
+6. Add any necessary event listeners in ChartEventHandlers
+
+Example:
+```typescript
+// my-feature-controller.ts
+export class MyFeatureController {
+  constructor(private config: MyFeatureConfig) {}
+
+  enable(): void { /* ... */ }
+  disable(): void { /* ... */ }
+  destroy(): void { /* ... */ }
+}
+
+// controller-factory.ts - add to initializeControllers()
+container.myFeatureController = new MyFeatureController({
+  state,
+  updateLayer: callbacks.updateMyFeatureLayer,
+});
+```
+
+### Adding a New Visual Layer
+
+To add a new visual layer component:
+
+1. Create layer component in `client/components/chart/` (e.g., `my-feature-layer.ts`)
+2. Extend from `LitElement` with `Layer` interface
+3. Implement rendering logic in `render()` method
+4. Add layer update method to `LayerUpdateCoordinator`
+5. Register layer in ChartContainer's `firstUpdated()` using `initLayer()` helper
+6. Add layer to render template in ChartContainer
+
+Example:
+```typescript
+// my-feature-layer.ts
+@customElement('my-feature-layer')
+export class MyFeatureLayer extends LitElement implements Layer {
+  @property({ type: Array }) items: MyItem[] = [];
+  @property({ type: Object }) state!: ChartState;
+
+  render() {
+    return html`${this.items.map(item => html`...`)}`;
+  }
+}
+
+// Add to chart-container.ts render():
+<my-feature-layer
+  .items=${this._state.myItems || []}
+  .state=${this._state}
+></my-feature-layer>
+```
 
 ### Adding a New Indicator
 
@@ -340,28 +522,44 @@ api.on('symbolChange', (data) => {
 
 ```
 rs-charts/
-├── client/               # Client-side code (Lit components)
-│   ├── api/             # Chart API, Firestore client, repositories
-│   ├── components/      # Chart components
-│   │   └── chart/       # Canvas-based chart components
-│   ├── state/           # State management
-│   ├── types/           # TypeScript type definitions
-│   ├── util/            # Utilities (logger, price range, etc.)
-│   ├── app.ts           # Main application controller
-│   ├── init.ts          # Initialization and Firebase setup
-│   ├── lib.ts           # Library exports
-│   └── index.ts         # Demo app entry point
-├── server/              # Server-side code (Bun)
-│   ├── services/        # Price data services
-│   │   └── price-data/  # Coinbase integration, models
-│   └── index.ts         # HTTP server
-├── doc/                 # Documentation
-├── dist/                # Build output
-│   ├── lib/             # Library distribution
-│   ├── lib-bundled/     # Bundled library with dependencies
-│   ├── client/          # Demo app
-│   └── server/          # Server build
-└── scripts/             # Utility scripts
+├── client/                      # Client-side code (Lit components)
+│   ├── api/                    # Chart API, Firestore client, repositories
+│   ├── components/             # Chart components
+│   │   └── chart/              # Canvas-based chart components
+│   │       ├── interaction/    # Controllers for chart features
+│   │       │   ├── chart-interaction-controller.ts
+│   │       │   ├── controller-factory.ts
+│   │       │   ├── click-to-trade-controller.ts
+│   │       │   ├── equity-curve-controller.ts
+│   │       │   ├── risk-zones-controller.ts
+│   │       │   ├── annotations-controller.ts
+│   │       │   ├── trend-line-controller.ts
+│   │       │   └── ...
+│   │       ├── *-layer.ts      # Visual layer components
+│   │       ├── chart-container.ts              # Main orchestrator
+│   │       ├── trading-overlays-manager.ts     # Trading overlay manager
+│   │       ├── layer-update-coordinator.ts     # Layer coordinator
+│   │       ├── chart-event-handlers.ts         # Event handlers
+│   │       ├── browser-integration.ts          # Browser utilities
+│   │       └── ...
+│   ├── state/                  # State management
+│   ├── types/                  # TypeScript type definitions
+│   ├── util/                   # Utilities (logger, price range, etc.)
+│   ├── app.ts                  # Main application controller
+│   ├── init.ts                 # Initialization and Firebase setup
+│   ├── lib.ts                  # Library exports
+│   └── index.ts                # Demo app entry point
+├── server/                     # Server-side code (Bun)
+│   ├── services/               # Price data services
+│   │   └── price-data/         # Coinbase integration, models
+│   └── index.ts                # HTTP server
+├── doc/                        # Documentation
+├── dist/                       # Build output
+│   ├── lib/                    # Library distribution
+│   ├── lib-bundled/            # Bundled library with dependencies
+│   ├── client/                 # Demo app
+│   └── server/                 # Server build
+└── scripts/                    # Utility scripts
 ```
 
 ## Technical Debt & Known Issues
