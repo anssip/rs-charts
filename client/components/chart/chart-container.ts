@@ -872,21 +872,6 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></risk-zones-canvas-layer>
 
-            <!-- Equity Curve Canvas Layer (z-index: 15) -->
-            <equity-curve-canvas-layer
-              .data=${this._state.equityCurve?.data || []}
-              .config=${this._state.equityCurve}
-              .state=${this._state}
-              .timeRange=${this._state.timeRange}
-              .priceRange=${this._state.priceRange}
-              .width=${this.chart?.canvas
-                ? this.chart.canvas.width / getDpr()
-                : 0}
-              .height=${this.chart?.canvas
-                ? this.chart.canvas.height / getDpr()
-                : 0}
-              style="--price-axis-width: ${this.priceAxisWidth}px"
-            ></equity-curve-canvas-layer>
 
             <!-- Time Markers Layer (z-index: 25) -->
             <time-markers-layer
@@ -989,6 +974,21 @@ export class ChartContainer extends LitElement {
                     `,
                   )}
                   <live-decorators></live-decorators>
+                  <!-- Equity Curve Canvas Layer - positioned at bottom like volume -->
+                  <equity-curve-canvas-layer
+                    .data=${this._state.equityCurve?.data || []}
+                    .config=${this._state.equityCurve}
+                    .state=${this._state}
+                    .timeRange=${this._state.timeRange}
+                    .priceRange=${this._state.priceRange}
+                    .width=${this.chart?.canvas
+                      ? this.chart.canvas.width / getDpr()
+                      : 0}
+                    .height=${this.chart?.canvas
+                      ? this.chart.canvas.height / getDpr()
+                      : 0}
+                    style="--price-axis-width: ${this.priceAxisWidth}px"
+                  ></equity-curve-canvas-layer>
                   <!-- Volume chart - positioned using flexbox at the bottom -->
                   <div class="volume-chart" ?hidden=${!this.showVolume}>
                     <volume-chart></volume-chart>

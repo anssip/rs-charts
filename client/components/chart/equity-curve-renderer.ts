@@ -124,10 +124,10 @@ export class EquityCurveRenderer {
       ctx.lineTo(x, y);
     }
 
-    // Close the path to bottom of canvas
+    // Close the path to bottom of the equity curve area (bottom 25% of canvas)
     const lastPoint = points[points.length - 1];
     const lastX = this.timestampToCanvasX(lastPoint.timestamp, transform);
-    const bottomY = transform.canvasHeight * transform.dpr;
+    const bottomY = transform.canvasHeight * transform.dpr; // Bottom of canvas
     ctx.lineTo(lastX, bottomY);
     ctx.lineTo(firstX, bottomY);
     ctx.closePath();
@@ -167,6 +167,7 @@ export class EquityCurveRenderer {
 
   /**
    * Convert equity value to canvas Y coordinate using separate equity scale
+   * Constrained to bottom 25% of chart height
    */
   private equityToCanvasY(equity: number, transform: ViewportTransform): number {
     if (!this.equityRange) return 0;
@@ -174,14 +175,23 @@ export class EquityCurveRenderer {
     const { canvasHeight, dpr } = transform;
     const range = this.equityRange.max - this.equityRange.min;
 
-    // Add 10% padding to top and bottom for better visualization
-    const padding = range * 0.1;
-    const paddedMin = this.equityRange.min - padding;
-    const paddedMax = this.equityRange.max + padding;
+    // The equity curve should only use the bottom 25% of the canvas
+    const equityCurveHeight = canvasHeight * 0.25;
+    const equityCurveTop = canvasHeight - equityCurveHeight; // Start position from top
+
+    // Add small padding for better visualization
+    const topPadding = range * 0.1;
+    const bottomPadding = range * 0.05;
+    const paddedMin = this.equityRange.min - bottomPadding;
+    const paddedMax = this.equityRange.max + topPadding;
     const paddedRange = paddedMax - paddedMin;
 
+    // Calculate position within the constrained height
     const ratio = (paddedMax - equity) / paddedRange;
-    return ratio * canvasHeight * dpr;
+    const yWithinEquityArea = ratio * equityCurveHeight;
+    
+    // Return the final Y position (in canvas coordinates)
+    return (equityCurveTop + yWithinEquityArea) * dpr;
   }
 
   /**

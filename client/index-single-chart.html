@@ -837,6 +837,53 @@
                 </div>
             </div>
 
+            <div class="control-group">
+                <label>Equity Curve:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="showEquityCurve()"
+                        style="background: #8b5cf6; color: white"
+                    >
+                        📈 Show Curve
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="showEquityCurveWithArea()"
+                        style="background: #6366f1; color: white"
+                    >
+                        📊 With Area
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="showDashedEquityCurve()"
+                        style="background: #ec4899; color: white"
+                    >
+                        📉 Dashed Style
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="simulateEquityGrowth()"
+                        style="background: #10b981; color: white"
+                    >
+                        📈 Growth Sim
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="simulateEquityDrawdown()"
+                        style="background: #ef4444; color: white"
+                    >
+                        📉 Drawdown Sim
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearEquityCurve()"
+                    >
+                        Clear Curve
+                    </button>
+                </div>
+            </div>
+
             <!-- Click-to-Trade Section -->
             <div
                 class="control-group"
@@ -2702,6 +2749,248 @@
                     updateStatus("All risk zones cleared");
                 } catch (error) {
                     updateStatus(`Error clearing risk zones: ${error.message}`);
+                }
+            }
+
+            // Equity Curve functions
+            function showEquityCurve() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+                    
+                    // Generate sample equity curve data
+                    const points = [];
+                    const numPoints = 50;
+                    let equity = 10000; // Starting equity
+                    
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        // Simulate some realistic equity movement
+                        const change = (Math.random() - 0.45) * 200; // Slight upward bias
+                        equity += change;
+                        equity = Math.max(8000, equity); // Floor at 8000
+                        
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                            drawdown: Math.max(0, 10000 - equity) / 100, // As percentage
+                        });
+                    }
+
+                    chartApi.showEquityCurve(points, {
+                        color: '#8b5cf6',
+                        lineWidth: 2,
+                        lineStyle: 'solid',
+                        opacity: 0.9,
+                        showArea: false,
+                    });
+
+                    updateStatus(`Equity curve displayed with ${points.length} points`);
+                } catch (error) {
+                    updateStatus(`Error showing equity curve: ${error.message}`);
+                }
+            }
+
+            function showEquityCurveWithArea() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+                    
+                    // Generate sample equity curve data with area fill
+                    const points = [];
+                    const numPoints = 60;
+                    let equity = 10000;
+                    
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        // Smoother curve for area visualization
+                        const trend = Math.sin(i * 0.2) * 500;
+                        const noise = (Math.random() - 0.5) * 100;
+                        equity += trend * 0.1 + noise;
+                        equity = Math.max(8500, equity);
+                        
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                            drawdown: Math.max(0, 10000 - equity) / 100,
+                        });
+                    }
+
+                    chartApi.showEquityCurve(points, {
+                        color: '#6366f1',
+                        areaColor: '#6366f1',
+                        lineWidth: 2,
+                        lineStyle: 'solid',
+                        opacity: 0.8,
+                        showArea: true,
+                    });
+
+                    updateStatus(`Equity curve with area displayed (${points.length} points)`);
+                } catch (error) {
+                    updateStatus(`Error showing equity curve with area: ${error.message}`);
+                }
+            }
+
+            function showDashedEquityCurve() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+                    
+                    // Generate volatile equity curve for dashed style
+                    const points = [];
+                    const numPoints = 40;
+                    let equity = 10000;
+                    
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        // More volatile pattern
+                        const volatility = Math.sin(i * 0.3) * Math.cos(i * 0.1) * 800;
+                        equity += volatility + (Math.random() - 0.5) * 300;
+                        equity = Math.max(7500, Math.min(12500, equity));
+                        
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                            drawdown: Math.max(0, 10000 - equity) / 100,
+                        });
+                    }
+
+                    chartApi.showEquityCurve(points, {
+                        color: '#ec4899',
+                        lineWidth: 3,
+                        lineStyle: 'dashed',
+                        opacity: 0.85,
+                        showArea: false,
+                    });
+
+                    updateStatus(`Dashed equity curve displayed (${points.length} points)`);
+                } catch (error) {
+                    updateStatus(`Error showing dashed equity curve: ${error.message}`);
+                }
+            }
+
+            function simulateEquityGrowth() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+                    
+                    // Generate growing equity curve
+                    const points = [];
+                    const numPoints = 80;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+                    
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        // Upward trend with occasional pullbacks
+                        const growth = Math.pow(1.02, i / 10); // Exponential growth
+                        const pullback = i % 10 === 0 ? -200 : 0; // Periodic pullbacks
+                        const noise = (Math.random() - 0.4) * 50;
+                        
+                        equity = 10000 * growth + pullback + noise;
+                        highWaterMark = Math.max(highWaterMark, equity);
+                        
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                            drawdown: ((highWaterMark - equity) / highWaterMark) * 100,
+                        });
+                    }
+
+                    chartApi.showEquityCurve(points, {
+                        color: '#10b981',
+                        areaColor: '#10b981',
+                        lineWidth: 2,
+                        lineStyle: 'solid',
+                        opacity: 0.75,
+                        showArea: true,
+                    });
+
+                    const totalReturn = ((equity - 10000) / 10000 * 100).toFixed(2);
+                    updateStatus(`Growth simulation: +${totalReturn}% return`);
+                } catch (error) {
+                    updateStatus(`Error simulating equity growth: ${error.message}`);
+                }
+            }
+
+            function simulateEquityDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+                    
+                    // Generate drawdown scenario
+                    const points = [];
+                    const numPoints = 70;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+                    
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        
+                        // Create drawdown pattern
+                        if (i < 20) {
+                            // Initial growth
+                            equity += (Math.random() - 0.3) * 100;
+                        } else if (i < 40) {
+                            // Sharp drawdown
+                            equity -= (Math.random() * 150);
+                        } else if (i < 55) {
+                            // Recovery attempt
+                            equity += (Math.random() - 0.2) * 80;
+                        } else {
+                            // Sideways/slight recovery
+                            equity += (Math.random() - 0.4) * 50;
+                        }
+                        
+                        equity = Math.max(6000, equity); // Floor at 6000
+                        highWaterMark = Math.max(highWaterMark, equity);
+                        
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                            drawdown: ((highWaterMark - equity) / highWaterMark) * 100,
+                        });
+                    }
+
+                    chartApi.showEquityCurve(points, {
+                        color: '#ef4444',
+                        areaColor: '#ef4444',
+                        lineWidth: 2,
+                        lineStyle: 'solid',
+                        opacity: 0.7,
+                        showArea: true,
+                    });
+
+                    const maxDrawdown = Math.max(...points.map(p => p.drawdown));
+                    updateStatus(`Drawdown simulation: Max DD ${maxDrawdown.toFixed(1)}%`);
+                } catch (error) {
+                    updateStatus(`Error simulating drawdown: ${error.message}`);
+                }
+            }
+
+            function clearEquityCurve() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.hideEquityCurve();
+                    updateStatus("Equity curve cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing equity curve: ${error.message}`);
                 }
             }
 

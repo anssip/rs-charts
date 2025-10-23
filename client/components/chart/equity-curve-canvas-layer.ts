@@ -55,12 +55,16 @@ export class EquityCurveCanvasLayer extends LitElement {
       position: absolute;
       top: 0;
       left: 0;
+      width: calc(100% - var(--price-axis-width, 70px)); /* Account for price axis */
+      height: 100%; /* Full height to match chart, but will only draw in bottom 25% */
       pointer-events: none;
-      z-index: 15; /* Above zones (1,5) but below markers (25+) */
+      z-index: 4; /* Same level as volume chart, above candlesticks (1) but below crosshairs (5) */
     }
 
     canvas {
       display: block;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
     }
   `;
@@ -114,6 +118,8 @@ export class EquityCurveCanvasLayer extends LitElement {
 
     const dpr = getDpr();
     const width = this.width || this.clientWidth;
+    // The equity curve should match the full chart height
+    // but will only draw in the bottom 25% (handled by the renderer)
     const height = this.height || this.clientHeight;
 
     // Set canvas physical size (accounting for DPR)
