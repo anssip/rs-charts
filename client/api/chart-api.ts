@@ -974,8 +974,32 @@ export class ChartApi {
       throw new Error("Invalid price range: min must be less than max");
     }
 
+    // Get the current minRange limit from existing priceRange (if set)
+    const currentPriceRange = this.state.priceRange as any;
+    const minRangeLimit = currentPriceRange?._minRange || 0.0001;
+
+    // Calculate the requested range
+    const requestedRange = priceRange.max - priceRange.min;
+
+    // Enforce minimum range limit
+    let finalMin = priceRange.min;
+    let finalMax = priceRange.max;
+
+    if (requestedRange < minRangeLimit) {
+      // Range is too small, clamp it to minRangeLimit
+      const center = (priceRange.min + priceRange.max) / 2;
+      finalMin = center - minRangeLimit / 2;
+      finalMax = center + minRangeLimit / 2;
+      logger.warn(
+        `ChartApi: Requested range ${requestedRange} is below minimum ${minRangeLimit}. Clamping to minimum.`
+      );
+    }
+
     // Create new PriceRangeImpl instance
-    const newPriceRange = new PriceRangeImpl(priceRange.min, priceRange.max);
+    const newPriceRange = new PriceRangeImpl(finalMin, finalMax);
+
+    // Preserve the minRange limit
+    (newPriceRange as any).setMinRange(minRangeLimit);
 
     // Update the state
     this.state.priceRange = newPriceRange;

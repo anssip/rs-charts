@@ -434,6 +434,17 @@ export class ChartInteractionController {
     const wasDragging = this.isDragging;
     this.isDragging = false;
 
+    // If user was dragging (panning), dispatch horizontal-pan-end event
+    // This allows the app to update zoom limits based on newly visible candles
+    if (wasDragging && totalMovement > this.dragThreshold) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("horizontal-pan-end", {
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+
     // Reset interaction state
     this.interactionState.interactionType = null;
     this.interactionState.isActive = false;

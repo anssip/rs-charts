@@ -140,6 +140,10 @@ export class App {
       "fetch-next-candle",
       this.handleFetchNextCandle as unknown as EventListener,
     );
+    this.chartContainer.addEventListener(
+      "horizontal-pan-end",
+      this.handleHorizontalPanEnd as unknown as EventListener,
+    );
     this.startLiveCandleSubscription(
       xinValue(this.state.symbol) || "BTC-USD",
       xinValue(this.state.granularity) || "ONE_HOUR",
@@ -230,6 +234,10 @@ export class App {
         viewportStartTimestamp,
         viewportEndTimestamp,
       );
+
+      // Set initial zoom limit
+      this.updateMinZoomLimit();
+
       if (!this.chartContainer) {
         logger.error("chart container not found");
         return;
@@ -497,6 +505,9 @@ export class App {
       this.state.priceHistory = newPriceHistory;
       this.state.priceRange = newPriceRange;
 
+      // Update zoom limit for the new granularity
+      this.updateMinZoomLimit();
+
       // Clear the transitioning flag before final state update
       this.state.isTransitioning = false;
 
@@ -533,6 +544,10 @@ export class App {
         xinValue(this.state.timeRange.start),
         xinValue(this.state.timeRange.end),
       );
+
+      // Update zoom limit after refetch
+      this.updateMinZoomLimit();
+
       this.chartContainer!.state = this.state;
       this.chartContainer!.draw();
 
@@ -564,6 +579,12 @@ export class App {
         this.chartContainer.state = this.state;
       }
     }
+  };
+
+  private handleHorizontalPanEnd = () => {
+    // Update the min zoom limit based on newly visible candles
+    // after horizontal panning completes
+    this.updateMinZoomLimit();
   };
 
   private handleFetchNextCandle = async (event: CustomEvent) => {
@@ -673,6 +694,31 @@ export class App {
     }
   }
 
+  private updateMinZoomLimit(): void {
+    // Calculate the natural price range for visible candles
+    const naturalPriceRange = this.state.priceHistory.getPriceRange(
+      xinValue(this.state.timeRange.start),
+      xinValue(this.state.timeRange.end),
+    );
+
+    // Check if we got valid range data
+    if (
+      naturalPriceRange.min === Infinity ||
+      naturalPriceRange.max === -Infinity
+    ) {
+      logger.debug("No valid candles in range, skipping min zoom limit update");
+      return;
+    }
+
+    // Set minimum range to 1x the natural range (prevents zooming in beyond natural fit)
+    const minRange = naturalPriceRange.range * 0.7;
+    (this.state.priceRange as any).setMinRange(minRange);
+
+    logger.debug(
+      `Updated min zoom limit: natural range = ${naturalPriceRange.range}, min range = ${minRange}`,
+    );
+  }
+
   public cleanup(): void {
     // Clean up live candle subscription completely
     if (this.liveCandleSubscription) {
@@ -692,6 +738,10 @@ export class App {
       this.chartContainer.removeEventListener(
         "fetch-next-candle",
         this.handleFetchNextCandle as unknown as EventListener,
+      );
+      this.chartContainer.removeEventListener(
+        "horizontal-pan-end",
+        this.handleHorizontalPanEnd as unknown as EventListener,
       );
     }
   }
