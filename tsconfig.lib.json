@@ -6,7 +6,7 @@
 
     // Modules
     "module": "ESNext", // Use modern module format
-    "moduleResolution": "bundler", // Align with modern bundlers (like bun, vite, webpack)
+    "moduleResolution": "node", // Use Node.js module resolution for better compatibility
     "resolveJsonModule": true, // Allow importing JSON files
 
     // Emit

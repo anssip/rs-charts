@@ -2,7 +2,6 @@ import type { CandlestickChart } from "./chart";
 import type { ChartState, Layer } from "../..";
 import type { TimeMarkersLayer } from "./time-markers-layer";
 import type { PositionOverlay as PositionOverlayComponent } from "./position-overlay";
-import type { EquityCurveController } from "./interaction/equity-curve-controller";
 import { getDpr } from "../../util/chart-util";
 
 /**
@@ -16,7 +15,6 @@ export class LayerUpdateCoordinator {
     private getChart: () => CandlestickChart | null,
     private getState: () => ChartState,
     private getPriceAxisWidth: () => number,
-    private getEquityCurveController: () => EquityCurveController | undefined,
   ) {}
 
   /**
@@ -150,39 +148,6 @@ export class LayerUpdateCoordinator {
   }
 
   /**
-   * Update equity curve canvas layer
-   * Special case: Delegates to controller for state/data updates
-   */
-  updateEquityCurveCanvasLayer(): void {
-    const equityCurveController = this.getEquityCurveController();
-    if (!equityCurveController) {
-      return;
-    }
-
-    const chart = this.getChart();
-    if (!chart?.canvas) return;
-
-    // Update dimensions
-    const equityCurveLayer = this.renderRoot.querySelector(
-      "equity-curve-canvas-layer",
-    ) as any;
-    if (equityCurveLayer && chart.canvas) {
-      const chartArea = this.renderRoot.querySelector(
-        ".chart-area",
-      ) as HTMLElement;
-      if (chartArea && chart.canvas) {
-        equityCurveLayer.width =
-          chartArea.clientWidth - this.getPriceAxisWidth();
-        // Use the main chart height (excludes bottom stacked indicators)
-        equityCurveLayer.height = this.getMainChartHeight();
-      }
-    }
-
-    // Delegate to controller for state/data updates
-    equityCurveController.updateLayer();
-  }
-
-  /**
    * Update live decorators layer (live price line)
    * Special case: Uses resize() method instead of width/height properties
    */
@@ -232,7 +197,6 @@ export class LayerUpdateCoordinator {
     // Special cases with unique requirements
     this.updateTimeMarkersLayer();
     this.updateRiskZonesCanvasLayer();
-    this.updateEquityCurveCanvasLayer();
     this.updatePositionOverlay();
     this.updateLiveDecoratorsLayer();
   }

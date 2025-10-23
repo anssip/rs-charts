@@ -27,13 +27,14 @@ import {
 import { CoinbaseProduct } from "../../api/firestore-client";
 import "./indicators/indicator-container";
 import "./indicators/market-indicator";
+import "./indicators/equity-curve-indicator";
+import "./indicators/drawdown-indicator";
 import { ChartInteractionController } from "./interaction/chart-interaction-controller";
 import { ClickToTradeController } from "./interaction/click-to-trade-controller";
 import {
   initializeControllers,
   initializeInteractionLayers,
 } from "./interaction/controller-factory";
-import { EquityCurveController } from "./interaction/equity-curve-controller";
 import { RiskZonesController } from "./interaction/risk-zones-controller";
 import { TimeMarkersController } from "./interaction/time-markers-controller";
 import { AnnotationsController } from "./interaction/annotations-controller";
@@ -60,7 +61,6 @@ import "./trade-zones-layer";
 import "./annotations-layer";
 import "./time-markers-layer";
 import "./risk-zones-canvas-layer";
-import "./equity-curve-canvas-layer";
 import "./position-overlay";
 import { TradingMarkersLayer } from "./trading-markers-layer";
 import { PriceLinesLayer } from "./price-lines-layer";
@@ -80,8 +80,6 @@ import {
   ClickToTradeConfig,
   OrderRequestData,
   PriceHoverEvent,
-  EquityPoint,
-  EquityCurveConfig,
 } from "../../types/trading-overlays";
 import { getLogger, LogLevel } from "../../util/logger";
 import { TradingOverlaysManager } from "./trading-overlays-manager";
@@ -205,7 +203,6 @@ export class ChartContainer extends LitElement {
 
   private interactionController?: ChartInteractionController;
   public clickToTradeController?: ClickToTradeController;
-  public equityCurveController?: EquityCurveController;
   public riskZonesController?: RiskZonesController;
   public timeMarkersController?: TimeMarkersController;
   public annotationsController?: AnnotationsController;
@@ -222,7 +219,6 @@ export class ChartContainer extends LitElement {
   public timeMarkersLayer?: TimeMarkersLayer;
   private riskZonesInteractionLayer?: RiskZonesLayer;
   public riskZonesCanvasLayer?: any;
-  public equityCurveCanvasLayer?: any;
   private positionOverlayComponent?: PositionOverlayComponent;
 
   constructor() {
@@ -289,7 +285,6 @@ export class ChartContainer extends LitElement {
       () => this.chart,
       () => this._state,
       () => this.priceAxisWidth,
-      () => this.equityCurveController,
     );
 
     // Defer initial resize to ensure CSS Grid and flexbox layouts have settled
@@ -372,8 +367,6 @@ export class ChartContainer extends LitElement {
         this.layerUpdateCoordinator.updateTimeMarkersLayer(),
       updateRiskZonesCanvasLayer: () =>
         this.layerUpdateCoordinator.updateRiskZonesCanvasLayer(),
-      updateEquityCurveCanvasLayer: () =>
-        this.layerUpdateCoordinator.updateEquityCurveCanvasLayer(),
       updatePositionOverlay: () =>
         this.layerUpdateCoordinator.updatePositionOverlay(),
     });
@@ -661,7 +654,6 @@ export class ChartContainer extends LitElement {
 
     this.interactionController?.detach();
     this.clickToTradeController?.disable();
-    this.equityCurveController?.destroy();
   }
 
   @property({ type: Object })
@@ -974,34 +966,52 @@ export class ChartContainer extends LitElement {
                     `,
                   )}
                   <live-decorators></live-decorators>
-                  <!-- Equity Curve Canvas Layer - positioned at bottom like volume -->
-                  <equity-curve-canvas-layer
-                    .data=${this._state.equityCurve?.data || []}
-                    .config=${this._state.equityCurve}
-                    .state=${this._state}
-                    .timeRange=${this._state.timeRange}
-                    .priceRange=${this._state.priceRange}
-                    .width=${this.chart?.canvas
-                      ? this.chart.canvas.width / getDpr()
-                      : 0}
-                    .height=${this.chart?.canvas
-                      ? this.chart.canvas.height / getDpr()
-                      : 0}
-                    style="--price-axis-width: ${this.priceAxisWidth}px"
-                  ></equity-curve-canvas-layer>
                   <!-- Volume chart - positioned using flexbox at the bottom -->
                   <div class="volume-chart" ?hidden=${!this.showVolume}>
                     <volume-chart></volume-chart>
                   </div>
                 </indicator-container>
 
-                <!-- Bottom stacked indicators (unchanged) -->
+                <!-- Bottom stacked indicators -->
                 ${stackBottomIndicators.length > 0
                   ? stackBottomIndicators.map((indicator, index) => {
                       const slotId = `indicator-${index + 1}`;
                       logger.debug(
                         `ChartContainer: Adding indicator ${indicator.id} with slot="${slotId}"`,
                       );
+
+                      // Handle custom indicators with their own components
+                      if (indicator.id === 'equity-curve') {
+                        return html`
+                          <equity-curve-indicator
+                            slot="${slotId}"
+                            .indicatorId=${indicator.id}
+                            .scale=${indicator.scale}
+                            .name=${indicator.name}
+                            .state=${this._state}
+                            .valueAxisWidth=${this.priceAxisWidth}
+                            .gridStyle=${indicator.gridStyle}
+                            .params=${indicator.params || {}}
+                          ></equity-curve-indicator>
+                        `;
+                      }
+
+                      if (indicator.id === 'drawdown') {
+                        return html`
+                          <drawdown-indicator
+                            slot="${slotId}"
+                            .indicatorId=${indicator.id}
+                            .scale=${indicator.scale}
+                            .name=${indicator.name}
+                            .state=${this._state}
+                            .valueAxisWidth=${this.priceAxisWidth}
+                            .gridStyle=${indicator.gridStyle}
+                            .params=${indicator.params || {}}
+                          ></drawdown-indicator>
+                        `;
+                      }
+
+                      // Default market-indicator for standard indicators
                       return html`
                         <market-indicator
                           slot="${slotId}"

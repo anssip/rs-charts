@@ -70,11 +70,8 @@ export class IndicatorContainer extends LitElement {
       logger.debug(`Found ${elements.length} slotted elements`);
 
       for (const element of elements) {
-        // Check if the element is a market-indicator with a name property
-        if (
-          element.tagName.toLowerCase() === "market-indicator" &&
-          "name" in element
-        ) {
+        // Check if the element has a name property (works for all indicator types)
+        if ("name" in element) {
           const name = (element as any).name;
           if (name) {
             logger.debug(`Found indicator with name: ${name}`);

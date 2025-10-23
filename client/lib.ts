@@ -75,6 +75,14 @@ export type {
 } from "./types/trading-overlays";
 export { TRADING_OVERLAY_COLORS, TRADE_MARKER_SIZES } from "./types/trading-overlays";
 
+// Export trading indicators types for performance visualization
+export type {
+  EquityPoint,
+  DrawdownPoint,
+  EquityCurveParams,
+  DrawdownParams,
+} from "./types/trading-indicators";
+
 // You might want to export related types if consumers need them
 export type { ChartState } from "./index"; // Export ChartState type as well
 // Consider defining shared types in a separate file if needed.

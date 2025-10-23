@@ -59,14 +59,14 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: Object })
   oscillatorConfig?: OscillatorConfig;
 
-  private _state: ChartState | null = null;
+  protected _state: ChartState | null = null;
   private _chartId: string = "state";
   private grid = new HairlineGrid();
   // Track when the value range is manually set by user zooming
   private manualRangeSet = false;
 
   @property({ type: Object })
-  private localValueRange: ValueRange = {
+  protected localValueRange: ValueRange = {
     min: 0,
     max: 100,
     range: 100,

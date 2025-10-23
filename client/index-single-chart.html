@@ -845,7 +845,7 @@
                         onclick="showEquityCurve()"
                         style="background: #8b5cf6; color: white"
                     >
-                        📈 Show Curve
+                        📈 Basic
                     </button>
                     <button
                         class="control-button"
@@ -856,30 +856,56 @@
                     </button>
                     <button
                         class="control-button"
-                        onclick="showDashedEquityCurve()"
+                        onclick="showEquityCurveWithPeak()"
                         style="background: #ec4899; color: white"
                     >
-                        📉 Dashed Style
+                        ⛰️ With Peak
                     </button>
                     <button
                         class="control-button"
                         onclick="simulateEquityGrowth()"
                         style="background: #10b981; color: white"
                     >
-                        📈 Growth Sim
+                        📈 Growth
                     </button>
                     <button
                         class="control-button"
                         onclick="simulateEquityDrawdown()"
                         style="background: #ef4444; color: white"
                     >
-                        📉 Drawdown Sim
+                        📉 Decline
                     </button>
                     <button
                         class="control-button"
                         onclick="clearEquityCurve()"
                     >
-                        Clear Curve
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Drawdown:</label>
+                <div class="control-buttons">
+                    <button
+                        class="control-button"
+                        onclick="showDrawdown()"
+                        style="background: #ff6b6b; color: white"
+                    >
+                        📉 Show
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="showDrawdownWithWarning()"
+                        style="background: #ff0000; color: white"
+                    >
+                        ⚠️ With Warning
+                    </button>
+                    <button
+                        class="control-button"
+                        onclick="clearDrawdown()"
+                    >
+                        Clear
                     </button>
                 </div>
             </div>
@@ -2760,32 +2786,37 @@
                     const timeRange = chartApi.getTimeRange();
                     const duration = timeRange.end - timeRange.start;
                     const startTime = timeRange.start;
-                    
+
                     // Generate sample equity curve data
                     const points = [];
                     const numPoints = 50;
                     let equity = 10000; // Starting equity
-                    
+
                     for (let i = 0; i < numPoints; i++) {
                         const timestamp = startTime + (duration * i / numPoints);
                         // Simulate some realistic equity movement
                         const change = (Math.random() - 0.45) * 200; // Slight upward bias
                         equity += change;
                         equity = Math.max(8000, equity); // Floor at 8000
-                        
+
                         points.push({
                             timestamp,
-                            equity: equity,
-                            drawdown: Math.max(0, 10000 - equity) / 100, // As percentage
+                            equity: equity
                         });
                     }
 
-                    chartApi.showEquityCurve(points, {
-                        color: '#8b5cf6',
-                        lineWidth: 2,
-                        lineStyle: 'solid',
-                        opacity: 0.9,
-                        showArea: false,
+                    chartApi.showIndicator({
+                        id: 'equity-curve',
+                        name: 'Portfolio Equity',
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: '#8b5cf6',
+                            lineWidth: 2,
+                            fillArea: false
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
                     });
 
                     updateStatus(`Equity curve displayed with ${points.length} points`);
@@ -2801,12 +2832,12 @@
                     const timeRange = chartApi.getTimeRange();
                     const duration = timeRange.end - timeRange.start;
                     const startTime = timeRange.start;
-                    
+
                     // Generate sample equity curve data with area fill
                     const points = [];
                     const numPoints = 60;
                     let equity = 10000;
-                    
+
                     for (let i = 0; i < numPoints; i++) {
                         const timestamp = startTime + (duration * i / numPoints);
                         // Smoother curve for area visualization
@@ -2814,21 +2845,27 @@
                         const noise = (Math.random() - 0.5) * 100;
                         equity += trend * 0.1 + noise;
                         equity = Math.max(8500, equity);
-                        
+
                         points.push({
                             timestamp,
-                            equity: equity,
-                            drawdown: Math.max(0, 10000 - equity) / 100,
+                            equity: equity
                         });
                     }
 
-                    chartApi.showEquityCurve(points, {
-                        color: '#6366f1',
-                        areaColor: '#6366f1',
-                        lineWidth: 2,
-                        lineStyle: 'solid',
-                        opacity: 0.8,
-                        showArea: true,
+                    chartApi.showIndicator({
+                        id: 'equity-curve',
+                        name: 'Portfolio Equity',
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: '#6366f1',
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: '#6366f1',
+                            areaOpacity: 0.3
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
                     });
 
                     updateStatus(`Equity curve with area displayed (${points.length} points)`);
@@ -2837,44 +2874,52 @@
                 }
             }
 
-            function showDashedEquityCurve() {
+            function showEquityCurveWithPeak() {
                 if (!chartApi) return;
 
                 try {
                     const timeRange = chartApi.getTimeRange();
                     const duration = timeRange.end - timeRange.start;
                     const startTime = timeRange.start;
-                    
-                    // Generate volatile equity curve for dashed style
+
+                    // Generate volatile equity curve to show peak tracking
                     const points = [];
                     const numPoints = 40;
                     let equity = 10000;
-                    
+
                     for (let i = 0; i < numPoints; i++) {
                         const timestamp = startTime + (duration * i / numPoints);
                         // More volatile pattern
                         const volatility = Math.sin(i * 0.3) * Math.cos(i * 0.1) * 800;
                         equity += volatility + (Math.random() - 0.5) * 300;
                         equity = Math.max(7500, Math.min(12500, equity));
-                        
+
                         points.push({
                             timestamp,
-                            equity: equity,
-                            drawdown: Math.max(0, 10000 - equity) / 100,
+                            equity: equity
                         });
                     }
 
-                    chartApi.showEquityCurve(points, {
-                        color: '#ec4899',
-                        lineWidth: 3,
-                        lineStyle: 'dashed',
-                        opacity: 0.85,
-                        showArea: false,
+                    chartApi.showIndicator({
+                        id: 'equity-curve',
+                        name: 'Portfolio Equity',
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: '#ec4899',
+                            lineWidth: 3,
+                            showPeakLine: true,
+                            peakLineColor: '#666',
+                            peakLineStyle: 'dotted',
+                            fillArea: false
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
                     });
 
-                    updateStatus(`Dashed equity curve displayed (${points.length} points)`);
+                    updateStatus(`Equity curve with peak line displayed (${points.length} points)`);
                 } catch (error) {
-                    updateStatus(`Error showing dashed equity curve: ${error.message}`);
+                    updateStatus(`Error showing equity curve with peak: ${error.message}`);
                 }
             }
 
@@ -2885,37 +2930,41 @@
                     const timeRange = chartApi.getTimeRange();
                     const duration = timeRange.end - timeRange.start;
                     const startTime = timeRange.start;
-                    
+
                     // Generate growing equity curve
                     const points = [];
                     const numPoints = 80;
                     let equity = 10000;
-                    let highWaterMark = equity;
-                    
+
                     for (let i = 0; i < numPoints; i++) {
                         const timestamp = startTime + (duration * i / numPoints);
                         // Upward trend with occasional pullbacks
                         const growth = Math.pow(1.02, i / 10); // Exponential growth
                         const pullback = i % 10 === 0 ? -200 : 0; // Periodic pullbacks
                         const noise = (Math.random() - 0.4) * 50;
-                        
+
                         equity = 10000 * growth + pullback + noise;
-                        highWaterMark = Math.max(highWaterMark, equity);
-                        
+
                         points.push({
                             timestamp,
-                            equity: equity,
-                            drawdown: ((highWaterMark - equity) / highWaterMark) * 100,
+                            equity: equity
                         });
                     }
 
-                    chartApi.showEquityCurve(points, {
-                        color: '#10b981',
-                        areaColor: '#10b981',
-                        lineWidth: 2,
-                        lineStyle: 'solid',
-                        opacity: 0.75,
-                        showArea: true,
+                    chartApi.showIndicator({
+                        id: 'equity-curve',
+                        name: 'Portfolio Equity',
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: '#10b981',
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: '#10b981',
+                            areaOpacity: 0.3
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
                     });
 
                     const totalReturn = ((equity - 10000) / 10000 * 100).toFixed(2);
@@ -2932,16 +2981,16 @@
                     const timeRange = chartApi.getTimeRange();
                     const duration = timeRange.end - timeRange.start;
                     const startTime = timeRange.start;
-                    
+
                     // Generate drawdown scenario
-                    const points = [];
+                    const equityPoints = [];
                     const numPoints = 70;
                     let equity = 10000;
                     let highWaterMark = equity;
-                    
+
                     for (let i = 0; i < numPoints; i++) {
                         const timestamp = startTime + (duration * i / numPoints);
-                        
+
                         // Create drawdown pattern
                         if (i < 20) {
                             // Initial growth
@@ -2956,28 +3005,35 @@
                             // Sideways/slight recovery
                             equity += (Math.random() - 0.4) * 50;
                         }
-                        
+
                         equity = Math.max(6000, equity); // Floor at 6000
                         highWaterMark = Math.max(highWaterMark, equity);
-                        
-                        points.push({
+
+                        equityPoints.push({
                             timestamp,
-                            equity: equity,
-                            drawdown: ((highWaterMark - equity) / highWaterMark) * 100,
+                            equity: equity
                         });
                     }
 
-                    chartApi.showEquityCurve(points, {
-                        color: '#ef4444',
-                        areaColor: '#ef4444',
-                        lineWidth: 2,
-                        lineStyle: 'solid',
-                        opacity: 0.7,
-                        showArea: true,
+                    chartApi.showIndicator({
+                        id: 'equity-curve',
+                        name: 'Portfolio Equity',
+                        visible: true,
+                        params: {
+                            data: equityPoints,
+                            lineColor: '#ef4444',
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: '#ef4444',
+                            areaOpacity: 0.3
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
                     });
 
-                    const maxDrawdown = Math.max(...points.map(p => p.drawdown));
-                    updateStatus(`Drawdown simulation: Max DD ${maxDrawdown.toFixed(1)}%`);
+                    const finalEquity = equityPoints[equityPoints.length - 1].equity;
+                    const maxDrawdown = ((highWaterMark - 6000) / highWaterMark * 100).toFixed(1);
+                    updateStatus(`Drawdown simulation: Max DD ${maxDrawdown}%`);
                 } catch (error) {
                     updateStatus(`Error simulating drawdown: ${error.message}`);
                 }
@@ -2987,10 +3043,134 @@
                 if (!chartApi) return;
 
                 try {
-                    chartApi.hideEquityCurve();
+                    chartApi.hideIndicator('equity-curve');
                     updateStatus("Equity curve cleared");
                 } catch (error) {
                     updateStatus(`Error clearing equity curve: ${error.message}`);
+                }
+            }
+
+            // Drawdown Indicator functions
+            function showDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate sample drawdown data
+                    const drawdownPoints = [];
+                    const numPoints = 50;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+                        const change = (Math.random() - 0.45) * 200;
+                        equity += change;
+                        equity = Math.max(8000, equity);
+                        highWaterMark = Math.max(highWaterMark, equity);
+
+                        const drawdownPercent = -((highWaterMark - equity) / highWaterMark * 100);
+
+                        drawdownPoints.push({
+                            timestamp,
+                            drawdownPercent: drawdownPercent
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: 'drawdown',
+                        name: 'Drawdown %',
+                        visible: true,
+                        params: {
+                            data: drawdownPoints,
+                            fillColor: '#ff6b6b',
+                            fillOpacity: 0.3,
+                            showZeroLine: true,
+                            invertYAxis: true
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
+                    });
+
+                    updateStatus(`Drawdown indicator displayed with ${drawdownPoints.length} points`);
+                } catch (error) {
+                    updateStatus(`Error showing drawdown: ${error.message}`);
+                }
+            }
+
+            function showDrawdownWithWarning() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate drawdown data with severe drawdowns
+                    const drawdownPoints = [];
+                    const numPoints = 70;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp = startTime + (duration * i / numPoints);
+
+                        if (i < 20) {
+                            equity += (Math.random() - 0.3) * 100;
+                        } else if (i < 40) {
+                            equity -= (Math.random() * 150);
+                        } else if (i < 55) {
+                            equity += (Math.random() - 0.2) * 80;
+                        } else {
+                            equity += (Math.random() - 0.4) * 50;
+                        }
+
+                        equity = Math.max(6000, equity);
+                        highWaterMark = Math.max(highWaterMark, equity);
+
+                        const drawdownPercent = -((highWaterMark - equity) / highWaterMark * 100);
+
+                        drawdownPoints.push({
+                            timestamp,
+                            drawdownPercent: drawdownPercent
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: 'drawdown',
+                        name: 'Drawdown %',
+                        visible: true,
+                        params: {
+                            data: drawdownPoints,
+                            fillColor: '#ff6b6b',
+                            fillOpacity: 0.3,
+                            showZeroLine: true,
+                            invertYAxis: true,
+                            warnThreshold: -15, // Highlight drawdowns > 15%
+                            warnColor: '#ff0000'
+                        },
+                        display: 'stack-bottom',
+                        skipFetch: true
+                    });
+
+                    const maxDrawdown = Math.min(...drawdownPoints.map(p => p.drawdownPercent));
+                    updateStatus(`Drawdown with warning threshold: Max DD ${Math.abs(maxDrawdown).toFixed(1)}%`);
+                } catch (error) {
+                    updateStatus(`Error showing drawdown with warning: ${error.message}`);
+                }
+            }
+
+            function clearDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.hideIndicator('drawdown');
+                    updateStatus("Drawdown indicator cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing drawdown: ${error.message}`);
                 }
             }
 

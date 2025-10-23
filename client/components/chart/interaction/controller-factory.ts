@@ -3,7 +3,6 @@ import type { ChartContainer } from "../chart-container";
 import { AnnotationsController } from "./annotations-controller";
 import { TimeMarkersController } from "./time-markers-controller";
 import { RiskZonesController } from "./risk-zones-controller";
-import { EquityCurveController } from "./equity-curve-controller";
 import { PositionOverlayController } from "./position-overlay-controller";
 import { PatternHighlightsController } from "./pattern-highlights-controller";
 import { TrendLineController } from "./trend-line-controller";
@@ -33,7 +32,6 @@ export interface ControllerFactoryContext {
   updateLayer: (layer: Layer | undefined) => void;
   updateTimeMarkersLayer: () => void;
   updateRiskZonesCanvasLayer: () => void;
-  updateEquityCurveCanvasLayer: () => void;
   updatePositionOverlay: () => void;
 }
 
@@ -45,7 +43,6 @@ export function initializeControllers(context: ControllerFactoryContext): void {
   initAnnotationsController(context);
   initTimeMarkersController(context);
   initRiskZonesController(context);
-  initEquityCurveController(context);
   initPositionOverlayController(context);
   initPatternHighlightsController(context);
   initTrendLineController(context);
@@ -131,29 +128,6 @@ function initRiskZonesController(context: ControllerFactoryContext): void {
     });
     logger.debug("ChartContainer: Initialized risk zones controller");
     setTimeout(() => context.updateRiskZonesCanvasLayer(), 100);
-  }
-}
-
-/**
- * Initialize equity curve controller
- * Handles equity curve overlay for trading performance visualization
- */
-function initEquityCurveController(context: ControllerFactoryContext): void {
-  const container = context.container;
-  const layer = context.renderRoot.querySelector(
-    "equity-curve-canvas-layer",
-  ) as any;
-
-  if (layer) {
-    logger.debug("ChartContainer: Found equity curve canvas layer");
-    container.equityCurveCanvasLayer = layer;
-    container.equityCurveController = new EquityCurveController({
-      container: container,
-      state: context.state,
-      equityCurveLayer: layer,
-    });
-    logger.debug("ChartContainer: Initialized equity curve controller");
-    setTimeout(() => context.updateEquityCurveCanvasLayer(), 100);
   }
 }
 

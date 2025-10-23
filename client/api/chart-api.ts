@@ -535,15 +535,12 @@ export class ChartApi {
       );
     });
 
-    if (builtInIndicator && builtInIndicator.action) {
+    if (builtInIndicator && builtInIndicator.action && !config.params) {
+      // Use built-in indicator action ONLY if no custom params are provided
       // Check if indicator is already visible to avoid toggling it off
       const isAlreadyVisible = this.isIndicatorVisible(config.id);
 
-      if (isAlreadyVisible) {
-        logger.info(
-          `ChartApi: Indicator ${config.id} already visible, skipping action`,
-        );
-      } else {
+      if (!isAlreadyVisible) {
         // Use the built-in indicator action which has proper configuration
         builtInIndicator.action();
       }
@@ -2616,101 +2613,6 @@ export class ChartApi {
 
     this.redraw();
     logger.info("ChartApi: Cleared all risk zones");
-  }
-
-  // ============================================================================
-  // Equity Curve Overlay Methods
-  // ============================================================================
-
-  /**
-   * Show equity curve overlay with the provided data
-   * The equity curve displays portfolio value over time on a separate Y-axis scale
-   * @param data Array of equity points (timestamp, equity value)
-   * @param config Optional visual configuration
-   * @example
-   * ```typescript
-   * // Show equity curve with default styling
-   * api.showEquityCurve([
-   *   { timestamp: 1609459200000, equity: 10000 },
-   *   { timestamp: 1609545600000, equity: 10500 },
-   *   { timestamp: 1609632000000, equity: 11200 }
-   * ]);
-   *
-   * // Show with custom styling and area fill
-   * api.showEquityCurve(equityData, {
-   *   color: '#3b82f6',
-   *   lineWidth: 3,
-   *   showArea: true,
-   *   opacity: 0.9
-   * });
-   * ```
-   */
-  showEquityCurve(
-    data: EquityPoint[],
-    config?: Partial<EquityCurveConfig>,
-  ): void {
-    const chartContainer = this.container as ChartContainer;
-    if (chartContainer?.equityCurveController) {
-      chartContainer.equityCurveController.show(data, config);
-      logger.info(`ChartApi: Showing equity curve with ${data.length} points`);
-    } else {
-      logger.error("ChartApi: Equity curve controller not initialized");
-    }
-  }
-
-  /**
-   * Hide equity curve overlay
-   * @example
-   * ```typescript
-   * api.hideEquityCurve();
-   * ```
-   */
-  hideEquityCurve(): void {
-    const chartContainer = this.container as ChartContainer;
-    if (chartContainer?.equityCurveController) {
-      chartContainer.equityCurveController.hide();
-      logger.info("ChartApi: Hiding equity curve");
-    } else {
-      logger.error("ChartApi: Equity curve controller not initialized");
-    }
-  }
-
-  /**
-   * Update equity curve data without changing visual configuration
-   * @param data New array of equity points
-   * @example
-   * ```typescript
-   * // Update with new data point
-   * const newData = [...existingData, { timestamp: Date.now(), equity: 12000 }];
-   * api.updateEquityCurve(newData);
-   * ```
-   */
-  updateEquityCurve(data: EquityPoint[]): void {
-    const chartContainer = this.container as ChartContainer;
-    if (chartContainer?.equityCurveController) {
-      chartContainer.equityCurveController.update(data);
-      logger.debug(`ChartApi: Updated equity curve with ${data.length} points`);
-    } else {
-      logger.error("ChartApi: Equity curve controller not initialized");
-    }
-  }
-
-  /**
-   * Check if equity curve is currently visible
-   * @returns true if equity curve is visible, false otherwise
-   */
-  isEquityCurveVisible(): boolean {
-    const chartContainer = this.container as ChartContainer;
-    return chartContainer?.equityCurveController?.isVisible() ?? false;
-  }
-
-  /**
-   * Get current equity curve configuration
-   * @returns Equity curve config or null if not visible
-   */
-  getEquityCurve(): EquityCurveConfig | null {
-    const chartContainer = this.container as ChartContainer;
-    return chartContainer?.equityCurveController?.getConfig() ?? null;
   }
 
   // ============================================================================
