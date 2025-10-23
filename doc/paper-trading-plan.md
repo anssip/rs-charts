@@ -829,31 +829,40 @@ Save and restore all trading overlays for persistence.
 ### API Methods
 
 ```typescript
-// Get complete trading state
-getTradingState(): TradingChartState
+// Get complete chart state
+getState(): ChartState
 
-// Restore trading state
-setTradingState(state: TradingChartState): void
-
-// Clear all trading overlays
-clearTradingOverlays(): void
-```
-
-### TypeScript Interfaces
+ChartState contains all state variables that are related to paper trading:
 
 ```typescript
-interface TradingChartState {
-  tradeMarkers: TradeMarker[];
-  priceLines: PriceLine[];
-  tradeZones: TradeZone[];
-  annotations: Annotation[];
-  timeMarkers: TimeMarker[];
-  riskZones: RiskZone[];
-  positionOverlay: PositionOverlayConfig | null;
-  clickToTrade: ClickToTradeConfig | null;
-  // Note: Equity curve and drawdown are handled as indicators,
-  // so they're part of the standard indicator state, not trading-specific state
-}
+export type ChartState = {
+  priceRange: PriceRange;
+  priceHistory: PriceHistory;
+  timeRange: TimeRange;
+  liveCandle: LiveCandle | null;
+  canvasWidth: number;
+  canvasHeight: number;
+  symbol: string;
+  granularity: Granularity;
+  loading?: boolean;
+  indicators?: IndicatorConfig[];
+  trendLines?: TrendLine[];
+  patternHighlights?: PatternHighlight[];
+  isTransitioning?: boolean;
+
+  // paper trading state
+  tradeMarkers?: TradeMarker[];
+  priceLines?: PriceLine[];
+  tradeZones?: TradeZone[];
+  annotations?: Annotation[];
+  timeMarkers?: TimeMarker[];
+  riskZones?: RiskZone[];
+  positionOverlay?:
+    | PositionOverlayConfig
+    | null;
+  clickToTrade?: ClickToTradeConfig;
+  equityCurve?: EquityCurveConfig;
+};
 ```
 
 ---

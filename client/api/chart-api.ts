@@ -845,6 +845,7 @@ export class ChartApi {
       timeMarkers: xinValue(this.state.timeMarkers) || [],
       riskZones: xinValue(this.state.riskZones) || [],
       positionOverlay: xinValue(this.state.positionOverlay) || null,
+      clickToTrade: xinValue(this.state.clickToTrade) || null,
     };
   }
 
@@ -988,7 +989,7 @@ export class ChartApi {
       finalMin = center - minRangeLimit / 2;
       finalMax = center + minRangeLimit / 2;
       logger.warn(
-        `ChartApi: Requested range ${requestedRange} is below minimum ${minRangeLimit}. Clamping to minimum.`
+        `ChartApi: Requested range ${requestedRange} is below minimum ${minRangeLimit}. Clamping to minimum.`,
       );
     }
 
