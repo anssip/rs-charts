@@ -34,7 +34,7 @@ export class VolumeChart extends CanvasBase {
   private readonly FIXED_GAP_WIDTH = 2; // pixels
   private readonly MIN_BAR_WIDTH = 1; // pixels
   private readonly MAX_BAR_WIDTH = 500; // pixels
-  private _state: ChartState | null = null;
+  protected _state: ChartState | null = null;
   private _chartId: string = "state";
 
   override getId(): string {

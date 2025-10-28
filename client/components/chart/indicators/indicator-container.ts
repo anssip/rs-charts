@@ -28,6 +28,12 @@ export class IndicatorContainer extends LitElement {
 
     // Set up resize observer to redraw when container size changes
     this.resizeObserver = new ResizeObserver(() => {
+      // Skip updates during resize to improve performance
+      // Note: Check explicitly === true because XinJS proxies can be truthy
+      if (this._state?.isResizing === true) {
+        logger.debug("IndicatorContainer: Skipping update during resize");
+        return;
+      }
       this.updateChildComponents();
     });
     this.resizeObserver.observe(this);

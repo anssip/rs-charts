@@ -320,8 +320,9 @@ export class PriceLinesLayer extends LitElement {
     const textLabelPosition = line.label?.position || "right";
     const priceLabelPosition = textLabelPosition === "left" ? "right" : "left";
 
-    // Calculate explicit pixel position based on current width
-    const labelPosition = priceLabelPosition === "right" ? this.width - 8 : 8;
+    // Use CSS positioning to keep label anchored to edge during resize
+    const positionStyle =
+      priceLabelPosition === "right" ? "right: 8px;" : "left: 8px;";
 
     return html`
       <div
@@ -330,7 +331,7 @@ export class PriceLinesLayer extends LitElement {
           top: 0;
           transform: translateY(-50%);
           background-color: ${line.color};
-          left: ${labelPosition}px;
+          ${positionStyle}
         "
       >
         ${line.price.toFixed(2)}

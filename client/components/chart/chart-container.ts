@@ -110,6 +110,7 @@ export class ChartContainer extends LitElement {
     symbol: "BTC-USD",
     granularity: "ONE_HOUR",
     patternHighlights: [],
+    isResizing: false,
   };
 
   @state()
@@ -478,9 +479,15 @@ export class ChartContainer extends LitElement {
 
     // Add click outside listener
     document.addEventListener("click", this.eventHandlers.handleClickOutside);
-    document.addEventListener("touchstart", this.eventHandlers.handleClickOutside);
+    document.addEventListener(
+      "touchstart",
+      this.eventHandlers.handleClickOutside,
+    );
 
-    window.addEventListener("spotcanvas-upgrade", this.eventHandlers.handleUpgrade);
+    window.addEventListener(
+      "spotcanvas-upgrade",
+      this.eventHandlers.handleUpgrade,
+    );
 
     // Add event listener for indicator toggling
     this.addEventListener(
@@ -498,6 +505,18 @@ export class ChartContainer extends LitElement {
           `ChartContainer: ResizeObserver triggered: ${width}x${height}`,
         );
 
+        // Set resizing state immediately to prevent draws during resize
+        // Note: Check explicitly for !== true because XinJS proxies can be truthy
+        if (this._state && this._state.isResizing !== true) {
+          this._state.isResizing = true;
+          this.classList.add("resizing");
+          console.log(
+            "🔵 ChartContainer: Started resizing, blocking draws, class added:",
+            this.classList.contains("resizing"),
+          );
+          logger.debug("ChartContainer: Started resizing, blocking draws");
+        }
+
         // Use a debounce mechanism to avoid excessive resize calls
         if (this.resizeTimeout) {
           clearTimeout(this.resizeTimeout);
@@ -508,9 +527,20 @@ export class ChartContainer extends LitElement {
             logger.info(
               `ChartContainer: ResizeObserver calling handleResize: ${width}x${height}`,
             );
+            // Clear resizing state before final redraw
+            if (this._state) {
+              this._state.isResizing = false;
+            }
+            this.classList.remove("resizing");
+            console.log(
+              "🟢 ChartContainer: Finished resizing, allowing draws, class removed:",
+              !this.classList.contains("resizing"),
+            );
+            logger.debug("ChartContainer: Finished resizing, allowing draws");
+
             this.handleResize(width, height);
           }
-        }, 100); // 100ms debounce
+        }, 400); // 400ms debounce - increased for better resize-end detection
       }
     });
 
@@ -630,9 +660,18 @@ export class ChartContainer extends LitElement {
       "fullscreenchange",
       this.eventHandlers.handleFullscreenChange,
     );
-    document.removeEventListener("click", this.eventHandlers.handleClickOutside);
-    document.removeEventListener("touchstart", this.eventHandlers.handleClickOutside);
-    document.removeEventListener("click", this.eventHandlers.handleDocumentClick);
+    document.removeEventListener(
+      "click",
+      this.eventHandlers.handleClickOutside,
+    );
+    document.removeEventListener(
+      "touchstart",
+      this.eventHandlers.handleClickOutside,
+    );
+    document.removeEventListener(
+      "click",
+      this.eventHandlers.handleDocumentClick,
+    );
     this.removeEventListener(
       "candle-click",
       this.eventHandlers.handleCandleClick as EventListener,
@@ -645,8 +684,14 @@ export class ChartContainer extends LitElement {
         this.eventHandlers.handleChartAreaDoubleClick as EventListener,
       );
     }
-    this.removeEventListener("toggle-fullscreen", this.eventHandlers.handleFullScreenToggle);
-    this.removeEventListener("toggle-fullwindow", this.eventHandlers.toggleFullWindow);
+    this.removeEventListener(
+      "toggle-fullscreen",
+      this.eventHandlers.handleFullScreenToggle,
+    );
+    this.removeEventListener(
+      "toggle-fullwindow",
+      this.eventHandlers.toggleFullWindow,
+    );
     this.removeEventListener(
       "toggle-indicator",
       this.eventHandlers.handleIndicatorToggle as EventListener,
@@ -864,7 +909,6 @@ export class ChartContainer extends LitElement {
               style="--price-axis-width: ${this.priceAxisWidth}px"
             ></risk-zones-canvas-layer>
 
-
             <!-- Time Markers Layer (z-index: 25) -->
             <time-markers-layer
               .markers=${this._state.timeMarkers || []}
@@ -981,7 +1025,7 @@ export class ChartContainer extends LitElement {
                       );
 
                       // Handle custom indicators with their own components
-                      if (indicator.id === 'equity-curve') {
+                      if (indicator.id === "equity-curve") {
                         return html`
                           <equity-curve-indicator
                             slot="${slotId}"
@@ -996,7 +1040,7 @@ export class ChartContainer extends LitElement {
                         `;
                       }
 
-                      if (indicator.id === 'drawdown') {
+                      if (indicator.id === "drawdown") {
                         return html`
                           <drawdown-indicator
                             slot="${slotId}"
@@ -1065,9 +1109,13 @@ export class ChartContainer extends LitElement {
     // Calculate the main chart height (excluding bottom stacked indicators)
     // This ensures the candlestick chart and live-decorators have the same canvas height
     let chartHeight = height;
-    const indicatorStack = this.renderRoot.querySelector("indicator-stack.main-chart");
+    const indicatorStack = this.renderRoot.querySelector(
+      "indicator-stack.main-chart",
+    );
     if (indicatorStack) {
-      const chartItem = indicatorStack.shadowRoot?.querySelector(".stack-item.chart-item") as HTMLElement;
+      const chartItem = indicatorStack.shadowRoot?.querySelector(
+        ".stack-item.chart-item",
+      ) as HTMLElement;
       if (chartItem && chartItem.clientHeight > 0) {
         chartHeight = chartItem.clientHeight;
       }

@@ -42,7 +42,7 @@ export class CandlestickChart extends CanvasBase implements Drawable {
 
   private mobileMediaQuery = window.matchMedia("(max-width: 767px)");
 
-  private _state: ChartState | null = null;
+  protected _state: ChartState | null = null;
   private _chartId: string = "state";
   private _padding: {
     top: number;

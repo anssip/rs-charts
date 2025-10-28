@@ -1,6 +1,7 @@
 import { LitElement, html } from "lit";
 import { getLogger, LogLevel } from "../../util/logger";
 import { getDpr } from "../../util/chart-util";
+import { ChartState } from "../..";
 
 const logger = getLogger("CanvasBase");
 logger.setLoggerLevel("CanvasBase", LogLevel.ERROR);
@@ -9,6 +10,8 @@ export abstract class CanvasBase extends LitElement {
   public canvas: HTMLCanvasElement | null = null;
   public ctx: CanvasRenderingContext2D | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  // Optional state reference for checking resize status
+  protected _state?: ChartState | null;
 
   constructor() {
     super();
@@ -139,13 +142,21 @@ export abstract class CanvasBase extends LitElement {
     // Clear the canvas
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    // Skip drawing during resize to improve performance
+    // Chart container will trigger a coordinated redraw when resize completes
+    // Note: Check explicitly === true because XinJS proxies can be truthy
+    if (this._state?.isResizing === true) {
+      logger.debug(`${this.getId()}: Skipping draw during resize`);
+      return;
+    }
+
     // Redraw the content
     this.draw();
 
     // Schedule another redraw with a slight delay
     // This helps with timing issues in complex layout changes
     requestAnimationFrame(() => {
-      if (this.canvas && this.ctx) {
+      if (this.canvas && this.ctx && this._state?.isResizing !== true) {
         this.draw();
       }
     });

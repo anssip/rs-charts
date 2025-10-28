@@ -46,6 +46,7 @@ export type ChartState = {
   trendLines?: TrendLine[];
   patternHighlights?: PatternHighlight[]; // Store pattern highlights in state
   isTransitioning?: boolean; // Flag to prevent drawing during state transitions
+  isResizing?: boolean; // Flag to prevent drawing during window/container resize
   // Trading overlays for paper trading & backtesting
   tradeMarkers?: import("./types/trading-overlays").TradeMarker[];
   priceLines?: import("./types/trading-overlays").PriceLine[];

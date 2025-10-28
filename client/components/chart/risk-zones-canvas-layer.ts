@@ -73,6 +73,12 @@ export class RiskZonesCanvasLayer extends LitElement {
     if (this.canvas) {
       this.resizeObserver = new ResizeObserver(() => {
         this.updateCanvasSize();
+        // Skip drawing during resize to improve performance
+        // Note: Check explicitly === true because XinJS proxies can be truthy
+        if (this.state?.isResizing === true) {
+          logger.debug("RiskZonesCanvasLayer: Skipping draw during resize");
+          return;
+        }
         this.draw();
       });
       this.resizeObserver.observe(this);

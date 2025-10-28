@@ -31,6 +31,12 @@ export const getStyles = (
     overflow: hidden;
   }
 
+  :host(.resizing) .chart-area {
+    filter: blur(4px);
+    opacity: 0.7;
+    transition: none;
+  }
+
   .chart-wrapper {
     display: flex;
     flex-direction: column;
