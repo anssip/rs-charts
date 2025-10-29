@@ -364,6 +364,7 @@ export class ChartApi {
     this.container.addEventListener("toggle-indicator", (event: Event) => {
       const customEvent = event as CustomEvent;
       const detail = customEvent.detail;
+      console.log("[ChartApi] toggle-indicator received:", { id: detail.id, visible: detail.visible, display: detail.display });
       
       // Emit indicatorChange event when indicators are toggled via context menu
       if (detail.visible) {
@@ -561,20 +562,27 @@ export class ChartApi {
       );
     });
 
-    if (builtInIndicator && builtInIndicator.action && !config.params) {
-      // Use built-in indicator action ONLY if no custom params are provided
+    console.log("[ChartApi showIndicator] builtInIndicator search result:", { found: !!builtInIndicator, hasAction: !!builtInIndicator?.action, configId: config.id });
+    if (builtInIndicator && builtInIndicator.action) {
+      // Use built-in indicator action which has proper display type and configuration
       // Check if indicator is already visible to avoid toggling it off
+      console.log("[ChartApi showIndicator] Found built-in indicator for:", config.id);
       const isAlreadyVisible = this.isIndicatorVisible(config.id);
+      console.log("[ChartApi showIndicator] isAlreadyVisible check:", { id: config.id, isAlreadyVisible });
 
       if (!isAlreadyVisible) {
         // Use the built-in indicator action which has proper configuration
+        // The action will trigger a toggle-indicator event, which our listener
+        console.log("[ChartApi] Calling builtInIndicator.action() for:", config.id);
+        // will catch and emit the indicatorChange event with correct display type
         builtInIndicator.action();
+      } else {
+        // If already visible, just emit the event without toggling
+        this.emitEvent("indicatorChange", {
+          action: "show",
+          indicator: { ...config, visible: true },
+        });
       }
-
-      this.emitEvent("indicatorChange", {
-        action: "show",
-        indicator: { ...config, visible: true },
-      });
     } else {
       // Fallback to manual configuration
       const indicatorConfig: IndicatorConfig = {

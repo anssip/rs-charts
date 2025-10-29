@@ -303,8 +303,9 @@ export class ChartEventHandlers {
       ];
 
       // Update state
-      (this.container as any)._state.trendLines = (this.container as any)
-        .trendLines;
+      (this.container as any)._state.trendLines = (
+        this.container as any
+      ).trendLines;
       touch("state.trendLines");
 
       // Emit API event
@@ -355,8 +356,9 @@ export class ChartEventHandlers {
     );
 
     // Update state
-    (this.container as any)._state.trendLines = (this.container as any)
-      .trendLines;
+    (this.container as any)._state.trendLines = (
+      this.container as any
+    ).trendLines;
     touch("state.trendLines");
 
     // Force update to ensure UI reflects the change
@@ -473,6 +475,27 @@ export class ChartEventHandlers {
     }
 
     this.container.requestUpdate();
+
+    // After the DOM updates, ensure all layers (especially live-decorators) are updated
+    // with the new chart height after indicators are added/removed
+    requestAnimationFrame(() => {
+      const layerUpdateCoordinator = (this.container as any)
+        .layerUpdateCoordinator;
+      if (layerUpdateCoordinator) {
+        // Update live-decorators layer with new chart height
+        layerUpdateCoordinator.updateLiveDecoratorsLayer();
+
+        // Also update other layers that depend on chart height
+        layerUpdateCoordinator.updateAllLayers({
+          trendLineLayer: (this.container as any).trendLineLayer,
+          patternLabelsLayer: (this.container as any).patternLabelsLayer,
+          tradingMarkersLayer: (this.container as any).tradingMarkersLayer,
+          priceLinesLayer: (this.container as any).priceLinesLayer,
+          tradeZonesLayer: (this.container as any).tradeZonesLayer,
+          annotationsLayer: (this.container as any).annotationsLayer,
+        });
+      }
+    });
   };
 
   /**
