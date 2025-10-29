@@ -360,6 +360,32 @@ export class ChartApi {
       this.emitEvent("price-hover", customEvent.detail);
     });
 
+    // Listen for indicator toggle events from context menu
+    this.container.addEventListener("toggle-indicator", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      
+      // Emit indicatorChange event when indicators are toggled via context menu
+      if (detail.visible) {
+        this.emitEvent("indicatorChange", {
+          action: "show",
+          indicator: {
+            id: detail.id,
+            name: detail.name || detail.id,
+            visible: true,
+            params: detail.params,
+            display: detail.display,
+            scale: detail.scale,
+          },
+        });
+      } else {
+        this.emitEvent("indicatorChange", {
+          action: "hide",
+          indicatorId: detail.id,
+        });
+      }
+    });
+
     // Listen for annotation events
     this.container.addEventListener("annotation-clicked", (event: Event) => {
       const customEvent = event as CustomEvent;

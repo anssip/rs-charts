@@ -287,10 +287,15 @@ export class PriceLinesLayer extends LitElement {
   private renderLabel(line: PriceLine, y: number): unknown {
     if (!line.label) return null;
 
-    const position = line.label.position || "right";
     const bgColor = line.label.backgroundColor || "rgba(0, 0, 0, 0.8)";
     const textColor = line.label.textColor || "#ffffff";
     const fontSize = line.label.fontSize || 11;
+
+    const textLabelPosition = line.label?.position || "right";
+
+    // Use CSS positioning to keep label anchored to edge during resize
+    const positionStyle =
+      textLabelPosition === "right" ? "right: 8px;" : "left: 8px;";
 
     return html`
       <div
@@ -298,7 +303,7 @@ export class PriceLinesLayer extends LitElement {
         style="
           top: 0;
           transform: translateY(-50%);
-          ${position === "right" ? "right: 8px" : "left: 8px"};
+          ${positionStyle}
           background-color: ${bgColor};
           color: ${textColor};
           font-size: ${fontSize}px;

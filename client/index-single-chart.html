@@ -273,7 +273,6 @@
                 min-height: 60px;
                 resize: vertical;
             }
-
         </style>
     </head>
 
@@ -291,833 +290,626 @@
 
             <!-- Side Panel Demo Controls -->
             <div class="demo-controls" id="demo-controls">
-            <div class="controls-header">
-                <h3>Chart API Demo</h3>
-            </div>
-
-            <div class="control-group">
-                <label>Symbol:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('BTC-USD')"
-                    >
-                        BTC-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('ETH-USD')"
-                    >
-                        ETH-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('SOL-USD')"
-                    >
-                        SOL-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('AVAX-USD')"
-                    >
-                        AVAX-USD
-                    </button>
+                <div class="controls-header">
+                    <h3>Chart API Demo</h3>
                 </div>
-            </div>
 
-            <div class="control-group">
-                <label>Timeframe:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_MINUTE')"
-                    >
-                        1m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIVE_MINUTE')"
-                    >
-                        5m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIFTEEN_MINUTE')"
-                    >
-                        15m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_HOUR')"
-                    >
-                        1h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('SIX_HOUR')"
-                    >
-                        6h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_DAY')"
-                    >
-                        1d
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Indicators:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('volume', 'Volume')"
-                    >
-                        Volume
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('rsi', 'RSI')"
-                    >
-                        RSI
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('macd', 'MACD')"
-                    >
-                        MACD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
-                    >
-                        BB
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('moving-averages', 'Moving Averages')"
-                    >
-                        MA
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('stochastic', 'Stochastic')"
-                    >
-                        Stoch
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('atr', 'ATR')"
-                    >
-                        ATR
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Display:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="toggleFullWindow()"
-                    >
-                        Full Window
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleFullscreen()"
-                    >
-                        Fullscreen
-                    </button>
-                    <button class="control-button" onclick="forceRedraw()">
-                        Redraw
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Screenshot:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshot()"
-                        style="background: #4caf50; color: white"
-                    >
-                        📸 Download PNG
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshotJPEG()"
-                        style="background: #2196f3; color: white"
-                    >
-                        📸 Download JPEG
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Time Range:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="getTimeRange()">
-                        Get Range
-                    </button>
-                    <button class="control-button" onclick="zoomInTime()">
-                        Zoom In
-                    </button>
-                    <button class="control-button" onclick="zoomOutTime()">
-                        Zoom Out
-                    </button>
-                    <button class="control-button" onclick="panLeft()">
-                        ← Pan
-                    </button>
-                    <button class="control-button" onclick="panRight()">
-                        Pan →
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Price Range:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="getPriceRange()"
-                    >
-                        Get Range
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="adjustPriceUp()"
-                    >
-                        ↑ Expand
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="adjustPriceDown()"
-                    >
-                        ↓ Contract
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="resetPriceRange()"
-                    >
-                        Auto Fit
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trend Lines:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="activateTrendLine()"
-                    >
-                        Draw Line
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearTrendLines()"
-                    >
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Pattern Highlights:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="highlightBullishPatterns()"
-                        style="color: #4ade80"
-                    >
-                        Bullish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightBearishPatterns()"
-                        style="color: #ef4444"
-                    >
-                        Bearish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightNeutralPatterns()"
-                        style="color: #fbbf24"
-                    >
-                        Neutral
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightMixedPatterns()"
-                    >
-                        Mixed
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="createPulseWave()"
-                        style="
-                            background: linear-gradient(
-                                90deg,
-                                #10b981,
-                                #3b82f6,
-                                #a855f7
-                            );
-                            color: white;
-                        "
-                    >
-                        Pulse Wave
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearPatternHighlights()"
-                    >
-                        Clear
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trade Markers:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addBuyMarker()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Buy Marker
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addSellMarker()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Sell Marker
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllTradeMarkers()"
-                    >
-                        Clear Markers
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Price Lines:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addLimitOrderLine()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        + Limit Order
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addStopLossLine()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Stop Loss
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addTakeProfitLine()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Take Profit
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllPriceLines()"
-                    >
-                        Clear Lines
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Position Overlay:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="showLongPosition()"
-                        style="background: #10b981; color: white"
-                    >
-                        Long Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="showShortPosition()"
-                        style="background: #ef4444; color: white"
-                    >
-                        Short Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="togglePositionCompact()"
-                    >
-                        Toggle Compact
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="hidePositionOverlay()"
-                    >
-                        Hide Position
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="simulatePnLUpdate()"
-                        style="background: #fbbf24; color: white"
-                    >
-                        Update P&L
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trade Zones:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addProfitableTradeZone()"
-                        style="background: #10b981; color: white"
-                    >
-                        + Profit Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addLosingTradeZone()"
-                        style="background: #ef4444; color: white"
-                    >
-                        + Loss Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addLongTradeZone()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        + Long Trade
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addShortTradeZone()"
-                        style="background: #f59e0b; color: white"
-                    >
-                        + Short Trade
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllTradeZones()"
-                    >
-                        Clear Zones
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Annotations:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addNoteAnnotation()"
-                        style="background: #8b5cf6; color: white"
-                    >
-                        📝 Add Note
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addAlertAnnotation()"
-                        style="background: #f59e0b; color: white"
-                    >
-                        🔔 Add Alert
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addMilestoneAnnotation()"
-                        style="background: #10b981; color: white"
-                    >
-                        🏁 Add Milestone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addDraggableAnnotation()"
-                        style="background: #3b82f6; color: white"
-                    >
-                        ✋ Draggable
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllAnnotations()"
-                    >
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Time Markers:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addNewsReleaseMarker()"
-                        style="background: #ff6b6b; color: white"
-                    >
-                        📰 News Release
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addMarketOpenMarker()"
-                        style="background: #4ade80; color: white"
-                    >
-                        🔔 Market Open
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addEarningsMarker()"
-                        style="background: #fbbf24; color: white"
-                    >
-                        💰 Earnings
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addCustomTimeMarker()"
-                        style="background: #6b7280; color: white"
-                    >
-                        ⏱️ Custom
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllTimeMarkers()"
-                    >
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Risk Zones:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="addStopLossZone()"
-                        style="background: #ef4444; color: white"
-                    >
-                        🛑 Stop Loss Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addSupportZone()"
-                        style="background: #10b981; color: white"
-                    >
-                        📈 Support Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addResistanceZone()"
-                        style="background: #f59e0b; color: white"
-                    >
-                        📉 Resistance Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="addLiquidationZone()"
-                        style="background: #dc2626; color: white"
-                    >
-                        ⚠️ Liquidation Zone
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearAllRiskZones()"
-                    >
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Equity Curve:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="showEquityCurve()"
-                        style="background: #8b5cf6; color: white"
-                    >
-                        📈 Basic
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="showEquityCurveWithArea()"
-                        style="background: #6366f1; color: white"
-                    >
-                        📊 With Area
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="showEquityCurveWithPeak()"
-                        style="background: #ec4899; color: white"
-                    >
-                        ⛰️ With Peak
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="simulateEquityGrowth()"
-                        style="background: #10b981; color: white"
-                    >
-                        📈 Growth
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="simulateEquityDrawdown()"
-                        style="background: #ef4444; color: white"
-                    >
-                        📉 Decline
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearEquityCurve()"
-                    >
-                        Clear
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Drawdown:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="showDrawdown()"
-                        style="background: #ff6b6b; color: white"
-                    >
-                        📉 Show
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="showDrawdownWithWarning()"
-                        style="background: #ff0000; color: white"
-                    >
-                        ⚠️ With Warning
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearDrawdown()"
-                    >
-                        Clear
-                    </button>
-                </div>
-            </div>
-
-            <!-- Click-to-Trade Section -->
-            <div
-                class="control-group"
-                style="
-                    border-top: 1px solid rgba(143, 143, 143, 0.2);
-                    padding-top: 10px;
-                    margin-top: 10px;
-                "
-            >
-                <label>Click-to-Trade:</label>
-                <div class="control-buttons">
-                    <button
-                        id="enable-click-to-trade-btn"
-                        class="control-button"
-                        onclick="enableClickToTradeMode()"
-                        style="background: #10b981; color: white"
-                    >
-                        Enable Click-to-Trade
-                    </button>
-                    <button
-                        id="disable-click-to-trade-btn"
-                        class="control-button"
-                        onclick="disableClickToTradeMode()"
-                        style="background: #ef4444; color: white"
-                    >
-                        Disable Click-to-Trade
-                    </button>
-                </div>
-                <div
-                    style="
-                        font-size: 11px;
-                        color: #888;
-                        margin-top: 8px;
-                        line-height: 1.4;
-                    "
-                >
-                    Click chart to place order. Hold Shift to toggle buy/sell.
-                </div>
-            </div>
-
-            <div id="trend-line-settings" style="display: none">
                 <div class="control-group">
-                    <label style="color: #4caf50">Selected Line:</label>
-                    <div
-                        style="
-                            font-size: 11px;
-                            color: #888;
-                            margin-bottom: 10px;
-                        "
-                        id="selected-line-id"
-                    >
-                        -
+                    <label>Symbol:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('BTC-USD')"
+                        >
+                            BTC-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('ETH-USD')"
+                        >
+                            ETH-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('SOL-USD')"
+                        >
+                            SOL-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('AVAX-USD')"
+                        >
+                            AVAX-USD
+                        </button>
                     </div>
                 </div>
 
                 <div class="control-group">
-                    <label>Name:</label>
-                    <input
-                        type="text"
-                        id="line-name"
-                        placeholder="Line name"
-                    />
-                </div>
-
-                <div class="control-group">
-                    <label>Description:</label>
-                    <textarea
-                        id="line-description"
-                        placeholder="Line description"
-                    ></textarea>
-                </div>
-
-                <div class="control-group">
-                    <label>Color:</label>
-                    <input
-                        type="color"
-                        id="line-color"
-                        value="#2962ff"
-                    />
-                </div>
-
-                <div class="control-group">
-                    <label>Width:</label>
-                    <input
-                        type="number"
-                        id="line-width"
-                        min="1"
-                        max="10"
-                        value="2"
-                    />
-                </div>
-
-                <div class="control-group">
-                    <label>Style:</label>
-                    <select id="line-style">
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        <input
-                            type="checkbox"
-                            id="extend-left"
-                            style="margin-right: 5px"
-                        />
-                        Extend Left
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        <input
-                            type="checkbox"
-                            id="extend-right"
-                            style="margin-right: 5px"
-                        />
-                        Extend Right
-                    </label>
-                </div>
-
-                <div class="control-group">
-                    <label>Opacity: <span id="opacity-value">100%</span></label>
-                    <input
-                        type="range"
-                        id="line-opacity"
-                        min="0"
-                        max="100"
-                        value="100"
-                    />
-                </div>
-
-                <div class="control-group">
-                    <label>Level Type:</label>
-                    <select id="level-type">
-                        <option value="">None</option>
-                        <option value="swing">Swing</option>
-                        <option value="horizontal">Horizontal</option>
-                    </select>
-                </div>
-
-                <div class="control-group">
-                    <label>Z-Index:</label>
-                    <input
-                        type="number"
-                        id="z-index"
-                        min="0"
-                        max="1000"
-                        value="0"
-                    />
-                </div>
-
-                <div class="control-group">
-                    <label>
-                        <input
-                            type="checkbox"
-                            id="markers-enabled"
-                            style="margin-right: 5px"
-                        />
-                        Enable Markers
-                    </label>
-                </div>
-
-                <div id="marker-settings" style="display: none">
-                    <div class="control-group">
-                        <label>Marker Symbol:</label>
-                        <select id="marker-symbol">
-                            <option value="diamond">Diamond</option>
-                            <option value="circle">Circle</option>
-                            <option value="square">Square</option>
-                            <option value="triangle">Triangle</option>
-                        </select>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Marker Size:</label>
-                        <input
-                            type="number"
-                            id="marker-size"
-                            min="1"
-                            max="20"
-                            value="4"
-                        />
-                    </div>
-
-                    <div class="control-group">
-                        <label>Marker Spacing:</label>
-                        <input
-                            type="number"
-                            id="marker-spacing"
-                            min="10"
-                            max="500"
-                            value="100"
-                        />
-                    </div>
-
-                    <div class="control-group">
-                        <label>Marker Color:</label>
-                        <input
-                            type="color"
-                            id="marker-color"
-                            value="#2962ff"
-                        />
+                    <label>Timeframe:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_MINUTE')"
+                        >
+                            1m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIVE_MINUTE')"
+                        >
+                            5m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIFTEEN_MINUTE')"
+                        >
+                            15m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_HOUR')"
+                        >
+                            1h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('SIX_HOUR')"
+                        >
+                            6h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_DAY')"
+                        >
+                            1d
+                        </button>
                     </div>
                 </div>
 
+                <div class="control-group">
+                    <label>Indicators:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('volume', 'Volume')"
+                        >
+                            Volume
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('rsi', 'RSI')"
+                        >
+                            RSI
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('macd', 'MACD')"
+                        >
+                            MACD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
+                        >
+                            BB
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('moving-averages', 'Moving Averages')"
+                        >
+                            MA
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('stochastic', 'Stochastic')"
+                        >
+                            Stoch
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('atr', 'ATR')"
+                        >
+                            ATR
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Display:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleFullWindow()"
+                        >
+                            Full Window
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleFullscreen()"
+                        >
+                            Fullscreen
+                        </button>
+                        <button class="control-button" onclick="forceRedraw()">
+                            Redraw
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Screenshot:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshot()"
+                            style="background: #4caf50; color: white"
+                        >
+                            📸 Download PNG
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshotJPEG()"
+                            style="background: #2196f3; color: white"
+                        >
+                            📸 Download JPEG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <div class="control-buttons">
+                        <button class="control-button" onclick="getTimeRange()">
+                            Get Range
+                        </button>
+                        <button class="control-button" onclick="zoomInTime()">
+                            Zoom In
+                        </button>
+                        <button class="control-button" onclick="zoomOutTime()">
+                            Zoom Out
+                        </button>
+                        <button class="control-button" onclick="panLeft()">
+                            ← Pan
+                        </button>
+                        <button class="control-button" onclick="panRight()">
+                            Pan →
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Range:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="getPriceRange()"
+                        >
+                            Get Range
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceUp()"
+                        >
+                            ↑ Expand
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceDown()"
+                        >
+                            ↓ Contract
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="resetPriceRange()"
+                        >
+                            Auto Fit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trend Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="activateTrendLine()"
+                        >
+                            Draw Line
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearTrendLines()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Pattern Highlights:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="highlightBullishPatterns()"
+                            style="color: #4ade80"
+                        >
+                            Bullish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightBearishPatterns()"
+                            style="color: #ef4444"
+                        >
+                            Bearish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightNeutralPatterns()"
+                            style="color: #fbbf24"
+                        >
+                            Neutral
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightMixedPatterns()"
+                        >
+                            Mixed
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="createPulseWave()"
+                            style="
+                                background: linear-gradient(
+                                    90deg,
+                                    #10b981,
+                                    #3b82f6,
+                                    #a855f7
+                                );
+                                color: white;
+                            "
+                        >
+                            Pulse Wave
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearPatternHighlights()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addBuyMarker()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Buy Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSellMarker()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Sell Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeMarkers()"
+                        >
+                            Clear Markers
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addLimitOrderLine()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Limit Order
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addStopLossLine()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Stop Loss
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addTakeProfitLine()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Take Profit
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllPriceLines()"
+                        >
+                            Clear Lines
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Position Overlay:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showLongPosition()"
+                            style="background: #10b981; color: white"
+                        >
+                            Long Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showShortPosition()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Short Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="togglePositionCompact()"
+                        >
+                            Toggle Compact
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="hidePositionOverlay()"
+                        >
+                            Hide Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulatePnLUpdate()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            Update P&L
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addProfitableTradeZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Profit Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLosingTradeZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLongTradeZone()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Long Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addShortTradeZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            + Short Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeZones()"
+                        >
+                            Clear Zones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Annotations:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNoteAnnotation()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📝 Add Note
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addAlertAnnotation()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            🔔 Add Alert
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMilestoneAnnotation()"
+                            style="background: #10b981; color: white"
+                        >
+                            🏁 Add Milestone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addDraggableAnnotation()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            ✋ Draggable
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllAnnotations()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNewsReleaseMarker()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📰 News Release
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMarketOpenMarker()"
+                            style="background: #4ade80; color: white"
+                        >
+                            🔔 Market Open
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addEarningsMarker()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            💰 Earnings
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addCustomTimeMarker()"
+                            style="background: #6b7280; color: white"
+                        >
+                            ⏱️ Custom
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTimeMarkers()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Risk Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addStopLossZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            🛑 Stop Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSupportZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Support Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addResistanceZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            📉 Resistance Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLiquidationZone()"
+                            style="background: #dc2626; color: white"
+                        >
+                            ⚠️ Liquidation Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllRiskZones()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Equity Curve:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurve()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📈 Basic
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurveWithArea()"
+                            style="background: #6366f1; color: white"
+                        >
+                            📊 With Area
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurveWithPeak()"
+                            style="background: #ec4899; color: white"
+                        >
+                            ⛰️ With Peak
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulateEquityGrowth()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Growth
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulateEquityDrawdown()"
+                            style="background: #ef4444; color: white"
+                        >
+                            📉 Decline
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearEquityCurve()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Drawdown:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showDrawdown()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📉 Show
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showDrawdownWithWarning()"
+                            style="background: #ff0000; color: white"
+                        >
+                            ⚠️ With Warning
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearDrawdown()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Click-to-Trade Section -->
                 <div
                     class="control-group"
                     style="
@@ -1126,53 +918,260 @@
                         margin-top: 10px;
                     "
                 >
-                    <label>Presets:</label>
+                    <label>Click-to-Trade:</label>
+                    <div class="control-buttons">
+                        <button
+                            id="enable-click-to-trade-btn"
+                            class="control-button"
+                            onclick="enableClickToTradeMode()"
+                            style="background: #10b981; color: white"
+                        >
+                            Enable Click-to-Trade
+                        </button>
+                        <button
+                            id="disable-click-to-trade-btn"
+                            class="control-button"
+                            onclick="disableClickToTradeMode()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Disable Click-to-Trade
+                        </button>
+                    </div>
+                    <div
+                        style="
+                            font-size: 11px;
+                            color: #888;
+                            margin-top: 8px;
+                            line-height: 1.4;
+                        "
+                    >
+                        Click chart to place order. Hold Shift to toggle
+                        buy/sell.
+                    </div>
+                </div>
+
+                <div id="trend-line-settings" style="display: none">
+                    <div class="control-group">
+                        <label style="color: #4caf50">Selected Line:</label>
+                        <div
+                            style="
+                                font-size: 11px;
+                                color: #888;
+                                margin-bottom: 10px;
+                            "
+                            id="selected-line-id"
+                        >
+                            -
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Name:</label>
+                        <input
+                            type="text"
+                            id="line-name"
+                            placeholder="Line name"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Description:</label>
+                        <textarea
+                            id="line-description"
+                            placeholder="Line description"
+                        ></textarea>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Color:</label>
+                        <input type="color" id="line-color" value="#2962ff" />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Width:</label>
+                        <input
+                            type="number"
+                            id="line-width"
+                            min="1"
+                            max="10"
+                            value="2"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Style:</label>
+                        <select id="line-style">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="extend-left"
+                                style="margin-right: 5px"
+                            />
+                            Extend Left
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="extend-right"
+                                style="margin-right: 5px"
+                            />
+                            Extend Right
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label
+                            >Opacity:
+                            <span id="opacity-value">100%</span></label
+                        >
+                        <input
+                            type="range"
+                            id="line-opacity"
+                            min="0"
+                            max="100"
+                            value="100"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Level Type:</label>
+                        <select id="level-type">
+                            <option value="">None</option>
+                            <option value="swing">Swing</option>
+                            <option value="horizontal">Horizontal</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Z-Index:</label>
+                        <input
+                            type="number"
+                            id="z-index"
+                            min="0"
+                            max="1000"
+                            value="0"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="markers-enabled"
+                                style="margin-right: 5px"
+                            />
+                            Enable Markers
+                        </label>
+                    </div>
+
+                    <div id="marker-settings" style="display: none">
+                        <div class="control-group">
+                            <label>Marker Symbol:</label>
+                            <select id="marker-symbol">
+                                <option value="diamond">Diamond</option>
+                                <option value="circle">Circle</option>
+                                <option value="square">Square</option>
+                                <option value="triangle">Triangle</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Size:</label>
+                            <input
+                                type="number"
+                                id="marker-size"
+                                min="1"
+                                max="20"
+                                value="4"
+                            />
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Spacing:</label>
+                            <input
+                                type="number"
+                                id="marker-spacing"
+                                min="10"
+                                max="500"
+                                value="100"
+                            />
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Color:</label>
+                            <input
+                                type="color"
+                                id="marker-color"
+                                value="#2962ff"
+                            />
+                        </div>
+                    </div>
+
+                    <div
+                        class="control-group"
+                        style="
+                            border-top: 1px solid rgba(143, 143, 143, 0.2);
+                            padding-top: 10px;
+                            margin-top: 10px;
+                        "
+                    >
+                        <label>Presets:</label>
+                        <div class="control-buttons">
+                            <button
+                                class="control-button"
+                                onclick="applySwingSupport()"
+                                style="background: #4caf50"
+                            >
+                                Swing Support
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applySwingResistance()"
+                                style="background: #f44336"
+                            >
+                                Swing Resistance
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applyHorizontalSupport()"
+                                style="background: #66bb6a"
+                            >
+                                Horizontal Support
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applyHorizontalResistance()"
+                                style="background: #ef5350"
+                            >
+                                Horizontal Resistance
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="control-buttons">
                         <button
                             class="control-button"
-                            onclick="applySwingSupport()"
-                            style="background: #4caf50"
+                            onclick="deleteTrendLine()"
+                            style="background: #ff5252"
                         >
-                            Swing Support
-                        </button>
-                        <button
-                            class="control-button"
-                            onclick="applySwingResistance()"
-                            style="background: #f44336"
-                        >
-                            Swing Resistance
-                        </button>
-                        <button
-                            class="control-button"
-                            onclick="applyHorizontalSupport()"
-                            style="background: #66bb6a"
-                        >
-                            Horizontal Support
-                        </button>
-                        <button
-                            class="control-button"
-                            onclick="applyHorizontalResistance()"
-                            style="background: #ef5350"
-                        >
-                            Horizontal Resistance
+                            Delete Line
                         </button>
                     </div>
                 </div>
 
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="deleteTrendLine()"
-                        style="background: #ff5252"
-                    >
-                        Delete Line
-                    </button>
+                <div class="demo-status" id="demo-status">
+                    Initializing chart...
                 </div>
-            </div>
-
-            <div class="demo-status" id="demo-status">
-                Initializing chart...
-            </div>
             </div>
         </div>
 
@@ -1741,8 +1740,7 @@
                             type: "pattern",
                             patternType: "bullish_engulfing",
                             name: "Bullish Engulfing",
-                            description:
-                                "Strong bullish reversal pattern.",
+                            description: "Strong bullish reversal pattern.",
                             candleTimestamps: [candles[4][0], candles[5][0]],
                             significance: "very high",
                             color: "#10b981",
@@ -1775,8 +1773,7 @@
                             type: "pattern",
                             patternType: "bearish_engulfing",
                             name: "Bearish Engulfing",
-                            description:
-                                "Strong bearish reversal pattern.",
+                            description: "Strong bearish reversal pattern.",
                             candleTimestamps: [candles[7][0], candles[8][0]],
                             significance: "very high",
                             color: "#dc2626",
@@ -1851,7 +1848,9 @@
                     ];
 
                     chartApi.highlightPatterns(patterns);
-                    updateStatus(`${patterns.length} mixed patterns highlighted`);
+                    updateStatus(
+                        `${patterns.length} mixed patterns highlighted`,
+                    );
                 } catch (error) {
                     updateStatus(`Error: ${error.message}`);
                 }
@@ -1896,7 +1895,9 @@
                         return;
                     }
 
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     chartApi.addTradeMarker({
@@ -1918,7 +1919,9 @@
                     });
 
                     const markers = chartApi.getTradeMarkers();
-                    updateStatus(`Added buy marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added buy marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding buy marker: ${error.message}`);
                 }
@@ -1934,7 +1937,9 @@
                         return;
                     }
 
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     chartApi.addTradeMarker({
@@ -1956,7 +1961,9 @@
                     });
 
                     const markers = chartApi.getTradeMarkers();
-                    updateStatus(`Added sell marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added sell marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding sell marker: ${error.message}`);
                 }
@@ -1969,7 +1976,9 @@
                     chartApi.clearTradeMarkers();
                     updateStatus("All trade markers cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing trade markers: ${error.message}`);
+                    updateStatus(
+                        `Error clearing trade markers: ${error.message}`,
+                    );
                 }
             }
 
@@ -1999,9 +2008,13 @@
                     });
 
                     const lines = chartApi.getPriceLines();
-                    updateStatus(`Added limit order line. Total lines: ${lines.length}`);
+                    updateStatus(
+                        `Added limit order line. Total lines: ${lines.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding limit order line: ${error.message}`);
+                    updateStatus(
+                        `Error adding limit order line: ${error.message}`,
+                    );
                 }
             }
 
@@ -2031,9 +2044,13 @@
                     });
 
                     const lines = chartApi.getPriceLines();
-                    updateStatus(`Added stop loss line. Total lines: ${lines.length}`);
+                    updateStatus(
+                        `Added stop loss line. Total lines: ${lines.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding stop loss line: ${error.message}`);
+                    updateStatus(
+                        `Error adding stop loss line: ${error.message}`,
+                    );
                 }
             }
 
@@ -2063,9 +2080,13 @@
                     });
 
                     const lines = chartApi.getPriceLines();
-                    updateStatus(`Added take profit line. Total lines: ${lines.length}`);
+                    updateStatus(
+                        `Added take profit line. Total lines: ${lines.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding take profit line: ${error.message}`);
+                    updateStatus(
+                        `Error adding take profit line: ${error.message}`,
+                    );
                 }
             }
 
@@ -2076,7 +2097,9 @@
                     chartApi.clearPriceLines();
                     updateStatus("All price lines cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing price lines: ${error.message}`);
+                    updateStatus(
+                        `Error clearing price lines: ${error.message}`,
+                    );
                 }
             }
 
@@ -2086,9 +2109,11 @@
                 try {
                     const priceRange = chartApi.getPriceRange();
                     const entryPrice = priceRange.min + priceRange.range * 0.4;
-                    const currentPrice = priceRange.min + priceRange.range * 0.6;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.6;
                     const quantity = 0.5;
-                    const unrealizedPnL = (currentPrice - entryPrice) * quantity;
+                    const unrealizedPnL =
+                        (currentPrice - entryPrice) * quantity;
                     const unrealizedPnLPercent =
                         ((currentPrice - entryPrice) / entryPrice) * 100;
 
@@ -2113,7 +2138,9 @@
                         `Long position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
                     );
                 } catch (error) {
-                    updateStatus(`Error showing long position: ${error.message}`);
+                    updateStatus(
+                        `Error showing long position: ${error.message}`,
+                    );
                 }
             }
 
@@ -2123,9 +2150,11 @@
                 try {
                     const priceRange = chartApi.getPriceRange();
                     const entryPrice = priceRange.min + priceRange.range * 0.7;
-                    const currentPrice = priceRange.min + priceRange.range * 0.5;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.5;
                     const quantity = 1.0;
-                    const unrealizedPnL = (entryPrice - currentPrice) * quantity;
+                    const unrealizedPnL =
+                        (entryPrice - currentPrice) * quantity;
                     const unrealizedPnLPercent =
                         ((entryPrice - currentPrice) / entryPrice) * 100;
 
@@ -2150,7 +2179,9 @@
                         `Short position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
                     );
                 } catch (error) {
-                    updateStatus(`Error showing short position: ${error.message}`);
+                    updateStatus(
+                        `Error showing short position: ${error.message}`,
+                    );
                 }
             }
 
@@ -2174,7 +2205,9 @@
                         `Position overlay toggled to ${!isCurrentlyCompact ? "compact" : "full"} view`,
                     );
                 } catch (error) {
-                    updateStatus(`Error toggling position compact: ${error.message}`);
+                    updateStatus(
+                        `Error toggling position compact: ${error.message}`,
+                    );
                 }
             }
 
@@ -2185,7 +2218,9 @@
                     chartApi.setPositionOverlay(null);
                     updateStatus("Position overlay hidden");
                 } catch (error) {
-                    updateStatus(`Error hiding position overlay: ${error.message}`);
+                    updateStatus(
+                        `Error hiding position overlay: ${error.message}`,
+                    );
                 }
             }
 
@@ -2243,13 +2278,20 @@
                 try {
                     const candles = chartApi.getCandles();
                     if (candles.length < 10) {
-                        updateStatus("Not enough candles visible to add trade zone");
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
                         return;
                     }
 
-                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
                     const duration = 5 + Math.floor(Math.random() * 8);
-                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
 
                     const startTimestamp = candles[startIndex][0];
                     const endTimestamp = candles[endIndex][0];
@@ -2258,7 +2300,8 @@
 
                     const quantity = 0.1 + Math.random() * 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     chartApi.addTradeZone({
                         startTimestamp,
@@ -2279,7 +2322,9 @@
                         `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding profitable trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding profitable trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2289,13 +2334,20 @@
                 try {
                     const candles = chartApi.getCandles();
                     if (candles.length < 10) {
-                        updateStatus("Not enough candles visible to add trade zone");
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
                         return;
                     }
 
-                    const startIndex = Math.floor(Math.random() * (candles.length - 10));
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
                     const duration = 3 + Math.floor(Math.random() * 5);
-                    const endIndex = Math.min(startIndex + duration, candles.length - 1);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
 
                     const startTimestamp = candles[startIndex][0];
                     const endTimestamp = candles[endIndex][0];
@@ -2304,7 +2356,8 @@
 
                     const quantity = 0.1 + Math.random() * 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     chartApi.addTradeZone({
                         startTimestamp,
@@ -2324,7 +2377,9 @@
                         `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
                     );
                 } catch (error) {
-                    updateStatus(`Error adding losing trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding losing trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2336,7 +2391,9 @@
                     const priceRange = chartApi.getPriceRange();
 
                     const duration = (timeRange.end - timeRange.start) * 0.2;
-                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
                     const endTimestamp = startTimestamp + duration;
 
                     const entryPrice = priceRange.min + priceRange.range * 0.4;
@@ -2344,7 +2401,8 @@
 
                     const quantity = 0.5;
                     const pnl = (exitPrice - entryPrice) * quantity;
-                    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
 
                     chartApi.addTradeZone({
                         startTimestamp,
@@ -2360,9 +2418,13 @@
                     });
 
                     const zones = chartApi.getTradeZones();
-                    updateStatus(`Added long trade zone. Total zones: ${zones.length}`);
+                    updateStatus(
+                        `Added long trade zone. Total zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding long trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding long trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2374,7 +2436,9 @@
                     const priceRange = chartApi.getPriceRange();
 
                     const duration = (timeRange.end - timeRange.start) * 0.15;
-                    const startTimestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
                     const endTimestamp = startTimestamp + duration;
 
                     const entryPrice = priceRange.min + priceRange.range * 0.7;
@@ -2382,7 +2446,8 @@
 
                     const quantity = 0.3;
                     const pnl = (entryPrice - exitPrice) * quantity;
-                    const pnlPercent = ((entryPrice - exitPrice) / entryPrice) * 100;
+                    const pnlPercent =
+                        ((entryPrice - exitPrice) / entryPrice) * 100;
 
                     chartApi.addTradeZone({
                         startTimestamp,
@@ -2398,9 +2463,13 @@
                     });
 
                     const zones = chartApi.getTradeZones();
-                    updateStatus(`Added short trade zone. Total zones: ${zones.length}`);
+                    updateStatus(
+                        `Added short trade zone. Total zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding short trade zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding short trade zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2411,7 +2480,9 @@
                     chartApi.clearTradeZones();
                     updateStatus("All trade zones cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing trade zones: ${error.message}`);
+                    updateStatus(
+                        `Error clearing trade zones: ${error.message}`,
+                    );
                 }
             }
 
@@ -2425,7 +2496,9 @@
                         return;
                     }
 
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     chartApi.addAnnotation({
@@ -2442,9 +2515,13 @@
                     });
 
                     const annotations = chartApi.getAnnotations();
-                    updateStatus(`Added note annotation. Total annotations: ${annotations.length}`);
+                    updateStatus(
+                        `Added note annotation. Total annotations: ${annotations.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding note annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding note annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2458,7 +2535,9 @@
                         return;
                     }
 
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     chartApi.addAnnotation({
@@ -2476,9 +2555,13 @@
                     });
 
                     const annotations = chartApi.getAnnotations();
-                    updateStatus(`Added alert annotation. Total annotations: ${annotations.length}`);
+                    updateStatus(
+                        `Added alert annotation. Total annotations: ${annotations.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding alert annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding alert annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2492,7 +2575,9 @@
                         return;
                     }
 
-                    const randomIndex = Math.floor(Math.random() * candles.length);
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
                     const [timestamp, candle] = candles[randomIndex];
 
                     chartApi.addAnnotation({
@@ -2510,9 +2595,13 @@
                     });
 
                     const annotations = chartApi.getAnnotations();
-                    updateStatus(`Added milestone annotation. Total annotations: ${annotations.length}`);
+                    updateStatus(
+                        `Added milestone annotation. Total annotations: ${annotations.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding milestone annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding milestone annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2523,7 +2612,9 @@
                     const timeRange = chartApi.getTimeRange();
                     const priceRange = chartApi.getPriceRange();
 
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.5;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
                     const price = priceRange.min + priceRange.range * 0.5;
 
                     chartApi.addAnnotation({
@@ -2543,9 +2634,13 @@
                     });
 
                     const annotations = chartApi.getAnnotations();
-                    updateStatus(`Added draggable annotation. Total annotations: ${annotations.length}`);
+                    updateStatus(
+                        `Added draggable annotation. Total annotations: ${annotations.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding draggable annotation: ${error.message}`);
+                    updateStatus(
+                        `Error adding draggable annotation: ${error.message}`,
+                    );
                 }
             }
 
@@ -2556,7 +2651,9 @@
                     chartApi.clearAnnotations();
                     updateStatus("All annotations cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing annotations: ${error.message}`);
+                    updateStatus(
+                        `Error clearing annotations: ${error.message}`,
+                    );
                 }
             }
 
@@ -2565,7 +2662,9 @@
 
                 try {
                     const timeRange = chartApi.getTimeRange();
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.3;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
 
                     chartApi.addTimeMarker({
                         timestamp,
@@ -2578,7 +2677,9 @@
                     });
 
                     const markers = chartApi.getTimeMarkers();
-                    updateStatus(`Added news release marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added news release marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding news marker: ${error.message}`);
                 }
@@ -2589,7 +2690,9 @@
 
                 try {
                     const timeRange = chartApi.getTimeRange();
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.4;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.4;
 
                     chartApi.addTimeMarker({
                         timestamp,
@@ -2602,9 +2705,13 @@
                     });
 
                     const markers = chartApi.getTimeMarkers();
-                    updateStatus(`Added market open marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added market open marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding market open marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding market open marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -2613,7 +2720,9 @@
 
                 try {
                     const timeRange = chartApi.getTimeRange();
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.6;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.6;
 
                     chartApi.addTimeMarker({
                         timestamp,
@@ -2626,9 +2735,13 @@
                     });
 
                     const markers = chartApi.getTimeMarkers();
-                    updateStatus(`Added earnings marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added earnings marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding earnings marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding earnings marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -2637,7 +2750,9 @@
 
                 try {
                     const timeRange = chartApi.getTimeRange();
-                    const timestamp = timeRange.start + (timeRange.end - timeRange.start) * 0.75;
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.75;
 
                     chartApi.addTimeMarker({
                         timestamp,
@@ -2650,9 +2765,13 @@
                     });
 
                     const markers = chartApi.getTimeMarkers();
-                    updateStatus(`Added custom marker. Total markers: ${markers.length}`);
+                    updateStatus(
+                        `Added custom marker. Total markers: ${markers.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding custom marker: ${error.message}`);
+                    updateStatus(
+                        `Error adding custom marker: ${error.message}`,
+                    );
                 }
             }
 
@@ -2663,7 +2782,9 @@
                     chartApi.clearTimeMarkers();
                     updateStatus("All time markers cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing time markers: ${error.message}`);
+                    updateStatus(
+                        `Error clearing time markers: ${error.message}`,
+                    );
                 }
             }
 
@@ -2687,9 +2808,13 @@
                     });
 
                     const zones = chartApi.getRiskZones();
-                    updateStatus(`Added stop loss zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added stop loss zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding stop loss zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding stop loss zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2713,7 +2838,9 @@
                     });
 
                     const zones = chartApi.getRiskZones();
-                    updateStatus(`Added support zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added support zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
                     updateStatus(`Error adding support zone: ${error.message}`);
                 }
@@ -2737,9 +2864,13 @@
                     });
 
                     const zones = chartApi.getRiskZones();
-                    updateStatus(`Added resistance zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added resistance zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding resistance zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding resistance zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2761,9 +2892,13 @@
                     });
 
                     const zones = chartApi.getRiskZones();
-                    updateStatus(`Added liquidation zone. Total risk zones: ${zones.length}`);
+                    updateStatus(
+                        `Added liquidation zone. Total risk zones: ${zones.length}`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error adding liquidation zone: ${error.message}`);
+                    updateStatus(
+                        `Error adding liquidation zone: ${error.message}`,
+                    );
                 }
             }
 
@@ -2793,7 +2928,8 @@
                     let equity = 10000; // Starting equity
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
                         // Simulate some realistic equity movement
                         const change = (Math.random() - 0.45) * 200; // Slight upward bias
                         equity += change;
@@ -2801,27 +2937,31 @@
 
                         points.push({
                             timestamp,
-                            equity: equity
+                            equity: equity,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'equity-curve',
-                        name: 'Portfolio Equity',
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
                         visible: true,
                         params: {
                             data: points,
-                            lineColor: '#8b5cf6',
+                            lineColor: "#8b5cf6",
                             lineWidth: 2,
-                            fillArea: false
+                            fillArea: false,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    updateStatus(`Equity curve displayed with ${points.length} points`);
+                    updateStatus(
+                        `Equity curve displayed with ${points.length} points`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error showing equity curve: ${error.message}`);
+                    updateStatus(
+                        `Error showing equity curve: ${error.message}`,
+                    );
                 }
             }
 
@@ -2839,7 +2979,8 @@
                     let equity = 10000;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
                         // Smoother curve for area visualization
                         const trend = Math.sin(i * 0.2) * 500;
                         const noise = (Math.random() - 0.5) * 100;
@@ -2848,29 +2989,33 @@
 
                         points.push({
                             timestamp,
-                            equity: equity
+                            equity: equity,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'equity-curve',
-                        name: 'Portfolio Equity',
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
                         visible: true,
                         params: {
                             data: points,
-                            lineColor: '#6366f1',
+                            lineColor: "#6366f1",
                             lineWidth: 2,
                             fillArea: true,
-                            areaColor: '#6366f1',
-                            areaOpacity: 0.3
+                            areaColor: "#6366f1",
+                            areaOpacity: 0.3,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    updateStatus(`Equity curve with area displayed (${points.length} points)`);
+                    updateStatus(
+                        `Equity curve with area displayed (${points.length} points)`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error showing equity curve with area: ${error.message}`);
+                    updateStatus(
+                        `Error showing equity curve with area: ${error.message}`,
+                    );
                 }
             }
 
@@ -2888,38 +3033,44 @@
                     let equity = 10000;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
                         // More volatile pattern
-                        const volatility = Math.sin(i * 0.3) * Math.cos(i * 0.1) * 800;
+                        const volatility =
+                            Math.sin(i * 0.3) * Math.cos(i * 0.1) * 800;
                         equity += volatility + (Math.random() - 0.5) * 300;
                         equity = Math.max(7500, Math.min(12500, equity));
 
                         points.push({
                             timestamp,
-                            equity: equity
+                            equity: equity,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'equity-curve',
-                        name: 'Portfolio Equity',
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
                         visible: true,
                         params: {
                             data: points,
-                            lineColor: '#ec4899',
+                            lineColor: "#ec4899",
                             lineWidth: 3,
                             showPeakLine: true,
-                            peakLineColor: '#666',
-                            peakLineStyle: 'dotted',
-                            fillArea: false
+                            peakLineColor: "#666",
+                            peakLineStyle: "dotted",
+                            fillArea: false,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    updateStatus(`Equity curve with peak line displayed (${points.length} points)`);
+                    updateStatus(
+                        `Equity curve with peak line displayed (${points.length} points)`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error showing equity curve with peak: ${error.message}`);
+                    updateStatus(
+                        `Error showing equity curve with peak: ${error.message}`,
+                    );
                 }
             }
 
@@ -2937,7 +3088,8 @@
                     let equity = 10000;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
                         // Upward trend with occasional pullbacks
                         const growth = Math.pow(1.02, i / 10); // Exponential growth
                         const pullback = i % 10 === 0 ? -200 : 0; // Periodic pullbacks
@@ -2947,30 +3099,35 @@
 
                         points.push({
                             timestamp,
-                            equity: equity
+                            equity: equity,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'equity-curve',
-                        name: 'Portfolio Equity',
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
                         visible: true,
                         params: {
                             data: points,
-                            lineColor: '#10b981',
+                            lineColor: "#10b981",
                             lineWidth: 2,
                             fillArea: true,
-                            areaColor: '#10b981',
-                            areaOpacity: 0.3
+                            areaColor: "#10b981",
+                            areaOpacity: 0.3,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    const totalReturn = ((equity - 10000) / 10000 * 100).toFixed(2);
+                    const totalReturn = (
+                        ((equity - 10000) / 10000) *
+                        100
+                    ).toFixed(2);
                     updateStatus(`Growth simulation: +${totalReturn}% return`);
                 } catch (error) {
-                    updateStatus(`Error simulating equity growth: ${error.message}`);
+                    updateStatus(
+                        `Error simulating equity growth: ${error.message}`,
+                    );
                 }
             }
 
@@ -2989,7 +3146,8 @@
                     let highWaterMark = equity;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
 
                         // Create drawdown pattern
                         if (i < 20) {
@@ -2997,7 +3155,7 @@
                             equity += (Math.random() - 0.3) * 100;
                         } else if (i < 40) {
                             // Sharp drawdown
-                            equity -= (Math.random() * 150);
+                            equity -= Math.random() * 150;
                         } else if (i < 55) {
                             // Recovery attempt
                             equity += (Math.random() - 0.2) * 80;
@@ -3011,28 +3169,32 @@
 
                         equityPoints.push({
                             timestamp,
-                            equity: equity
+                            equity: equity,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'equity-curve',
-                        name: 'Portfolio Equity',
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
                         visible: true,
                         params: {
                             data: equityPoints,
-                            lineColor: '#ef4444',
+                            lineColor: "#ef4444",
                             lineWidth: 2,
                             fillArea: true,
-                            areaColor: '#ef4444',
-                            areaOpacity: 0.3
+                            areaColor: "#ef4444",
+                            areaOpacity: 0.3,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    const finalEquity = equityPoints[equityPoints.length - 1].equity;
-                    const maxDrawdown = ((highWaterMark - 6000) / highWaterMark * 100).toFixed(1);
+                    const finalEquity =
+                        equityPoints[equityPoints.length - 1].equity;
+                    const maxDrawdown = (
+                        ((highWaterMark - 6000) / highWaterMark) *
+                        100
+                    ).toFixed(1);
                     updateStatus(`Drawdown simulation: Max DD ${maxDrawdown}%`);
                 } catch (error) {
                     updateStatus(`Error simulating drawdown: ${error.message}`);
@@ -3043,10 +3205,12 @@
                 if (!chartApi) return;
 
                 try {
-                    chartApi.hideIndicator('equity-curve');
+                    chartApi.hideIndicator("equity-curve");
                     updateStatus("Equity curve cleared");
                 } catch (error) {
-                    updateStatus(`Error clearing equity curve: ${error.message}`);
+                    updateStatus(
+                        `Error clearing equity curve: ${error.message}`,
+                    );
                 }
             }
 
@@ -3066,36 +3230,42 @@
                     let highWaterMark = equity;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
                         const change = (Math.random() - 0.45) * 200;
                         equity += change;
                         equity = Math.max(8000, equity);
                         highWaterMark = Math.max(highWaterMark, equity);
 
-                        const drawdownPercent = -((highWaterMark - equity) / highWaterMark * 100);
+                        const drawdownPercent = -(
+                            ((highWaterMark - equity) / highWaterMark) *
+                            100
+                        );
 
                         drawdownPoints.push({
                             timestamp,
-                            drawdownPercent: drawdownPercent
+                            drawdownPercent: drawdownPercent,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'drawdown',
-                        name: 'Drawdown %',
+                        id: "drawdown",
+                        name: "Drawdown %",
                         visible: true,
                         params: {
                             data: drawdownPoints,
-                            fillColor: '#ff6b6b',
+                            fillColor: "#ff6b6b",
                             fillOpacity: 0.3,
                             showZeroLine: true,
-                            invertYAxis: true
+                            invertYAxis: true,
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    updateStatus(`Drawdown indicator displayed with ${drawdownPoints.length} points`);
+                    updateStatus(
+                        `Drawdown indicator displayed with ${drawdownPoints.length} points`,
+                    );
                 } catch (error) {
                     updateStatus(`Error showing drawdown: ${error.message}`);
                 }
@@ -3116,12 +3286,13 @@
                     let highWaterMark = equity;
 
                     for (let i = 0; i < numPoints; i++) {
-                        const timestamp = startTime + (duration * i / numPoints);
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
 
                         if (i < 20) {
                             equity += (Math.random() - 0.3) * 100;
                         } else if (i < 40) {
-                            equity -= (Math.random() * 150);
+                            equity -= Math.random() * 150;
                         } else if (i < 55) {
                             equity += (Math.random() - 0.2) * 80;
                         } else {
@@ -3131,35 +3302,44 @@
                         equity = Math.max(6000, equity);
                         highWaterMark = Math.max(highWaterMark, equity);
 
-                        const drawdownPercent = -((highWaterMark - equity) / highWaterMark * 100);
+                        const drawdownPercent = -(
+                            ((highWaterMark - equity) / highWaterMark) *
+                            100
+                        );
 
                         drawdownPoints.push({
                             timestamp,
-                            drawdownPercent: drawdownPercent
+                            drawdownPercent: drawdownPercent,
                         });
                     }
 
                     chartApi.showIndicator({
-                        id: 'drawdown',
-                        name: 'Drawdown %',
+                        id: "drawdown",
+                        name: "Drawdown %",
                         visible: true,
                         params: {
                             data: drawdownPoints,
-                            fillColor: '#ff6b6b',
+                            fillColor: "#ff6b6b",
                             fillOpacity: 0.3,
                             showZeroLine: true,
                             invertYAxis: true,
                             warnThreshold: -15, // Highlight drawdowns > 15%
-                            warnColor: '#ff0000'
+                            warnColor: "#ff0000",
                         },
-                        display: 'stack-bottom',
-                        skipFetch: true
+                        display: "stack-bottom",
+                        skipFetch: true,
                     });
 
-                    const maxDrawdown = Math.min(...drawdownPoints.map(p => p.drawdownPercent));
-                    updateStatus(`Drawdown with warning threshold: Max DD ${Math.abs(maxDrawdown).toFixed(1)}%`);
+                    const maxDrawdown = Math.min(
+                        ...drawdownPoints.map((p) => p.drawdownPercent),
+                    );
+                    updateStatus(
+                        `Drawdown with warning threshold: Max DD ${Math.abs(maxDrawdown).toFixed(1)}%`,
+                    );
                 } catch (error) {
-                    updateStatus(`Error showing drawdown with warning: ${error.message}`);
+                    updateStatus(
+                        `Error showing drawdown with warning: ${error.message}`,
+                    );
                 }
             }
 
@@ -3167,7 +3347,7 @@
                 if (!chartApi) return;
 
                 try {
-                    chartApi.hideIndicator('drawdown');
+                    chartApi.hideIndicator("drawdown");
                     updateStatus("Drawdown indicator cleared");
                 } catch (error) {
                     updateStatus(`Error clearing drawdown: ${error.message}`);
@@ -3212,7 +3392,9 @@
                     );
                     updateActiveButtons();
                 } catch (error) {
-                    updateStatus(`Error enabling click-to-trade: ${error.message}`);
+                    updateStatus(
+                        `Error enabling click-to-trade: ${error.message}`,
+                    );
                 }
             }
 
@@ -3224,7 +3406,9 @@
                     updateStatus("Click-to-Trade DISABLED");
                     updateActiveButtons();
                 } catch (error) {
-                    updateStatus(`Error disabling click-to-trade: ${error.message}`);
+                    updateStatus(
+                        `Error disabling click-to-trade: ${error.message}`,
+                    );
                 }
             }
 
@@ -3233,29 +3417,45 @@
 
                 document.getElementById("selected-line-id").textContent =
                     trendLine.id.substring(0, 20) + "...";
-                document.getElementById("line-name").value = trendLine.name || "";
-                document.getElementById("line-description").value = trendLine.description || "";
-                document.getElementById("line-color").value = trendLine.color || "#2962ff";
-                document.getElementById("line-width").value = trendLine.lineWidth || 2;
-                document.getElementById("line-style").value = trendLine.style || "solid";
-                document.getElementById("extend-left").checked = trendLine.extendLeft || false;
-                document.getElementById("extend-right").checked = trendLine.extendRight || false;
+                document.getElementById("line-name").value =
+                    trendLine.name || "";
+                document.getElementById("line-description").value =
+                    trendLine.description || "";
+                document.getElementById("line-color").value =
+                    trendLine.color || "#2962ff";
+                document.getElementById("line-width").value =
+                    trendLine.lineWidth || 2;
+                document.getElementById("line-style").value =
+                    trendLine.style || "solid";
+                document.getElementById("extend-left").checked =
+                    trendLine.extendLeft || false;
+                document.getElementById("extend-right").checked =
+                    trendLine.extendRight || false;
 
                 const opacity = (trendLine.opacity ?? 1.0) * 100;
                 document.getElementById("line-opacity").value = opacity;
-                document.getElementById("opacity-value").textContent = Math.round(opacity) + "%";
-                document.getElementById("level-type").value = trendLine.levelType || "";
-                document.getElementById("z-index").value = trendLine.zIndex || 0;
+                document.getElementById("opacity-value").textContent =
+                    Math.round(opacity) + "%";
+                document.getElementById("level-type").value =
+                    trendLine.levelType || "";
+                document.getElementById("z-index").value =
+                    trendLine.zIndex || 0;
 
                 const markersEnabled = trendLine.markers?.enabled || false;
-                document.getElementById("markers-enabled").checked = markersEnabled;
-                document.getElementById("marker-settings").style.display = markersEnabled ? "block" : "none";
+                document.getElementById("markers-enabled").checked =
+                    markersEnabled;
+                document.getElementById("marker-settings").style.display =
+                    markersEnabled ? "block" : "none";
 
                 if (markersEnabled && trendLine.markers) {
-                    document.getElementById("marker-symbol").value = trendLine.markers.symbol || "diamond";
-                    document.getElementById("marker-size").value = trendLine.markers.size || 4;
-                    document.getElementById("marker-spacing").value = trendLine.markers.spacing || 100;
-                    document.getElementById("marker-color").value = trendLine.markers.color || trendLine.color || "#2962ff";
+                    document.getElementById("marker-symbol").value =
+                        trendLine.markers.symbol || "diamond";
+                    document.getElementById("marker-size").value =
+                        trendLine.markers.size || 4;
+                    document.getElementById("marker-spacing").value =
+                        trendLine.markers.spacing || 100;
+                    document.getElementById("marker-color").value =
+                        trendLine.markers.color || trendLine.color || "#2962ff";
                 }
 
                 isUpdatingUI = false;
@@ -3263,155 +3463,256 @@
 
             function setupTrendLineControls() {
                 // Name change
-                document.getElementById("line-name").addEventListener("input", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            name: e.target.value,
-                        });
-                        updateStatus(`Line name updated`);
-                    }
-                });
-
-                // Description change
-                document.getElementById("line-description").addEventListener("input", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            description: e.target.value,
-                        });
-                        updateStatus(`Line description updated`);
-                    }
-                });
-
-                // Color change
-                document.getElementById("line-color").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            color: e.target.value,
-                        });
-                        updateStatus(`Line color changed`);
-                    }
-                });
-
-                // Width change
-                document.getElementById("line-width").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            lineWidth: parseInt(e.target.value),
-                        });
-                        updateStatus(`Line width changed`);
-                    }
-                });
-
-                // Style change
-                document.getElementById("line-style").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            style: e.target.value,
-                        });
-                        updateStatus(`Line style changed`);
-                    }
-                });
-
-                // Extend left change
-                document.getElementById("extend-left").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            extendLeft: e.target.checked,
-                        });
-                        updateStatus(`Extend left: ${e.target.checked}`);
-                    }
-                });
-
-                // Extend right change
-                document.getElementById("extend-right").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            extendRight: e.target.checked,
-                        });
-                        updateStatus(`Extend right: ${e.target.checked}`);
-                    }
-                });
-
-                // Opacity change
-                document.getElementById("line-opacity").addEventListener("input", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const opacity = parseInt(e.target.value) / 100;
-                    document.getElementById("opacity-value").textContent = e.target.value + "%";
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            opacity,
-                        });
-                        updateStatus(`Opacity: ${e.target.value}%`);
-                    }
-                });
-
-                // Level type change
-                document.getElementById("level-type").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            levelType: e.target.value || undefined,
-                        });
-                        updateStatus(`Level type: ${e.target.value || "none"}`);
-                    }
-                });
-
-                // Z-index change
-                document.getElementById("z-index").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    if (chartApi) {
-                        chartApi.updateTrendLineSettings(selectedTrendLineId, {
-                            zIndex: parseInt(e.target.value),
-                        });
-                        updateStatus(`Z-index: ${e.target.value}`);
-                    }
-                });
-
-                // Markers enabled change
-                document.getElementById("markers-enabled").addEventListener("change", (e) => {
-                    if (isUpdatingUI || !selectedTrendLineId) return;
-                    const enabled = e.target.checked;
-                    document.getElementById("marker-settings").style.display = enabled ? "block" : "none";
-                    if (chartApi) {
-                        if (enabled) {
-                            const markers = {
-                                enabled: true,
-                                symbol: document.getElementById("marker-symbol").value,
-                                size: parseInt(document.getElementById("marker-size").value),
-                                spacing: parseInt(document.getElementById("marker-spacing").value),
-                                color: document.getElementById("marker-color").value,
-                            };
-                            chartApi.updateTrendLineSettings(selectedTrendLineId, { markers });
-                        } else {
-                            chartApi.updateTrendLineSettings(selectedTrendLineId, { markers: undefined });
-                        }
-                        updateStatus(`Markers: ${enabled ? "enabled" : "disabled"}`);
-                    }
-                });
-
-                // Marker settings changes
-                ["marker-symbol", "marker-size", "marker-spacing", "marker-color"].forEach((id) => {
-                    document.getElementById(id).addEventListener("change", (e) => {
+                document
+                    .getElementById("line-name")
+                    .addEventListener("input", (e) => {
                         if (isUpdatingUI || !selectedTrendLineId) return;
-                        if (chartApi && document.getElementById("markers-enabled").checked) {
-                            const markers = {
-                                enabled: true,
-                                symbol: document.getElementById("marker-symbol").value,
-                                size: parseInt(document.getElementById("marker-size").value),
-                                spacing: parseInt(document.getElementById("marker-spacing").value),
-                                color: document.getElementById("marker-color").value,
-                            };
-                            chartApi.updateTrendLineSettings(selectedTrendLineId, { markers });
-                            updateStatus(`Marker settings updated`);
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    name: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line name updated`);
                         }
                     });
+
+                // Description change
+                document
+                    .getElementById("line-description")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    description: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line description updated`);
+                        }
+                    });
+
+                // Color change
+                document
+                    .getElementById("line-color")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    color: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line color changed`);
+                        }
+                    });
+
+                // Width change
+                document
+                    .getElementById("line-width")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    lineWidth: parseInt(e.target.value),
+                                },
+                            );
+                            updateStatus(`Line width changed`);
+                        }
+                    });
+
+                // Style change
+                document
+                    .getElementById("line-style")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    style: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line style changed`);
+                        }
+                    });
+
+                // Extend left change
+                document
+                    .getElementById("extend-left")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    extendLeft: e.target.checked,
+                                },
+                            );
+                            updateStatus(`Extend left: ${e.target.checked}`);
+                        }
+                    });
+
+                // Extend right change
+                document
+                    .getElementById("extend-right")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    extendRight: e.target.checked,
+                                },
+                            );
+                            updateStatus(`Extend right: ${e.target.checked}`);
+                        }
+                    });
+
+                // Opacity change
+                document
+                    .getElementById("line-opacity")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const opacity = parseInt(e.target.value) / 100;
+                        document.getElementById("opacity-value").textContent =
+                            e.target.value + "%";
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    opacity,
+                                },
+                            );
+                            updateStatus(`Opacity: ${e.target.value}%`);
+                        }
+                    });
+
+                // Level type change
+                document
+                    .getElementById("level-type")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    levelType: e.target.value || undefined,
+                                },
+                            );
+                            updateStatus(
+                                `Level type: ${e.target.value || "none"}`,
+                            );
+                        }
+                    });
+
+                // Z-index change
+                document
+                    .getElementById("z-index")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    zIndex: parseInt(e.target.value),
+                                },
+                            );
+                            updateStatus(`Z-index: ${e.target.value}`);
+                        }
+                    });
+
+                // Markers enabled change
+                document
+                    .getElementById("markers-enabled")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const enabled = e.target.checked;
+                        document.getElementById(
+                            "marker-settings",
+                        ).style.display = enabled ? "block" : "none";
+                        if (chartApi) {
+                            if (enabled) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                            } else {
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers: undefined },
+                                );
+                            }
+                            updateStatus(
+                                `Markers: ${enabled ? "enabled" : "disabled"}`,
+                            );
+                        }
+                    });
+
+                // Marker settings changes
+                [
+                    "marker-symbol",
+                    "marker-size",
+                    "marker-spacing",
+                    "marker-color",
+                ].forEach((id) => {
+                    document
+                        .getElementById(id)
+                        .addEventListener("change", (e) => {
+                            if (isUpdatingUI || !selectedTrendLineId) return;
+                            if (
+                                chartApi &&
+                                document.getElementById("markers-enabled")
+                                    .checked
+                            ) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                                updateStatus(`Marker settings updated`);
+                            }
+                        });
                 });
             }
 
@@ -3424,7 +3725,10 @@
                 }
 
                 if (message) {
-                    if (!message.includes("Symbol:") && !message.includes("Timeframe:")) {
+                    if (
+                        !message.includes("Symbol:") &&
+                        !message.includes("Timeframe:")
+                    ) {
                         addEventToLog("status-update", { message });
                     }
                     statusEl.textContent = message;
@@ -3435,7 +3739,12 @@
                     const status = `Symbol: ${chartApi.getSymbol()}
 Timeframe: ${chartApi.getGranularity()}
 Loading: ${chartApi.isLoading()}
-Indicators: ${chartApi.getVisibleIndicators().map((i) => i.id).join(", ") || "None"}`;
+Indicators: ${
+                        chartApi
+                            .getVisibleIndicators()
+                            .map((i) => i.id)
+                            .join(", ") || "None"
+                    }`;
                     statusEl.textContent = status;
                 } catch (error) {
                     statusEl.textContent = `Error getting status: ${error.message}`;
@@ -3446,43 +3755,66 @@ Indicators: ${chartApi.getVisibleIndicators().map((i) => i.id).join(", ") || "No
                 if (!chartApi) return;
 
                 try {
-                    document.querySelectorAll(".control-button").forEach((btn) => {
-                        btn.classList.remove("active");
-                    });
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            btn.classList.remove("active");
+                        });
 
                     const currentSymbol = chartApi.getSymbol();
                     const currentGranularity = chartApi.getGranularity();
 
-                    document.querySelectorAll(".control-button").forEach((btn) => {
-                        const text = btn.textContent.trim();
-                        if (
-                            text === currentSymbol ||
-                            (text === "1m" && currentGranularity === "ONE_MINUTE") ||
-                            (text === "5m" && currentGranularity === "FIVE_MINUTE") ||
-                            (text === "15m" && currentGranularity === "FIFTEEN_MINUTE") ||
-                            (text === "1h" && currentGranularity === "ONE_HOUR") ||
-                            (text === "6h" && currentGranularity === "SIX_HOUR") ||
-                            (text === "1d" && currentGranularity === "ONE_DAY")
-                        ) {
-                            btn.classList.add("active");
-                        }
-                    });
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const text = btn.textContent.trim();
+                            if (
+                                text === currentSymbol ||
+                                (text === "1m" &&
+                                    currentGranularity === "ONE_MINUTE") ||
+                                (text === "5m" &&
+                                    currentGranularity === "FIVE_MINUTE") ||
+                                (text === "15m" &&
+                                    currentGranularity === "FIFTEEN_MINUTE") ||
+                                (text === "1h" &&
+                                    currentGranularity === "ONE_HOUR") ||
+                                (text === "6h" &&
+                                    currentGranularity === "SIX_HOUR") ||
+                                (text === "1d" &&
+                                    currentGranularity === "ONE_DAY")
+                            ) {
+                                btn.classList.add("active");
+                            }
+                        });
 
-                    document.querySelectorAll(".control-button").forEach((btn) => {
-                        const onclick = btn.getAttribute("onclick");
-                        if (onclick && onclick.includes("toggleIndicator")) {
-                            const match = onclick.match(/toggleIndicator\('([^']+)'/);
-                            if (match) {
-                                const indicatorId = match[1];
-                                if (chartApi.isIndicatorVisible(indicatorId)) {
-                                    btn.classList.add("active");
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const onclick = btn.getAttribute("onclick");
+                            if (
+                                onclick &&
+                                onclick.includes("toggleIndicator")
+                            ) {
+                                const match = onclick.match(
+                                    /toggleIndicator\('([^']+)'/,
+                                );
+                                if (match) {
+                                    const indicatorId = match[1];
+                                    if (
+                                        chartApi.isIndicatorVisible(indicatorId)
+                                    ) {
+                                        btn.classList.add("active");
+                                    }
                                 }
                             }
-                        }
-                    });
+                        });
 
-                    const enableBtn = document.getElementById("enable-click-to-trade-btn");
-                    const disableBtn = document.getElementById("disable-click-to-trade-btn");
+                    const enableBtn = document.getElementById(
+                        "enable-click-to-trade-btn",
+                    );
+                    const disableBtn = document.getElementById(
+                        "disable-click-to-trade-btn",
+                    );
 
                     if (enableBtn && disableBtn) {
                         const isEnabled = chartApi.isClickToTradeEnabled();
@@ -3514,45 +3846,63 @@ Indicators: ${chartApi.getVisibleIndicators().map((i) => i.id).join(", ") || "No
                     // Trend line events
                     chartApi.on("trend-line-selected", (data) => {
                         selectedTrendLineId = data.trendLineId;
-                        document.getElementById("trend-line-settings").style.display = "block";
+                        document.getElementById(
+                            "trend-line-settings",
+                        ).style.display = "block";
                         updateTrendLineUI(data.trendLine);
-                        updateStatus(`Trend line selected: ${data.trendLineId.substring(0, 20)}...`);
+                        updateStatus(
+                            `Trend line selected: ${data.trendLineId.substring(0, 20)}...`,
+                        );
                     });
 
                     chartApi.on("trend-line-deselected", (data) => {
                         selectedTrendLineId = null;
-                        document.getElementById("trend-line-settings").style.display = "none";
+                        document.getElementById(
+                            "trend-line-settings",
+                        ).style.display = "none";
                         updateStatus("Trend line deselected");
                     });
 
                     chartApi.on("trend-line-deleted", (data) => {
                         if (selectedTrendLineId === data.trendLineId) {
                             selectedTrendLineId = null;
-                            document.getElementById("trend-line-settings").style.display = "none";
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "none";
                         }
-                        updateStatus(`Trend line deleted: ${data.trendLineId.substring(0, 20)}...`);
+                        updateStatus(
+                            `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
+                        );
                     });
 
                     // Trading overlay events
                     chartApi.on("trade-marker-clicked", (event) => {
                         console.log("Trade marker clicked:", event);
-                        updateStatus(`Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`);
+                        updateStatus(
+                            `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                        );
                     });
 
                     chartApi.on("price-line-dragged", (event) => {
                         console.log("Price line dragged:", event);
-                        updateStatus(`Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`);
+                        updateStatus(
+                            `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                        );
                     });
 
                     chartApi.on("trade-zone-clicked", (event) => {
                         console.log("Trade zone clicked:", event);
-                        updateStatus(`Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`);
+                        updateStatus(
+                            `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
+                        );
                     });
 
                     chartApi.on("chart-clicked", (event) => {
                         addEventToLog("chart-clicked", event);
                         console.log("Chart clicked:", event);
-                        updateStatus(`Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`);
+                        updateStatus(
+                            `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                        );
                     });
 
                     chartApi.on("crosshair-moved", (event) => {
@@ -3566,24 +3916,32 @@ Indicators: ${chartApi.getVisibleIndicators().map((i) => i.id).join(", ") || "No
 
                     chartApi.on("annotation-dragged", (data) => {
                         const newDate = new Date(data.newTimestamp);
-                        updateStatus(`Annotation dragged:\nNew price: $${data.newPrice?.toFixed(2) || "N/A"}\nNew time: ${newDate.toLocaleString()}`);
+                        updateStatus(
+                            `Annotation dragged:\nNew price: $${data.newPrice?.toFixed(2) || "N/A"}\nNew time: ${newDate.toLocaleString()}`,
+                        );
                     });
 
                     chartApi.on("annotation-clicked", (event) => {
                         addEventToLog("annotation-clicked", event);
-                        updateStatus(`Annotation clicked: ${event.annotation.text}`);
+                        updateStatus(
+                            `Annotation clicked: ${event.annotation.text}`,
+                        );
                     });
 
                     chartApi.on("time-marker-clicked", (event) => {
                         addEventToLog("time-marker-clicked", event);
                         console.log("Time marker clicked:", event);
-                        updateStatus(`Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`);
+                        updateStatus(
+                            `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                        );
                     });
 
                     chartApi.on("risk-zone-clicked", (event) => {
                         addEventToLog("risk-zone-clicked", event);
                         console.log("Risk zone clicked:", event);
-                        updateStatus(`Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`);
+                        updateStatus(
+                            `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                        );
                     });
 
                     return true;
@@ -3598,6 +3956,15 @@ Indicators: ${chartApi.getVisibleIndicators().map((i) => i.id).join(", ") || "No
                     updateActiveButtons();
 
                     if (chartApi) {
+                        // Enable RSI indicator on initialization using setIndicators()
+                        chartApi.setIndicators([
+                            {
+                                id: "rsi",
+                                name: "RSI",
+                                visible: true,
+                            },
+                        ]);
+
                         chartApi.on("symbolChange", () => {
                             updateStatus();
                             updateActiveButtons();

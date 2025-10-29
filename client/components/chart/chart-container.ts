@@ -325,8 +325,8 @@ export class ChartContainer extends LitElement {
       if (!elem) throw new Error(`Element ${elementName} not found`);
 
       const layer = elem as unknown as Layer;
-      layer.style.width = `${width}px`;
-      layer.style.height = `${height}px`;
+      // Don't set inline styles - let CSS handle width/height: 100%
+      // Properties are set by updateLayer call below
 
       setTimeout(() => {
         this.layerUpdateCoordinator.updateLayer(layer as Layer);
