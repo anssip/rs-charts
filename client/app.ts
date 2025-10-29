@@ -614,7 +614,27 @@ export class App {
       timeRange.start,
       timeRange.end,
     );
-    const MAX_CANDLES = 300;
+    // Set different MAX_CANDLES based on granularity to ensure adequate time coverage
+
+    let MAX_CANDLES: number;
+
+    if (granularity === "ONE_HOUR" || granularity === "TWO_HOUR") {
+
+      MAX_CANDLES = 720; // 30 days for hourly data (720 hours = 30 days)
+
+    } else if (granularity === "SIX_HOUR") {
+
+      MAX_CANDLES = 360; // 60 days for 6 hour data
+
+    } else if (granularity === "ONE_DAY") {
+
+      MAX_CANDLES = 365; // 1 year for daily data
+
+    } else {
+
+      MAX_CANDLES = 300; // Default for smaller granularities (5min, 15min, etc)
+
+    }
     const adjustedTimeRange =
       candleCount > MAX_CANDLES
         ? {
