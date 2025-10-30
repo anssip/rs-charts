@@ -1381,14 +1381,32 @@ export class ChartApi {
   addTrendLine(
     trendLine: Omit<TrendLine, "id"> & { selected?: boolean },
   ): string {
-    const id = `trend-line-${Date.now()}`;
+    const id = `trend-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const { selected, ...trendLineData } = trendLine;
     const fullTrendLine: TrendLine = { id, ...trendLineData };
 
+
     // Access the container's trend line methods
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.addTrendLine) {
-      chartContainer.addTrendLine(fullTrendLine);
+    
+    if (chartContainer && chartContainer.trendLineLayer) {
+      
+      // Add directly to the chartContainer's trendLines array
+      if (!chartContainer.trendLines) {
+        chartContainer.trendLines = [];
+      }
+      chartContainer.trendLines.push(fullTrendLine);
+      
+      // Update the state
+      if (chartContainer._state) {
+        chartContainer._state.trendLines = chartContainer.trendLines;
+      }
+      
+      // Request update to re-render
+      if (chartContainer.requestUpdate) {
+        chartContainer.requestUpdate();
+      }
+      
 
       // Handle selection state
       if (selected === true && chartContainer.trendLineLayer) {
@@ -1399,6 +1417,8 @@ export class ChartApi {
         chartContainer.trendLineLayer.deselectAll();
       }
       // If selected is undefined, keep the default behavior (line stays selected)
+      // If selected is undefined, keep the default behavior (line stays selected)
+    } else {
     }
 
     logger.info(
@@ -1407,6 +1427,7 @@ export class ChartApi {
     return id;
   }
 
+  /**
   /**
    * Remove a trend line from the chart
    * @param id The ID of the trend line to remove
