@@ -66,6 +66,7 @@ export interface PlotValue {
 export interface Evaluation {
   id: string;
   name: string;
+  params?: Record<string, any>; // Parameters used for calculation (echoed from request)
   values: PlotValue[];
   plot_styles: {
     [key: string]: PlotStyle;
@@ -382,7 +383,8 @@ export class SimplePriceHistory implements PriceHistory {
     // Align the timestamp to the granularity to prevent duplicate candles
     // For example, if granularity is 1 hour and timestamp is 18:30, align it to 18:00
     const granularityMs = this.granularityMs;
-    const alignedTimestamp = Math.floor(candle.timestamp / granularityMs) * granularityMs;
+    const alignedTimestamp =
+      Math.floor(candle.timestamp / granularityMs) * granularityMs;
 
     const existingCandle = this.getCandle(alignedTimestamp);
 
