@@ -161,3 +161,13 @@ Make the same design with a new controller for how annotations is implemented. [
 ## position overlay
 
 Make the same design with a new controller for how position overlay is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new position-overlay-controller module and the public position overlay related methods should be removed from chart-container.
+
+## Evaluator parameters
+
+The market API has changed a bit in how the indicators (evaluators) are fetched from it. See doc/MARKET_API_README.md and [@EVALUATORS_PARAMETERS.md](file:///Users/anssi/projects/spotcanvas/rs-charts/doc/EVALUATORS_PARAMETERS.md)
+
+Fix all market API requests to be compatible with the changed API.
+
+Fix in how candles are fetched from the /history endpoint (this might not need any changes actually). The evaluators data is no longer returned from the API inside the candles – they are returned in a new evaluations array and this needs to be parsed correctly so that we can show the indicators based on the returned evaluations data.
+
+We will be adding indicator specific paramneters next, but no need to worry about that yet. Let's just make this still work with the changed interface.

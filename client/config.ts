@@ -22,13 +22,15 @@ interface Config {
 
 function dispatchMenuActionEvent(
   chartContainer: ChartContainer,
-  event: MenuActionEvent
+  event: MenuActionEvent,
 ): void {
   chartContainer.dispatchEvent(event);
 }
 
 export const config: Config = {
-  apiBaseUrl: import.meta.env.API_BASE_URL || "https://market.spotcanvas.com",
+  apiBaseUrl:
+    import.meta.env.API_BASE_URL ||
+    "https://market-evaluators-dev-346028322665.europe-west1.run.app",
 
   getBuiltInIndicators: (chartContainer: ChartContainer): MenuItem[] => [
     {
