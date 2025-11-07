@@ -1,7 +1,10 @@
 import { customElement } from "lit/decorators.js";
 import { MarketIndicator } from "./market-indicator";
 import { ScaleType, GridStyle } from "./indicator-types";
-import { DrawdownParams, DrawdownPoint } from "../../../types/trading-indicators";
+import {
+  DrawdownParams,
+  DrawdownPoint,
+} from "../../../types/trading-indicators";
 import { getDpr, timeToX, priceToY } from "../../../util/chart-util";
 import { getLogger } from "../../../util/logger";
 
@@ -78,7 +81,13 @@ export class DrawdownIndicator extends MarketIndicator {
    * Override draw method to render drawdown from pre-calculated data
    */
   override draw(): void {
-    if (!this.canvas || !this.ctx || !this._state || !this._params.data || this._params.data.length === 0) {
+    if (
+      !this.canvas ||
+      !this.ctx ||
+      !this._state ||
+      !this._params.data ||
+      this._params.data.length === 0
+    ) {
       return;
     }
 
@@ -94,7 +103,7 @@ export class DrawdownIndicator extends MarketIndicator {
       const visibleData = this._params.data.filter(
         (point: DrawdownPoint) =>
           point.timestamp >= this._state!.timeRange.start &&
-          point.timestamp <= this._state!.timeRange.end
+          point.timestamp <= this._state!.timeRange.end,
       );
 
       if (visibleData.length === 0) {
@@ -102,7 +111,9 @@ export class DrawdownIndicator extends MarketIndicator {
       }
 
       // Calculate drawdown range from visible data
-      const drawdownValues = visibleData.map((p: DrawdownPoint) => p.drawdownPercent);
+      const drawdownValues = visibleData.map(
+        (p: DrawdownPoint) => p.drawdownPercent,
+      );
       const minDrawdown = Math.min(...drawdownValues, 0); // Include 0
       const maxDrawdown = Math.max(...drawdownValues, 0); // Include 0
 
@@ -140,7 +151,14 @@ export class DrawdownIndicator extends MarketIndicator {
 
       // Split data into normal and severe drawdown segments
       if (this._params.warnThreshold !== undefined) {
-        this.drawSegmentedArea(ctx, dpr, visibleData, xMapper, yMapper, canvasHeight);
+        this.drawSegmentedArea(
+          ctx,
+          dpr,
+          visibleData,
+          xMapper,
+          yMapper,
+          canvasHeight,
+        );
       } else {
         // Draw single area fill
         this.drawAreaFill(
@@ -151,7 +169,7 @@ export class DrawdownIndicator extends MarketIndicator {
           yMapper,
           canvasHeight,
           this._params.fillColor!,
-          this._params.fillOpacity!
+          this._params.fillOpacity!,
         );
       }
     } catch (err) {
@@ -166,7 +184,7 @@ export class DrawdownIndicator extends MarketIndicator {
     ctx: CanvasRenderingContext2D,
     dpr: number,
     canvasWidth: number,
-    yMapper: (price: number) => number
+    yMapper: (price: number) => number,
   ): void {
     const zeroY = yMapper(0) * dpr;
 
@@ -185,6 +203,7 @@ export class DrawdownIndicator extends MarketIndicator {
 
   /**
    * Draw area fill for drawdown
+   * Handles gaps in data by creating separate fill areas for each continuous segment
    */
   private drawAreaFill(
     ctx: CanvasRenderingContext2D,
@@ -194,7 +213,7 @@ export class DrawdownIndicator extends MarketIndicator {
     yMapper: (price: number) => number,
     canvasHeight: number,
     color: string,
-    opacity: number
+    opacity: number,
   ): void {
     if (data.length === 0) return;
 
@@ -202,26 +221,57 @@ export class DrawdownIndicator extends MarketIndicator {
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
-    ctx.beginPath();
+    // Calculate gap threshold (same logic as equity curve)
+    let gapThreshold = 7 * 24 * 60 * 60 * 1000; // Default: 7 days in milliseconds
 
-    // Start from zero line at first timestamp
-    const firstX = xMapper(data[0].timestamp) * dpr;
-    const zeroY = yMapper(0) * dpr;
-    ctx.moveTo(firstX, zeroY);
-
-    // Draw through all points
-    for (let i = 0; i < data.length; i++) {
-      const x = xMapper(data[i].timestamp) * dpr;
-      const y = yMapper(data[i].drawdownPercent) * dpr;
-      ctx.lineTo(x, y);
+    if (this._state?.priceHistory) {
+      const granularityMs = this._state.priceHistory.granularityMs;
+      gapThreshold = granularityMs * 5;
     }
 
-    // Close path back to zero line
-    const lastX = xMapper(data[data.length - 1].timestamp) * dpr;
-    ctx.lineTo(lastX, zeroY);
-    ctx.closePath();
+    const zeroY = yMapper(0) * dpr;
+    let segmentStart = 0;
 
-    ctx.fill();
+    // Draw area fills for each continuous segment
+    for (let i = 1; i <= data.length; i++) {
+      const isLastPoint = i === data.length;
+      const isGap =
+        !isLastPoint &&
+        data[i].timestamp - data[i - 1].timestamp > gapThreshold;
+
+      if (isGap || isLastPoint) {
+        // Draw the segment from segmentStart to i-1 (or i if last point)
+        const segmentEnd = isLastPoint ? i : i - 1;
+        const segmentData = data.slice(segmentStart, segmentEnd);
+
+        if (segmentData.length > 0) {
+          ctx.beginPath();
+
+          // Start from zero line at first timestamp
+          const firstX = xMapper(segmentData[0].timestamp) * dpr;
+          ctx.moveTo(firstX, zeroY);
+
+          // Draw through all points in segment
+          for (let j = 0; j < segmentData.length; j++) {
+            const x = xMapper(segmentData[j].timestamp) * dpr;
+            const y = yMapper(segmentData[j].drawdownPercent) * dpr;
+            ctx.lineTo(x, y);
+          }
+
+          // Close path back to zero line
+          const lastX =
+            xMapper(segmentData[segmentData.length - 1].timestamp) * dpr;
+          ctx.lineTo(lastX, zeroY);
+          ctx.closePath();
+
+          ctx.fill();
+        }
+
+        // Start next segment at current index
+        segmentStart = i;
+      }
+    }
+
     ctx.restore();
   }
 
@@ -234,7 +284,7 @@ export class DrawdownIndicator extends MarketIndicator {
     data: DrawdownPoint[],
     xMapper: (timestamp: number) => number,
     yMapper: (price: number) => number,
-    canvasHeight: number
+    canvasHeight: number,
   ): void {
     if (data.length === 0) return;
 
@@ -292,7 +342,7 @@ export class DrawdownIndicator extends MarketIndicator {
         yMapper,
         canvasHeight,
         this._params.fillColor!,
-        this._params.fillOpacity!
+        this._params.fillOpacity!,
       );
     });
 
@@ -306,7 +356,7 @@ export class DrawdownIndicator extends MarketIndicator {
         yMapper,
         canvasHeight,
         this._params.warnColor!,
-        Math.min(this._params.fillOpacity! + 0.2, 1.0) // Slightly more opaque
+        Math.min(this._params.fillOpacity! + 0.2, 1.0), // Slightly more opaque
       );
     });
   }

@@ -1,7 +1,10 @@
 import { customElement } from "lit/decorators.js";
 import { MarketIndicator } from "./market-indicator";
 import { ScaleType, GridStyle } from "./indicator-types";
-import { EquityCurveParams, EquityPoint } from "../../../types/trading-indicators";
+import {
+  EquityCurveParams,
+  EquityPoint,
+} from "../../../types/trading-indicators";
 import { getDpr, timeToX, priceToY } from "../../../util/chart-util";
 import { getLogger } from "../../../util/logger";
 
@@ -86,7 +89,13 @@ export class EquityCurveIndicator extends MarketIndicator {
    * instead of from candle evaluations
    */
   override draw(): void {
-    if (!this.canvas || !this.ctx || !this._state || !this._params.data || this._params.data.length === 0) {
+    if (
+      !this.canvas ||
+      !this.ctx ||
+      !this._state ||
+      !this._params.data ||
+      this._params.data.length === 0
+    ) {
       return;
     }
 
@@ -102,7 +111,7 @@ export class EquityCurveIndicator extends MarketIndicator {
       const visibleData = this._params.data.filter(
         (point: EquityPoint) =>
           point.timestamp >= this._state!.timeRange.start &&
-          point.timestamp <= this._state!.timeRange.end
+          point.timestamp <= this._state!.timeRange.end,
       );
 
       if (visibleData.length === 0) {
@@ -144,7 +153,14 @@ export class EquityCurveIndicator extends MarketIndicator {
 
       // Draw area fill if enabled
       if (this._params.fillArea) {
-        this.drawAreaFill(ctx, dpr, visibleData, xMapper, yMapper, canvasHeight);
+        this.drawAreaFill(
+          ctx,
+          dpr,
+          visibleData,
+          xMapper,
+          yMapper,
+          canvasHeight,
+        );
       }
 
       // Draw peak line if enabled (draw before main line so main line is on top)
@@ -169,6 +185,7 @@ export class EquityCurveIndicator extends MarketIndicator {
 
   /**
    * Draw a line through the equity points
+   * Handles gaps in data by breaking the line when timestamps are too far apart
    */
   private drawLine(
     ctx: CanvasRenderingContext2D,
@@ -176,7 +193,7 @@ export class EquityCurveIndicator extends MarketIndicator {
     data: EquityPoint[],
     xMapper: (timestamp: number) => number,
     yMapper: (price: number) => number,
-    style: { color: string; width: number; style: string }
+    style: { color: string; width: number; style: string },
   ): void {
     if (data.length === 0) return;
 
@@ -193,15 +210,40 @@ export class EquityCurveIndicator extends MarketIndicator {
       ctx.setLineDash([]);
     }
 
+    // Calculate a reasonable gap threshold based on the chart's granularity
+    // If we have state with granularity info, use it; otherwise use a heuristic
+    let gapThreshold = 7 * 24 * 60 * 60 * 1000; // Default: 7 days in milliseconds
+
+    if (this._state?.priceHistory) {
+      const granularityMs = this._state.priceHistory.granularityMs;
+      // Consider a gap if the time difference is more than 5x the granularity
+      // This allows for weekends/holidays but breaks on longer gaps
+      gapThreshold = granularityMs * 5;
+    }
+
     ctx.beginPath();
     const firstX = xMapper(data[0].timestamp) * dpr;
     const firstY = yMapper(data[0].equity) * dpr;
     ctx.moveTo(firstX, firstY);
 
     for (let i = 1; i < data.length; i++) {
-      const x = xMapper(data[i].timestamp) * dpr;
+      const prevTimestamp = data[i - 1].timestamp;
+      const currTimestamp = data[i].timestamp;
+      const timeDiff = currTimestamp - prevTimestamp;
+
+      const x = xMapper(currTimestamp) * dpr;
       const y = yMapper(data[i].equity) * dpr;
-      ctx.lineTo(x, y);
+
+      // If there's a gap in the data, break the line and start a new segment
+      if (timeDiff > gapThreshold) {
+        // Stroke the current path
+        ctx.stroke();
+        // Start a new path at the current point
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
     }
 
     ctx.stroke();
@@ -210,6 +252,7 @@ export class EquityCurveIndicator extends MarketIndicator {
 
   /**
    * Draw area fill under the equity curve
+   * Handles gaps in data by creating separate fill areas for each continuous segment
    */
   private drawAreaFill(
     ctx: CanvasRenderingContext2D,
@@ -217,7 +260,7 @@ export class EquityCurveIndicator extends MarketIndicator {
     data: EquityPoint[],
     xMapper: (timestamp: number) => number,
     yMapper: (price: number) => number,
-    canvasHeight: number
+    canvasHeight: number,
   ): void {
     if (data.length === 0) return;
 
@@ -225,30 +268,61 @@ export class EquityCurveIndicator extends MarketIndicator {
     ctx.fillStyle = this._params.areaColor!;
     ctx.globalAlpha = this._params.areaOpacity!;
 
-    ctx.beginPath();
+    // Calculate gap threshold (same logic as drawLine)
+    let gapThreshold = 7 * 24 * 60 * 60 * 1000; // Default: 7 days in milliseconds
 
-    // Start from bottom-left
-    const firstX = xMapper(data[0].timestamp) * dpr;
-    const bottomY = canvasHeight * dpr;
-    ctx.moveTo(firstX, bottomY);
-
-    // Draw line to first point
-    const firstY = yMapper(data[0].equity) * dpr;
-    ctx.lineTo(firstX, firstY);
-
-    // Draw through all points
-    for (let i = 1; i < data.length; i++) {
-      const x = xMapper(data[i].timestamp) * dpr;
-      const y = yMapper(data[i].equity) * dpr;
-      ctx.lineTo(x, y);
+    if (this._state?.priceHistory) {
+      const granularityMs = this._state.priceHistory.granularityMs;
+      gapThreshold = granularityMs * 5;
     }
 
-    // Close path back to bottom
-    const lastX = xMapper(data[data.length - 1].timestamp) * dpr;
-    ctx.lineTo(lastX, bottomY);
-    ctx.closePath();
+    const bottomY = canvasHeight * dpr;
+    let segmentStart = 0;
 
-    ctx.fill();
+    // Draw area fills for each continuous segment
+    for (let i = 1; i <= data.length; i++) {
+      const isLastPoint = i === data.length;
+      const isGap =
+        !isLastPoint &&
+        data[i].timestamp - data[i - 1].timestamp > gapThreshold;
+
+      if (isGap || isLastPoint) {
+        // Draw the segment from segmentStart to i-1 (or i if last point)
+        const segmentEnd = isLastPoint ? i : i - 1;
+        const segmentData = data.slice(segmentStart, segmentEnd);
+
+        if (segmentData.length > 0) {
+          ctx.beginPath();
+
+          // Start from bottom at first point
+          const firstX = xMapper(segmentData[0].timestamp) * dpr;
+          ctx.moveTo(firstX, bottomY);
+
+          // Draw to first point
+          const firstY = yMapper(segmentData[0].equity) * dpr;
+          ctx.lineTo(firstX, firstY);
+
+          // Draw through all points in segment
+          for (let j = 1; j < segmentData.length; j++) {
+            const x = xMapper(segmentData[j].timestamp) * dpr;
+            const y = yMapper(segmentData[j].equity) * dpr;
+            ctx.lineTo(x, y);
+          }
+
+          // Close path back to bottom
+          const lastX =
+            xMapper(segmentData[segmentData.length - 1].timestamp) * dpr;
+          ctx.lineTo(lastX, bottomY);
+          ctx.closePath();
+
+          ctx.fill();
+        }
+
+        // Start next segment at current index
+        segmentStart = i;
+      }
+    }
+
     ctx.restore();
   }
 

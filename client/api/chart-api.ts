@@ -571,13 +571,50 @@ export class ChartApi {
       console.log("[ChartApi showIndicator] isAlreadyVisible check:", { id: config.id, isAlreadyVisible });
 
       if (!isAlreadyVisible) {
-        // Use the built-in indicator action which has proper configuration
-        // The action will trigger a toggle-indicator event, which our listener
-        console.log("[ChartApi] Calling builtInIndicator.action() for:", config.id);
-        // will catch and emit the indicatorChange event with correct display type
-        builtInIndicator.action();
+        // For indicators with custom params (like equity-curve, drawdown),
+        // we need to pass those params through instead of using default action
+        if (config.params) {
+          console.log("[ChartApi] Showing indicator with custom params:", config.id, config.params);
+          const indicatorConfig: IndicatorConfig = {
+            display: config.display || DisplayType.Bottom,
+            scale: config.scale || ScaleType.Value,
+            skipFetch: config.skipFetch !== undefined ? config.skipFetch : true,
+            gridStyle: config.gridStyle || GridStyle.Standard,
+            ...config,
+            visible: true,
+          };
+
+          this.container.handleIndicatorToggle(
+            new CustomEvent("toggle-indicator", {
+              detail: indicatorConfig,
+            }),
+          );
+        } else {
+          // Use the built-in indicator action which has proper configuration
+          // The action will trigger a toggle-indicator event, which our listener
+          console.log("[ChartApi] Calling builtInIndicator.action() for:", config.id);
+          // will catch and emit the indicatorChange event with correct display type
+          builtInIndicator.action();
+        }
       } else {
-        // If already visible, just emit the event without toggling
+        // If already visible, update params if provided
+        if (config.params) {
+          const indicatorConfig: IndicatorConfig = {
+            display: config.display || DisplayType.Bottom,
+            scale: config.scale || ScaleType.Value,
+            skipFetch: config.skipFetch !== undefined ? config.skipFetch : true,
+            gridStyle: config.gridStyle || GridStyle.Standard,
+            ...config,
+            visible: true,
+          };
+
+          this.container.handleIndicatorToggle(
+            new CustomEvent("toggle-indicator", {
+              detail: indicatorConfig,
+            }),
+          );
+        }
+        // Emit the event
         this.emitEvent("indicatorChange", {
           action: "show",
           indicator: { ...config, visible: true },
