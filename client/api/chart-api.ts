@@ -2,6 +2,8 @@
 import { ChartContainer } from "../components/chart/chart-container";
 import { App } from "../app";
 import { ChartState } from "../index";
+import { xinValue, touch } from "xinjs";
+import { LiveCandle } from "./live-candle-subscription";
 import {
   Granularity,
   getAllGranularities,
@@ -31,6 +33,45 @@ import {
   downloadScreenshot as downloadScreenshotHelper,
   ScreenshotOptions,
 } from "../util/screenshot";
+import {
+  TradeMarker,
+  TradeMarkerConfig,
+  TradeMarkerClickedEvent,
+  TradeMarkerHoveredEvent,
+  PriceLine,
+  PriceLineConfig,
+  PriceLineDraggedEvent,
+  PriceLineClickedEvent,
+  PriceLineHoveredEvent,
+  TradeZone,
+  TradeZoneConfig,
+  TradeZoneClickedEvent,
+  TradeZoneHoveredEvent,
+  Annotation,
+  AnnotationConfig,
+  AnnotationClickedEvent,
+  AnnotationHoveredEvent,
+  AnnotationDraggedEvent,
+  TimeMarker,
+  TimeMarkerConfig,
+  TimeMarkerClickedEvent,
+  TimeMarkerHoveredEvent,
+  RiskZone,
+  RiskZoneConfig,
+  RiskZoneClickedEvent,
+  RiskZoneHoveredEvent,
+  PositionOverlayConfig,
+  PriceClickedEvent,
+  CrosshairMovedEvent,
+  ContextMenuEvent as ChartContextMenuEvent,
+  OrderRequestData,
+  PriceHoverEvent,
+  ClickToTradeConfig,
+  EquityPoint,
+  EquityCurveConfig,
+  TRADING_OVERLAY_COLORS,
+  TRADE_MARKER_SIZES,
+} from "../types/trading-overlays";
 
 const BUFFER_MULTIPLIER = 1;
 
@@ -149,6 +190,27 @@ export interface ChartApiEventMap {
   "trend-line-deleted": TrendLineDeletedEvent;
   "patterns-highlighted": PatternHighlightEvent;
   "patterns-cleared": void;
+  // Trading overlay events
+  "trade-marker-clicked": TradeMarkerClickedEvent;
+  "trade-marker-hovered": TradeMarkerHoveredEvent;
+  "price-line-dragged": PriceLineDraggedEvent;
+  "price-line-clicked": PriceLineClickedEvent;
+  "price-line-hovered": PriceLineHoveredEvent;
+  "trade-zone-clicked": TradeZoneClickedEvent;
+  "trade-zone-hovered": TradeZoneHoveredEvent;
+  "annotation-clicked": AnnotationClickedEvent;
+  "annotation-hovered": AnnotationHoveredEvent;
+  "annotation-dragged": AnnotationDraggedEvent;
+  "time-marker-clicked": TimeMarkerClickedEvent;
+  "time-marker-hovered": TimeMarkerHoveredEvent;
+  "risk-zone-clicked": RiskZoneClickedEvent;
+  "risk-zone-hovered": RiskZoneHoveredEvent;
+  "chart-clicked": PriceClickedEvent;
+  "crosshair-moved": CrosshairMovedEvent;
+  "chart-context-menu": ChartContextMenuEvent;
+  // Click-to-trade events
+  "order-request": OrderRequestData;
+  "price-hover": PriceHoverEvent;
 }
 
 /**
@@ -234,6 +296,133 @@ export class ChartApi {
 
     this.container.addEventListener("patterns-cleared", (event: Event) => {
       this.emitEvent("patterns-cleared", undefined);
+    });
+
+    // Listen for trading overlay interaction events
+    this.container.addEventListener("trade-marker-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-marker-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("trade-marker-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-marker-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("price-line-dragged", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("price-line-dragged", customEvent.detail);
+    });
+
+    this.container.addEventListener("price-line-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("price-line-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("price-line-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("price-line-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("trade-zone-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-zone-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("trade-zone-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("trade-zone-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("chart-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("chart-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("crosshair-moved", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("crosshair-moved", customEvent.detail);
+    });
+
+    this.container.addEventListener("chart-context-menu", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("chart-context-menu", customEvent.detail);
+    });
+
+    // Listen for click-to-trade events
+    this.container.addEventListener("order-request", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("order-request", customEvent.detail);
+    });
+
+    this.container.addEventListener("price-hover", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("price-hover", customEvent.detail);
+    });
+
+    // Listen for indicator toggle events from context menu
+    this.container.addEventListener("toggle-indicator", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      console.log("[ChartApi] toggle-indicator received:", { id: detail.id, visible: detail.visible, display: detail.display });
+      
+      // Emit indicatorChange event when indicators are toggled via context menu
+      if (detail.visible) {
+        this.emitEvent("indicatorChange", {
+          action: "show",
+          indicator: {
+            id: detail.id,
+            name: detail.name || detail.id,
+            visible: true,
+            params: detail.params,
+            display: detail.display,
+            scale: detail.scale,
+          },
+        });
+      } else {
+        this.emitEvent("indicatorChange", {
+          action: "hide",
+          indicatorId: detail.id,
+        });
+      }
+    });
+
+    // Listen for annotation events
+    this.container.addEventListener("annotation-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("annotation-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-hovered", customEvent.detail);
+    });
+
+    this.container.addEventListener("annotation-dragged", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("annotation-dragged", customEvent.detail);
+    });
+
+    // Listen for time marker events
+    this.container.addEventListener("time-marker-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("time-marker-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("time-marker-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("time-marker-hovered", customEvent.detail);
+    });
+
+    // Listen for risk zone events
+    this.container.addEventListener("risk-zone-clicked", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("risk-zone-clicked", customEvent.detail);
+    });
+
+    this.container.addEventListener("risk-zone-hovered", (event: Event) => {
+      const customEvent = event as CustomEvent;
+      this.emitEvent("risk-zone-hovered", customEvent.detail);
     });
   }
 
@@ -334,7 +523,7 @@ export class ChartApi {
    * Get all currently visible indicators
    */
   getVisibleIndicators(): IndicatorConfig[] {
-    return this.state.indicators || [];
+    return (xinValue(this.state.indicators) as IndicatorConfig[]) || [];
   }
 
   /**
@@ -373,23 +562,64 @@ export class ChartApi {
       );
     });
 
+    console.log("[ChartApi showIndicator] builtInIndicator search result:", { found: !!builtInIndicator, hasAction: !!builtInIndicator?.action, configId: config.id });
     if (builtInIndicator && builtInIndicator.action) {
+      // Use built-in indicator action which has proper display type and configuration
       // Check if indicator is already visible to avoid toggling it off
+      console.log("[ChartApi showIndicator] Found built-in indicator for:", config.id);
       const isAlreadyVisible = this.isIndicatorVisible(config.id);
+      console.log("[ChartApi showIndicator] isAlreadyVisible check:", { id: config.id, isAlreadyVisible });
 
-      if (isAlreadyVisible) {
-        logger.info(
-          `ChartApi: Indicator ${config.id} already visible, skipping action`,
-        );
+      if (!isAlreadyVisible) {
+        // For indicators with custom params (like equity-curve, drawdown),
+        // we need to pass those params through instead of using default action
+        if (config.params) {
+          console.log("[ChartApi] Showing indicator with custom params:", config.id, config.params);
+          const indicatorConfig: IndicatorConfig = {
+            display: config.display || DisplayType.Bottom,
+            scale: config.scale || ScaleType.Value,
+            skipFetch: config.skipFetch !== undefined ? config.skipFetch : true,
+            gridStyle: config.gridStyle || GridStyle.Standard,
+            ...config,
+            visible: true,
+          };
+
+          this.container.handleIndicatorToggle(
+            new CustomEvent("toggle-indicator", {
+              detail: indicatorConfig,
+            }),
+          );
+        } else {
+          // Use the built-in indicator action which has proper configuration
+          // The action will trigger a toggle-indicator event, which our listener
+          console.log("[ChartApi] Calling builtInIndicator.action() for:", config.id);
+          // will catch and emit the indicatorChange event with correct display type
+          builtInIndicator.action();
+        }
       } else {
-        // Use the built-in indicator action which has proper configuration
-        builtInIndicator.action();
-      }
+        // If already visible, update params if provided
+        if (config.params) {
+          const indicatorConfig: IndicatorConfig = {
+            display: config.display || DisplayType.Bottom,
+            scale: config.scale || ScaleType.Value,
+            skipFetch: config.skipFetch !== undefined ? config.skipFetch : true,
+            gridStyle: config.gridStyle || GridStyle.Standard,
+            ...config,
+            visible: true,
+          };
 
-      this.emitEvent("indicatorChange", {
-        action: "show",
-        indicator: { ...config, visible: true },
-      });
+          this.container.handleIndicatorToggle(
+            new CustomEvent("toggle-indicator", {
+              detail: indicatorConfig,
+            }),
+          );
+        }
+        // Emit the event
+        this.emitEvent("indicatorChange", {
+          action: "show",
+          indicator: { ...config, visible: true },
+        });
+      }
     } else {
       // Fallback to manual configuration
       const indicatorConfig: IndicatorConfig = {
@@ -661,7 +891,33 @@ export class ChartApi {
    * Get the current chart state
    */
   getState(): ChartState {
-    return this.state;
+    // Return a plain object with all proxy values unwrapped
+    return {
+      timeRange: {
+        start: Number(xinValue(this.state.timeRange.start)),
+        end: Number(xinValue(this.state.timeRange.end)),
+      },
+      symbol: String(xinValue(this.state.symbol)),
+      granularity: String(xinValue(this.state.granularity)) as Granularity,
+      priceRange: xinValue(this.state.priceRange) as PriceRange,
+      priceHistory: xinValue(this.state.priceHistory),
+      liveCandle: xinValue(this.state.liveCandle) as LiveCandle | null,
+      loading: Boolean(xinValue(this.state.loading)),
+      canvasWidth: Number(xinValue(this.state.canvasWidth)) || 0,
+      canvasHeight: Number(xinValue(this.state.canvasHeight)) || 0,
+      indicators: (xinValue(this.state.indicators) as IndicatorConfig[]) || [],
+      trendLines: xinValue(this.state.trendLines) || [],
+      patternHighlights: xinValue(this.state.patternHighlights) || [],
+      isTransitioning: Boolean(xinValue(this.state.isTransitioning)),
+      tradeMarkers: xinValue(this.state.tradeMarkers) || [],
+      priceLines: xinValue(this.state.priceLines) || [],
+      tradeZones: xinValue(this.state.tradeZones) || [],
+      annotations: xinValue(this.state.annotations) || [],
+      timeMarkers: xinValue(this.state.timeMarkers) || [],
+      riskZones: xinValue(this.state.riskZones) || [],
+      positionOverlay: xinValue(this.state.positionOverlay) || null,
+      clickToTrade: xinValue(this.state.clickToTrade) || null,
+    };
   }
 
   /**
@@ -756,8 +1012,8 @@ export class ChartApi {
    * @returns PriceRange object with min, max, and range values
    */
   getPriceRange(): PriceRange {
-    // Return the actual PriceRange object to preserve methods
-    return this.state.priceRange;
+    // Return the actual PriceRange object to preserve methods, unwrapped from proxy
+    return xinValue(this.state.priceRange) as PriceRange;
   }
 
   /**
@@ -767,9 +1023,10 @@ export class ChartApi {
   getCandles(): [number, Candle][] {
     // Get candles from the price history within the current time range
     const timeRange = this.state.timeRange;
-    return this.state.priceHistory.getCandlesInRange(
-      timeRange.start,
-      timeRange.end,
+    const priceHistory = xinValue(this.state.priceHistory);
+    return priceHistory.getCandlesInRange(
+      Number(xinValue(timeRange.start)),
+      Number(xinValue(timeRange.end)),
     );
   }
 
@@ -786,8 +1043,32 @@ export class ChartApi {
       throw new Error("Invalid price range: min must be less than max");
     }
 
+    // Get the current minRange limit from existing priceRange (if set)
+    const currentPriceRange = this.state.priceRange as any;
+    const minRangeLimit = currentPriceRange?._minRange || 0.0001;
+
+    // Calculate the requested range
+    const requestedRange = priceRange.max - priceRange.min;
+
+    // Enforce minimum range limit
+    let finalMin = priceRange.min;
+    let finalMax = priceRange.max;
+
+    if (requestedRange < minRangeLimit) {
+      // Range is too small, clamp it to minRangeLimit
+      const center = (priceRange.min + priceRange.max) / 2;
+      finalMin = center - minRangeLimit / 2;
+      finalMax = center + minRangeLimit / 2;
+      logger.warn(
+        `ChartApi: Requested range ${requestedRange} is below minimum ${minRangeLimit}. Clamping to minimum.`,
+      );
+    }
+
     // Create new PriceRangeImpl instance
-    const newPriceRange = new PriceRangeImpl(priceRange.min, priceRange.max);
+    const newPriceRange = new PriceRangeImpl(finalMin, finalMax);
+
+    // Preserve the minRange limit
+    (newPriceRange as any).setMinRange(minRangeLimit);
 
     // Update the state
     this.state.priceRange = newPriceRange;
@@ -1137,14 +1418,32 @@ export class ChartApi {
   addTrendLine(
     trendLine: Omit<TrendLine, "id"> & { selected?: boolean },
   ): string {
-    const id = `trend-line-${Date.now()}`;
+    const id = `trend-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const { selected, ...trendLineData } = trendLine;
     const fullTrendLine: TrendLine = { id, ...trendLineData };
 
+
     // Access the container's trend line methods
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.addTrendLine) {
-      chartContainer.addTrendLine(fullTrendLine);
+    
+    if (chartContainer && chartContainer.trendLineLayer) {
+      
+      // Add directly to the chartContainer's trendLines array
+      if (!chartContainer.trendLines) {
+        chartContainer.trendLines = [];
+      }
+      chartContainer.trendLines.push(fullTrendLine);
+      
+      // Update the state
+      if (chartContainer._state) {
+        chartContainer._state.trendLines = chartContainer.trendLines;
+      }
+      
+      // Request update to re-render
+      if (chartContainer.requestUpdate) {
+        chartContainer.requestUpdate();
+      }
+      
 
       // Handle selection state
       if (selected === true && chartContainer.trendLineLayer) {
@@ -1155,6 +1454,8 @@ export class ChartApi {
         chartContainer.trendLineLayer.deselectAll();
       }
       // If selected is undefined, keep the default behavior (line stays selected)
+      // If selected is undefined, keep the default behavior (line stays selected)
+    } else {
     }
 
     logger.info(
@@ -1163,6 +1464,7 @@ export class ChartApi {
     return id;
   }
 
+  /**
   /**
    * Remove a trend line from the chart
    * @param id The ID of the trend line to remove
@@ -1252,12 +1554,12 @@ export class ChartApi {
    */
   activateTrendLineTool(defaults?: TrendLineDefaults): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
+    if (chartContainer && chartContainer.trendLineController) {
       // Set defaults if provided
       if (defaults) {
-        chartContainer.trendLineTool.setDefaults(defaults);
+        chartContainer.trendLineController.setDefaults(defaults);
       }
-      chartContainer.trendLineTool.activate();
+      chartContainer.trendLineController.activateDrawingTool();
 
       // Update toolbar state
       const toolbar = chartContainer.renderRoot.querySelector(
@@ -1275,8 +1577,8 @@ export class ChartApi {
    */
   setTrendLineDefaults(defaults: TrendLineDefaults): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
-      chartContainer.trendLineTool.setDefaults(defaults);
+    if (chartContainer && chartContainer.trendLineController) {
+      chartContainer.trendLineController.setDefaults(defaults);
     }
 
     logger.info("ChartApi: Set trend line defaults", defaults);
@@ -1287,8 +1589,8 @@ export class ChartApi {
    */
   deactivateTrendLineTool(): void {
     const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.trendLineTool) {
-      chartContainer.trendLineTool.deactivate();
+    if (chartContainer && chartContainer.trendLineController) {
+      chartContainer.trendLineController.deactivateDrawingTool();
 
       // Update toolbar state
       const toolbar = chartContainer.renderRoot.querySelector(
@@ -1361,12 +1663,13 @@ export class ChartApi {
     logger.info(`ChartApi: Highlighting ${patterns.length} patterns`);
 
     const chartContainer = this.container as ChartContainer;
-    if (chartContainer && chartContainer.setPatternHighlights) {
-      chartContainer.setPatternHighlights(patterns);
+    if (chartContainer?.patternHighlightsController) {
+      chartContainer.patternHighlightsController.set(patterns);
+    } else {
+      logger.error("ChartApi: Pattern highlights controller not initialized");
     }
 
-    // Emit event
-    this.emitEvent("patterns-highlighted", { patterns });
+    this.redraw();
   }
 
   /**
@@ -1378,13 +1681,14 @@ export class ChartApi {
     // Stop any running wave animation
     this.stopPulseWave();
 
-    const chartContainer = this.container as any;
-    if (chartContainer && chartContainer.clearPatternHighlights) {
-      chartContainer.clearPatternHighlights();
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.patternHighlightsController) {
+      chartContainer.patternHighlightsController.clear();
+    } else {
+      logger.error("ChartApi: Pattern highlights controller not initialized");
     }
 
-    // Emit event
-    this.emitEvent("patterns-cleared", undefined);
+    this.redraw();
   }
 
   /**
@@ -1485,6 +1789,1004 @@ export class ChartApi {
       this.waveInterval = null;
       logger.info("ChartApi: Stopped pulse wave");
     }
+  }
+
+  // ============================================================================
+  // Trade Markers (Paper Trading & Backtesting)
+  // ============================================================================
+
+  /**
+   * Add a trade marker to the chart
+   * @param config Trade marker configuration
+   * @returns The ID of the created trade marker
+   */
+  addTradeMarker(config: TradeMarkerConfig): string {
+    const id =
+      config.id ||
+      `trade-marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full marker with defaults
+    const marker: TradeMarker = {
+      id,
+      timestamp: config.timestamp,
+      price: config.price,
+      side: config.side,
+      shape: config.shape || "arrow",
+      color:
+        config.color ||
+        (config.side === "buy"
+          ? TRADING_OVERLAY_COLORS.buyMarker
+          : TRADING_OVERLAY_COLORS.sellMarker),
+      size: config.size || "medium",
+      text: config.text || "",
+      tooltip: config.tooltip,
+      interactive: config.interactive !== undefined ? config.interactive : true,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 100,
+    };
+
+    // Add trade marker via container (container will handle state management)
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addTradeMarker) {
+      chartContainer.addTradeMarker(marker);
+    }
+
+    this.redraw();
+    logger.info(
+      `ChartApi: Added trade marker ${id} at ${marker.price} (${marker.side})`,
+    );
+    return id;
+  }
+
+  /**
+   * Remove a trade marker from the chart
+   * @param markerId The ID of the trade marker to remove
+   */
+  removeTradeMarker(markerId: string): void {
+    if (!this.state.tradeMarkers) {
+      logger.warn(`ChartApi: Trade marker ${markerId} not found (no markers)`);
+      return;
+    }
+
+    const index = this.state.tradeMarkers.findIndex((m) => m.id === markerId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade marker ${markerId} not found`);
+      return;
+    }
+
+    this.state.tradeMarkers.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeTradeMarker) {
+      chartContainer.removeTradeMarker(markerId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed trade marker ${markerId}`);
+  }
+
+  /**
+   * Update an existing trade marker
+   * @param markerId The ID of the trade marker to update
+   * @param updates Partial trade marker updates
+   */
+  updateTradeMarker(
+    markerId: string,
+    updates: Partial<TradeMarkerConfig>,
+  ): void {
+    if (!this.state.tradeMarkers) {
+      logger.warn(`ChartApi: Trade marker ${markerId} not found (no markers)`);
+      return;
+    }
+
+    const index = this.state.tradeMarkers.findIndex((m) => m.id === markerId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade marker ${markerId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const marker = this.state.tradeMarkers[index];
+    const updatedMarker: TradeMarker = {
+      ...marker,
+      ...updates,
+      id: markerId, // Preserve ID
+    };
+
+    this.state.tradeMarkers[index] = updatedMarker;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateTradeMarker) {
+      chartContainer.updateTradeMarker(markerId, updatedMarker);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated trade marker ${markerId}`);
+  }
+
+  /**
+   * Get all trade markers
+   * @returns Array of trade markers
+   */
+  getTradeMarkers(): TradeMarker[] {
+    return (xinValue(this.state.tradeMarkers) as TradeMarker[]) || [];
+  }
+
+  /**
+   * Clear all trade markers
+   */
+  clearTradeMarkers(): void {
+    this.state.tradeMarkers = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearTradeMarkers) {
+      chartContainer.clearTradeMarkers();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all trade markers");
+  }
+
+  // ============================================================================
+  // Price Lines (Orders, Stop Losses, Take Profits)
+  // ============================================================================
+
+  /**
+   * Add a price line to the chart
+   * @param config Price line configuration
+   * @returns The ID of the created price line
+   */
+  addPriceLine(config: PriceLineConfig): string {
+    const id =
+      config.id ||
+      `price-line-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full price line with defaults
+    const priceLine: PriceLine = {
+      id,
+      price: config.price,
+      color: config.color || TRADING_OVERLAY_COLORS.priceLine,
+      lineStyle: config.lineStyle || "solid",
+      lineWidth: config.lineWidth !== undefined ? config.lineWidth : 1,
+      label: config.label,
+      draggable: config.draggable !== undefined ? config.draggable : false,
+      extendLeft: config.extendLeft !== undefined ? config.extendLeft : true,
+      extendRight: config.extendRight !== undefined ? config.extendRight : true,
+      interactive: config.interactive !== undefined ? config.interactive : true,
+      showPriceLabel:
+        config.showPriceLabel !== undefined ? config.showPriceLabel : true,
+      metadata: config.metadata,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 50,
+    };
+
+    // Add price line via container (container will handle state management)
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addPriceLine) {
+      chartContainer.addPriceLine(priceLine);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Added price line ${id} at ${priceLine.price}`);
+    return id;
+  }
+
+  /**
+   * Remove a price line from the chart
+   * @param lineId The ID of the price line to remove
+   */
+  removePriceLine(lineId: string): void {
+    if (!this.state.priceLines) {
+      logger.warn(`ChartApi: Price line ${lineId} not found (no lines)`);
+      return;
+    }
+
+    const index = this.state.priceLines.findIndex((l) => l.id === lineId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Price line ${lineId} not found`);
+      return;
+    }
+
+    this.state.priceLines.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removePriceLine) {
+      chartContainer.removePriceLine(lineId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed price line ${lineId}`);
+  }
+
+  /**
+   * Update an existing price line
+   * @param lineId The ID of the price line to update
+   * @param updates Partial price line updates
+   */
+  updatePriceLine(lineId: string, updates: Partial<PriceLineConfig>): void {
+    if (!this.state.priceLines) {
+      logger.warn(`ChartApi: Price line ${lineId} not found (no lines)`);
+      return;
+    }
+
+    const index = this.state.priceLines.findIndex((l) => l.id === lineId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Price line ${lineId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const priceLine = this.state.priceLines[index];
+    const updatedLine: PriceLine = {
+      ...priceLine,
+      ...updates,
+      id: lineId, // Preserve ID
+    };
+
+    this.state.priceLines[index] = updatedLine;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updatePriceLine) {
+      chartContainer.updatePriceLine(lineId, updatedLine);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated price line ${lineId}`);
+  }
+
+  /**
+   * Get all price lines
+   * @returns Array of price lines
+   */
+  getPriceLines(): PriceLine[] {
+    return (xinValue(this.state.priceLines) as PriceLine[]) || [];
+  }
+
+  /**
+   * Get a specific price line by ID
+   * @param lineId The ID of the price line
+   * @returns The price line or null if not found
+   */
+  getPriceLine(lineId: string): PriceLine | null {
+    const priceLines = xinValue(this.state.priceLines) as PriceLine[];
+    if (!priceLines) return null;
+    return priceLines.find((l) => l.id === lineId) || null;
+  }
+
+  /**
+   * Clear all price lines
+   */
+  clearPriceLines(): void {
+    this.state.priceLines = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearPriceLines) {
+      chartContainer.clearPriceLines();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all price lines");
+  }
+
+  // ============================================================================
+  // Position Overlay (Current Position Information)
+  // ============================================================================
+
+  /**
+   * Set or update the position overlay
+   * @param config Position overlay configuration (null to hide)
+   */
+  setPositionOverlay(config: PositionOverlayConfig | null): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.positionOverlayController) {
+      chartContainer.positionOverlayController.set(config);
+    } else {
+      logger.error("ChartApi: Position overlay controller not initialized");
+    }
+
+    this.redraw();
+
+    if (config) {
+      logger.info(
+        `ChartApi: Set position overlay for ${config.symbol} (${config.side} ${config.quantity})`,
+      );
+    } else {
+      logger.info("ChartApi: Cleared position overlay");
+    }
+  }
+
+  /**
+   * Get the current position overlay configuration
+   * @returns Position overlay config or null if not set
+   */
+  getPositionOverlay(): PositionOverlayConfig | null {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.positionOverlayController?.get() || null;
+  }
+
+  /**
+   * Update position overlay with partial updates
+   * @param updates Partial position overlay updates
+   */
+  updatePositionOverlay(updates: Partial<PositionOverlayConfig>): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.positionOverlayController) {
+      chartContainer.positionOverlayController.update(updates);
+    } else {
+      logger.error("ChartApi: Position overlay controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Updated position overlay");
+  }
+
+  // ============================================================================
+  // Trade Zones (Completed Trade Duration Visualization)
+  // ============================================================================
+
+  /**
+   * Add a trade zone to the chart
+   * @param config Trade zone configuration
+   * @returns The ID of the created trade zone
+   */
+  addTradeZone(config: TradeZoneConfig): string {
+    const id =
+      config.id ||
+      `trade-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Determine fill color if not specified
+    let fillColor = config.fillColor;
+    if (!fillColor && config.metadata?.side) {
+      // Auto-detect profit/loss based on entry/exit prices and side
+      const isProfitable =
+        config.metadata.side === "short"
+          ? config.entryPrice > config.exitPrice
+          : config.exitPrice > config.entryPrice;
+      fillColor = isProfitable
+        ? TRADING_OVERLAY_COLORS.profitZone
+        : TRADING_OVERLAY_COLORS.lossZone;
+    }
+
+    // Create full zone with defaults
+    const zone: TradeZone = {
+      id,
+      startTimestamp: config.startTimestamp,
+      endTimestamp: config.endTimestamp,
+      entryPrice: config.entryPrice,
+      exitPrice: config.exitPrice,
+      fillColor: fillColor || TRADING_OVERLAY_COLORS.profitZone,
+      fillOpacity: config.fillOpacity !== undefined ? config.fillOpacity : 0.2,
+      borderColor:
+        config.borderColor || fillColor || TRADING_OVERLAY_COLORS.profitZone,
+      borderWidth: config.borderWidth !== undefined ? config.borderWidth : 1,
+      showPnL: config.showPnL !== undefined ? config.showPnL : true,
+      textColor: config.textColor,
+      metadata: config.metadata,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 0,
+    };
+
+    // Add trade zone via container (container will handle state management)
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.addTradeZone) {
+      chartContainer.addTradeZone(zone);
+    }
+
+    this.redraw();
+    logger.info(
+      `ChartApi: Added trade zone ${id} (${config.entryPrice} -> ${config.exitPrice})`,
+    );
+    return id;
+  }
+
+  /**
+   * Remove a trade zone from the chart
+   * @param zoneId The ID of the trade zone to remove
+   */
+  removeTradeZone(zoneId: string): void {
+    if (!this.state.tradeZones) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const index = this.state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found`);
+      return;
+    }
+
+    this.state.tradeZones.splice(index, 1);
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.removeTradeZone) {
+      chartContainer.removeTradeZone(zoneId);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed trade zone ${zoneId}`);
+  }
+
+  /**
+   * Update an existing trade zone
+   * @param zoneId The ID of the trade zone to update
+   * @param updates Partial trade zone updates
+   */
+  updateTradeZone(zoneId: string, updates: Partial<TradeZoneConfig>): void {
+    if (!this.state.tradeZones) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found (no zones)`);
+      return;
+    }
+
+    const index = this.state.tradeZones.findIndex((z) => z.id === zoneId);
+    if (index === -1) {
+      logger.warn(`ChartApi: Trade zone ${zoneId} not found`);
+      return;
+    }
+
+    // Apply updates
+    const zone = this.state.tradeZones[index];
+    const updatedZone: TradeZone = {
+      ...zone,
+      ...updates,
+      id: zoneId, // Preserve ID
+    };
+
+    this.state.tradeZones[index] = updatedZone;
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.updateTradeZone) {
+      chartContainer.updateTradeZone(zoneId, updatedZone);
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated trade zone ${zoneId}`);
+  }
+
+  /**
+   * Get all trade zones
+   * @returns Array of trade zones
+   */
+  getTradeZones(): TradeZone[] {
+    return (xinValue(this.state.tradeZones) as TradeZone[]) || [];
+  }
+
+  /**
+   * Get a specific trade zone by ID
+   * @param zoneId The ID of the trade zone
+   * @returns The trade zone or null if not found
+   */
+  getTradeZone(zoneId: string): TradeZone | null {
+    const tradeZones = xinValue(this.state.tradeZones) as TradeZone[];
+    if (!tradeZones) return null;
+    return tradeZones.find((z) => z.id === zoneId) || null;
+  }
+
+  /**
+   * Clear all trade zones
+   */
+  clearTradeZones(): void {
+    this.state.tradeZones = [];
+
+    // Notify container
+    const chartContainer = this.container as any;
+    if (chartContainer && chartContainer.clearTradeZones) {
+      chartContainer.clearTradeZones();
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all trade zones");
+  }
+
+  // ============================================================================
+  // Annotations (Custom Notes and Alerts)
+  // ============================================================================
+
+  /**
+   * Add an annotation to the chart
+   * @param config Annotation configuration
+   * @returns The ID of the created annotation
+   * @example
+   * ```typescript
+   * // Add a note at a specific price and time
+   * api.addAnnotation({
+   *   timestamp: Date.now() - 3600000, // 1 hour ago
+   *   price: 100000,
+   *   text: 'Important support level',
+   *   type: 'note',
+   *   position: 'above',
+   *   color: '#ffffff',
+   *   backgroundColor: '#8b5cf6',
+   *   icon: '📝'
+   * });
+   *
+   * // Add a draggable alert anchored to top
+   * api.addAnnotation({
+   *   timestamp: Date.now(),
+   *   text: 'Price Alert',
+   *   type: 'alert',
+   *   position: 'below', // anchors to top when no price
+   *   draggable: true,
+   *   icon: '🔔'
+   * });
+   * ```
+   */
+  addAnnotation(config: AnnotationConfig): string {
+    const id =
+      config.id ||
+      `annotation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full annotation with defaults
+    const annotation: Annotation = {
+      id,
+      timestamp: config.timestamp,
+      price: config.price,
+      text: config.text,
+      type: config.type || "note",
+      position: config.position || "above",
+      color: config.color || "#ffffff",
+      backgroundColor:
+        config.backgroundColor || TRADING_OVERLAY_COLORS.annotation,
+      borderColor:
+        config.borderColor ||
+        config.backgroundColor ||
+        TRADING_OVERLAY_COLORS.annotation,
+      fontSize: config.fontSize !== undefined ? config.fontSize : 12,
+      icon: config.icon || "",
+      draggable: config.draggable !== undefined ? config.draggable : false,
+      showLine: config.showLine !== undefined ? config.showLine : true,
+      lineStyle: config.lineStyle || "solid",
+      zIndex: config.zIndex !== undefined ? config.zIndex : 200,
+      interactive: true, // Always true for annotations
+    };
+
+    // Add annotation via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.add(annotation);
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
+    }
+
+    this.redraw();
+    logger.info(
+      `ChartApi: Added annotation ${id} at ${annotation.timestamp}${annotation.price !== undefined ? ` (price: ${annotation.price})` : ""}`,
+    );
+    return id;
+  }
+
+  /**
+   * Remove an annotation from the chart
+   * @param annotationId The ID of the annotation to remove
+   */
+  removeAnnotation(annotationId: string): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.remove(annotationId);
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed annotation ${annotationId}`);
+  }
+
+  /**
+   * Update an existing annotation
+   * @param annotationId The ID of the annotation to update
+   * @param updates Partial annotation updates
+   */
+  updateAnnotation(
+    annotationId: string,
+    updates: Partial<AnnotationConfig>,
+  ): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      // Ensure interactive is always true for annotations
+      const annotationUpdates = { ...updates, interactive: true };
+      chartContainer.annotationsController.update(
+        annotationId,
+        annotationUpdates,
+      );
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated annotation ${annotationId}`);
+  }
+
+  /**
+   * Get all annotations
+   * @returns Array of annotations
+   */
+  getAnnotations(): Annotation[] {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.annotationsController?.getAll() || [];
+  }
+
+  /**
+   * Get a specific annotation by ID
+   * @param annotationId The ID of the annotation
+   * @returns The annotation or null if not found
+   */
+  getAnnotation(annotationId: string): Annotation | null {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.annotationsController?.get(annotationId) || null;
+  }
+
+  /**
+   * Clear all annotations from the chart
+   */
+  clearAnnotations(): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.annotationsController) {
+      chartContainer.annotationsController.clear();
+    } else {
+      logger.error("ChartApi: Annotations controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all annotations");
+  }
+
+  // ============================================================================
+  // Time Markers (Vertical Event Lines)
+  // ============================================================================
+
+  /**
+   * Add a time marker to the chart
+   * @param config Time marker configuration
+   * @returns The ID of the created time marker
+   * @example
+   * ```typescript
+   * // Add a simple time marker at current time
+   * api.addTimeMarker({
+   *   timestamp: Date.now(),
+   *   label: 'News Release',
+   *   color: '#ff6b6b'
+   * });
+   *
+   * // Add a marker with custom styling
+   * api.addTimeMarker({
+   *   timestamp: Date.now() - 3600000, // 1 hour ago
+   *   label: 'Market Open',
+   *   color: '#4ade80',
+   *   lineStyle: 'dashed',
+   *   lineWidth: 2,
+   *   labelPosition: 'bottom'
+   * });
+   * ```
+   */
+  addTimeMarker(config: TimeMarkerConfig): string {
+    const id =
+      config.id ||
+      `time-marker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full marker with defaults
+    const marker: TimeMarker = {
+      id,
+      timestamp: config.timestamp,
+      label: config.label,
+      color: config.color || "#6b7280",
+      lineStyle: config.lineStyle || "solid",
+      lineWidth: config.lineWidth !== undefined ? config.lineWidth : 1,
+      showLabel: config.showLabel !== undefined ? config.showLabel : true,
+      labelPosition: config.labelPosition || "top",
+      interactive: config.interactive !== undefined ? config.interactive : true,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 25,
+    };
+
+    // Add time marker via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.add(marker);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Added time marker ${id} at ${marker.timestamp}`);
+    return id;
+  }
+
+  /**
+   * Remove a time marker from the chart
+   * @param markerId The ID of the time marker to remove
+   */
+  removeTimeMarker(markerId: string): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.remove(markerId);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed time marker ${markerId}`);
+  }
+
+  /**
+   * Update an existing time marker
+   * @param markerId The ID of the time marker to update
+   * @param updates Partial time marker updates
+   */
+  updateTimeMarker(markerId: string, updates: Partial<TimeMarkerConfig>): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.update(markerId, updates);
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated time marker ${markerId}`);
+  }
+
+  /**
+   * Get all time markers
+   * @returns Array of time markers
+   */
+  getTimeMarkers(): TimeMarker[] {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.timeMarkersController?.getAll() || [];
+  }
+
+  /**
+   * Get a specific time marker by ID
+   * @param markerId The ID of the time marker
+   * @returns The time marker or null if not found
+   */
+  getTimeMarker(markerId: string): TimeMarker | null {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.timeMarkersController?.get(markerId) || null;
+  }
+
+  /**
+   * Clear all time markers from the chart
+   */
+  clearTimeMarkers(): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.timeMarkersController) {
+      chartContainer.timeMarkersController.clear();
+    } else {
+      logger.error("ChartApi: Time markers controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all time markers");
+  }
+
+  // ============================================================================
+  // Risk Zones (Price Range Highlights)
+  // ============================================================================
+
+  /**
+   * Add a risk zone to the chart
+   * @param config Risk zone configuration
+   * @returns The ID of the created risk zone
+   * @example
+   * ```typescript
+   * // Add a stop loss zone in red
+   * api.addRiskZone({
+   *   startPrice: 95000,
+   *   endPrice: 97000,
+   *   label: 'Stop Loss Zone',
+   *   color: '#ef4444',
+   *   opacity: 0.2,
+   *   pattern: 'striped'
+   * });
+   *
+   * // Add a liquidation zone with custom styling
+   * api.addRiskZone({
+   *   startPrice: 92000,
+   *   endPrice: 94000,
+   *   label: 'Liquidation Risk',
+   *   color: '#dc2626',
+   *   opacity: 0.3,
+   *   pattern: 'solid',
+   *   borderColor: '#991b1b',
+   *   borderWidth: 2
+   * });
+   * ```
+   */
+  addRiskZone(config: RiskZoneConfig): string {
+    const id =
+      config.id ||
+      `risk-zone-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create full risk zone with defaults
+    const zone: RiskZone = {
+      id,
+      startPrice: config.startPrice,
+      endPrice: config.endPrice,
+      label: config.label,
+      color: config.color || TRADING_OVERLAY_COLORS.riskZone,
+      opacity: config.opacity !== undefined ? config.opacity : 0.2,
+      pattern: config.pattern || "solid",
+      borderColor:
+        config.borderColor || config.color || TRADING_OVERLAY_COLORS.riskZone,
+      borderWidth: config.borderWidth !== undefined ? config.borderWidth : 0,
+      extendLeft: config.extendLeft !== undefined ? config.extendLeft : true,
+      extendRight: config.extendRight !== undefined ? config.extendRight : true,
+      zIndex: config.zIndex !== undefined ? config.zIndex : 1,
+    };
+
+    // Add risk zone via controller
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.add(zone);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
+    }
+
+    this.redraw();
+    logger.info(
+      `ChartApi: Added risk zone ${id} (${zone.startPrice} - ${zone.endPrice})`,
+    );
+    return id;
+  }
+
+  /**
+   * Remove a risk zone from the chart
+   * @param zoneId The ID of the risk zone to remove
+   */
+  removeRiskZone(zoneId: string): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.remove(zoneId);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Removed risk zone ${zoneId}`);
+  }
+
+  /**
+   * Update an existing risk zone
+   * @param zoneId The ID of the risk zone to update
+   * @param updates Partial risk zone updates
+   */
+  updateRiskZone(zoneId: string, updates: Partial<RiskZoneConfig>): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.update(zoneId, updates);
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info(`ChartApi: Updated risk zone ${zoneId}`);
+  }
+
+  /**
+   * Get all risk zones
+   * @returns Array of risk zones
+   */
+  getRiskZones(): RiskZone[] {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.riskZonesController?.getAll() || [];
+  }
+
+  /**
+   * Get a specific risk zone by ID
+   * @param zoneId The ID of the risk zone
+   * @returns The risk zone or null if not found
+   */
+  getRiskZone(zoneId: string): RiskZone | null {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.riskZonesController?.get(zoneId) || null;
+  }
+
+  /**
+   * Clear all risk zones from the chart
+   */
+  clearRiskZones(): void {
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.riskZonesController) {
+      chartContainer.riskZonesController.clear();
+    } else {
+      logger.error("ChartApi: Risk zones controller not initialized");
+      return;
+    }
+
+    this.redraw();
+    logger.info("ChartApi: Cleared all risk zones");
+  }
+
+  // ============================================================================
+  // Click-to-Trade Interface
+  // ============================================================================
+
+  /**
+   * Enable click-to-trade mode with the specified configuration
+   * When enabled, users can click on the chart to request order placement
+   * @param config Click-to-trade configuration
+   * @example
+   * ```typescript
+   * // Enable with buy mode by default
+   * api.enableClickToTrade({
+   *   enabled: true,
+   *   defaultSide: 'buy',
+   *   showCrosshair: true,
+   *   showPriceLabel: true,
+   *   onOrderRequest: (data) => {
+   *     console.log('Order requested:', data.price, data.side);
+   *     // Show order form dialog in sc-app
+   *   }
+   * });
+   * ```
+   */
+  enableClickToTrade(config: ClickToTradeConfig): void {
+    logger.info("ChartApi: Enabling click-to-trade mode");
+
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.clickToTradeController) {
+      // Update state
+      const fullConfig = { ...config, enabled: true };
+      this.state.clickToTrade = fullConfig;
+      touch("state.clickToTrade");
+
+      // Update controller config and enable
+      chartContainer.clickToTradeController.updateConfig(fullConfig);
+      chartContainer.clickToTradeController.enable();
+
+      logger.info(
+        `ChartApi: Click-to-trade enabled (defaultSide: ${config.defaultSide || "buy"})`,
+      );
+    } else {
+      logger.error("ChartApi: Click-to-trade controller not initialized");
+    }
+  }
+
+  /**
+   * Disable click-to-trade mode
+   * Removes all visual feedback and event listeners
+   */
+  disableClickToTrade(): void {
+    logger.info("ChartApi: Disabling click-to-trade mode");
+
+    const chartContainer = this.container as ChartContainer;
+    if (chartContainer?.clickToTradeController) {
+      // Update state
+      if (this.state.clickToTrade) {
+        this.state.clickToTrade = {
+          ...this.state.clickToTrade,
+          enabled: false,
+        };
+        touch("state.clickToTrade");
+      }
+
+      // Disable controller
+      chartContainer.clickToTradeController.disable();
+
+      logger.info("ChartApi: Click-to-trade disabled");
+    } else {
+      logger.error("ChartApi: Click-to-trade controller not initialized");
+    }
+  }
+
+  /**
+   * Check if click-to-trade mode is currently enabled
+   * @returns true if click-to-trade is enabled
+   */
+  isClickToTradeEnabled(): boolean {
+    const chartContainer = this.container as ChartContainer;
+    return chartContainer?.clickToTradeController?.isEnabled() ?? false;
   }
 
   // ============================================================================

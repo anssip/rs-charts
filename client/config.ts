@@ -8,6 +8,10 @@ import {
 } from "./components/chart/indicators/indicator-types";
 import { MarketIndicator } from "./components/chart/indicators/market-indicator";
 import { VolumeChart } from "./components/chart/indicators/volume-chart";
+import {
+  EquityCurveIndicator,
+  DrawdownIndicator,
+} from "./components/chart/indicators/trading-indicators";
 
 export type MenuActionEvent = CustomEvent<IndicatorConfig>;
 
@@ -18,13 +22,15 @@ interface Config {
 
 function dispatchMenuActionEvent(
   chartContainer: ChartContainer,
-  event: MenuActionEvent
+  event: MenuActionEvent,
 ): void {
   chartContainer.dispatchEvent(event);
 }
 
 export const config: Config = {
-  apiBaseUrl: import.meta.env.API_BASE_URL || "https://market.spotcanvas.com",
+  apiBaseUrl:
+    import.meta.env.API_BASE_URL ||
+    "https://market-evaluators-dev-346028322665.europe-west1.run.app",
 
   getBuiltInIndicators: (chartContainer: ChartContainer): MenuItem[] => [
     {
@@ -170,6 +176,60 @@ export const config: Config = {
             class: MarketIndicator,
             scale: ScaleType.Value,
             gridStyle: GridStyle.Value,
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
+      label: "Portfolio Equity",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "equity-curve",
+            name: "Portfolio Equity",
+            visible: !chartContainer.isIndicatorVisible("equity-curve"),
+            params: {
+              data: [], // Data will be provided by sc-app
+              lineColor: "#2196f3",
+              lineWidth: 2,
+              showPeakLine: false,
+              fillArea: false,
+            },
+            display: DisplayType.StackBottom,
+            class: EquityCurveIndicator,
+            scale: ScaleType.Value,
+            gridStyle: GridStyle.Value,
+            skipFetch: true, // Data provided via params, not from API
+          },
+          bubbles: true,
+          composed: true,
+        });
+        dispatchMenuActionEvent(chartContainer, event);
+      },
+    },
+    {
+      label: "Drawdown %",
+      action: () => {
+        const event = new CustomEvent("toggle-indicator", {
+          detail: {
+            id: "drawdown",
+            name: "Drawdown %",
+            visible: !chartContainer.isIndicatorVisible("drawdown"),
+            params: {
+              data: [], // Data will be provided by sc-app
+              fillColor: "#ff0000",
+              fillOpacity: 0.3,
+              showZeroLine: true,
+              invertYAxis: true,
+            },
+            display: DisplayType.StackBottom,
+            class: DrawdownIndicator,
+            scale: ScaleType.Percentage,
+            gridStyle: GridStyle.PercentageOscillator,
+            skipFetch: true, // Data provided via params, not from API
           },
           bubbles: true,
           composed: true,

@@ -480,6 +480,16 @@ export class CandlestickStrategy implements Drawable {
       }
     }
 
+    // Check if we already drew a candle at this aligned position
+    // This prevents duplicate live candles when timestamp alignment
+    // matches a candle already drawn in the main loop
+    if (this.candlePositions.has(targetTimestamp)) {
+      logger.debug(
+        `Live candle already drawn at aligned position ${targetTimestamp}`,
+      );
+      return;
+    }
+
     // Only draw if x position is within canvas bounds
     if (x < 0 || x > canvas.width / dpr) {
       if (currentTime - this.lastBoundsLogTime > this.LOG_THROTTLE_MS) {

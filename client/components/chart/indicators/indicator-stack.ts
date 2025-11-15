@@ -525,12 +525,8 @@ export class IndicatorStack extends LitElement {
       const elements = (slot as HTMLSlotElement).assignedElements();
 
       elements.forEach((element) => {
-        // Check for market-indicator elements with name property
-        if (
-          element.tagName.toLowerCase() === "market-indicator" &&
-          "name" in element &&
-          (element as any).name !== "Volume"
-        ) {
+        // Check for any indicator elements with name property
+        if ("name" in element && (element as any).name !== "Volume") {
           const indicatorName = (element as any).name;
           if (indicatorName) {
             logger.debug(

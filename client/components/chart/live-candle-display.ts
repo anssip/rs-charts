@@ -16,10 +16,7 @@ export class LiveCandleDisplay extends LitElement {
 
   static styles = css`
     :host {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 100;
+      position: relative;
       pointer-events: none;
     }
 

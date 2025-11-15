@@ -25,6 +25,13 @@ import { getAuth } from "firebase/auth";
 import { TrendLine } from "./types/trend-line";
 import { PatternHighlight } from "./types/markers";
 
+export interface Layer extends HTMLElement {
+  requestUpdate: () => void;
+  set state(state: ChartState);
+  set width(width: number);
+  set height(height: number);
+}
+
 export type ChartState = {
   priceRange: PriceRange;
   priceHistory: PriceHistory;
@@ -39,6 +46,19 @@ export type ChartState = {
   trendLines?: TrendLine[];
   patternHighlights?: PatternHighlight[]; // Store pattern highlights in state
   isTransitioning?: boolean; // Flag to prevent drawing during state transitions
+  isResizing?: boolean; // Flag to prevent drawing during window/container resize
+  // Trading overlays for paper trading & backtesting
+  tradeMarkers?: import("./types/trading-overlays").TradeMarker[];
+  priceLines?: import("./types/trading-overlays").PriceLine[];
+  tradeZones?: import("./types/trading-overlays").TradeZone[];
+  annotations?: import("./types/trading-overlays").Annotation[];
+  timeMarkers?: import("./types/trading-overlays").TimeMarker[];
+  riskZones?: import("./types/trading-overlays").RiskZone[];
+  positionOverlay?:
+    | import("./types/trading-overlays").PositionOverlayConfig
+    | null;
+  clickToTrade?: import("./types/trading-overlays").ClickToTradeConfig | null;
+  equityCurve?: import("./types/trading-overlays").EquityCurveConfig | null;
 };
 
 declare global {
@@ -114,7 +134,7 @@ const defaultIndicators: IndicatorConfig[] = [
   {
     id: "bollinger-bands",
     name: "Bollinger Bands",
-    visible: true,
+    visible: false,
     params: { period: 20, stdDev: 2 },
     display: DisplayType.Overlay,
     class: MarketIndicator,
@@ -208,6 +228,96 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   logger.info("First chart ID:", (chartContainerElement1 as any)._chartId);
 
+  // Add sample trade zones for testing after chart is ready
+  chart1Result.api.on("ready", () => {
+    logger.info("Chart 1 ready - adding sample trade zones");
+
+    // Add a profitable long trade zone
+    chart1Result.api.addTradeZone({
+      startTimestamp: now - 15 * hourInMs,
+      endTimestamp: now - 10 * hourInMs,
+      entryPrice: 99000,
+      exitPrice: 101000,
+      metadata: {
+        side: "long",
+        quantity: 0.1,
+        pnl: 200,
+        pnlPercent: 2.02,
+      },
+    });
+
+    // Add a losing short trade zone
+    chart1Result.api.addTradeZone({
+      startTimestamp: now - 8 * hourInMs,
+      endTimestamp: now - 5 * hourInMs,
+      entryPrice: 100000,
+      exitPrice: 101500,
+      metadata: {
+        side: "short",
+        quantity: 0.05,
+        pnl: -75,
+        pnlPercent: -1.5,
+      },
+    });
+
+    logger.info("Sample trade zones added to chart 1");
+
+    // Add sample risk zones for testing
+    chart1Result.api.addRiskZone({
+      startPrice: 96000,
+      endPrice: 98000,
+      label: "Stop Loss Zone",
+      color: "#ef4444",
+      opacity: 0.15,
+      pattern: "striped",
+      borderColor: "#dc2626",
+      borderWidth: 1,
+    });
+
+    chart1Result.api.addRiskZone({
+      startPrice: 104000,
+      endPrice: 106000,
+      label: "Resistance Zone",
+      color: "#f59e0b",
+      opacity: 0.1,
+      pattern: "solid",
+    });
+
+    logger.info("Sample risk zones added to chart 1");
+
+    // Add sample equity curve for testing - DISABLED BY DEFAULT
+    // Uncomment to show equity curve on startup
+    /*
+    // Simulate a portfolio starting at $10,000 with some fluctuation
+    const equityData = [];
+    const startingEquity = 10000;
+    let currentEquity = startingEquity;
+
+    for (let i = 20; i >= 0; i--) {
+      const timestamp = now - i * hourInMs;
+      // Add some random variation
+      const change = (Math.random() - 0.5) * 500;
+      currentEquity += change;
+      equityData.push({
+        timestamp,
+        equity: Math.max(
+          startingEquity * 0.8,
+          Math.min(startingEquity * 1.3, currentEquity),
+        ),
+      });
+    }
+
+    chart1Result.api.showEquityCurve(equityData, {
+      color: "#3b82f6",
+      lineWidth: 2,
+      showArea: true,
+      opacity: 0.8,
+    });
+
+    logger.info("Sample equity curve added to chart 1");
+    */
+  });
+
   // Initialize second chart if it exists
   let chartContainerElement2: ChartContainer | null = null;
   let chart2Result: any = null;
@@ -280,6 +390,99 @@ window.addEventListener("DOMContentLoaded", () => {
       trendLines: ethTrendLines,
     });
     logger.info("Second chart ID:", (chartContainerElement2 as any)._chartId);
+
+    // Add sample trade zones for testing after chart is ready
+    chart2Result.api.on("ready", () => {
+      logger.info("Chart 2 ready - adding sample trade zones");
+
+      // Add a profitable short trade zone for ETH
+      chart2Result.api.addTradeZone({
+        startTimestamp: now - 12 * hourInMs,
+        endTimestamp: now - 7 * hourInMs,
+        entryPrice: 3800,
+        exitPrice: 3700,
+        metadata: {
+          side: "short",
+          quantity: 2,
+          pnl: 200,
+          pnlPercent: 2.63,
+        },
+      });
+
+      // Add a losing long trade zone for ETH
+      chart2Result.api.addTradeZone({
+        startTimestamp: now - 5 * hourInMs,
+        endTimestamp: now - 2 * hourInMs,
+        entryPrice: 3750,
+        exitPrice: 3700,
+        metadata: {
+          side: "long",
+          quantity: 1.5,
+          pnl: -75,
+          pnlPercent: -1.33,
+        },
+      });
+
+      logger.info("Sample trade zones added to chart 2");
+
+      // Add sample risk zones for testing
+      chart2Result.api.addRiskZone({
+        startPrice: 3500,
+        endPrice: 3600,
+        label: "Support Zone",
+        color: "#10b981",
+        opacity: 0.12,
+        pattern: "dotted",
+        borderColor: "#059669",
+        borderWidth: 1,
+      });
+
+      chart2Result.api.addRiskZone({
+        startPrice: 3950,
+        endPrice: 4050,
+        label: "Liquidation Risk",
+        color: "#dc2626",
+        opacity: 0.18,
+        pattern: "striped",
+      });
+
+      logger.info("Sample risk zones added to chart 2");
+
+      // Add sample equity curve for testing (ETH chart) - DISABLED BY DEFAULT
+      // Uncomment to show equity curve on startup
+      /*
+      // Simulate a portfolio with different pattern
+      const equityData2 = [];
+      const startingEquity2 = 25000;
+      let currentEquity2 = startingEquity2;
+
+      for (let i = 22; i >= 0; i--) {
+        const timestamp = now - i * hourInMs;
+        // Add some trend + variation
+        const trend = (22 - i) * 50; // Upward trend
+        const noise = (Math.random() - 0.5) * 300;
+        currentEquity2 = startingEquity2 + trend + noise;
+        equityData2.push({
+          timestamp,
+          equity: Math.max(
+            startingEquity2 * 0.9,
+            Math.min(startingEquity2 * 1.4, currentEquity2),
+          ),
+        });
+      }
+
+      chart2Result.api.showEquityCurve(equityData2, {
+        color: "#10b981",
+        lineWidth: 3,
+        showArea: true,
+        areaColor: "#10b981",
+        opacity: 0.85,
+        lineStyle: "solid",
+      });
+
+      logger.info("Sample equity curve added to chart 2");
+      */
+    });
   }
 
   logger.info(
@@ -310,6 +513,16 @@ window.addEventListener("DOMContentLoaded", () => {
     resizeObserver.observe(chartContainer2);
   }
 
+  // Make chart APIs globally accessible for debugging/external control
+  if (typeof window !== "undefined") {
+    (window as any).chartApi1 = chart1Result.api;
+    if (chartContainerElement2) {
+      (window as any).chartApi2 = chart2Result.api;
+    }
+    logger.info("Chart APIs exposed to window.chartApi1" + (chartContainerElement2 ? " and window.chartApi2" : ""));
+  }
+
+  // Optional: Set up upgrade popup if elements exist
   const popup = document.querySelector(".upgrade-popup") as HTMLElement | null;
   const backdrop = document.querySelector(
     ".upgrade-backdrop",
@@ -345,14 +558,6 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Make chart APIs globally accessible for debugging/external control
-    if (typeof window !== "undefined") {
-      (window as any).chartApi1 = chart1Result.api;
-      if (chartContainerElement2) {
-        (window as any).chartApi2 = chart2Result.api;
-      }
-    }
-
     backdrop.addEventListener("click", hidePopup);
     upgradeButton.addEventListener("click", () => {
       hidePopup();
@@ -363,8 +568,6 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     });
     logger.info("Upgrade popup listeners initialized.");
-  } else {
-    logger.error("Upgrade popup elements not found in the DOM.");
   }
 });
 // trigger rebuild

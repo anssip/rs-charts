@@ -1,4 +1,4 @@
-import { xin } from "xinjs";
+import { xin, xinValue } from "xinjs";
 import { ChartState } from "..";
 import {
   Granularity,
@@ -8,6 +8,7 @@ import { LiveCandle } from "../api/live-candle-subscription";
 import { PriceRange } from "../../server/services/price-data/price-history-model";
 import { SimplePriceHistory } from "../../server/services/price-data/price-history-model";
 import { IndicatorConfig } from "../components/chart/indicators/indicator-types";
+import { ClickToTradeConfig } from "../types/trading-overlays";
 
 export class ChartStateManager {
   constructor() {
@@ -43,7 +44,7 @@ export class ChartStateManager {
   }
 
   get priceRange(): PriceRange {
-    return xin["state.priceRange"] as PriceRange;
+    return xinValue(xin["state.priceRange"]) as PriceRange;
   }
 
   set priceRange(value: PriceRange) {
@@ -51,7 +52,7 @@ export class ChartStateManager {
   }
 
   get priceHistory(): SimplePriceHistory {
-    return xin["state.priceHistory"] as SimplePriceHistory;
+    return xinValue(xin["state.priceHistory"]) as SimplePriceHistory;
   }
 
   set priceHistory(value: SimplePriceHistory) {
@@ -59,7 +60,7 @@ export class ChartStateManager {
   }
 
   get liveCandle(): LiveCandle | null {
-    return xin["state.liveCandle"] as LiveCandle | null;
+    return xinValue(xin["state.liveCandle"]) as LiveCandle | null;
   }
 
   set liveCandle(value: LiveCandle) {
@@ -72,6 +73,20 @@ export class ChartStateManager {
 
   set loading(value: boolean) {
     xin["state.loading"] = value;
+  }
+
+  get clickToTrade(): ClickToTradeConfig | null {
+    return xinValue(xin["state.clickToTrade"]) as ClickToTradeConfig | null;
+  }
+
+  set clickToTrade(value: ClickToTradeConfig | null) {
+    // xinjs doesn't accept null or undefined - only set when value is present
+    if (value !== null && value !== undefined) {
+      xin["state.clickToTrade"] = value;
+    } else {
+      // Clear the property when null
+      delete (xin as any)["state.clickToTrade"];
+    }
   }
 
   // Helper methods for common operations
@@ -94,9 +109,10 @@ export class ChartStateManager {
       priceHistory: this.priceHistory,
       liveCandle: this.liveCandle,
       loading: this.loading,
-      canvasWidth: Number(xin["state.canvasWidth"]) || 0,
-      canvasHeight: Number(xin["state.canvasHeight"]) || 0,
-      indicators: (xin["state.indicators"] as IndicatorConfig[]) || [],
+      canvasWidth: Number(xinValue(xin["state.canvasWidth"])) || 0,
+      canvasHeight: Number(xinValue(xin["state.canvasHeight"])) || 0,
+      indicators: (xinValue(xin["state.indicators"]) as IndicatorConfig[]) || [],
+      clickToTrade: this.clickToTrade,
     };
   }
 }

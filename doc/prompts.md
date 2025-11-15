@@ -129,3 +129,45 @@ activeChartApi.clearPatternHighlights();
 // Get currently highlighted patterns
 const currentPatterns = activeChartApi.getHighlightedPatterns();
 ```
+
+# Interaction controller improvements
+
+We have implemented all features in @paper-trading-plan.md from beginning up to section 6. Annotations. The current issue is that after adding Annotations and making it possible to drag the draggable annotations, it's no longer possible to drag the price lines (price lines were also in the paper trading plan). Price line dragging was working fine before we added annotations.
+
+To me it looks like we need a better way to handle the mouse interactions (especially dragging) now as we have so many different layers on top of the chart. Plan an improved way to handle the dragging of items in the different layers. Following needs to be taken into account:
+
+- clicking on the chart needs to open the @live-candle-display.ts
+- it needs to be possible to pan and zoom the chart
+- it needs to be possible to draw new trend lines, and to move existing trend lines (there is a layer for trend lines)
+- it needs to be possible to move price lines (there is a layer for these)
+- it needs to be possible to move draggable annotations (there is a layer for these)
+- the items in the different layers need to zoom and pan when the chart is zoomed and panned
+- the paper-trading-plan.md contains features (risk zones, equity curve overlay) which might need additional layers to be added, these should be managed by the new interaction manager
+
+We already have the chart-intgeraction-controller.ts for managing user interactions. This could be enhanced so that it's able to manage this complex environment of several layers.
+
+# Paper trading layers refactor
+
+Make the same design for how click-to-trade mode is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new click-to-trade-controller module and the public Click-to-Trade methods should be removed from chart-container.
+
+Make the same design with a new controller for how risk zones is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new risk-zones-controller module and the public risk zones related methods should be removed from chart-container.
+
+Make the same design with a new controller for how time markers is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new time-markers-controller module and the public time markers related methods should be removed from chart-container.
+
+## annotations
+
+Make the same design with a new controller for how annotations is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new annotations-controller module and the public annotations related methods should be removed from chart-container.
+
+## position overlay
+
+Make the same design with a new controller for how position overlay is implemented. [@chart-api.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Frs-charts%2Fclient%2Fapi%2Fchart-api.ts) should call methods in a new position-overlay-controller module and the public position overlay related methods should be removed from chart-container.
+
+## Evaluator parameters
+
+The market API has changed a bit in how the indicators (evaluators) are fetched from it. See doc/MARKET_API_README.md and [@EVALUATORS_PARAMETERS.md](file:///Users/anssi/projects/spotcanvas/rs-charts/doc/EVALUATORS_PARAMETERS.md)
+
+Fix all market API requests to be compatible with the changed API.
+
+Fix in how candles are fetched from the /history endpoint (this might not need any changes actually). The evaluators data is no longer returned from the API inside the candles – they are returned in a new evaluations array and this needs to be parsed correctly so that we can show the indicators based on the returned evaluations data.
+
+We will be adding indicator specific paramneters next, but no need to worry about that yet. Let's just make this still work with the changed interface.

@@ -216,10 +216,18 @@ export async function captureChartScreenshot(
     logger.info("Starting HTML overlay rendering...");
 
     // Render HTML overlays using html2canvas
-    // SVG-based overlays can be rendered directly
-    const svgOverlays = ["trend-line-layer", "pattern-labels-layer"];
+    // All DOM-based visual layers from the chart
+    const domBasedLayers = [
+      "trend-line-layer",
+      "pattern-labels-layer",
+      "trading-markers-layer",
+      "price-lines-layer",
+      "trade-zones-layer",
+      "annotations-layer",
+      "time-markers-layer",
+    ];
 
-    for (const selector of svgOverlays) {
+    for (const selector of domBasedLayers) {
       const overlayElements = container.renderRoot.querySelectorAll(selector);
 
       for (const overlay of Array.from(overlayElements)) {
@@ -257,7 +265,6 @@ export async function captureChartScreenshot(
     // Render shadow DOM components by accessing their internal content
     const shadowDomComponents = [
       { selector: "live-candle-display", innerSelector: ".display-container" },
-      { selector: "live-price-label", innerSelector: ".live-price-label" },
     ];
 
     for (const { selector, innerSelector } of shadowDomComponents) {

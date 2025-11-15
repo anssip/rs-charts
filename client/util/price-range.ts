@@ -4,6 +4,7 @@ export class PriceRangeImpl implements PriceRange {
   private _min: number;
   private _max: number;
   private _range: number;
+  private _minRange: number = 0.0001;
 
   constructor(min: number, max: number) {
     this._min = min;
@@ -24,7 +25,7 @@ export class PriceRangeImpl implements PriceRange {
   public adjust(deltaY: number, zoomCenter: number): void {
     // zoomCenter is between 0 and 1, representing the position of the mouse
     const rangeAdjustment = this._range * 0.005 * deltaY;
-    const newRange = Math.max(this._range - rangeAdjustment, 0.0001);
+    const newRange = Math.max(this._range - rangeAdjustment, this._minRange);
     const rangeDifference = this._range - newRange;
 
     // Apply the zoom centered around the mouse position
@@ -46,5 +47,9 @@ export class PriceRangeImpl implements PriceRange {
   public setMax(max: number): void {
     this._max = max;
     this._range = this._max - this._min;
+  }
+
+  public setMinRange(minRange: number): void {
+    this._minRange = minRange;
   }
 }

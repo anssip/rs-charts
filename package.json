@@ -1,6 +1,6 @@
 {
   "name": "@anssip/rs-charts",
-  "version": "1.2.43",
+  "version": "1.3.19",
   "type": "module",
   "description": "Web components for SpotCanvas charting",
   "keywords": [
@@ -31,7 +31,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"https://market.spotcanvas.com\"}' --watch",
+    "tsc": "bunx tsc --noEmit",
+    "dev:client": "bun build ./client/index.ts --outdir ./dist/client --target browser --define 'import.meta.env={\"API_BASE_URL\":\"https://market-evaluators-dev-346028322665.europe-west1.run.app\"}' --watch",
     "dev:server": "bun build ./server/index.ts --outdir ./dist/server --target bun --watch",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\" \"bun --watch run ./dist/server/index.js\"",
     "predev": "bun run build",

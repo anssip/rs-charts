@@ -3,9 +3,16 @@ import { getCandleInterval, getDpr } from "../../../util/chart-util";
 import { PriceRangeImpl } from "../../../util/price-range";
 import { CandlestickChart } from "../chart";
 import { getLogger, LogLevel } from "../../../util/logger";
+import {
+  InteractionLayer,
+  InteractionEvent,
+  InteractionState,
+  ViewportTransform,
+  HitTestResult,
+} from "./interaction-layer";
 
 const logger = getLogger("ChartInteractionController");
-logger.setLoggerLevel("ChartInteractionController", LogLevel.ERROR);
+logger.setLoggerLevel("ChartInteractionController", LogLevel.DEBUG);
 
 interface ChartInteractionOptions {
   chart: CandlestickChart;
@@ -21,6 +28,7 @@ interface ChartInteractionOptions {
   isActive?: () => boolean;
   requireActivation?: boolean;
   onDeactivate?: () => void;
+  shouldSuppressChartClick?: () => boolean;
 }
 
 export class ChartInteractionController {
@@ -37,6 +45,16 @@ export class ChartInteractionController {
 
   private readonly options: ChartInteractionOptions;
   private eventTarget: HTMLElement;
+
+  // Layer management
+  private layers: Map<string, InteractionLayer> = new Map();
+  private interactionState: InteractionState = {
+    activeLayer: null,
+    interactionType: null,
+    isActive: false,
+    hoveredLayer: null,
+    lastHitResult: null,
+  };
 
   constructor(options: ChartInteractionOptions) {
     this.options = options;
@@ -122,6 +140,139 @@ export class ChartInteractionController {
       "price-axis-zoom",
       this.handlePriceAxisZoom as EventListener,
     );
+
+    // Cleanup layers
+    this.layers.forEach((layer) => layer.destroy?.());
+    this.layers.clear();
+  }
+
+  /**
+   * Register an interaction layer.
+   * Layers are queried in priority order (highest first) to determine which should handle interactions.
+   */
+  registerLayer(layer: InteractionLayer): void {
+    logger.debug(
+      `Registering layer: ${layer.id} (priority: ${layer.priority})`,
+    );
+    this.layers.set(layer.id, layer);
+  }
+
+  /**
+   * Unregister an interaction layer.
+   */
+  unregisterLayer(layerId: string): void {
+    const layer = this.layers.get(layerId);
+    if (layer) {
+      logger.debug(`Unregistering layer: ${layerId}`);
+      layer.destroy?.();
+      this.layers.delete(layerId);
+    }
+  }
+
+  /**
+   * Get all registered layers sorted by priority (highest first).
+   */
+  getLayersByPriority(): InteractionLayer[] {
+    return Array.from(this.layers.values()).sort(
+      (a, b) => b.priority - a.priority,
+    );
+  }
+
+  /**
+   * Broadcast viewport transform to all registered layers.
+   * Called when the chart pans or zooms.
+   */
+  private broadcastTransform(): void {
+    const { state } = this.options;
+    if (!state.timeRange || !state.priceRange) return;
+
+    const transform: ViewportTransform = {
+      timeRange: {
+        start: state.timeRange.start,
+        end: state.timeRange.end,
+      },
+      priceRange: {
+        min: state.priceRange.min,
+        max: state.priceRange.max,
+      },
+      canvasWidth: this.eventTarget?.clientWidth ?? 0,
+      canvasHeight: this.eventTarget?.clientHeight ?? 0,
+      dpr: getDpr() ?? 1,
+    };
+
+    this.layers.forEach((layer) => {
+      layer.onTransform?.(transform);
+    });
+  }
+
+  /**
+   * Query layers to find which should handle this interaction.
+   * Returns the first layer (by priority) that claims the interaction.
+   */
+  private queryLayersForHit(
+    event: MouseEvent | TouchEvent,
+  ): { layer: InteractionLayer; hitResult: HitTestResult } | null {
+    const sortedLayers = this.getLayersByPriority();
+
+    for (const layer of sortedLayers) {
+      const hitResult = layer.hitTest(event);
+      if (hitResult) {
+        logger.debug(
+          `Layer ${layer.id} claimed interaction (type: ${hitResult.type})`,
+        );
+        return { layer, hitResult };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Create a normalized interaction event from a browser event.
+   */
+  private createInteractionEvent(
+    type: InteractionEvent["type"],
+    event: MouseEvent | TouchEvent,
+  ): InteractionEvent {
+    const position = this.getEventPosition(event);
+    const rect = this.eventTarget.getBoundingClientRect();
+    const containerPos = {
+      x: position.x - rect.left,
+      y: position.y - rect.top,
+    };
+    const dpr = getDpr() ?? 1;
+    const canvasPosition = {
+      x: containerPos.x * dpr,
+      y: containerPos.y * dpr,
+    };
+
+    return {
+      type,
+      originalEvent: event,
+      position,
+      canvasPosition,
+      modifiers: {
+        shift: event.shiftKey,
+        ctrl: event.ctrlKey,
+        alt: event.altKey,
+        meta: event.metaKey,
+      },
+    };
+  }
+
+  /**
+   * Extract position from mouse or touch event.
+   */
+  private getEventPosition(event: MouseEvent | TouchEvent): {
+    x: number;
+    y: number;
+  } {
+    if (event instanceof MouseEvent) {
+      return { x: event.clientX, y: event.clientY };
+    } else if (event instanceof TouchEvent && event.touches.length > 0) {
+      return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }
+    return { x: 0, y: 0 };
   }
 
   private dragStartX = 0;
@@ -129,11 +280,63 @@ export class ChartInteractionController {
   private dragThreshold = 5; // pixels - minimum movement to consider it a drag
 
   private handleDragStart = (e: MouseEvent) => {
+    // Query registered layers to see if any should handle this interaction
+    const layerHit = this.queryLayersForHit(e);
+
+    if (layerHit) {
+      // A layer claimed this interaction
+      logger.debug(
+        `Layer ${layerHit.layer.id} handling interaction (cursor: ${layerHit.hitResult.cursor})`,
+      );
+
+      this.interactionState.activeLayer = layerHit.layer;
+      this.interactionState.isActive = true;
+      this.interactionState.interactionType = "drag";
+      this.interactionState.lastHitResult = layerHit.hitResult;
+
+      // Update cursor if specified
+      if (layerHit.hitResult.cursor) {
+        this.eventTarget.style.cursor = layerHit.hitResult.cursor;
+      }
+
+      // Send dragstart event to the layer
+      const interactionEvent = this.createInteractionEvent("dragstart", e);
+      layerHit.layer.handleInteraction(interactionEvent);
+
+      // Don't start default chart dragging
+      return;
+    }
+
+    // Fallback: Check for draggable elements using composed path (backward compatibility)
+    const path = e.composedPath();
+    const isDraggableElement = path.some((element) => {
+      if (element instanceof HTMLElement) {
+        const isDraggableAnnotation =
+          element.classList.contains("annotation") &&
+          element.classList.contains("draggable");
+        const isTrendLine = element.classList.contains("trend-line");
+        const isDraggablePriceLine =
+          element.classList.contains("price-line") &&
+          element.classList.contains("draggable");
+        return isDraggableAnnotation || isTrendLine || isDraggablePriceLine;
+      }
+      return false;
+    });
+
+    if (isDraggableElement) {
+      logger.debug("Skipping chart drag - draggable element detected (legacy)");
+      return;
+    }
+
+    // No layer claimed it, proceed with default chart panning
     this.isDragging = true;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
+
+    this.interactionState.interactionType = "pan";
+    this.interactionState.isActive = true;
 
     // Dispatch interaction start event
     this.eventTarget.dispatchEvent(
@@ -145,6 +348,13 @@ export class ChartInteractionController {
   };
 
   private handleDragMove = (e: MouseEvent) => {
+    // If a layer is handling this interaction, route to it
+    if (this.interactionState.activeLayer) {
+      const interactionEvent = this.createInteractionEvent("drag", e);
+      this.interactionState.activeLayer.handleInteraction(interactionEvent);
+      return;
+    }
+
     if (!this.isDragging) return;
 
     const deltaX = e.clientX - this.lastX;
@@ -167,6 +377,23 @@ export class ChartInteractionController {
   };
 
   private handleDragEnd = (e: MouseEvent) => {
+    // If a layer was handling this interaction, send it the dragend event
+    if (this.interactionState.activeLayer) {
+      const interactionEvent = this.createInteractionEvent("dragend", e);
+      this.interactionState.activeLayer.handleInteraction(interactionEvent);
+
+      // Reset cursor
+      this.eventTarget.style.cursor = "";
+
+      // Reset interaction state
+      this.interactionState.activeLayer = null;
+      this.interactionState.isActive = false;
+      this.interactionState.interactionType = null;
+      this.interactionState.lastHitResult = null;
+
+      return;
+    }
+
     // Check if this was a click (minimal movement)
     const totalMovement = Math.sqrt(
       Math.pow(e.clientX - this.dragStartX, 2) +
@@ -174,12 +401,53 @@ export class ChartInteractionController {
     );
 
     if (totalMovement <= this.dragThreshold) {
-      // This was a click, not a drag - let it propagate
-      // Don't prevent default or stop propagation
+      // This was a click, not a drag
+      // Check if chart-clicked should be suppressed (e.g., when trend line tool is active)
+      if (this.options.shouldSuppressChartClick?.()) {
+        logger.debug("Suppressing chart-clicked event (tool active)");
+        return;
+      }
+
+      // Emit chart-clicked event
+      const rect = this.eventTarget.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const price = this.calculatePriceFromY(mouseY);
+      const timestamp = this.calculateTimestampFromX(mouseX);
+
+      // Emit chart-clicked event
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("chart-clicked", {
+          detail: {
+            price,
+            timestamp,
+            mouseX,
+            mouseY,
+          },
+          bubbles: true,
+          composed: true,
+        }),
+      );
     }
 
     const wasDragging = this.isDragging;
     this.isDragging = false;
+
+    // If user was dragging (panning), dispatch horizontal-pan-end event
+    // This allows the app to update zoom limits based on newly visible candles
+    if (wasDragging && totalMovement > this.dragThreshold) {
+      this.eventTarget.dispatchEvent(
+        new CustomEvent("horizontal-pan-end", {
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
+
+    // Reset interaction state
+    this.interactionState.interactionType = null;
+    this.interactionState.isActive = false;
 
     // Dispatch interaction end event if we were dragging
     if (wasDragging) {
@@ -252,6 +520,9 @@ export class ChartInteractionController {
     });
 
     this.checkNeedMoreData(newStart, newEnd, timeRange);
+
+    // Broadcast transform to all layers
+    this.broadcastTransform();
   }
 
   private checkNeedMoreData(
@@ -321,6 +592,9 @@ export class ChartInteractionController {
 
     state.priceRange.shift(priceShift);
     this.options.onStateChange({ priceRange: state.priceRange });
+
+    // Broadcast transform to all layers
+    this.broadcastTransform();
   }
 
   private handleTouchStart = (e: TouchEvent) => {
@@ -562,6 +836,9 @@ export class ChartInteractionController {
     if (needMoreData) {
       this.options.onNeedMoreData(deltaX > 0 ? "backward" : "forward");
     }
+
+    // Broadcast transform to all layers
+    this.broadcastTransform();
   };
 
   private handlePriceAxisZoom = (event: CustomEvent) => {
@@ -579,12 +856,71 @@ export class ChartInteractionController {
       zoomCenter,
     );
     this.options.onStateChange({ priceRange: state.priceRange });
+
+    // Broadcast transform to all layers
+    this.broadcastTransform();
   };
 
   private handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
+
+    // Calculate price and timestamp from mouse position
+    const rect = this.eventTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const price = this.calculatePriceFromY(mouseY);
+    const timestamp = this.calculateTimestampFromX(mouseX);
+
+    // Emit enhanced context-menu event with price and timestamp
+    this.eventTarget.dispatchEvent(
+      new CustomEvent("chart-context-menu", {
+        detail: {
+          price,
+          timestamp,
+          mouseX,
+          mouseY,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+
+    // Keep backward compatibility callback
     if (this.options.onContextMenu) {
       this.options.onContextMenu({ x: e.clientX, y: e.clientY });
     }
   };
+
+  /**
+   * Calculate price from Y position (top to bottom)
+   */
+  private calculatePriceFromY(y: number): number {
+    const { state } = this.options;
+    if (!state.priceRange) return 0;
+
+    const containerHeight = this.eventTarget?.clientHeight ?? 0;
+    if (containerHeight === 0) return 0;
+
+    const priceRange = state.priceRange.max - state.priceRange.min;
+    const price = state.priceRange.max - (y / containerHeight) * priceRange;
+
+    return price;
+  }
+
+  /**
+   * Calculate timestamp from X position (left to right)
+   */
+  private calculateTimestampFromX(x: number): number {
+    const { state } = this.options;
+    if (!state.timeRange) return 0;
+
+    const containerWidth = this.eventTarget?.clientWidth ?? 0;
+    if (containerWidth === 0) return 0;
+
+    const timeSpan = state.timeRange.end - state.timeRange.start;
+    const timestamp = state.timeRange.start + (x / containerWidth) * timeSpan;
+
+    return timestamp;
+  }
 }

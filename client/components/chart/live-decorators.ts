@@ -138,7 +138,9 @@ export class LiveDecorators extends CanvasBase {
   }
 
   useResizeObserver(): boolean {
-    return true;
+    // Disable ResizeObserver - let layer coordinator manage sizing
+    // This prevents incorrect initial sizing before flexbox layout settles
+    return false;
   }
 
   disconnectedCallback() {
@@ -275,9 +277,17 @@ export class LiveDecorators extends CanvasBase {
       logger.warn(`Live candle not initialized`);
       return;
     }
+
     const dpr = getDpr() ?? 1;
     const width = this.canvas.width;
     const height = this.canvas.height;
+
+    if (width === 0 || height === 0) {
+      logger.warn(`Canvas has zero dimensions, deferring draw`);
+      // Schedule a redraw after layout has settled
+      setTimeout(() => this.requestDraw(), 50);
+      return;
+    }
 
     this.ctx.clearRect(0, 0, width, height);
 

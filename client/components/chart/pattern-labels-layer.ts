@@ -9,18 +9,12 @@ import {
   TimeRange,
   PriceRange,
 } from "../../../server/services/price-data/price-history-model";
-import { ChartState } from "../..";
+import { ChartState, Layer } from "../..";
 
 @customElement("pattern-labels-layer")
-export class PatternLabelsLayer extends LitElement {
+export class PatternLabelsLayer extends LitElement implements Layer {
   @property({ type: Object })
-  state?: ChartState;
-
-  @property({ type: Object })
-  timeRange?: TimeRange;
-
-  @property({ type: Object })
-  priceRange?: PriceRange;
+  state!: ChartState;
 
   @property({ type: Number })
   width = 0;
@@ -30,12 +24,6 @@ export class PatternLabelsLayer extends LitElement {
 
   @property({ type: Array })
   patterns: PatternHighlight[] = [];
-
-  @state()
-  private hoveredPatternId: string | null = null;
-
-  @state()
-  private selectedPatternId: string | null = null;
 
   @state()
   private showTooltip = false;
@@ -193,7 +181,8 @@ export class PatternLabelsLayer extends LitElement {
   }
 
   private renderPatternLabels() {
-    if (!this.state || !this.timeRange || !this.priceRange) return "";
+    if (!this.state || !this.state.timeRange || !this.state.priceRange)
+      return "";
 
     const labels: any[] = [];
 
@@ -232,12 +221,12 @@ export class PatternLabelsLayer extends LitElement {
   }
 
   private timeToX(timestamp: number): number {
-    if (!this.timeRange || !this.state) return 0;
+    if (!this.state || !this.state.timeRange) return 0;
 
     // Calculate position using the same logic as drawing-strategy
     const data = this.state.priceHistory;
-    const viewportStartTimestamp = this.timeRange.start;
-    const viewportEndTimestamp = this.timeRange.end;
+    const viewportStartTimestamp = this.state.timeRange.start;
+    const viewportEndTimestamp = this.state.timeRange.end;
 
     // Calculate candle dimensions
     const timeSpan = viewportEndTimestamp - viewportStartTimestamp;
@@ -260,11 +249,11 @@ export class PatternLabelsLayer extends LitElement {
   }
 
   private priceToY(price: number): number {
-    if (!this.priceRange) return 0;
+    if (!this.state || !this.state.priceRange) return 0;
     const height = this.height;
     const ratio =
-      (price - this.priceRange.min) /
-      (this.priceRange.max - this.priceRange.min);
+      (price - this.state.priceRange.min) /
+      (this.state.priceRange.max - this.state.priceRange.min);
     return height - ratio * height;
   }
 
@@ -285,7 +274,6 @@ export class PatternLabelsLayer extends LitElement {
   }
 
   private handleLabelClick(pattern: PatternHighlight) {
-    this.selectedPatternId = pattern.id;
     this.showPatternDescription(pattern);
 
     // Emit pattern click event
@@ -302,13 +290,9 @@ export class PatternLabelsLayer extends LitElement {
     );
   }
 
-  private handleLabelHover(pattern: PatternHighlight) {
-    this.hoveredPatternId = pattern.id;
-  }
+  private handleLabelHover(_pattern: PatternHighlight) {}
 
-  private handleLabelLeave() {
-    this.hoveredPatternId = null;
-  }
+  private handleLabelLeave() {}
 
   private showPatternDescription(pattern: PatternHighlight) {
     this.tooltipContent = `${pattern.name}\n\n${pattern.description}\n\nSignificance: ${pattern.significance}`;
@@ -366,8 +350,6 @@ export class PatternLabelsLayer extends LitElement {
 
   clearPatterns() {
     this.patterns = [];
-    this.selectedPatternId = null;
-    this.hoveredPatternId = null;
     this.showTooltip = false;
     this.removeTooltipEventListeners();
     this.requestUpdate();

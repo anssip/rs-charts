@@ -97,9 +97,19 @@
                 z-index: 1000;
                 backdrop-filter: blur(8px);
                 box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-                max-width: 300px;
+                max-width: 660px;
                 max-height: 80vh;
                 overflow-y: auto;
+            }
+
+            .controls-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+
+            .controls-header {
+                grid-column: 1 / -1;
             }
 
             .demo-controls h3 {
@@ -240,6 +250,103 @@
             .demo-controls {
                 top: 80px; /* Move down to avoid header */
             }
+
+            /* Event Footer Styles */
+            .event-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 150px;
+                background: var(--color-primary-dark);
+                border-top: 1px solid rgba(143, 143, 143, 0.3);
+                z-index: 900;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .event-footer-header {
+                padding: 8px 12px;
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(143, 143, 143, 0.2);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .event-footer-title {
+                color: var(--color-accent-2);
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .event-footer-clear {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                color: var(--color-accent-2);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .event-footer-clear:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .event-log {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+                font-family: "Courier New", monospace;
+                font-size: 11px;
+                line-height: 1.6;
+            }
+
+            .event-entry {
+                padding: 4px 8px;
+                margin-bottom: 2px;
+                border-radius: 4px;
+                background: rgba(0, 0, 0, 0.2);
+                display: flex;
+                gap: 8px;
+            }
+
+            .event-time {
+                color: #888;
+                min-width: 80px;
+            }
+
+            .event-type {
+                color: #4caf50;
+                font-weight: 600;
+                min-width: 140px;
+            }
+
+            .event-data {
+                color: var(--color-accent-2);
+                flex: 1;
+            }
+
+            .event-entry.crosshair-moved .event-type {
+                color: #64b5f6;
+            }
+
+            .event-entry.chart-clicked .event-type {
+                color: #ffa726;
+            }
+
+            .event-entry.chart-context-menu .event-type {
+                color: #ef5350;
+            }
+
+            .charts-wrapper {
+                margin-bottom: 150px; /* Make room for footer */
+            }
         </style>
     </head>
 
@@ -256,276 +363,600 @@
         </div>
 
         <div class="demo-controls" id="demo-controls">
-            <h3>Chart API Demo</h3>
+            <div class="controls-header">
+                <h3>Chart API Demo</h3>
 
-            <div class="chart-selector">
-                <label>Select Chart:</label>
-                <select id="chart-select" onchange="selectChart()">
-                    <option value="1">Chart 1 (BTC-USD)</option>
-                    <option value="2">Chart 2 (ETH-USD)</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label>Symbol:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('BTC-USD')"
-                    >
-                        BTC-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('ETH-USD')"
-                    >
-                        ETH-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('SOL-USD')"
-                    >
-                        SOL-USD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeSymbol('AVAX-USD')"
-                    >
-                        AVAX-USD
-                    </button>
+                <div class="chart-selector">
+                    <label>Select Chart:</label>
+                    <select id="chart-select" onchange="selectChart()">
+                        <option value="1">Chart 1 (BTC-USD)</option>
+                        <option value="2">Chart 2 (ETH-USD)</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="control-group">
-                <label>Timeframe:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_MINUTE')"
-                    >
-                        1m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIVE_MINUTE')"
-                    >
-                        5m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('FIFTEEN_MINUTE')"
-                    >
-                        15m
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_HOUR')"
-                    >
-                        1h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('SIX_HOUR')"
-                    >
-                        6h
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="changeGranularity('ONE_DAY')"
-                    >
-                        1d
-                    </button>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>Symbol:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('BTC-USD')"
+                        >
+                            BTC-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('ETH-USD')"
+                        >
+                            ETH-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('SOL-USD')"
+                        >
+                            SOL-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('AVAX-USD')"
+                        >
+                            AVAX-USD
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_MINUTE')"
+                        >
+                            1m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIVE_MINUTE')"
+                        >
+                            5m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIFTEEN_MINUTE')"
+                        >
+                            15m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_HOUR')"
+                        >
+                            1h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('SIX_HOUR')"
+                        >
+                            6h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_DAY')"
+                        >
+                            1d
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Indicators:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('volume', 'Volume')"
+                        >
+                            Volume
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('rsi', 'RSI')"
+                        >
+                            RSI
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('macd', 'MACD')"
+                        >
+                            MACD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
+                        >
+                            BB
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('moving-averages', 'Moving Averages')"
+                        >
+                            MA
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('stochastic', 'Stochastic')"
+                        >
+                            Stoch
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('atr', 'ATR')"
+                        >
+                            ATR
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Display:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleFullWindow()"
+                        >
+                            Full Window
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleFullscreen()"
+                        >
+                            Fullscreen
+                        </button>
+                        <button class="control-button" onclick="forceRedraw()">
+                            Redraw
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Screenshot:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshot()"
+                            style="background: #4caf50; color: white"
+                        >
+                            📸 Download PNG
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshotJPEG()"
+                            style="background: #2196f3; color: white"
+                        >
+                            📸 Download JPEG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <div class="control-buttons">
+                        <button class="control-button" onclick="getTimeRange()">
+                            Get Range
+                        </button>
+                        <button class="control-button" onclick="zoomInTime()">
+                            Zoom In
+                        </button>
+                        <button class="control-button" onclick="zoomOutTime()">
+                            Zoom Out
+                        </button>
+                        <button class="control-button" onclick="panLeft()">
+                            ← Pan
+                        </button>
+                        <button class="control-button" onclick="panRight()">
+                            Pan →
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Range:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="getPriceRange()"
+                        >
+                            Get Range
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceUp()"
+                        >
+                            ↑ Expand
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceDown()"
+                        >
+                            ↓ Contract
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="resetPriceRange()"
+                        >
+                            Auto Fit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trend Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="activateTrendLine()"
+                        >
+                            Draw Line
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearTrendLines()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Pattern Highlights:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="highlightBullishPatterns()"
+                            style="color: #4ade80"
+                        >
+                            Bullish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightBearishPatterns()"
+                            style="color: #ef4444"
+                        >
+                            Bearish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightNeutralPatterns()"
+                            style="color: #fbbf24"
+                        >
+                            Neutral
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightMixedPatterns()"
+                        >
+                            Mixed
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="createPulseWave()"
+                            style="
+                                background: linear-gradient(
+                                    90deg,
+                                    #10b981,
+                                    #3b82f6,
+                                    #a855f7
+                                );
+                                color: white;
+                            "
+                        >
+                            Pulse Wave
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearPatternHighlights()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addBuyMarker()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Buy Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSellMarker()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Sell Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeMarkers()"
+                        >
+                            Clear Markers
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addLimitOrderLine()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Limit Order
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addStopLossLine()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Stop Loss
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addTakeProfitLine()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Take Profit
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllPriceLines()"
+                        >
+                            Clear Lines
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Position Overlay:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showLongPosition()"
+                            style="background: #10b981; color: white"
+                        >
+                            Long Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showShortPosition()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Short Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="togglePositionCompact()"
+                        >
+                            Toggle Compact
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="hidePositionOverlay()"
+                        >
+                            Hide Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulatePnLUpdate()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            Update P&L
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addProfitableTradeZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Profit Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLosingTradeZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLongTradeZone()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Long Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addShortTradeZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            + Short Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeZones()"
+                        >
+                            Clear Zones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Annotations:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNoteAnnotation()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📝 Add Note
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addAlertAnnotation()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            🔔 Add Alert
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMilestoneAnnotation()"
+                            style="background: #10b981; color: white"
+                        >
+                            🏁 Add Milestone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addDraggableAnnotation()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            ✋ Draggable
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllAnnotations()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNewsReleaseMarker()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📰 News Release
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMarketOpenMarker()"
+                            style="background: #4ade80; color: white"
+                        >
+                            🔔 Market Open
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addEarningsMarker()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            💰 Earnings
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addCustomTimeMarker()"
+                            style="background: #6b7280; color: white"
+                        >
+                            ⏱️ Custom
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTimeMarkers()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Risk Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addStopLossZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            🛑 Stop Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSupportZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Support Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addResistanceZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            📉 Resistance Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLiquidationZone()"
+                            style="background: #dc2626; color: white"
+                        >
+                            ⚠️ Liquidation Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllRiskZones()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
                 </div>
             </div>
+            <!-- End controls-grid -->
 
-            <div class="control-group">
-                <label>Indicators:</label>
+            <!-- Click-to-Trade Section -->
+            <div
+                class="control-group"
+                style="
+                    border-top: 1px solid rgba(143, 143, 143, 0.2);
+                    padding-top: 10px;
+                    margin-top: 10px;
+                "
+            >
+                <label>Click-to-Trade:</label>
                 <div class="control-buttons">
                     <button
+                        id="enable-click-to-trade-btn"
                         class="control-button"
-                        onclick="toggleIndicator('volume', 'Volume')"
+                        onclick="enableClickToTradeMode()"
+                        style="background: #10b981; color: white"
                     >
-                        Volume
+                        Enable Click-to-Trade
                     </button>
                     <button
+                        id="disable-click-to-trade-btn"
                         class="control-button"
-                        onclick="toggleIndicator('rsi', 'RSI')"
+                        onclick="disableClickToTradeMode()"
+                        style="background: #ef4444; color: white"
                     >
-                        RSI
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('macd', 'MACD')"
-                    >
-                        MACD
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
-                    >
-                        BB
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('moving-averages', 'Moving Averages')"
-                    >
-                        MA
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('stochastic', 'Stochastic')"
-                    >
-                        Stoch
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="toggleIndicator('atr', 'ATR')"
-                    >
-                        ATR
+                        Disable Click-to-Trade
                     </button>
                 </div>
-            </div>
-
-            <div class="control-group">
-                <label>Display:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="toggleFullWindow()">
-                        Full Window
-                    </button>
-                    <button class="control-button" onclick="toggleFullscreen()">
-                        Fullscreen
-                    </button>
-                    <button class="control-button" onclick="forceRedraw()">
-                        Redraw
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Screenshot:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshot()"
-                        style="background: #4caf50; color: white"
-                    >
-                        📸 Download PNG
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="takeScreenshotJPEG()"
-                        style="background: #2196f3; color: white"
-                    >
-                        📸 Download JPEG
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Time Range:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="getTimeRange()">
-                        Get Range
-                    </button>
-                    <button class="control-button" onclick="zoomInTime()">
-                        Zoom In
-                    </button>
-                    <button class="control-button" onclick="zoomOutTime()">
-                        Zoom Out
-                    </button>
-                    <button class="control-button" onclick="panLeft()">
-                        ← Pan
-                    </button>
-                    <button class="control-button" onclick="panRight()">
-                        Pan →
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Price Range:</label>
-                <div class="control-buttons">
-                    <button class="control-button" onclick="getPriceRange()">
-                        Get Range
-                    </button>
-                    <button class="control-button" onclick="adjustPriceUp()">
-                        ↑ Expand
-                    </button>
-                    <button class="control-button" onclick="adjustPriceDown()">
-                        ↓ Contract
-                    </button>
-                    <button class="control-button" onclick="resetPriceRange()">
-                        Auto Fit
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Trend Lines:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="activateTrendLine()"
-                    >
-                        Draw Line
-                    </button>
-                    <button class="control-button" onclick="clearTrendLines()">
-                        Clear All
-                    </button>
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>Pattern Highlights:</label>
-                <div class="control-buttons">
-                    <button
-                        class="control-button"
-                        onclick="highlightBullishPatterns()"
-                        style="color: #4ade80"
-                    >
-                        Bullish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightBearishPatterns()"
-                        style="color: #ef4444"
-                    >
-                        Bearish
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightNeutralPatterns()"
-                        style="color: #fbbf24"
-                    >
-                        Neutral
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="highlightMixedPatterns()"
-                    >
-                        Mixed
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="createPulseWave()"
-                        style="
-                            background: linear-gradient(
-                                90deg,
-                                #10b981,
-                                #3b82f6,
-                                #a855f7
-                            );
-                            color: white;
-                        "
-                    >
-                        Pulse Wave
-                    </button>
-                    <button
-                        class="control-button"
-                        onclick="clearPatternHighlights()"
-                    >
-                        Clear
-                    </button>
+                <div
+                    style="
+                        font-size: 11px;
+                        color: #888;
+                        margin-top: 8px;
+                        line-height: 1.4;
+                    "
+                >
+                    Click chart to place order. Hold Shift to toggle buy/sell.
                 </div>
             </div>
 
@@ -833,6 +1264,17 @@
             <button class="upgrade-button">Upgrade</button>
         </div>
 
+        <!-- Event Footer -->
+        <div class="event-footer">
+            <div class="event-footer-header">
+                <div class="event-footer-title">Chart Events Log</div>
+                <button class="event-footer-clear" onclick="clearEventLog()">
+                    Clear Log
+                </button>
+            </div>
+            <div class="event-log" id="event-log"></div>
+        </div>
+
         <script>
             // Chart API Demo functionality
             let currentChart = 1;
@@ -840,6 +1282,119 @@
             let chart2Api = null;
             let selectedTrendLineId = null;
             let isUpdatingUI = false; // Prevent feedback loops
+
+            // Event Log functionality
+            const MAX_EVENT_LOG_ENTRIES = 100;
+            let eventLogThrottle = {
+                "crosshair-moved": 0,
+            };
+
+            function addEventToLog(eventType, eventData) {
+                const eventLog = document.getElementById("event-log");
+                if (!eventLog) return;
+
+                // Throttle crosshair-moved events to reduce spam
+                if (eventType === "crosshair-moved") {
+                    const now = Date.now();
+                    if (now - eventLogThrottle["crosshair-moved"] < 500) {
+                        return; // Skip this event
+                    }
+                    eventLogThrottle["crosshair-moved"] = now;
+                }
+
+                // Create event entry
+                const entry = document.createElement("div");
+                entry.className = `event-entry ${eventType}`;
+
+                const time = new Date().toLocaleTimeString("en-US", {
+                    hour12: false,
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    fractionalSecondDigits: 1,
+                });
+
+                const timeSpan = document.createElement("span");
+                timeSpan.className = "event-time";
+                timeSpan.textContent = time;
+
+                const typeSpan = document.createElement("span");
+                typeSpan.className = "event-type";
+                typeSpan.textContent = eventType;
+
+                const dataSpan = document.createElement("span");
+                dataSpan.className = "event-data";
+                dataSpan.textContent = formatEventData(eventType, eventData);
+
+                entry.appendChild(timeSpan);
+                entry.appendChild(typeSpan);
+                entry.appendChild(dataSpan);
+
+                // Add to top of log
+                eventLog.insertBefore(entry, eventLog.firstChild);
+
+                // Limit number of entries
+                while (eventLog.children.length > MAX_EVENT_LOG_ENTRIES) {
+                    eventLog.removeChild(eventLog.lastChild);
+                }
+            }
+
+            function formatEventData(eventType, data) {
+                switch (eventType) {
+                    case "crosshair-moved":
+                        if (data.price === null || data.timestamp === null) {
+                            return "Left chart";
+                        }
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "chart-clicked":
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "chart-context-menu":
+                        return `Right-clicked at Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "time-marker-clicked":
+                        return `Marker: ${data.marker.label || "Unlabeled"} at ${new Date(data.marker.timestamp).toLocaleString()}`;
+
+                    case "time-marker-hovered":
+                        return `Hovering marker: ${data.marker.label || "Unlabeled"}`;
+
+                    case "risk-zone-clicked":
+                        return `Risk zone: ${data.zone.label || "Unlabeled"} ($${data.zone.startPrice.toFixed(2)} - $${data.zone.endPrice.toFixed(2)})`;
+
+                    case "risk-zone-hovered":
+                        return `Hovering risk zone: ${data.zone.label || "Unlabeled"}`;
+
+                    case "trade-marker-clicked":
+                        return `${data.marker.side.toUpperCase()} marker at $${data.marker.price.toFixed(2)}`;
+
+                    case "price-line-dragged":
+                        return `Line moved: $${data.oldPrice.toFixed(2)} → $${data.newPrice.toFixed(2)}`;
+
+                    case "trade-zone-clicked":
+                        return `Trade zone: Entry $${data.zone.entryPrice.toFixed(2)}, Exit $${data.zone.exitPrice.toFixed(2)}`;
+
+                    case "annotation-clicked":
+                        return `Annotation: ${data.annotation.text}`;
+
+                    case "annotation-dragged":
+                        const newDate = new Date(data.newTimestamp);
+                        return `Annotation moved to ${newDate.toLocaleTimeString()}`;
+
+                    case "status-update":
+                        return data.message;
+
+                    default:
+                        return JSON.stringify(data).substring(0, 100);
+                }
+            }
+
+            function clearEventLog() {
+                const eventLog = document.getElementById("event-log");
+                if (eventLog) {
+                    eventLog.innerHTML = "";
+                }
+            }
 
             // Preset functions for support/resistance
             function applySwingSupport() {
@@ -1035,7 +1590,7 @@
                     const filename = `${symbol}-${granularity}-${Date.now()}.png`;
 
                     await api.downloadScreenshot(filename, {
-                        format: 'png',
+                        format: "png",
                         quality: 1.0,
                         scale: 2, // 2x resolution for better quality
                     });
@@ -1057,9 +1612,9 @@
                     const filename = `${symbol}-${granularity}-${Date.now()}.jpg`;
 
                     await api.downloadScreenshot(filename, {
-                        format: 'jpeg',
+                        format: "jpeg",
                         quality: 0.95,
-                        backgroundColor: '#1a1a1a', // Dark background to match theme
+                        backgroundColor: "#1a1a1a", // Dark background to match theme
                         scale: 2,
                     });
 
@@ -1599,6 +2154,1177 @@
                 }
             }
 
+            // Trading Overlays - Trade Marker Functions
+            function addBuyMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const markerId = api.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "buy",
+                        shape: "arrow",
+                        size: "medium",
+                        text: "Entry",
+                        tooltip: {
+                            title: "Buy " + api.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `Total: $${(0.5 * candle.close).toFixed(2)}`,
+                                `Time: ${new Date(timestamp).toLocaleString()}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = api.getTradeMarkers();
+                    updateStatus(
+                        `Added buy marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding buy marker: ${error.message}`);
+                }
+            }
+
+            function addSellMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const markerId = api.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "sell",
+                        shape: "flag",
+                        size: "medium",
+                        text: "Exit",
+                        tooltip: {
+                            title: "Sell " + api.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `Total: $${(0.5 * candle.close).toFixed(2)}`,
+                                `P&L: +$${(Math.random() * 1000).toFixed(2)}`,
+                                `Time: ${new Date(timestamp).toLocaleString()}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = api.getTradeMarkers();
+                    updateStatus(
+                        `Added sell marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding sell marker: ${error.message}`);
+                }
+            }
+
+            function clearAllTradeMarkers() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTradeMarkers();
+                    updateStatus("All trade markers cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing trade markers: ${error.message}`,
+                    );
+                }
+            }
+
+            // Trading Overlays - Price Line Functions
+            function addLimitOrderLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place limit order 2% above current min price
+                    const price = priceRange.min + priceRange.range * 0.3;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#3b82f6",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Limit Buy @ $${price.toFixed(2)}`,
+                            position: "left",
+                            backgroundColor: "#3b82f6",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            orderType: "limit",
+                            side: "buy",
+                            quantity: 0.5,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added limit order line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding limit order line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addStopLossLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place stop loss 5% below max price
+                    const price = priceRange.max - priceRange.range * 0.3;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#ef4444",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        label: {
+                            text: `Stop Loss @ $${price.toFixed(2)}`,
+                            position: "left",
+                            backgroundColor: "#ef4444",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            stopType: "stop-loss",
+                            triggerPrice: price,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added stop loss line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding stop loss line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addTakeProfitLine() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Place take profit 3% above max price
+                    const price = priceRange.max + priceRange.range * 0.1;
+
+                    const lineId = api.addPriceLine({
+                        price,
+                        color: "#10b981",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Take Profit @ $${price.toFixed(2)}`,
+                            position: "right",
+                            backgroundColor: "#10b981",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                        metadata: {
+                            orderType: "take-profit",
+                            targetPrice: price,
+                        },
+                    });
+
+                    const lines = api.getPriceLines();
+                    updateStatus(
+                        `Added take profit line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding take profit line: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllPriceLines() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearPriceLines();
+                    updateStatus("All price lines cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing price lines: ${error.message}`,
+                    );
+                }
+            }
+
+            // Trading Overlays - Position Overlay Functions
+            function showLongPosition() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.6;
+                    const quantity = 0.5;
+                    const unrealizedPnL =
+                        (currentPrice - entryPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((currentPrice - entryPrice) / entryPrice) * 100;
+
+                    api.setPositionOverlay({
+                        symbol: api.getSymbol(),
+                        quantity,
+                        side: "long",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-right",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(0, 0, 0, 0.9)",
+                        textColor: "#ffffff",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Long position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing long position: ${error.message}`,
+                    );
+                }
+            }
+
+            function showShortPosition() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.5;
+                    const quantity = 1.0;
+                    const unrealizedPnL =
+                        (entryPrice - currentPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((entryPrice - currentPrice) / entryPrice) * 100;
+
+                    api.setPositionOverlay({
+                        symbol: api.getSymbol(),
+                        quantity,
+                        side: "short",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-left",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                        textColor: "#000000",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Short position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing short position: ${error.message}`,
+                    );
+                }
+            }
+
+            function togglePositionCompact() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const currentPosition = api.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to toggle");
+                        return;
+                    }
+
+                    // Convert compact to boolean (handles Proxy values from xinjs state)
+                    // Use loose equality to coerce Proxy values to their primitive boolean
+                    const isCurrentlyCompact = currentPosition.compact == true;
+
+                    api.updatePositionOverlay({
+                        compact: !isCurrentlyCompact,
+                    });
+
+                    updateStatus(
+                        `Position overlay toggled to ${!isCurrentlyCompact ? "compact" : "full"} view`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error toggling position compact: ${error.message}`,
+                    );
+                }
+            }
+
+            function hidePositionOverlay() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.setPositionOverlay(null);
+                    updateStatus("Position overlay hidden");
+                } catch (error) {
+                    updateStatus(
+                        `Error hiding position overlay: ${error.message}`,
+                    );
+                }
+            }
+
+            function simulatePnLUpdate() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const currentPosition = api.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to update");
+                        return;
+                    }
+
+                    // Simulate price movement (+/- 2%)
+                    const priceChange =
+                        currentPosition.currentPrice *
+                        (Math.random() * 0.04 - 0.02);
+                    const newPrice = currentPosition.currentPrice + priceChange;
+
+                    let newPnL, newPnLPercent;
+                    if (currentPosition.side === "long") {
+                        newPnL =
+                            (newPrice - currentPosition.entryPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((newPrice - currentPosition.entryPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    } else {
+                        newPnL =
+                            (currentPosition.entryPrice - newPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((currentPosition.entryPrice - newPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    }
+
+                    api.updatePositionOverlay({
+                        currentPrice: newPrice,
+                        unrealizedPnL: newPnL,
+                        unrealizedPnLPercent: newPnLPercent,
+                    });
+
+                    updateStatus(
+                        `P&L updated: $${newPnL.toFixed(2)} (${newPnLPercent.toFixed(2)}%) @ $${newPrice.toFixed(2)}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error updating P&L: ${error.message}`);
+                }
+            }
+
+            // Trading Overlays - Trade Zone Functions
+            function addProfitableTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
+                        return;
+                    }
+
+                    // Pick a random range for the trade
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
+                    const duration = 5 + Math.floor(Math.random() * 8); // 5-12 candles
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 1.03; // 3% profit
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        textColor: "#ffffff", // White text for better visibility over candles
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding profitable trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLosingTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
+                        return;
+                    }
+
+                    // Pick a random range for the trade
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
+                    const duration = 3 + Math.floor(Math.random() * 5); // 3-7 candles (shorter losing trade)
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 0.98; // 2% loss
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding losing trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLongTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Create a trade zone in the middle of the visible range
+                    const duration = (timeRange.end - timeRange.start) * 0.2; // 20% of visible time
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const exitPrice = priceRange.min + priceRange.range * 0.6; // Higher exit = profit
+
+                    const quantity = 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added long trade zone. Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding long trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addShortTradeZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Create a trade zone in the middle of the visible range
+                    const duration = (timeRange.end - timeRange.start) * 0.15; // 15% of visible time
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const exitPrice = priceRange.min + priceRange.range * 0.5; // Lower exit = profit for short
+
+                    const quantity = 0.3;
+                    const pnl = (entryPrice - exitPrice) * quantity; // Reversed for short
+                    const pnlPercent =
+                        ((entryPrice - exitPrice) / entryPrice) * 100;
+
+                    const zoneId = api.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "short",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = api.getTradeZones();
+                    updateStatus(
+                        `Added short trade zone. Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding short trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllTradeZones() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTradeZones();
+                    updateStatus("All trade zones cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing trade zones: ${error.message}`,
+                    );
+                }
+            }
+
+            // Annotations Functions
+            function addNoteAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+                    const price = candle.close;
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price,
+                        text: "Important Level",
+                        type: "note",
+                        position: "above",
+                        icon: "📝",
+                        color: "#ffffff",
+                        backgroundColor: "rgba(139, 92, 246, 0.5)",
+                        showLine: true,
+                        lineStyle: "dashed",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added note annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding note annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addAlertAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price: candle.high,
+                        text: "Price Alert",
+                        type: "alert",
+                        position: "right",
+                        icon: "🔔",
+                        color: "#ffffff",
+                        backgroundColor: "#f59e0b",
+                        borderColor: "#d97706",
+                        showLine: true,
+                        lineStyle: "solid",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added alert annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding alert annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addMilestoneAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const candles = api.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    // Pick a random candle from the visible range
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price: candle.low,
+                        text: "Milestone",
+                        type: "milestone",
+                        position: "below",
+                        icon: "🏁",
+                        color: "#ffffff",
+                        backgroundColor: "#10b981",
+                        borderColor: "#059669",
+                        showLine: true,
+                        lineStyle: "dotted",
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added milestone annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding milestone annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addDraggableAnnotation() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    const priceRange = api.getPriceRange();
+
+                    // Place in middle of visible range
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
+                    const price = priceRange.min + priceRange.range * 0.5;
+
+                    const annotationId = api.addAnnotation({
+                        timestamp,
+                        price,
+                        text: "Drag Me!",
+                        type: "custom",
+                        position: "left",
+                        icon: "✋",
+                        color: "#ffffff",
+                        backgroundColor: "#3b82f6",
+                        borderColor: "#2563eb",
+                        draggable: true,
+                        showLine: true,
+                        lineStyle: "solid",
+                        fontSize: 14,
+                    });
+
+                    const annotations = api.getAnnotations();
+                    updateStatus(
+                        `Added draggable annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding draggable annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllAnnotations() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearAnnotations();
+                    updateStatus("All annotations cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing annotations: ${error.message}`,
+                    );
+                }
+            }
+
+            // Time Marker Functions
+            function addNewsReleaseMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker somewhere in visible range
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "News Release",
+                        color: "#ff6b6b",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(
+                        `Added news release marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding news marker: ${error.message}`);
+                }
+            }
+
+            function addMarketOpenMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 40% of visible range
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.4;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Market Open",
+                        color: "#4ade80",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "bottom",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(
+                        `Added market open marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding market open marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function addEarningsMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 60% of visible range
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.6;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Earnings Report",
+                        color: "#fbbf24",
+                        lineStyle: "dotted",
+                        lineWidth: 3,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(
+                        `Added earnings marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding earnings marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function addCustomTimeMarker() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const timeRange = api.getTimeRange();
+                    // Place marker at 75% of visible range
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.75;
+
+                    const markerId = api.addTimeMarker({
+                        timestamp,
+                        label: "Custom Event",
+                        color: "#8b5cf6",
+                        lineStyle: "solid",
+                        lineWidth: 1,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = api.getTimeMarkers();
+                    updateStatus(
+                        `Added custom marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding custom marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllTimeMarkers() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearTimeMarkers();
+                    updateStatus("All time markers cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing time markers: ${error.message}`,
+                    );
+                }
+            }
+
+            // Risk Zone Functions
+            function addStopLossZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create stop loss zone below current price range
+                    const startPrice = priceRange.min * 0.96;
+                    const endPrice = priceRange.min * 0.98;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Stop Loss Zone",
+                        color: "#ef4444",
+                        opacity: 0.15,
+                        pattern: "striped",
+                        borderColor: "#dc2626",
+                        borderWidth: 1,
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(
+                        `Added stop loss zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding stop loss zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addSupportZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create support zone near bottom of range
+                    const startPrice = priceRange.min * 1.02;
+                    const endPrice = priceRange.min * 1.04;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Support Zone",
+                        color: "#10b981",
+                        opacity: 0.12,
+                        pattern: "dotted",
+                        borderColor: "#059669",
+                        borderWidth: 1,
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(
+                        `Added support zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding support zone: ${error.message}`);
+                }
+            }
+
+            function addResistanceZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create resistance zone near top of range
+                    const startPrice = priceRange.max * 0.96;
+                    const endPrice = priceRange.max * 0.98;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Resistance Zone",
+                        color: "#f59e0b",
+                        opacity: 0.1,
+                        pattern: "solid",
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(
+                        `Added resistance zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding resistance zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLiquidationZone() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    const priceRange = api.getPriceRange();
+                    // Create liquidation zone above current price range
+                    const startPrice = priceRange.max * 1.02;
+                    const endPrice = priceRange.max * 1.04;
+
+                    const zoneId = api.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Liquidation Risk",
+                        color: "#dc2626",
+                        opacity: 0.18,
+                        pattern: "striped",
+                    });
+
+                    const zones = api.getRiskZones();
+                    updateStatus(
+                        `Added liquidation zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding liquidation zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllRiskZones() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.clearRiskZones();
+                    updateStatus("All risk zones cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing risk zones: ${error.message}`);
+                }
+            }
+
+            // Click-to-Trade Functions
+            function enableClickToTradeMode() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    // Enable click-to-trade with default configuration
+                    api.enableClickToTrade({
+                        enabled: true,
+                        defaultSide: "buy",
+                        showCrosshair: true,
+                        showPriceLabel: true,
+                        showOrderPreview: true,
+                        allowSideToggle: true,
+                        clickBehavior: "single",
+                    });
+
+                    // Listen for order-request events
+                    api.on("order-request", (data) => {
+                        const modifiers = [];
+                        if (data.modifiers.shift) modifiers.push("Shift");
+                        if (data.modifiers.ctrl) modifiers.push("Ctrl");
+                        if (data.modifiers.alt) modifiers.push("Alt");
+
+                        const timestamp = new Date(data.timestamp);
+                        const timeStr = timestamp.toLocaleTimeString();
+                        const dateStr = timestamp.toLocaleDateString();
+
+                        updateStatus(
+                            `ORDER REQUEST:\n` +
+                                `Side: ${data.side.toUpperCase()}\n` +
+                                `Price: $${data.price.toFixed(2)}\n` +
+                                `Time: ${dateStr} ${timeStr}\n` +
+                                `Modifiers: ${modifiers.join(", ") || "None"}`,
+                        );
+                    });
+
+                    updateStatus(
+                        "Click-to-Trade ENABLED\nClick on chart to place orders\nHold Shift to toggle buy/sell",
+                    );
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(
+                        `Error enabling click-to-trade: ${error.message}`,
+                    );
+                }
+            }
+
+            function disableClickToTradeMode() {
+                const api = getCurrentApi();
+                if (!api) return;
+
+                try {
+                    api.disableClickToTrade();
+                    updateStatus("Click-to-Trade DISABLED");
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(
+                        `Error disabling click-to-trade: ${error.message}`,
+                    );
+                }
+            }
+
             // Pulsating Wave Effect Function
             function createPulseWave() {
                 const api = getCurrentApi();
@@ -2013,6 +3739,13 @@
                 }
 
                 if (message) {
+                    // Log important status messages to event log
+                    if (
+                        !message.includes("Symbol:") &&
+                        !message.includes("Timeframe:")
+                    ) {
+                        addEventToLog("status-update", { message });
+                    }
                     statusEl.textContent = message;
                     return;
                 }
@@ -2095,6 +3828,26 @@ Indicators: ${
                                 }
                             }
                         });
+
+                    // Update click-to-trade buttons
+                    const enableBtn = document.getElementById(
+                        "enable-click-to-trade-btn",
+                    );
+                    const disableBtn = document.getElementById(
+                        "disable-click-to-trade-btn",
+                    );
+
+                    if (enableBtn && disableBtn) {
+                        const isEnabled = api.isClickToTradeEnabled();
+
+                        if (isEnabled) {
+                            enableBtn.classList.add("active");
+                            disableBtn.classList.remove("active");
+                        } else {
+                            enableBtn.classList.remove("active");
+                            disableBtn.classList.add("active");
+                        }
+                    }
                 } catch (error) {
                     console.error("Error updating buttons:", error);
                 }
@@ -2151,6 +3904,163 @@ Indicators: ${
                             );
                         }
                     });
+
+                    // Trading Overlays - Trade Marker events
+                    chart1Api.on("trade-marker-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade marker clicked:", event);
+                            updateStatus(
+                                `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("trade-marker-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade marker hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Price Line events
+                    chart1Api.on("price-line-dragged", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line dragged:", event);
+                            updateStatus(
+                                `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("price-line-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line clicked:", event);
+                            updateStatus(
+                                `Price line clicked: ${event.lineId.substring(0, 30)}... at $${event.line.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("price-line-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Price line hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Trade Zone events
+                    chart1Api.on("trade-zone-clicked", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade zone clicked:", event);
+                            updateStatus(
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("trade-zone-hovered", (event) => {
+                        if (currentChart === 1) {
+                            console.log("Trade zone hovered:", event);
+                            const pnlText =
+                                event.zone.metadata?.pnl !== undefined
+                                    ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                    : "";
+                            const pnlPercentText =
+                                event.zone.metadata?.pnlPercent !== undefined
+                                    ? `(${event.zone.metadata.pnlPercent >= 0 ? "+" : ""}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                    : "";
+                            updateStatus(
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim(),
+                            );
+                        }
+                    });
+
+                    // Trading Overlays - Chart interaction events
+                    chart1Api.on("chart-clicked", (event) => {
+                        addEventToLog("chart-clicked", event);
+                        if (currentChart === 1) {
+                            console.log("Chart clicked:", event);
+                            updateStatus(
+                                `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("crosshair-moved", (event) => {
+                        addEventToLog("crosshair-moved", event);
+                        if (
+                            currentChart === 1 &&
+                            event.price &&
+                            event.timestamp
+                        ) {
+                            // Only log occasionally to avoid spam
+                            if (Math.random() < 0.05) {
+                                console.log("Crosshair moved:", event);
+                            }
+                        }
+                    });
+
+                    chart1Api.on("chart-context-menu", (event) => {
+                        addEventToLog("chart-context-menu", event);
+                        if (currentChart === 1) {
+                            console.log("Chart context menu:", event);
+                        }
+                    });
+
+                    // Annotation events
+                    chart1Api.on("annotation-dragged", (data) => {
+                        if (currentChart === 1) {
+                            const newDate = new Date(data.newTimestamp);
+                            updateStatus(
+                                `Annotation dragged:\n` +
+                                    `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
+                                    `New time: ${newDate.toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("annotation-clicked", (event) => {
+                        addEventToLog("annotation-clicked", event);
+                        if (currentChart === 1) {
+                            updateStatus(
+                                `Annotation clicked: ${event.annotation.text}`,
+                            );
+                        }
+                    });
+
+                    // Time Marker events
+                    chart1Api.on("time-marker-clicked", (event) => {
+                        addEventToLog("time-marker-clicked", event);
+                        if (currentChart === 1) {
+                            console.log("Time marker clicked:", event);
+                            updateStatus(
+                                `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("time-marker-hovered", (event) => {
+                        addEventToLog("time-marker-hovered", event);
+                        if (currentChart === 1) {
+                            console.log("Time marker hovered:", event);
+                        }
+                    });
+
+                    // Risk Zone events
+                    chart1Api.on("risk-zone-clicked", (event) => {
+                        addEventToLog("risk-zone-clicked", event);
+                        if (currentChart === 1) {
+                            console.log("Risk zone clicked:", event);
+                            updateStatus(
+                                `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                            );
+                        }
+                    });
+
+                    chart1Api.on("risk-zone-hovered", (event) => {
+                        addEventToLog("risk-zone-hovered", event);
+                        if (currentChart === 1) {
+                            console.log("Risk zone hovered:", event);
+                        }
+                    });
                 }
                 if (window.chartApi2) {
                     chart2Api = window.chartApi2;
@@ -2201,6 +4111,163 @@ Indicators: ${
                             updateStatus(
                                 `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
                             );
+                        }
+                    });
+
+                    // Trading Overlays - Trade Marker events
+                    chart2Api.on("trade-marker-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade marker clicked:", event);
+                            updateStatus(
+                                `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("trade-marker-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade marker hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Price Line events
+                    chart2Api.on("price-line-dragged", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line dragged:", event);
+                            updateStatus(
+                                `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("price-line-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line clicked:", event);
+                            updateStatus(
+                                `Price line clicked: ${event.lineId.substring(0, 30)}... at $${event.line.price.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("price-line-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Price line hovered:", event);
+                        }
+                    });
+
+                    // Trading Overlays - Trade Zone events
+                    chart2Api.on("trade-zone-clicked", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade zone clicked:", event);
+                            updateStatus(
+                                `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("trade-zone-hovered", (event) => {
+                        if (currentChart === 2) {
+                            console.log("Trade zone hovered:", event);
+                            const pnlText =
+                                event.zone.metadata?.pnl !== undefined
+                                    ? `P&L: $${event.zone.metadata.pnl.toFixed(2)}`
+                                    : "";
+                            const pnlPercentText =
+                                event.zone.metadata?.pnlPercent !== undefined
+                                    ? `(${event.zone.metadata.pnlPercent >= 0 ? "+" : ""}${event.zone.metadata.pnlPercent.toFixed(2)}%)`
+                                    : "";
+                            updateStatus(
+                                `Trade zone hovered: ${event.zoneId.substring(0, 20)}... ${pnlText} ${pnlPercentText}`.trim(),
+                            );
+                        }
+                    });
+
+                    // Trading Overlays - Chart interaction events
+                    chart2Api.on("chart-clicked", (event) => {
+                        addEventToLog("chart-clicked", event);
+                        if (currentChart === 2) {
+                            console.log("Chart clicked:", event);
+                            updateStatus(
+                                `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("crosshair-moved", (event) => {
+                        addEventToLog("crosshair-moved", event);
+                        if (
+                            currentChart === 2 &&
+                            event.price &&
+                            event.timestamp
+                        ) {
+                            // Only log occasionally to avoid spam
+                            if (Math.random() < 0.05) {
+                                console.log("Crosshair moved:", event);
+                            }
+                        }
+                    });
+
+                    chart2Api.on("chart-context-menu", (event) => {
+                        addEventToLog("chart-context-menu", event);
+                        if (currentChart === 2) {
+                            console.log("Chart context menu:", event);
+                        }
+                    });
+
+                    // Annotation events
+                    chart2Api.on("annotation-dragged", (data) => {
+                        if (currentChart === 2) {
+                            const newDate = new Date(data.newTimestamp);
+                            updateStatus(
+                                `Annotation dragged:\n` +
+                                    `New price: $${data.newPrice?.toFixed(2) || "N/A"}\n` +
+                                    `New time: ${newDate.toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("annotation-clicked", (event) => {
+                        addEventToLog("annotation-clicked", event);
+                        if (currentChart === 2) {
+                            updateStatus(
+                                `Annotation clicked: ${event.annotation.text}`,
+                            );
+                        }
+                    });
+
+                    // Time Marker events
+                    chart2Api.on("time-marker-clicked", (event) => {
+                        addEventToLog("time-marker-clicked", event);
+                        if (currentChart === 2) {
+                            console.log("Time marker clicked:", event);
+                            updateStatus(
+                                `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("time-marker-hovered", (event) => {
+                        addEventToLog("time-marker-hovered", event);
+                        if (currentChart === 2) {
+                            console.log("Time marker hovered:", event);
+                        }
+                    });
+
+                    // Risk Zone events
+                    chart2Api.on("risk-zone-clicked", (event) => {
+                        addEventToLog("risk-zone-clicked", event);
+                        if (currentChart === 2) {
+                            console.log("Risk zone clicked:", event);
+                            updateStatus(
+                                `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                            );
+                        }
+                    });
+
+                    chart2Api.on("risk-zone-hovered", (event) => {
+                        addEventToLog("risk-zone-hovered", event);
+                        if (currentChart === 2) {
+                            console.log("Risk zone hovered:", event);
                         }
                     });
                 }

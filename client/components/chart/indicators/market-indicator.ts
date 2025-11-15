@@ -2,7 +2,12 @@ import { customElement, property, state } from "lit/decorators.js";
 import { CanvasBase } from "../canvas-base";
 import { observe, xin, xinValue } from "xinjs";
 import { ChartState } from "../../..";
-import { iterateTimeline, priceToY, timeToX, getDpr } from "../../../util/chart-util";
+import {
+  iterateTimeline,
+  priceToY,
+  timeToX,
+  getDpr,
+} from "../../../util/chart-util";
 import { ScaleType, GridStyle, OscillatorConfig } from "./indicator-types";
 import "../value-axis";
 import { html, css, PropertyValues } from "lit";
@@ -59,14 +64,30 @@ export class MarketIndicator extends CanvasBase {
   @property({ type: Object })
   oscillatorConfig?: OscillatorConfig;
 
-  private _state: ChartState | null = null;
+  protected _state: ChartState | null = null;
   private _chartId: string = "state";
+
+  // Add state property with getter/setter to allow parent components to set state
+  @property({ type: Object, attribute: false })
+  set state(value: ChartState | null) {
+    if (value !== this._state) {
+      this._state = value;
+      // Trigger a redraw when state is updated
+      if (this.canvas && this.ctx) {
+        this.draw();
+      }
+    }
+  }
+
+  get state(): ChartState | null {
+    return this._state;
+  }
   private grid = new HairlineGrid();
   // Track when the value range is manually set by user zooming
   private manualRangeSet = false;
 
   @property({ type: Object })
-  private localValueRange: ValueRange = {
+  protected localValueRange: ValueRange = {
     min: 0,
     max: 100,
     range: 100,
@@ -119,14 +140,14 @@ export class MarketIndicator extends CanvasBase {
 
     // Initialize with safe defaults
     this._state = null;
-    
+
     // Defer state initialization until component is properly connected
     requestAnimationFrame(() => {
       this.initializeState();
     });
 
     this.addEventListener("value-range-change", ((
-      e: CustomEvent<ValueRange>
+      e: CustomEvent<ValueRange>,
     ) => {
       if (e && e.detail) {
         this.localValueRange = e.detail;
@@ -139,7 +160,7 @@ export class MarketIndicator extends CanvasBase {
 
     // Listen for force-redraw events from parent component
     this.addEventListener("force-redraw", ((
-      e: CustomEvent<{ width: number; height: number }>
+      e: CustomEvent<{ width: number; height: number }>,
     ) => {
       if (e && e.detail) {
         const { width, height } = e.detail;
@@ -166,10 +187,10 @@ export class MarketIndicator extends CanvasBase {
   private initializeState() {
     // Get the local chart ID for this chart instance
     this._chartId = getLocalChartId(this);
-    
+
     // Initialize state with actual data
     this._state = xin[this._chartId] as ChartState;
-    
+
     // Set up observers for chart-specific state
     observeLocal(this, "state", () => {
       this._state = xin[this._chartId] as ChartState;
@@ -217,7 +238,7 @@ export class MarketIndicator extends CanvasBase {
     if (changedProperties.has("showAxis")) {
       this.style.setProperty(
         "--indicator-show-axis",
-        this.showAxis ? "1" : "0"
+        this.showAxis ? "1" : "0",
       );
     }
     if (changedProperties.has("valueAxisWidth")) {
@@ -226,7 +247,7 @@ export class MarketIndicator extends CanvasBase {
     if (changedProperties.has("valueAxisMobileWidth")) {
       this.style.setProperty(
         "--value-axis-mobile-width",
-        `${this.valueAxisMobileWidth}px`
+        `${this.valueAxisMobileWidth}px`,
       );
     }
 
@@ -273,7 +294,7 @@ export class MarketIndicator extends CanvasBase {
       // Get visible candles
       const candles = this._state.priceHistory.getCandlesInRange(
         this._state.timeRange.start,
-        this._state.timeRange.end
+        this._state.timeRange.end,
       );
 
       if (!candles || candles.length === 0) {
@@ -292,7 +313,10 @@ export class MarketIndicator extends CanvasBase {
       const numberOfGaps = Math.max(0, candleCount - 1);
       const totalGapWidth = numberOfGaps * FIXED_GAP_WIDTH;
       const spaceForCandles = Math.max(0, availableWidth - totalGapWidth);
-      const candleWidth = Math.max(5, Math.min(500, spaceForCandles / Math.max(1, candleCount)));
+      const candleWidth = Math.max(
+        5,
+        Math.min(500, spaceForCandles / Math.max(1, candleCount)),
+      );
 
       // Track min/max values for auto-scaling
       let minValue = Infinity;
@@ -307,7 +331,7 @@ export class MarketIndicator extends CanvasBase {
           if (!candle) return;
 
           const indicator = candle.evaluations.find(
-            (e) => e.id === this.indicatorId
+            (e) => e.id === this.indicatorId,
           );
           if (!indicator) return;
 
@@ -391,7 +415,7 @@ export class MarketIndicator extends CanvasBase {
             ? this._state.priceRange
             : new PriceRangeImpl(
                 this.localValueRange.min,
-                this.localValueRange.max
+                this.localValueRange.max,
               ),
         axisMappings: {
           timeToX: timeToX(this.canvas.width / dpr, this._state.timeRange),
@@ -409,7 +433,7 @@ export class MarketIndicator extends CanvasBase {
 
       // Draw each plot using its style
       const evaluation = candles[0]?.[1]?.evaluations?.find(
-        (e) => e.id === this.indicatorId
+        (e) => e.id === this.indicatorId,
       );
       if (!evaluation) {
         return;
@@ -432,7 +456,7 @@ export class MarketIndicator extends CanvasBase {
             upperPoints,
             lowerPoints,
             plotStyle.style,
-            this.localValueRange
+            this.localValueRange,
           );
         } else if (plotStyle.type === "histogram") {
           drawHistogram(ctx, points, this.localValueRange);

@@ -1,0 +1,4000 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <title>SpotCanvas - Chart API Demo</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+            rel="stylesheet"
+        />
+
+        <link rel="stylesheet" href="styles.css" />
+        <script type="module" src="index.js"></script>
+
+        <style>
+            /* Flexbox layout for chart and sidebar */
+            .main-content {
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                bottom: 150px;
+                display: flex;
+                flex-direction: row;
+            }
+
+            /* Chart container takes remaining space */
+            .chart-container {
+                flex: 1;
+                position: relative;
+                height: 100% !important;
+            }
+
+            /* App Header Styles */
+            .app-header {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 60px;
+                background: var(--color-primary-dark);
+                border-bottom: 1px solid var(--color-background-secondary-20);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0 20px;
+                z-index: 100;
+            }
+
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+
+            .header-right {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            product-select {
+                width: 200px;
+            }
+
+            /* Side Panel Demo Controls */
+            .demo-controls {
+                width: 360px;
+                flex-shrink: 0;
+                background: var(--color-primary-dark);
+                border-left: 1px solid rgba(143, 143, 143, 0.2);
+                overflow-y: auto;
+                padding: 20px;
+            }
+
+            .controls-header h3 {
+                color: var(--color-accent-2);
+                margin: 0 0 15px 0;
+                font-size: 16px;
+                font-weight: 600;
+            }
+
+            .control-group {
+                margin-bottom: 15px;
+            }
+
+            .control-group label {
+                display: block;
+                color: var(--color-accent-2);
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 8px;
+            }
+
+            .control-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+
+            .control-button {
+                padding: 6px 12px;
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--color-accent-2);
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-family: var(--font-primary);
+                transition: all 0.2s;
+            }
+
+            .control-button:hover {
+                background: rgba(255, 255, 255, 0.2);
+                border-color: rgba(143, 143, 143, 0.5);
+            }
+
+            .control-button.active {
+                background: var(--color-primary);
+                border-color: var(--color-primary);
+                color: white;
+            }
+
+            .control-button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .demo-status {
+                margin-top: 15px;
+                padding: 10px;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 6px;
+                font-size: 12px;
+                color: var(--color-accent-2);
+                font-family: "Courier New", monospace;
+                white-space: pre-wrap;
+            }
+
+            /* Event Footer Styles */
+            .event-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 150px;
+                background: var(--color-primary-dark);
+                border-top: 1px solid rgba(143, 143, 143, 0.3);
+                z-index: 900;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .event-footer-header {
+                padding: 8px 12px;
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid rgba(143, 143, 143, 0.2);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .event-footer-title {
+                color: var(--color-accent-2);
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .event-footer-clear {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                color: var(--color-accent-2);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .event-footer-clear:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .event-log {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px;
+                font-family: "Courier New", monospace;
+                font-size: 11px;
+                line-height: 1.6;
+            }
+
+            .event-entry {
+                padding: 4px 8px;
+                margin-bottom: 2px;
+                border-radius: 4px;
+                background: rgba(0, 0, 0, 0.2);
+                display: flex;
+                gap: 8px;
+            }
+
+            .event-time {
+                color: #888;
+                min-width: 80px;
+            }
+
+            .event-type {
+                color: #4caf50;
+                font-weight: 600;
+                min-width: 140px;
+            }
+
+            .event-data {
+                color: var(--color-accent-2);
+                flex: 1;
+            }
+
+            .event-entry.crosshair-moved .event-type {
+                color: #64b5f6;
+            }
+
+            .event-entry.chart-clicked .event-type {
+                color: #ffa726;
+            }
+
+            .event-entry.chart-context-menu .event-type {
+                color: #ef5350;
+            }
+
+            /* Trend Line Settings Panel */
+            #trend-line-settings {
+                border-top: 1px solid rgba(143, 143, 143, 0.2);
+                padding-top: 15px;
+                margin-top: 15px;
+            }
+
+            #trend-line-settings input[type="text"],
+            #trend-line-settings textarea,
+            #trend-line-settings input[type="number"],
+            #trend-line-settings select {
+                width: 100%;
+                padding: 6px 8px;
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--color-accent-2);
+                border-radius: 4px;
+                font-family: var(--font-primary);
+                font-size: 12px;
+            }
+
+            #trend-line-settings input[type="color"] {
+                width: 60px;
+                height: 30px;
+                border: 1px solid rgba(143, 143, 143, 0.3);
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
+            #trend-line-settings input[type="range"] {
+                width: 100%;
+            }
+
+            #trend-line-settings textarea {
+                min-height: 60px;
+                resize: vertical;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="app-header">
+            <div class="header-left">
+                <product-select id="symbol-selector"></product-select>
+            </div>
+        </div>
+
+        <!-- Main Content: Chart + Sidebar -->
+        <div class="main-content">
+            <!-- Single Chart -->
+            <div class="chart-container" id="chart-1"></div>
+
+            <!-- Side Panel Demo Controls -->
+            <div class="demo-controls" id="demo-controls">
+                <div class="controls-header">
+                    <h3>Chart API Demo</h3>
+                </div>
+
+                <div class="control-group">
+                    <label>Symbol:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('BTC-USD')"
+                        >
+                            BTC-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('ETH-USD')"
+                        >
+                            ETH-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('SOL-USD')"
+                        >
+                            SOL-USD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeSymbol('AVAX-USD')"
+                        >
+                            AVAX-USD
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Timeframe:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_MINUTE')"
+                        >
+                            1m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIVE_MINUTE')"
+                        >
+                            5m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('FIFTEEN_MINUTE')"
+                        >
+                            15m
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_HOUR')"
+                        >
+                            1h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('SIX_HOUR')"
+                        >
+                            6h
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="changeGranularity('ONE_DAY')"
+                        >
+                            1d
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Indicators:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('volume', 'Volume')"
+                        >
+                            Volume
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('rsi', 'RSI')"
+                        >
+                            RSI
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('macd', 'MACD')"
+                        >
+                            MACD
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('bollinger-bands', 'Bollinger Bands')"
+                        >
+                            BB
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('moving-averages', 'Moving Averages')"
+                        >
+                            MA
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('stochastic', 'Stochastic')"
+                        >
+                            Stoch
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleIndicator('atr', 'ATR')"
+                        >
+                            ATR
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Display:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="toggleFullWindow()"
+                        >
+                            Full Window
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="toggleFullscreen()"
+                        >
+                            Fullscreen
+                        </button>
+                        <button class="control-button" onclick="forceRedraw()">
+                            Redraw
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Screenshot:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshot()"
+                            style="background: #4caf50; color: white"
+                        >
+                            📸 Download PNG
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="takeScreenshotJPEG()"
+                            style="background: #2196f3; color: white"
+                        >
+                            📸 Download JPEG
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Range:</label>
+                    <div class="control-buttons">
+                        <button class="control-button" onclick="getTimeRange()">
+                            Get Range
+                        </button>
+                        <button class="control-button" onclick="zoomInTime()">
+                            Zoom In
+                        </button>
+                        <button class="control-button" onclick="zoomOutTime()">
+                            Zoom Out
+                        </button>
+                        <button class="control-button" onclick="panLeft()">
+                            ← Pan
+                        </button>
+                        <button class="control-button" onclick="panRight()">
+                            Pan →
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Range:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="getPriceRange()"
+                        >
+                            Get Range
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceUp()"
+                        >
+                            ↑ Expand
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="adjustPriceDown()"
+                        >
+                            ↓ Contract
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="resetPriceRange()"
+                        >
+                            Auto Fit
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trend Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="activateTrendLine()"
+                        >
+                            Draw Line
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearTrendLines()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Pattern Highlights:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="highlightBullishPatterns()"
+                            style="color: #4ade80"
+                        >
+                            Bullish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightBearishPatterns()"
+                            style="color: #ef4444"
+                        >
+                            Bearish
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightNeutralPatterns()"
+                            style="color: #fbbf24"
+                        >
+                            Neutral
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="highlightMixedPatterns()"
+                        >
+                            Mixed
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="createPulseWave()"
+                            style="
+                                background: linear-gradient(
+                                    90deg,
+                                    #10b981,
+                                    #3b82f6,
+                                    #a855f7
+                                );
+                                color: white;
+                            "
+                        >
+                            Pulse Wave
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearPatternHighlights()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addBuyMarker()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Buy Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSellMarker()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Sell Marker
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeMarkers()"
+                        >
+                            Clear Markers
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Price Lines:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addLimitOrderLine()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Limit Order
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addStopLossLine()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Stop Loss
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addTakeProfitLine()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Take Profit
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllPriceLines()"
+                        >
+                            Clear Lines
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Position Overlay:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showLongPosition()"
+                            style="background: #10b981; color: white"
+                        >
+                            Long Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showShortPosition()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Short Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="togglePositionCompact()"
+                        >
+                            Toggle Compact
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="hidePositionOverlay()"
+                        >
+                            Hide Position
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulatePnLUpdate()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            Update P&L
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trade Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addProfitableTradeZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            + Profit Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLosingTradeZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            + Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLongTradeZone()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            + Long Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addShortTradeZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            + Short Trade
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTradeZones()"
+                        >
+                            Clear Zones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Annotations:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNoteAnnotation()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📝 Add Note
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addAlertAnnotation()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            🔔 Add Alert
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMilestoneAnnotation()"
+                            style="background: #10b981; color: white"
+                        >
+                            🏁 Add Milestone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addDraggableAnnotation()"
+                            style="background: #3b82f6; color: white"
+                        >
+                            ✋ Draggable
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllAnnotations()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Time Markers:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addNewsReleaseMarker()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📰 News Release
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addMarketOpenMarker()"
+                            style="background: #4ade80; color: white"
+                        >
+                            🔔 Market Open
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addEarningsMarker()"
+                            style="background: #fbbf24; color: white"
+                        >
+                            💰 Earnings
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addCustomTimeMarker()"
+                            style="background: #6b7280; color: white"
+                        >
+                            ⏱️ Custom
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllTimeMarkers()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Risk Zones:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="addStopLossZone()"
+                            style="background: #ef4444; color: white"
+                        >
+                            🛑 Stop Loss Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addSupportZone()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Support Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addResistanceZone()"
+                            style="background: #f59e0b; color: white"
+                        >
+                            📉 Resistance Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="addLiquidationZone()"
+                            style="background: #dc2626; color: white"
+                        >
+                            ⚠️ Liquidation Zone
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearAllRiskZones()"
+                        >
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Equity Curve:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurve()"
+                            style="background: #8b5cf6; color: white"
+                        >
+                            📈 Basic
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurveWithArea()"
+                            style="background: #6366f1; color: white"
+                        >
+                            📊 With Area
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showEquityCurveWithPeak()"
+                            style="background: #ec4899; color: white"
+                        >
+                            ⛰️ With Peak
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulateEquityGrowth()"
+                            style="background: #10b981; color: white"
+                        >
+                            📈 Growth
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="simulateEquityDrawdown()"
+                            style="background: #ef4444; color: white"
+                        >
+                            📉 Decline
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearEquityCurve()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Drawdown:</label>
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="showDrawdown()"
+                            style="background: #ff6b6b; color: white"
+                        >
+                            📉 Show
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="showDrawdownWithWarning()"
+                            style="background: #ff0000; color: white"
+                        >
+                            ⚠️ With Warning
+                        </button>
+                        <button
+                            class="control-button"
+                            onclick="clearDrawdown()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Click-to-Trade Section -->
+                <div
+                    class="control-group"
+                    style="
+                        border-top: 1px solid rgba(143, 143, 143, 0.2);
+                        padding-top: 10px;
+                        margin-top: 10px;
+                    "
+                >
+                    <label>Click-to-Trade:</label>
+                    <div class="control-buttons">
+                        <button
+                            id="enable-click-to-trade-btn"
+                            class="control-button"
+                            onclick="enableClickToTradeMode()"
+                            style="background: #10b981; color: white"
+                        >
+                            Enable Click-to-Trade
+                        </button>
+                        <button
+                            id="disable-click-to-trade-btn"
+                            class="control-button"
+                            onclick="disableClickToTradeMode()"
+                            style="background: #ef4444; color: white"
+                        >
+                            Disable Click-to-Trade
+                        </button>
+                    </div>
+                    <div
+                        style="
+                            font-size: 11px;
+                            color: #888;
+                            margin-top: 8px;
+                            line-height: 1.4;
+                        "
+                    >
+                        Click chart to place order. Hold Shift to toggle
+                        buy/sell.
+                    </div>
+                </div>
+
+                <div id="trend-line-settings" style="display: none">
+                    <div class="control-group">
+                        <label style="color: #4caf50">Selected Line:</label>
+                        <div
+                            style="
+                                font-size: 11px;
+                                color: #888;
+                                margin-bottom: 10px;
+                            "
+                            id="selected-line-id"
+                        >
+                            -
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Name:</label>
+                        <input
+                            type="text"
+                            id="line-name"
+                            placeholder="Line name"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Description:</label>
+                        <textarea
+                            id="line-description"
+                            placeholder="Line description"
+                        ></textarea>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Color:</label>
+                        <input type="color" id="line-color" value="#2962ff" />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Width:</label>
+                        <input
+                            type="number"
+                            id="line-width"
+                            min="1"
+                            max="10"
+                            value="2"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Style:</label>
+                        <select id="line-style">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="extend-left"
+                                style="margin-right: 5px"
+                            />
+                            Extend Left
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="extend-right"
+                                style="margin-right: 5px"
+                            />
+                            Extend Right
+                        </label>
+                    </div>
+
+                    <div class="control-group">
+                        <label
+                            >Opacity:
+                            <span id="opacity-value">100%</span></label
+                        >
+                        <input
+                            type="range"
+                            id="line-opacity"
+                            min="0"
+                            max="100"
+                            value="100"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>Level Type:</label>
+                        <select id="level-type">
+                            <option value="">None</option>
+                            <option value="swing">Swing</option>
+                            <option value="horizontal">Horizontal</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Z-Index:</label>
+                        <input
+                            type="number"
+                            id="z-index"
+                            min="0"
+                            max="1000"
+                            value="0"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                id="markers-enabled"
+                                style="margin-right: 5px"
+                            />
+                            Enable Markers
+                        </label>
+                    </div>
+
+                    <div id="marker-settings" style="display: none">
+                        <div class="control-group">
+                            <label>Marker Symbol:</label>
+                            <select id="marker-symbol">
+                                <option value="diamond">Diamond</option>
+                                <option value="circle">Circle</option>
+                                <option value="square">Square</option>
+                                <option value="triangle">Triangle</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Size:</label>
+                            <input
+                                type="number"
+                                id="marker-size"
+                                min="1"
+                                max="20"
+                                value="4"
+                            />
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Spacing:</label>
+                            <input
+                                type="number"
+                                id="marker-spacing"
+                                min="10"
+                                max="500"
+                                value="100"
+                            />
+                        </div>
+
+                        <div class="control-group">
+                            <label>Marker Color:</label>
+                            <input
+                                type="color"
+                                id="marker-color"
+                                value="#2962ff"
+                            />
+                        </div>
+                    </div>
+
+                    <div
+                        class="control-group"
+                        style="
+                            border-top: 1px solid rgba(143, 143, 143, 0.2);
+                            padding-top: 10px;
+                            margin-top: 10px;
+                        "
+                    >
+                        <label>Presets:</label>
+                        <div class="control-buttons">
+                            <button
+                                class="control-button"
+                                onclick="applySwingSupport()"
+                                style="background: #4caf50"
+                            >
+                                Swing Support
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applySwingResistance()"
+                                style="background: #f44336"
+                            >
+                                Swing Resistance
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applyHorizontalSupport()"
+                                style="background: #66bb6a"
+                            >
+                                Horizontal Support
+                            </button>
+                            <button
+                                class="control-button"
+                                onclick="applyHorizontalResistance()"
+                                style="background: #ef5350"
+                            >
+                                Horizontal Resistance
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="control-buttons">
+                        <button
+                            class="control-button"
+                            onclick="deleteTrendLine()"
+                            style="background: #ff5252"
+                        >
+                            Delete Line
+                        </button>
+                    </div>
+                </div>
+
+                <div class="demo-status" id="demo-status">
+                    Initializing chart...
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Footer -->
+        <div class="event-footer">
+            <div class="event-footer-header">
+                <div class="event-footer-title">Chart Events Log</div>
+                <button class="event-footer-clear" onclick="clearEventLog()">
+                    Clear Log
+                </button>
+            </div>
+            <div class="event-log" id="event-log"></div>
+        </div>
+
+        <script>
+            // Chart API Demo functionality - Single Chart Version
+            let chartApi = null;
+            let selectedTrendLineId = null;
+            let isUpdatingUI = false;
+
+            // Event Log functionality
+            const MAX_EVENT_LOG_ENTRIES = 100;
+            let eventLogThrottle = {
+                "crosshair-moved": 0,
+            };
+
+            function addEventToLog(eventType, eventData) {
+                const eventLog = document.getElementById("event-log");
+                if (!eventLog) return;
+
+                if (eventType === "crosshair-moved") {
+                    const now = Date.now();
+                    if (now - eventLogThrottle["crosshair-moved"] < 500) {
+                        return;
+                    }
+                    eventLogThrottle["crosshair-moved"] = now;
+                }
+
+                const entry = document.createElement("div");
+                entry.className = `event-entry ${eventType}`;
+
+                const time = new Date().toLocaleTimeString("en-US", {
+                    hour12: false,
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    fractionalSecondDigits: 1,
+                });
+
+                const timeSpan = document.createElement("span");
+                timeSpan.className = "event-time";
+                timeSpan.textContent = time;
+
+                const typeSpan = document.createElement("span");
+                typeSpan.className = "event-type";
+                typeSpan.textContent = eventType;
+
+                const dataSpan = document.createElement("span");
+                dataSpan.className = "event-data";
+                dataSpan.textContent = formatEventData(eventType, eventData);
+
+                entry.appendChild(timeSpan);
+                entry.appendChild(typeSpan);
+                entry.appendChild(dataSpan);
+
+                eventLog.insertBefore(entry, eventLog.firstChild);
+
+                while (eventLog.children.length > MAX_EVENT_LOG_ENTRIES) {
+                    eventLog.removeChild(eventLog.lastChild);
+                }
+            }
+
+            function formatEventData(eventType, data) {
+                switch (eventType) {
+                    case "crosshair-moved":
+                        if (data.price === null || data.timestamp === null) {
+                            return "Left chart";
+                        }
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "chart-clicked":
+                        return `Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "chart-context-menu":
+                        return `Right-clicked at Price: $${data.price.toFixed(2)}, Time: ${new Date(data.timestamp).toLocaleTimeString()}`;
+
+                    case "time-marker-clicked":
+                        return `Marker: ${data.marker.label || "Unlabeled"} at ${new Date(data.marker.timestamp).toLocaleString()}`;
+
+                    case "time-marker-hovered":
+                        return `Hovering marker: ${data.marker.label || "Unlabeled"}`;
+
+                    case "risk-zone-clicked":
+                        return `Risk zone: ${data.zone.label || "Unlabeled"} ($${data.zone.startPrice.toFixed(2)} - $${data.zone.endPrice.toFixed(2)})`;
+
+                    case "risk-zone-hovered":
+                        return `Hovering risk zone: ${data.zone.label || "Unlabeled"}`;
+
+                    case "trade-marker-clicked":
+                        return `${data.marker.side.toUpperCase()} marker at $${data.marker.price.toFixed(2)}`;
+
+                    case "price-line-dragged":
+                        return `Line moved: $${data.oldPrice.toFixed(2)} → $${data.newPrice.toFixed(2)}`;
+
+                    case "trade-zone-clicked":
+                        return `Trade zone: Entry $${data.zone.entryPrice.toFixed(2)}, Exit $${data.zone.exitPrice.toFixed(2)}`;
+
+                    case "annotation-clicked":
+                        return `Annotation: ${data.annotation.text}`;
+
+                    case "annotation-dragged":
+                        const newDate = new Date(data.newTimestamp);
+                        return `Annotation moved to ${newDate.toLocaleTimeString()}`;
+
+                    case "status-update":
+                        return data.message;
+
+                    default:
+                        return JSON.stringify(data).substring(0, 100);
+                }
+            }
+
+            function clearEventLog() {
+                const eventLog = document.getElementById("event-log");
+                if (eventLog) {
+                    eventLog.innerHTML = "";
+                }
+            }
+
+            // Preset functions for support/resistance
+            function applySwingSupport() {
+                if (!chartApi || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: "#00FF00",
+                    lineWidth: 3,
+                    style: "solid",
+                    opacity: 0.9,
+                    levelType: "swing",
+                    zIndex: 100,
+                    markers: {
+                        enabled: true,
+                        symbol: "diamond",
+                        size: 4,
+                        spacing: 100,
+                        color: "#00FF00",
+                    },
+                };
+
+                chartApi.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus("Applied Swing Support preset");
+            }
+
+            function applySwingResistance() {
+                if (!chartApi || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: "#FF0000",
+                    lineWidth: 3,
+                    style: "solid",
+                    opacity: 0.9,
+                    levelType: "swing",
+                    zIndex: 100,
+                    markers: {
+                        enabled: true,
+                        symbol: "diamond",
+                        size: 4,
+                        spacing: 100,
+                        color: "#FF0000",
+                    },
+                };
+
+                chartApi.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus("Applied Swing Resistance preset");
+            }
+
+            function applyHorizontalSupport() {
+                if (!chartApi || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: "#66CC66",
+                    lineWidth: 1.5,
+                    style: "dashed",
+                    opacity: 0.7,
+                    levelType: "horizontal",
+                    zIndex: 90,
+                    markers: undefined,
+                };
+
+                chartApi.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus("Applied Horizontal Support preset");
+            }
+
+            function applyHorizontalResistance() {
+                if (!chartApi || !selectedTrendLineId) return;
+
+                const settings = {
+                    color: "#FF6666",
+                    lineWidth: 1.5,
+                    style: "dashed",
+                    opacity: 0.7,
+                    levelType: "horizontal",
+                    zIndex: 90,
+                    markers: undefined,
+                };
+
+                chartApi.updateTrendLineSettings(selectedTrendLineId, settings);
+                updateTrendLineUI({ ...settings, id: selectedTrendLineId });
+                updateStatus("Applied Horizontal Resistance preset");
+            }
+
+            async function changeSymbol(symbol) {
+                if (!chartApi) return;
+
+                try {
+                    updateStatus("Changing symbol...");
+                    await chartApi.setSymbol(symbol);
+                    updateStatus(`Symbol changed to ${symbol}`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            async function changeGranularity(granularity) {
+                if (!chartApi) return;
+
+                try {
+                    updateStatus("Changing timeframe...");
+                    await chartApi.setGranularity(granularity);
+                    updateStatus(`Timeframe changed to ${granularity}`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function toggleIndicator(id, name) {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.toggleIndicator(id, { name });
+                    updateStatus(`Toggled ${name} indicator`);
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            async function toggleFullscreen() {
+                if (!chartApi) return;
+
+                try {
+                    await chartApi.toggleFullscreen();
+                    updateStatus("Toggled fullscreen");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function toggleFullWindow() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.toggleFullWindow();
+                    updateStatus("Toggled full window");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function forceRedraw() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.redraw();
+                    updateStatus("Chart redrawn");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Screenshot functions
+            async function takeScreenshot() {
+                if (!chartApi) return;
+
+                try {
+                    updateStatus("Taking PNG screenshot...");
+                    const symbol = chartApi.getSymbol();
+                    const granularity = chartApi.getGranularity();
+                    const filename = `${symbol}-${granularity}-${Date.now()}.png`;
+
+                    await chartApi.downloadScreenshot(filename, {
+                        format: "png",
+                        quality: 1.0,
+                        scale: 2,
+                    });
+
+                    updateStatus(`Screenshot saved as ${filename}`);
+                } catch (error) {
+                    updateStatus(`Screenshot error: ${error.message}`);
+                }
+            }
+
+            async function takeScreenshotJPEG() {
+                if (!chartApi) return;
+
+                try {
+                    updateStatus("Taking JPEG screenshot...");
+                    const symbol = chartApi.getSymbol();
+                    const granularity = chartApi.getGranularity();
+                    const filename = `${symbol}-${granularity}-${Date.now()}.jpg`;
+
+                    await chartApi.downloadScreenshot(filename, {
+                        format: "jpeg",
+                        quality: 0.95,
+                        backgroundColor: "#1a1a1a",
+                        scale: 2,
+                    });
+
+                    updateStatus(`Screenshot saved as ${filename}`);
+                } catch (error) {
+                    updateStatus(`Screenshot error: ${error.message}`);
+                }
+            }
+
+            // Time Range functions
+            function getTimeRange() {
+                if (!chartApi) return;
+
+                try {
+                    const range = chartApi.getTimeRange();
+                    const startDate = new Date(range.start).toLocaleString();
+                    const endDate = new Date(range.end).toLocaleString();
+                    updateStatus(
+                        `Time Range:\\nStart: ${startDate}\\nEnd: ${endDate}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function zoomInTime() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const center = (currentRange.start + currentRange.end) / 2;
+                    const newDuration = duration * 0.5;
+
+                    chartApi.setTimeRange({
+                        start: center - newDuration / 2,
+                        end: center + newDuration / 2,
+                    });
+                    updateStatus("Zoomed in time 50%");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function zoomOutTime() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const center = (currentRange.start + currentRange.end) / 2;
+                    const newDuration = duration * 2;
+
+                    chartApi.setTimeRange({
+                        start: center - newDuration / 2,
+                        end: center + newDuration / 2,
+                    });
+                    updateStatus("Zoomed out time 200%");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function panLeft() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const shift = duration * 0.2;
+
+                    chartApi.setTimeRange({
+                        start: currentRange.start - shift,
+                        end: currentRange.end - shift,
+                    });
+                    updateStatus("Panned left");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function panRight() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getTimeRange();
+                    const duration = currentRange.end - currentRange.start;
+                    const shift = duration * 0.2;
+
+                    chartApi.setTimeRange({
+                        start: currentRange.start + shift,
+                        end: currentRange.end + shift,
+                    });
+                    updateStatus("Panned right");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Price Range functions
+            function getPriceRange() {
+                if (!chartApi) return;
+
+                try {
+                    const range = chartApi.getPriceRange();
+                    updateStatus(
+                        `Price Range:\\nMin: $${range.min.toFixed(2)}\\nMax: $${range.max.toFixed(2)}\\nRange: $${range.range.toFixed(2)}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function adjustPriceUp() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getPriceRange();
+                    const adjustment = currentRange.range * 0.1;
+
+                    chartApi.setPriceRange({
+                        min: currentRange.min - adjustment,
+                        max: currentRange.max + adjustment,
+                    });
+                    updateStatus("Expanded price range by 10%");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function adjustPriceDown() {
+                if (!chartApi) return;
+
+                try {
+                    const currentRange = chartApi.getPriceRange();
+                    const adjustment = currentRange.range * 0.1;
+
+                    chartApi.setPriceRange({
+                        min: currentRange.min + adjustment,
+                        max: currentRange.max - adjustment,
+                    });
+                    updateStatus("Contracted price range by 10%");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function resetPriceRange() {
+                if (!chartApi) return;
+
+                try {
+                    const state = chartApi.getState();
+                    const timeRange = chartApi.getTimeRange();
+                    const visibleCandles = state.priceHistory.getCandlesInRange(
+                        timeRange.start,
+                        timeRange.end,
+                    );
+
+                    if (visibleCandles.length > 0) {
+                        let minPrice = Infinity;
+                        let maxPrice = -Infinity;
+
+                        visibleCandles.forEach(([_, candle]) => {
+                            minPrice = Math.min(minPrice, candle.low);
+                            maxPrice = Math.max(maxPrice, candle.high);
+                        });
+
+                        const padding = (maxPrice - minPrice) * 0.05;
+                        chartApi.setPriceRange({
+                            min: minPrice - padding,
+                            max: maxPrice + padding,
+                        });
+                        updateStatus("Auto-fitted price range to visible data");
+                    } else {
+                        updateStatus(
+                            "No visible candles to determine price range",
+                        );
+                    }
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function activateTrendLine() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.activateTrendLineTool();
+                    updateStatus(
+                        "Trend line tool activated - click twice on chart",
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function clearTrendLines() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearTrendLines();
+                    selectedTrendLineId = null;
+                    document.getElementById(
+                        "trend-line-settings",
+                    ).style.display = "none";
+                    updateStatus("All trend lines cleared");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function deleteTrendLine() {
+                if (!chartApi || !selectedTrendLineId) return;
+
+                try {
+                    chartApi.removeTrendLine(selectedTrendLineId);
+                    selectedTrendLineId = null;
+                    document.getElementById(
+                        "trend-line-settings",
+                    ).style.display = "none";
+                    updateStatus("Trend line deleted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Pattern highlighting, trade markers, price lines, annotations, etc.
+            // (Include all the other API demo functions from the original file here)
+            // For brevity, I'll include just a few key ones:
+
+            function highlightBullishPatterns() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 20) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "bull_eng_1",
+                            type: "pattern",
+                            patternType: "bullish_engulfing",
+                            name: "Bullish Engulfing",
+                            description: "Strong bullish reversal pattern.",
+                            candleTimestamps: [candles[4][0], candles[5][0]],
+                            significance: "very high",
+                            color: "#10b981",
+                            style: "both",
+                        },
+                    ];
+
+                    chartApi.highlightPatterns(patterns);
+                    updateStatus("Bullish patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightBearishPatterns() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 20) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "bear_eng_1",
+                            type: "pattern",
+                            patternType: "bearish_engulfing",
+                            name: "Bearish Engulfing",
+                            description: "Strong bearish reversal pattern.",
+                            candleTimestamps: [candles[7][0], candles[8][0]],
+                            significance: "very high",
+                            color: "#dc2626",
+                            style: "both",
+                        },
+                    ];
+
+                    chartApi.highlightPatterns(patterns);
+                    updateStatus("Bearish patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightNeutralPatterns() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 15) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "doji_1",
+                            type: "pattern",
+                            patternType: "doji",
+                            name: "Doji",
+                            description: "Market indecision.",
+                            candleTimestamps: [candles[3][0]],
+                            significance: "medium",
+                            color: "#fbbf24",
+                            style: "outline",
+                        },
+                    ];
+
+                    chartApi.highlightPatterns(patterns);
+                    updateStatus("Neutral/Indecision patterns highlighted");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function highlightMixedPatterns() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 25) {
+                        updateStatus(
+                            "Not enough candles visible for pattern highlighting",
+                        );
+                        return;
+                    }
+
+                    const patterns = [
+                        {
+                            id: "mixed_1",
+                            type: "pattern",
+                            patternType: "bullish_engulfing",
+                            name: "Bullish Engulfing",
+                            description: "Bullish reversal at support level.",
+                            candleTimestamps: [candles[5][0], candles[6][0]],
+                            significance: "very high",
+                            color: "#10b981",
+                            style: "both",
+                        },
+                    ];
+
+                    chartApi.highlightPatterns(patterns);
+                    updateStatus(
+                        `${patterns.length} mixed patterns highlighted`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function clearPatternHighlights() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearPatternHighlights();
+                    updateStatus("All pattern highlights cleared");
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            function createPulseWave() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.pulseWave({
+                        speed: 20,
+                        color: "#ec4899",
+                        numCandles: 30,
+                    });
+                    updateStatus(
+                        "Pulsating wave effect started - press Clear to stop",
+                    );
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            }
+
+            // Trading overlay functions
+            function addBuyMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    chartApi.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "buy",
+                        shape: "arrow",
+                        size: "medium",
+                        text: "Entry",
+                        tooltip: {
+                            title: "Buy " + chartApi.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `Time: ${new Date(timestamp).toLocaleString()}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = chartApi.getTradeMarkers();
+                    updateStatus(
+                        `Added buy marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding buy marker: ${error.message}`);
+                }
+            }
+
+            function addSellMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add marker");
+                        return;
+                    }
+
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    chartApi.addTradeMarker({
+                        timestamp,
+                        price: candle.close,
+                        side: "sell",
+                        shape: "flag",
+                        size: "medium",
+                        text: "Exit",
+                        tooltip: {
+                            title: "Sell " + chartApi.getSymbol(),
+                            details: [
+                                "Qty: 0.5",
+                                `Price: $${candle.close.toFixed(2)}`,
+                                `P&L: +$${(Math.random() * 1000).toFixed(2)}`,
+                            ],
+                        },
+                        interactive: true,
+                    });
+
+                    const markers = chartApi.getTradeMarkers();
+                    updateStatus(
+                        `Added sell marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding sell marker: ${error.message}`);
+                }
+            }
+
+            function clearAllTradeMarkers() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearTradeMarkers();
+                    updateStatus("All trade markers cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing trade markers: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLimitOrderLine() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const price = priceRange.min + priceRange.range * 0.3;
+
+                    chartApi.addPriceLine({
+                        price,
+                        color: "#3b82f6",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Limit Buy @ $${price.toFixed(2)}`,
+                            position: "left",
+                            backgroundColor: "#3b82f6",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                    });
+
+                    const lines = chartApi.getPriceLines();
+                    updateStatus(
+                        `Added limit order line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding limit order line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addStopLossLine() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const price = priceRange.max - priceRange.range * 0.3;
+
+                    chartApi.addPriceLine({
+                        price,
+                        color: "#ef4444",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        label: {
+                            text: `Stop Loss @ $${price.toFixed(2)}`,
+                            position: "left",
+                            backgroundColor: "#ef4444",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                    });
+
+                    const lines = chartApi.getPriceLines();
+                    updateStatus(
+                        `Added stop loss line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding stop loss line: ${error.message}`,
+                    );
+                }
+            }
+
+            function addTakeProfitLine() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const price = priceRange.max + priceRange.range * 0.1;
+
+                    chartApi.addPriceLine({
+                        price,
+                        color: "#10b981",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        label: {
+                            text: `Take Profit @ $${price.toFixed(2)}`,
+                            position: "right",
+                            backgroundColor: "#10b981",
+                            textColor: "#ffffff",
+                        },
+                        draggable: true,
+                        extendLeft: true,
+                        extendRight: true,
+                        interactive: true,
+                        showPriceLabel: true,
+                    });
+
+                    const lines = chartApi.getPriceLines();
+                    updateStatus(
+                        `Added take profit line. Total lines: ${lines.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding take profit line: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllPriceLines() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearPriceLines();
+                    updateStatus("All price lines cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing price lines: ${error.message}`,
+                    );
+                }
+            }
+
+            function showLongPosition() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.6;
+                    const quantity = 0.5;
+                    const unrealizedPnL =
+                        (currentPrice - entryPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((currentPrice - entryPrice) / entryPrice) * 100;
+
+                    chartApi.setPositionOverlay({
+                        symbol: chartApi.getSymbol(),
+                        quantity,
+                        side: "long",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-right",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(0, 0, 0, 0.9)",
+                        textColor: "#ffffff",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Long position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing long position: ${error.message}`,
+                    );
+                }
+            }
+
+            function showShortPosition() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const currentPrice =
+                        priceRange.min + priceRange.range * 0.5;
+                    const quantity = 1.0;
+                    const unrealizedPnL =
+                        (entryPrice - currentPrice) * quantity;
+                    const unrealizedPnLPercent =
+                        ((entryPrice - currentPrice) / entryPrice) * 100;
+
+                    chartApi.setPositionOverlay({
+                        symbol: chartApi.getSymbol(),
+                        quantity,
+                        side: "short",
+                        entryPrice,
+                        currentPrice,
+                        unrealizedPnL,
+                        unrealizedPnLPercent,
+                        position: "top-left",
+                        showEntryLine: true,
+                        entryLineColor: "#6b7280",
+                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                        textColor: "#000000",
+                        opacity: 0.9,
+                        compact: false,
+                    });
+
+                    updateStatus(
+                        `Short position overlay shown: ${quantity} @ $${entryPrice.toFixed(2)}, P&L: $${unrealizedPnL.toFixed(2)} (${unrealizedPnLPercent.toFixed(2)}%)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing short position: ${error.message}`,
+                    );
+                }
+            }
+
+            function togglePositionCompact() {
+                if (!chartApi) return;
+
+                try {
+                    const currentPosition = chartApi.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to toggle");
+                        return;
+                    }
+
+                    const isCurrentlyCompact = currentPosition.compact == true;
+
+                    chartApi.updatePositionOverlay({
+                        compact: !isCurrentlyCompact,
+                    });
+
+                    updateStatus(
+                        `Position overlay toggled to ${!isCurrentlyCompact ? "compact" : "full"} view`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error toggling position compact: ${error.message}`,
+                    );
+                }
+            }
+
+            function hidePositionOverlay() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.setPositionOverlay(null);
+                    updateStatus("Position overlay hidden");
+                } catch (error) {
+                    updateStatus(
+                        `Error hiding position overlay: ${error.message}`,
+                    );
+                }
+            }
+
+            function simulatePnLUpdate() {
+                if (!chartApi) return;
+
+                try {
+                    const currentPosition = chartApi.getPositionOverlay();
+                    if (!currentPosition) {
+                        updateStatus("No position overlay to update");
+                        return;
+                    }
+
+                    const priceChange =
+                        currentPosition.currentPrice *
+                        (Math.random() * 0.04 - 0.02);
+                    const newPrice = currentPosition.currentPrice + priceChange;
+
+                    let newPnL, newPnLPercent;
+                    if (currentPosition.side === "long") {
+                        newPnL =
+                            (newPrice - currentPosition.entryPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((newPrice - currentPosition.entryPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    } else {
+                        newPnL =
+                            (currentPosition.entryPrice - newPrice) *
+                            currentPosition.quantity;
+                        newPnLPercent =
+                            ((currentPosition.entryPrice - newPrice) /
+                                currentPosition.entryPrice) *
+                            100;
+                    }
+
+                    chartApi.updatePositionOverlay({
+                        currentPrice: newPrice,
+                        unrealizedPnL: newPnL,
+                        unrealizedPnLPercent: newPnLPercent,
+                    });
+
+                    updateStatus(
+                        `P&L updated: $${newPnL.toFixed(2)} (${newPnLPercent.toFixed(2)}%) @ $${newPrice.toFixed(2)}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error updating P&L: ${error.message}`);
+                }
+            }
+
+            function addProfitableTradeZone() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
+                        return;
+                    }
+
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
+                    const duration = 5 + Math.floor(Math.random() * 8);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 1.03;
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    chartApi.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        textColor: "#ffffff",
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = chartApi.getTradeZones();
+                    updateStatus(
+                        `Added profitable trade zone (+${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding profitable trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLosingTradeZone() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length < 10) {
+                        updateStatus(
+                            "Not enough candles visible to add trade zone",
+                        );
+                        return;
+                    }
+
+                    const startIndex = Math.floor(
+                        Math.random() * (candles.length - 10),
+                    );
+                    const duration = 3 + Math.floor(Math.random() * 5);
+                    const endIndex = Math.min(
+                        startIndex + duration,
+                        candles.length - 1,
+                    );
+
+                    const startTimestamp = candles[startIndex][0];
+                    const endTimestamp = candles[endIndex][0];
+                    const entryPrice = candles[startIndex][1].close;
+                    const exitPrice = entryPrice * 0.98;
+
+                    const quantity = 0.1 + Math.random() * 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    chartApi.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = chartApi.getTradeZones();
+                    updateStatus(
+                        `Added losing trade zone (${pnlPercent.toFixed(2)}%). Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding losing trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLongTradeZone() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const priceRange = chartApi.getPriceRange();
+
+                    const duration = (timeRange.end - timeRange.start) * 0.2;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.4;
+                    const exitPrice = priceRange.min + priceRange.range * 0.6;
+
+                    const quantity = 0.5;
+                    const pnl = (exitPrice - entryPrice) * quantity;
+                    const pnlPercent =
+                        ((exitPrice - entryPrice) / entryPrice) * 100;
+
+                    chartApi.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "long",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = chartApi.getTradeZones();
+                    updateStatus(
+                        `Added long trade zone. Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding long trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addShortTradeZone() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const priceRange = chartApi.getPriceRange();
+
+                    const duration = (timeRange.end - timeRange.start) * 0.15;
+                    const startTimestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
+                    const endTimestamp = startTimestamp + duration;
+
+                    const entryPrice = priceRange.min + priceRange.range * 0.7;
+                    const exitPrice = priceRange.min + priceRange.range * 0.5;
+
+                    const quantity = 0.3;
+                    const pnl = (entryPrice - exitPrice) * quantity;
+                    const pnlPercent =
+                        ((entryPrice - exitPrice) / entryPrice) * 100;
+
+                    chartApi.addTradeZone({
+                        startTimestamp,
+                        endTimestamp,
+                        entryPrice,
+                        exitPrice,
+                        metadata: {
+                            side: "short",
+                            quantity,
+                            pnl,
+                            pnlPercent,
+                        },
+                    });
+
+                    const zones = chartApi.getTradeZones();
+                    updateStatus(
+                        `Added short trade zone. Total zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding short trade zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllTradeZones() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearTradeZones();
+                    updateStatus("All trade zones cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing trade zones: ${error.message}`,
+                    );
+                }
+            }
+
+            function addNoteAnnotation() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    chartApi.addAnnotation({
+                        timestamp,
+                        price: candle.close,
+                        text: "Important Level",
+                        type: "note",
+                        position: "above",
+                        icon: "📝",
+                        color: "#ffffff",
+                        backgroundColor: "rgba(139, 92, 246, 0.5)",
+                        showLine: true,
+                        lineStyle: "dashed",
+                    });
+
+                    const annotations = chartApi.getAnnotations();
+                    updateStatus(
+                        `Added note annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding note annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addAlertAnnotation() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    chartApi.addAnnotation({
+                        timestamp,
+                        price: candle.high,
+                        text: "Price Alert",
+                        type: "alert",
+                        position: "right",
+                        icon: "🔔",
+                        color: "#ffffff",
+                        backgroundColor: "#f59e0b",
+                        borderColor: "#d97706",
+                        showLine: true,
+                        lineStyle: "solid",
+                    });
+
+                    const annotations = chartApi.getAnnotations();
+                    updateStatus(
+                        `Added alert annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding alert annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addMilestoneAnnotation() {
+                if (!chartApi) return;
+
+                try {
+                    const candles = chartApi.getCandles();
+                    if (candles.length === 0) {
+                        updateStatus("No candles visible to add annotation");
+                        return;
+                    }
+
+                    const randomIndex = Math.floor(
+                        Math.random() * candles.length,
+                    );
+                    const [timestamp, candle] = candles[randomIndex];
+
+                    chartApi.addAnnotation({
+                        timestamp,
+                        price: candle.low,
+                        text: "Milestone",
+                        type: "milestone",
+                        position: "below",
+                        icon: "🏁",
+                        color: "#ffffff",
+                        backgroundColor: "#10b981",
+                        borderColor: "#059669",
+                        showLine: true,
+                        lineStyle: "dotted",
+                    });
+
+                    const annotations = chartApi.getAnnotations();
+                    updateStatus(
+                        `Added milestone annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding milestone annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function addDraggableAnnotation() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const priceRange = chartApi.getPriceRange();
+
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.5;
+                    const price = priceRange.min + priceRange.range * 0.5;
+
+                    chartApi.addAnnotation({
+                        timestamp,
+                        price,
+                        text: "Drag Me!",
+                        type: "custom",
+                        position: "left",
+                        icon: "✋",
+                        color: "#ffffff",
+                        backgroundColor: "#3b82f6",
+                        borderColor: "#2563eb",
+                        draggable: true,
+                        showLine: true,
+                        lineStyle: "solid",
+                        fontSize: 14,
+                    });
+
+                    const annotations = chartApi.getAnnotations();
+                    updateStatus(
+                        `Added draggable annotation. Total annotations: ${annotations.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding draggable annotation: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllAnnotations() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearAnnotations();
+                    updateStatus("All annotations cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing annotations: ${error.message}`,
+                    );
+                }
+            }
+
+            function addNewsReleaseMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.3;
+
+                    chartApi.addTimeMarker({
+                        timestamp,
+                        label: "News Release",
+                        color: "#ff6b6b",
+                        lineStyle: "solid",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = chartApi.getTimeMarkers();
+                    updateStatus(
+                        `Added news release marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding news marker: ${error.message}`);
+                }
+            }
+
+            function addMarketOpenMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.4;
+
+                    chartApi.addTimeMarker({
+                        timestamp,
+                        label: "Market Open",
+                        color: "#4ade80",
+                        lineStyle: "dashed",
+                        lineWidth: 2,
+                        showLabel: true,
+                        labelPosition: "bottom",
+                    });
+
+                    const markers = chartApi.getTimeMarkers();
+                    updateStatus(
+                        `Added market open marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding market open marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function addEarningsMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.6;
+
+                    chartApi.addTimeMarker({
+                        timestamp,
+                        label: "Earnings Report",
+                        color: "#fbbf24",
+                        lineStyle: "dotted",
+                        lineWidth: 3,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = chartApi.getTimeMarkers();
+                    updateStatus(
+                        `Added earnings marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding earnings marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function addCustomTimeMarker() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const timestamp =
+                        timeRange.start +
+                        (timeRange.end - timeRange.start) * 0.75;
+
+                    chartApi.addTimeMarker({
+                        timestamp,
+                        label: "Custom Event",
+                        color: "#8b5cf6",
+                        lineStyle: "solid",
+                        lineWidth: 1,
+                        showLabel: true,
+                        labelPosition: "top",
+                    });
+
+                    const markers = chartApi.getTimeMarkers();
+                    updateStatus(
+                        `Added custom marker. Total markers: ${markers.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding custom marker: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllTimeMarkers() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearTimeMarkers();
+                    updateStatus("All time markers cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing time markers: ${error.message}`,
+                    );
+                }
+            }
+
+            function addStopLossZone() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const startPrice = priceRange.min * 0.96;
+                    const endPrice = priceRange.min * 0.98;
+
+                    chartApi.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Stop Loss Zone",
+                        color: "#ef4444",
+                        opacity: 0.15,
+                        pattern: "striped",
+                        borderColor: "#dc2626",
+                        borderWidth: 1,
+                    });
+
+                    const zones = chartApi.getRiskZones();
+                    updateStatus(
+                        `Added stop loss zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding stop loss zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addSupportZone() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const startPrice = priceRange.min * 1.02;
+                    const endPrice = priceRange.min * 1.04;
+
+                    chartApi.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Support Zone",
+                        color: "#10b981",
+                        opacity: 0.12,
+                        pattern: "dotted",
+                        borderColor: "#059669",
+                        borderWidth: 1,
+                    });
+
+                    const zones = chartApi.getRiskZones();
+                    updateStatus(
+                        `Added support zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error adding support zone: ${error.message}`);
+                }
+            }
+
+            function addResistanceZone() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const startPrice = priceRange.max * 0.96;
+                    const endPrice = priceRange.max * 0.98;
+
+                    chartApi.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Resistance Zone",
+                        color: "#f59e0b",
+                        opacity: 0.1,
+                        pattern: "solid",
+                    });
+
+                    const zones = chartApi.getRiskZones();
+                    updateStatus(
+                        `Added resistance zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding resistance zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function addLiquidationZone() {
+                if (!chartApi) return;
+
+                try {
+                    const priceRange = chartApi.getPriceRange();
+                    const startPrice = priceRange.max * 1.02;
+                    const endPrice = priceRange.max * 1.04;
+
+                    chartApi.addRiskZone({
+                        startPrice,
+                        endPrice,
+                        label: "Liquidation Risk",
+                        color: "#dc2626",
+                        opacity: 0.18,
+                        pattern: "striped",
+                    });
+
+                    const zones = chartApi.getRiskZones();
+                    updateStatus(
+                        `Added liquidation zone. Total risk zones: ${zones.length}`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error adding liquidation zone: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearAllRiskZones() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.clearRiskZones();
+                    updateStatus("All risk zones cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing risk zones: ${error.message}`);
+                }
+            }
+
+            // Equity Curve functions
+            function showEquityCurve() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate sample equity curve data
+                    const points = [];
+                    const numPoints = 50;
+                    let equity = 10000; // Starting equity
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+                        // Simulate some realistic equity movement
+                        const change = (Math.random() - 0.45) * 200; // Slight upward bias
+                        equity += change;
+                        equity = Math.max(8000, equity); // Floor at 8000
+
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: "#8b5cf6",
+                            lineWidth: 2,
+                            fillArea: false,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    updateStatus(
+                        `Equity curve displayed with ${points.length} points`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing equity curve: ${error.message}`,
+                    );
+                }
+            }
+
+            function showEquityCurveWithArea() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate sample equity curve data with area fill
+                    const points = [];
+                    const numPoints = 60;
+                    let equity = 10000;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+                        // Smoother curve for area visualization
+                        const trend = Math.sin(i * 0.2) * 500;
+                        const noise = (Math.random() - 0.5) * 100;
+                        equity += trend * 0.1 + noise;
+                        equity = Math.max(8500, equity);
+
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: "#6366f1",
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: "#6366f1",
+                            areaOpacity: 0.3,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    updateStatus(
+                        `Equity curve with area displayed (${points.length} points)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing equity curve with area: ${error.message}`,
+                    );
+                }
+            }
+
+            function showEquityCurveWithPeak() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate volatile equity curve to show peak tracking
+                    const points = [];
+                    const numPoints = 40;
+                    let equity = 10000;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+                        // More volatile pattern
+                        const volatility =
+                            Math.sin(i * 0.3) * Math.cos(i * 0.1) * 800;
+                        equity += volatility + (Math.random() - 0.5) * 300;
+                        equity = Math.max(7500, Math.min(12500, equity));
+
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: "#ec4899",
+                            lineWidth: 3,
+                            showPeakLine: true,
+                            peakLineColor: "#666",
+                            peakLineStyle: "dotted",
+                            fillArea: false,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    updateStatus(
+                        `Equity curve with peak line displayed (${points.length} points)`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing equity curve with peak: ${error.message}`,
+                    );
+                }
+            }
+
+            function simulateEquityGrowth() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate growing equity curve
+                    const points = [];
+                    const numPoints = 80;
+                    let equity = 10000;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+                        // Upward trend with occasional pullbacks
+                        const growth = Math.pow(1.02, i / 10); // Exponential growth
+                        const pullback = i % 10 === 0 ? -200 : 0; // Periodic pullbacks
+                        const noise = (Math.random() - 0.4) * 50;
+
+                        equity = 10000 * growth + pullback + noise;
+
+                        points.push({
+                            timestamp,
+                            equity: equity,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
+                        visible: true,
+                        params: {
+                            data: points,
+                            lineColor: "#10b981",
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: "#10b981",
+                            areaOpacity: 0.3,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    const totalReturn = (
+                        ((equity - 10000) / 10000) *
+                        100
+                    ).toFixed(2);
+                    updateStatus(`Growth simulation: +${totalReturn}% return`);
+                } catch (error) {
+                    updateStatus(
+                        `Error simulating equity growth: ${error.message}`,
+                    );
+                }
+            }
+
+            function simulateEquityDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate drawdown scenario
+                    const equityPoints = [];
+                    const numPoints = 70;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+
+                        // Create drawdown pattern
+                        if (i < 20) {
+                            // Initial growth
+                            equity += (Math.random() - 0.3) * 100;
+                        } else if (i < 40) {
+                            // Sharp drawdown
+                            equity -= Math.random() * 150;
+                        } else if (i < 55) {
+                            // Recovery attempt
+                            equity += (Math.random() - 0.2) * 80;
+                        } else {
+                            // Sideways/slight recovery
+                            equity += (Math.random() - 0.4) * 50;
+                        }
+
+                        equity = Math.max(6000, equity); // Floor at 6000
+                        highWaterMark = Math.max(highWaterMark, equity);
+
+                        equityPoints.push({
+                            timestamp,
+                            equity: equity,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "equity-curve",
+                        name: "Portfolio Equity",
+                        visible: true,
+                        params: {
+                            data: equityPoints,
+                            lineColor: "#ef4444",
+                            lineWidth: 2,
+                            fillArea: true,
+                            areaColor: "#ef4444",
+                            areaOpacity: 0.3,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    const finalEquity =
+                        equityPoints[equityPoints.length - 1].equity;
+                    const maxDrawdown = (
+                        ((highWaterMark - 6000) / highWaterMark) *
+                        100
+                    ).toFixed(1);
+                    updateStatus(`Drawdown simulation: Max DD ${maxDrawdown}%`);
+                } catch (error) {
+                    updateStatus(`Error simulating drawdown: ${error.message}`);
+                }
+            }
+
+            function clearEquityCurve() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.hideIndicator("equity-curve");
+                    updateStatus("Equity curve cleared");
+                } catch (error) {
+                    updateStatus(
+                        `Error clearing equity curve: ${error.message}`,
+                    );
+                }
+            }
+
+            // Drawdown Indicator functions
+            function showDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate sample drawdown data
+                    const drawdownPoints = [];
+                    const numPoints = 50;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+                        const change = (Math.random() - 0.45) * 200;
+                        equity += change;
+                        equity = Math.max(8000, equity);
+                        highWaterMark = Math.max(highWaterMark, equity);
+
+                        const drawdownPercent = -(
+                            ((highWaterMark - equity) / highWaterMark) *
+                            100
+                        );
+
+                        drawdownPoints.push({
+                            timestamp,
+                            drawdownPercent: drawdownPercent,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "drawdown",
+                        name: "Drawdown %",
+                        visible: true,
+                        params: {
+                            data: drawdownPoints,
+                            fillColor: "#ff6b6b",
+                            fillOpacity: 0.3,
+                            showZeroLine: true,
+                            invertYAxis: true,
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    updateStatus(
+                        `Drawdown indicator displayed with ${drawdownPoints.length} points`,
+                    );
+                } catch (error) {
+                    updateStatus(`Error showing drawdown: ${error.message}`);
+                }
+            }
+
+            function showDrawdownWithWarning() {
+                if (!chartApi) return;
+
+                try {
+                    const timeRange = chartApi.getTimeRange();
+                    const duration = timeRange.end - timeRange.start;
+                    const startTime = timeRange.start;
+
+                    // Generate drawdown data with severe drawdowns
+                    const drawdownPoints = [];
+                    const numPoints = 70;
+                    let equity = 10000;
+                    let highWaterMark = equity;
+
+                    for (let i = 0; i < numPoints; i++) {
+                        const timestamp =
+                            startTime + (duration * i) / numPoints;
+
+                        if (i < 20) {
+                            equity += (Math.random() - 0.3) * 100;
+                        } else if (i < 40) {
+                            equity -= Math.random() * 150;
+                        } else if (i < 55) {
+                            equity += (Math.random() - 0.2) * 80;
+                        } else {
+                            equity += (Math.random() - 0.4) * 50;
+                        }
+
+                        equity = Math.max(6000, equity);
+                        highWaterMark = Math.max(highWaterMark, equity);
+
+                        const drawdownPercent = -(
+                            ((highWaterMark - equity) / highWaterMark) *
+                            100
+                        );
+
+                        drawdownPoints.push({
+                            timestamp,
+                            drawdownPercent: drawdownPercent,
+                        });
+                    }
+
+                    chartApi.showIndicator({
+                        id: "drawdown",
+                        name: "Drawdown %",
+                        visible: true,
+                        params: {
+                            data: drawdownPoints,
+                            fillColor: "#ff6b6b",
+                            fillOpacity: 0.3,
+                            showZeroLine: true,
+                            invertYAxis: true,
+                            warnThreshold: -15, // Highlight drawdowns > 15%
+                            warnColor: "#ff0000",
+                        },
+                        display: "stack-bottom",
+                        skipFetch: true,
+                    });
+
+                    const maxDrawdown = Math.min(
+                        ...drawdownPoints.map((p) => p.drawdownPercent),
+                    );
+                    updateStatus(
+                        `Drawdown with warning threshold: Max DD ${Math.abs(maxDrawdown).toFixed(1)}%`,
+                    );
+                } catch (error) {
+                    updateStatus(
+                        `Error showing drawdown with warning: ${error.message}`,
+                    );
+                }
+            }
+
+            function clearDrawdown() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.hideIndicator("drawdown");
+                    updateStatus("Drawdown indicator cleared");
+                } catch (error) {
+                    updateStatus(`Error clearing drawdown: ${error.message}`);
+                }
+            }
+
+            function enableClickToTradeMode() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.enableClickToTrade({
+                        enabled: true,
+                        defaultSide: "buy",
+                        showCrosshair: true,
+                        showPriceLabel: true,
+                        showOrderPreview: true,
+                        allowSideToggle: true,
+                        clickBehavior: "single",
+                    });
+
+                    chartApi.on("order-request", (data) => {
+                        const modifiers = [];
+                        if (data.modifiers.shift) modifiers.push("Shift");
+                        if (data.modifiers.ctrl) modifiers.push("Ctrl");
+                        if (data.modifiers.alt) modifiers.push("Alt");
+
+                        const timestamp = new Date(data.timestamp);
+                        const timeStr = timestamp.toLocaleTimeString();
+                        const dateStr = timestamp.toLocaleDateString();
+
+                        updateStatus(
+                            `ORDER REQUEST:\n` +
+                                `Side: ${data.side.toUpperCase()}\n` +
+                                `Price: $${data.price.toFixed(2)}\n` +
+                                `Time: ${dateStr} ${timeStr}\n` +
+                                `Modifiers: ${modifiers.join(", ") || "None"}`,
+                        );
+                    });
+
+                    updateStatus(
+                        "Click-to-Trade ENABLED\nClick on chart to place orders\nHold Shift to toggle buy/sell",
+                    );
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(
+                        `Error enabling click-to-trade: ${error.message}`,
+                    );
+                }
+            }
+
+            function disableClickToTradeMode() {
+                if (!chartApi) return;
+
+                try {
+                    chartApi.disableClickToTrade();
+                    updateStatus("Click-to-Trade DISABLED");
+                    updateActiveButtons();
+                } catch (error) {
+                    updateStatus(
+                        `Error disabling click-to-trade: ${error.message}`,
+                    );
+                }
+            }
+
+            function updateTrendLineUI(trendLine) {
+                isUpdatingUI = true;
+
+                document.getElementById("selected-line-id").textContent =
+                    trendLine.id.substring(0, 20) + "...";
+                document.getElementById("line-name").value =
+                    trendLine.name || "";
+                document.getElementById("line-description").value =
+                    trendLine.description || "";
+                document.getElementById("line-color").value =
+                    trendLine.color || "#2962ff";
+                document.getElementById("line-width").value =
+                    trendLine.lineWidth || 2;
+                document.getElementById("line-style").value =
+                    trendLine.style || "solid";
+                document.getElementById("extend-left").checked =
+                    trendLine.extendLeft || false;
+                document.getElementById("extend-right").checked =
+                    trendLine.extendRight || false;
+
+                const opacity = (trendLine.opacity ?? 1.0) * 100;
+                document.getElementById("line-opacity").value = opacity;
+                document.getElementById("opacity-value").textContent =
+                    Math.round(opacity) + "%";
+                document.getElementById("level-type").value =
+                    trendLine.levelType || "";
+                document.getElementById("z-index").value =
+                    trendLine.zIndex || 0;
+
+                const markersEnabled = trendLine.markers?.enabled || false;
+                document.getElementById("markers-enabled").checked =
+                    markersEnabled;
+                document.getElementById("marker-settings").style.display =
+                    markersEnabled ? "block" : "none";
+
+                if (markersEnabled && trendLine.markers) {
+                    document.getElementById("marker-symbol").value =
+                        trendLine.markers.symbol || "diamond";
+                    document.getElementById("marker-size").value =
+                        trendLine.markers.size || 4;
+                    document.getElementById("marker-spacing").value =
+                        trendLine.markers.spacing || 100;
+                    document.getElementById("marker-color").value =
+                        trendLine.markers.color || trendLine.color || "#2962ff";
+                }
+
+                isUpdatingUI = false;
+            }
+
+            function setupTrendLineControls() {
+                // Name change
+                document
+                    .getElementById("line-name")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    name: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line name updated`);
+                        }
+                    });
+
+                // Description change
+                document
+                    .getElementById("line-description")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    description: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line description updated`);
+                        }
+                    });
+
+                // Color change
+                document
+                    .getElementById("line-color")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    color: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line color changed`);
+                        }
+                    });
+
+                // Width change
+                document
+                    .getElementById("line-width")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    lineWidth: parseInt(e.target.value),
+                                },
+                            );
+                            updateStatus(`Line width changed`);
+                        }
+                    });
+
+                // Style change
+                document
+                    .getElementById("line-style")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    style: e.target.value,
+                                },
+                            );
+                            updateStatus(`Line style changed`);
+                        }
+                    });
+
+                // Extend left change
+                document
+                    .getElementById("extend-left")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    extendLeft: e.target.checked,
+                                },
+                            );
+                            updateStatus(`Extend left: ${e.target.checked}`);
+                        }
+                    });
+
+                // Extend right change
+                document
+                    .getElementById("extend-right")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    extendRight: e.target.checked,
+                                },
+                            );
+                            updateStatus(`Extend right: ${e.target.checked}`);
+                        }
+                    });
+
+                // Opacity change
+                document
+                    .getElementById("line-opacity")
+                    .addEventListener("input", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const opacity = parseInt(e.target.value) / 100;
+                        document.getElementById("opacity-value").textContent =
+                            e.target.value + "%";
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    opacity,
+                                },
+                            );
+                            updateStatus(`Opacity: ${e.target.value}%`);
+                        }
+                    });
+
+                // Level type change
+                document
+                    .getElementById("level-type")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    levelType: e.target.value || undefined,
+                                },
+                            );
+                            updateStatus(
+                                `Level type: ${e.target.value || "none"}`,
+                            );
+                        }
+                    });
+
+                // Z-index change
+                document
+                    .getElementById("z-index")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        if (chartApi) {
+                            chartApi.updateTrendLineSettings(
+                                selectedTrendLineId,
+                                {
+                                    zIndex: parseInt(e.target.value),
+                                },
+                            );
+                            updateStatus(`Z-index: ${e.target.value}`);
+                        }
+                    });
+
+                // Markers enabled change
+                document
+                    .getElementById("markers-enabled")
+                    .addEventListener("change", (e) => {
+                        if (isUpdatingUI || !selectedTrendLineId) return;
+                        const enabled = e.target.checked;
+                        document.getElementById(
+                            "marker-settings",
+                        ).style.display = enabled ? "block" : "none";
+                        if (chartApi) {
+                            if (enabled) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                            } else {
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers: undefined },
+                                );
+                            }
+                            updateStatus(
+                                `Markers: ${enabled ? "enabled" : "disabled"}`,
+                            );
+                        }
+                    });
+
+                // Marker settings changes
+                [
+                    "marker-symbol",
+                    "marker-size",
+                    "marker-spacing",
+                    "marker-color",
+                ].forEach((id) => {
+                    document
+                        .getElementById(id)
+                        .addEventListener("change", (e) => {
+                            if (isUpdatingUI || !selectedTrendLineId) return;
+                            if (
+                                chartApi &&
+                                document.getElementById("markers-enabled")
+                                    .checked
+                            ) {
+                                const markers = {
+                                    enabled: true,
+                                    symbol: document.getElementById(
+                                        "marker-symbol",
+                                    ).value,
+                                    size: parseInt(
+                                        document.getElementById("marker-size")
+                                            .value,
+                                    ),
+                                    spacing: parseInt(
+                                        document.getElementById(
+                                            "marker-spacing",
+                                        ).value,
+                                    ),
+                                    color: document.getElementById(
+                                        "marker-color",
+                                    ).value,
+                                };
+                                chartApi.updateTrendLineSettings(
+                                    selectedTrendLineId,
+                                    { markers },
+                                );
+                                updateStatus(`Marker settings updated`);
+                            }
+                        });
+                });
+            }
+
+            function updateStatus(message) {
+                const statusEl = document.getElementById("demo-status");
+
+                if (!chartApi) {
+                    statusEl.textContent = "No chart API available";
+                    return;
+                }
+
+                if (message) {
+                    if (
+                        !message.includes("Symbol:") &&
+                        !message.includes("Timeframe:")
+                    ) {
+                        addEventToLog("status-update", { message });
+                    }
+                    statusEl.textContent = message;
+                    return;
+                }
+
+                try {
+                    const status = `Symbol: ${chartApi.getSymbol()}
+Timeframe: ${chartApi.getGranularity()}
+Loading: ${chartApi.isLoading()}
+Indicators: ${
+                        chartApi
+                            .getVisibleIndicators()
+                            .map((i) => i.id)
+                            .join(", ") || "None"
+                    }`;
+                    statusEl.textContent = status;
+                } catch (error) {
+                    statusEl.textContent = `Error getting status: ${error.message}`;
+                }
+            }
+
+            function updateActiveButtons() {
+                if (!chartApi) return;
+
+                try {
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            btn.classList.remove("active");
+                        });
+
+                    const currentSymbol = chartApi.getSymbol();
+                    const currentGranularity = chartApi.getGranularity();
+
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const text = btn.textContent.trim();
+                            if (
+                                text === currentSymbol ||
+                                (text === "1m" &&
+                                    currentGranularity === "ONE_MINUTE") ||
+                                (text === "5m" &&
+                                    currentGranularity === "FIVE_MINUTE") ||
+                                (text === "15m" &&
+                                    currentGranularity === "FIFTEEN_MINUTE") ||
+                                (text === "1h" &&
+                                    currentGranularity === "ONE_HOUR") ||
+                                (text === "6h" &&
+                                    currentGranularity === "SIX_HOUR") ||
+                                (text === "1d" &&
+                                    currentGranularity === "ONE_DAY")
+                            ) {
+                                btn.classList.add("active");
+                            }
+                        });
+
+                    document
+                        .querySelectorAll(".control-button")
+                        .forEach((btn) => {
+                            const onclick = btn.getAttribute("onclick");
+                            if (
+                                onclick &&
+                                onclick.includes("toggleIndicator")
+                            ) {
+                                const match = onclick.match(
+                                    /toggleIndicator\('([^']+)'/,
+                                );
+                                if (match) {
+                                    const indicatorId = match[1];
+                                    if (
+                                        chartApi.isIndicatorVisible(indicatorId)
+                                    ) {
+                                        btn.classList.add("active");
+                                    }
+                                }
+                            }
+                        });
+
+                    const enableBtn = document.getElementById(
+                        "enable-click-to-trade-btn",
+                    );
+                    const disableBtn = document.getElementById(
+                        "disable-click-to-trade-btn",
+                    );
+
+                    if (enableBtn && disableBtn) {
+                        const isEnabled = chartApi.isClickToTradeEnabled();
+
+                        if (isEnabled) {
+                            enableBtn.classList.add("active");
+                            disableBtn.classList.remove("active");
+                        } else {
+                            enableBtn.classList.remove("active");
+                            disableBtn.classList.add("active");
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error updating buttons:", error);
+                }
+            }
+
+            function setupChartEventListeners() {
+                if (window.chartApi1) {
+                    chartApi = window.chartApi1;
+                    console.log("Chart API connected");
+
+                    chartApi.on("ready", (data) => {
+                        console.log(`Chart ready for ${data.symbol}`);
+                        updateStatus(`Chart ready`);
+                        updateActiveButtons();
+                    });
+
+                    // Trend line events
+                    chartApi.on("trend-line-selected", (data) => {
+                        selectedTrendLineId = data.trendLineId;
+                        document.getElementById(
+                            "trend-line-settings",
+                        ).style.display = "block";
+                        updateTrendLineUI(data.trendLine);
+                        updateStatus(
+                            `Trend line selected: ${data.trendLineId.substring(0, 20)}...`,
+                        );
+                    });
+
+                    chartApi.on("trend-line-deselected", (data) => {
+                        selectedTrendLineId = null;
+                        document.getElementById(
+                            "trend-line-settings",
+                        ).style.display = "none";
+                        updateStatus("Trend line deselected");
+                    });
+
+                    chartApi.on("trend-line-deleted", (data) => {
+                        if (selectedTrendLineId === data.trendLineId) {
+                            selectedTrendLineId = null;
+                            document.getElementById(
+                                "trend-line-settings",
+                            ).style.display = "none";
+                        }
+                        updateStatus(
+                            `Trend line deleted: ${data.trendLineId.substring(0, 20)}...`,
+                        );
+                    });
+
+                    // Trading overlay events
+                    chartApi.on("trade-marker-clicked", (event) => {
+                        console.log("Trade marker clicked:", event);
+                        updateStatus(
+                            `Trade marker clicked: ${event.markerId.substring(0, 30)}... at $${event.marker.price.toFixed(2)}`,
+                        );
+                    });
+
+                    chartApi.on("price-line-dragged", (event) => {
+                        console.log("Price line dragged:", event);
+                        updateStatus(
+                            `Price line dragged from $${event.oldPrice.toFixed(2)} to $${event.newPrice.toFixed(2)}`,
+                        );
+                    });
+
+                    chartApi.on("trade-zone-clicked", (event) => {
+                        console.log("Trade zone clicked:", event);
+                        updateStatus(
+                            `Trade zone clicked: ${event.zoneId.substring(0, 30)}... Entry: $${event.zone.entryPrice.toFixed(2)}, Exit: $${event.zone.exitPrice.toFixed(2)}`,
+                        );
+                    });
+
+                    chartApi.on("chart-clicked", (event) => {
+                        addEventToLog("chart-clicked", event);
+                        console.log("Chart clicked:", event);
+                        updateStatus(
+                            `Clicked price: $${event.price.toFixed(2)} at ${new Date(event.timestamp).toLocaleTimeString()}`,
+                        );
+                    });
+
+                    chartApi.on("crosshair-moved", (event) => {
+                        addEventToLog("crosshair-moved", event);
+                    });
+
+                    chartApi.on("chart-context-menu", (event) => {
+                        addEventToLog("chart-context-menu", event);
+                        console.log("Chart context menu:", event);
+                    });
+
+                    chartApi.on("annotation-dragged", (data) => {
+                        const newDate = new Date(data.newTimestamp);
+                        updateStatus(
+                            `Annotation dragged:\nNew price: $${data.newPrice?.toFixed(2) || "N/A"}\nNew time: ${newDate.toLocaleString()}`,
+                        );
+                    });
+
+                    chartApi.on("annotation-clicked", (event) => {
+                        addEventToLog("annotation-clicked", event);
+                        updateStatus(
+                            `Annotation clicked: ${event.annotation.text}`,
+                        );
+                    });
+
+                    chartApi.on("time-marker-clicked", (event) => {
+                        addEventToLog("time-marker-clicked", event);
+                        console.log("Time marker clicked:", event);
+                        updateStatus(
+                            `Time marker clicked: ${event.marker.label || "Unlabeled"} at ${new Date(event.marker.timestamp).toLocaleString()}`,
+                        );
+                    });
+
+                    chartApi.on("risk-zone-clicked", (event) => {
+                        addEventToLog("risk-zone-clicked", event);
+                        console.log("Risk zone clicked:", event);
+                        updateStatus(
+                            `Risk zone clicked: ${event.zone.label || "Unlabeled"} ($${event.zone.startPrice.toFixed(2)} - $${event.zone.endPrice.toFixed(2)})`,
+                        );
+                    });
+
+                    return true;
+                }
+                return false;
+            }
+
+            function initializeDemo() {
+                if (window.chartApi1) {
+                    setupChartEventListeners();
+                    updateStatus();
+                    updateActiveButtons();
+
+                    if (chartApi) {
+                        // Enable RSI indicator on initialization using setIndicators()
+                        chartApi.setIndicators([
+                            {
+                                id: "rsi",
+                                name: "RSI",
+                                visible: true,
+                            },
+                        ]);
+
+                        chartApi.on("symbolChange", () => {
+                            updateStatus();
+                            updateActiveButtons();
+                        });
+                        chartApi.on("granularityChange", () => {
+                            updateStatus();
+                            updateActiveButtons();
+                        });
+                        chartApi.on("indicatorChange", () => {
+                            updateStatus();
+                            updateActiveButtons();
+                        });
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            // Initialize demo when charts are ready
+            window.addEventListener("load", () => {
+                setupTrendLineControls();
+
+                if (!initializeDemo()) {
+                    const pollInterval = setInterval(() => {
+                        if (initializeDemo()) {
+                            clearInterval(pollInterval);
+                        }
+                    }, 100);
+                }
+            });
+        </script>
+    </body>
+</html>

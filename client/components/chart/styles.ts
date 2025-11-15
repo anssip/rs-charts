@@ -31,6 +31,12 @@ export const getStyles = (
     overflow: hidden;
   }
 
+  :host(.resizing) .chart-area {
+    filter: blur(4px);
+    opacity: 0.7;
+    transition: none;
+  }
+
   .chart-wrapper {
     display: flex;
     flex-direction: column;
@@ -78,6 +84,7 @@ export const getStyles = (
     height: 100%;
     overflow: hidden;
     pointer-events: auto;
+    z-index: 1; /* Below all overlay layers (time markers: 50, price lines: 50, etc.) */
   }
 
   chart-timeline {
@@ -134,6 +141,16 @@ export const getStyles = (
 
   chart-crosshairs > * {
     pointer-events: all;
+  }
+
+  click-to-trade-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
   }
 
   price-axis {
@@ -204,12 +221,20 @@ export const getStyles = (
     min-height: 0;
     overflow: hidden;
     height: 100%;
-    pointer-events: auto;
+    pointer-events: none;
     cursor: crosshair;
+    position: relative;
+    z-index: 0; /* Ensure indicator-stack stays below overlay layers */
   }
 
   indicator-stack.main-chart:active {
     cursor: grabbing;
+  }
+
+  /* Allow specific interactive elements to receive pointer events */
+  indicator-stack.main-chart candlestick-chart,
+  indicator-stack.main-chart price-axis {
+    pointer-events: auto;
   }
 
   /* Style elements by their grid area attribute */
@@ -402,5 +427,22 @@ export const getStyles = (
     height: 100%;
     width: 100%;
     flex: 1;
+  }
+
+  /* Flexbox container for top overlays (live-candle-display and position-overlay) */
+  .top-overlays-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .top-overlays-container > * {
+    pointer-events: auto;
   }
 `;

@@ -28,6 +28,12 @@ export class IndicatorContainer extends LitElement {
 
     // Set up resize observer to redraw when container size changes
     this.resizeObserver = new ResizeObserver(() => {
+      // Skip updates during resize to improve performance
+      // Note: Check explicitly === true because XinJS proxies can be truthy
+      if (this._state?.isResizing === true) {
+        logger.debug("IndicatorContainer: Skipping update during resize");
+        return;
+      }
       this.updateChildComponents();
     });
     this.resizeObserver.observe(this);
@@ -70,11 +76,8 @@ export class IndicatorContainer extends LitElement {
       logger.debug(`Found ${elements.length} slotted elements`);
 
       for (const element of elements) {
-        // Check if the element is a market-indicator with a name property
-        if (
-          element.tagName.toLowerCase() === "market-indicator" &&
-          "name" in element
-        ) {
+        // Check if the element has a name property (works for all indicator types)
+        if ("name" in element) {
           const name = (element as any).name;
           if (name) {
             logger.debug(`Found indicator with name: ${name}`);

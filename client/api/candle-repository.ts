@@ -8,8 +8,8 @@ import {
 import { ApiCache, CacheKey } from "./api-cache";
 import { getLogger, LogLevel } from "../util/logger";
 
-const logger = getLogger('candle-repository');
-logger.setLoggerLevel('candle-repository', LogLevel.ERROR);
+const logger = getLogger("candle-repository");
+logger.setLoggerLevel("candle-repository", LogLevel.ERROR);
 
 export interface FetchCandlesOptions {
   symbol: string;
@@ -22,7 +22,10 @@ export interface FetchCandlesOptions {
 }
 
 class CandleKey implements CacheKey {
-  constructor(private symbol: string, private granularity: Granularity) {}
+  constructor(
+    private symbol: string,
+    private granularity: Granularity,
+  ) {}
 
   toString(): string {
     return `${this.symbol}:${this.granularity}`;
@@ -39,7 +42,7 @@ export class CandleRepository {
   }
 
   async fetchCandles(
-    options: FetchCandlesOptions
+    options: FetchCandlesOptions,
   ): Promise<CandleDataByTimestamp> {
     const {
       symbol,
@@ -54,7 +57,7 @@ export class CandleRepository {
     const pendingPromise = this.cache.isPendingFetch(
       key,
       timeRange,
-      indicators
+      indicators,
     );
     if (pendingPromise) {
       await pendingPromise;
@@ -75,14 +78,14 @@ export class CandleRepository {
       const pendingPromise = this.cache.markFetchPending(
         key,
         timeRange,
-        indicators
+        indicators,
       );
 
       const rangeCandles = await this.fetchRange(
         symbol,
         granularity,
         timeRange,
-        indicators
+        indicators,
       );
 
       const result = this.cache.updateCache(
@@ -93,7 +96,7 @@ export class CandleRepository {
           min: Math.min(...Array.from(data.keys())),
           max: Math.max(...Array.from(data.keys())),
         }),
-        indicators
+        indicators,
       );
 
       this.cache.markFetchComplete(key, timeRange, indicators);
@@ -115,7 +118,7 @@ export class CandleRepository {
     symbol: string,
     granularity: Granularity,
     range: TimeRange,
-    indicators?: string[]
+    indicators?: string[],
   ): Promise<CandleDataByTimestamp> {
     const MAX_CANDLES = 200;
     const intervalMs = granularityToMs(granularity);
@@ -135,14 +138,14 @@ export class CandleRepository {
       const batchCandles = Math.min(remainingCandles, MAX_CANDLES);
       const batchEnd = Math.min(
         currentStart + (batchCandles - 1) * intervalMs,
-        alignedEnd
+        alignedEnd,
       );
 
       const batchCandlesData = await this.fetchSingleRange(
         symbol,
         granularity,
         { start: currentStart, end: batchEnd },
-        indicators
+        indicators,
       );
 
       // Merge batch results into main results map
@@ -160,7 +163,7 @@ export class CandleRepository {
     symbol: string,
     granularity: Granularity,
     range: TimeRange,
-    indicators?: string[]
+    indicators?: string[],
   ): Promise<CandleDataByTimestamp> {
     try {
       if (Number(range.end) <= Number(range.start)) {
@@ -179,11 +182,10 @@ export class CandleRepository {
         exchange: "coinbase",
       });
 
-      // Append each evaluator as a separate evaluators parameter
+      // Send evaluators as a JSON-encoded array with id and optional params
       if (effectiveIndicators?.length) {
-        effectiveIndicators.forEach((evaluator) => {
-          params.append("evaluators", evaluator);
-        });
+        const evaluatorConfigs = effectiveIndicators.map((id) => ({ id }));
+        params.append("evaluators", JSON.stringify(evaluatorConfigs));
       }
 
       const response = await fetch(`${this.API_BASE_URL}/history?${params}`);
@@ -197,7 +199,7 @@ export class CandleRepository {
         result.candles.map((candle: Candle) => [
           Number(candle.timestamp),
           { ...candle, granularity },
-        ])
+        ]),
       );
     } catch (error) {
       logger.error("Error fetching candles:", error);
