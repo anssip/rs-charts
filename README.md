@@ -177,6 +177,12 @@ const { api } = initChartWithApi(container, firebaseConfig, state);
 - WebComponents support required
 - Firebase 9+ compatible
 
+## Related Projects
+
+- [sc-app – Spot Canvas website and charts application with AI Assistend technical analysis](https://github.com/anssipiirainen/sc-app)
+- [market-evaluators – Indicators backend for Spot Canvas and this library](https://github.com/anssipiirainen/market-evaluators)
+- [spot-server – Price data ingestion](https://github.com/anssipiirainen/spot-server)
+
 ## License
 
 MIT
