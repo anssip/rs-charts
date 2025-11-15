@@ -179,9 +179,11 @@ const { api } = initChartWithApi(container, firebaseConfig, state);
 
 ## Related Projects
 
-- [sc-app – Spot Canvas website and charts application with AI Assistend technical analysis](https://github.com/anssipiirainen/sc-app)
-- [market-evaluators – Indicators backend for Spot Canvas and this library](https://github.com/anssipiirainen/market-evaluators)
-- [spot-server – Price data ingestion](https://github.com/anssipiirainen/spot-server)
+This library is part of the Spot Canvas "ecosystem":
+
+- [sc-app – Spot Canvas website and charts application with AI Assistend technical analysis](https://github.com/anssip/sc-app)
+- [market-evaluators – Indicators backend for Spot Canvas and this library](https://github.com/anssip/market_evaluators)
+- [spot-server – Price data ingestion](https://github.com/anssip/spot-server)
 
 ## License
 
